@@ -1,5 +1,6 @@
 mod h2entry;
 mod h2buffer;
+mod h2value;
 
 use h2buffer::H2Buffer;
 
