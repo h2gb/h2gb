@@ -114,6 +114,7 @@ Queries:
 
 * GetEverything
 * GetUpdatesSince(rev)
+* GetActions
 * GetBuffers
 * GetLayers
 * GetLayersIn(buffer)
