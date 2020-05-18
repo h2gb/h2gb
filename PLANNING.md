@@ -53,7 +53,7 @@ What it contains:
 
 * One or more `h2buffer`s, indexed by name
 * A record of all actions performed
-* Project metadata - name, etc.
+* Project metadata - name, version, etc.
 
 The very core is going to be the `h2action`s and `h2query`s, since that will
 be the interface to literally everything else.

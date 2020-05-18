@@ -7,3 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Undo / redo
+redo = { version = "~0.40.0", features = ["chrono", "serde"] }
+
+# Serialize / deserialize
+serde = { version = "~1.0.110", features = ["derive"] }
+serde_json = "~1.0.53"
+#bincode = "~1.2.1"
