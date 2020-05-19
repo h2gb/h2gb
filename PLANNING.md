@@ -22,6 +22,7 @@ We will:
 * Allow manual annotation
 * Allow editing / exporting updated files (within reason)
 * Allow concurrent editing
+* Binary diffing? Could probably (dumbly) compare two buffers, tag stuff in a layer
 
 We will not:
 
@@ -180,10 +181,16 @@ The reasoning for multiple layers: say you're analyzing an executable. You
 might do a basic `strings`-type analysis to create an `h2layer` with a bunch of
 strings. But then you want to analyze as an executable. That's another layer!
 
+An `h2layer` also needs information on how to re-create its entries (if
+possible) when data is edited. For that, a map of `h2combinator`s is stored,
+indexed by address, that can be re-executed to update the entries. These can't
+overlap, and therefore must be fixed-length.
+
 An `h2layer` contains:
 
 * A series of non-overlapping `h2entry`s
 * A boolean whether or not to display undefined entries
+* One or more `H2Combinator`s, indexed by address
 
 When data changes (either a user edits it or merges a child buffer's data),
 each layer will need to go through its entries to update them.
@@ -208,35 +215,40 @@ Each `h2entry` contains:
   * `h2simpletype` - a simple fixed-length datatype (char, int, etc)
   * `h2complextype` - a complex, variable-length data type
     * These are harder, because we can't re-run them without potentially overlapping with other entries
-  * `h2combinator` - a complex, fixed-length datatype
-    * Since `h2combinator`s define multiple `h2entry`s, it either needs to reference the first field or share a combinator
 
-# `h2datatype`
+# Datatypes
 
-An `h2datatype` is a class/interface that knows how to take an `h2layer` + an
-offset and create (or update) an `h2entry`. Some are simple and built-in, such
-as integers and floats - they just need some configuration (like size and
-endianness).
+Within a layer, we can define certain sequences as a "type". The reason we have
+to store datatype information is because we want to re-apply them when editing.
 
-Others types are more complex, such as arrays and structs, and can infinitely
-nest. These will need to be "configured", in a sense. They will also have
-configurations such as padding and alignment.
+A few characteristics of all datatypes:
 
-Yet other types are different types of constants: constants, enums, and
-bitmaps. Constants are mappings that, when changed, go away. Enums are mappings
-that are grouped, meaning that when the data changes, the new value can be
-updated. And bitmaps are bit arrays where each bit's state is meaningful.
+* They are a fixed length
+* They cannot overlap within a layer
+* They are composible, using an `H2Combinator`, but are still fixed length
 
-The final type, which may or may not make the final cut, are dynamically-sized
-types such as strings.
+## h2datatype
 
-The important part is that an entry knows which datatype created it, so it can
-update itself as needed.
+An `h2datatype` is a simple building block datatype. It knows its own length,
+and can turn that many bytes into something user-readable.
 
-**Question:  Do I want these to _create_ `h2entry`s, or do I want h2entrys to reference them and calculate as-needed?**
+Although a type is a fixed length, it's possible to have configurable pieces
+(such as endianness).
 
-Ultimately, I'd like to create as many types as possible by parsing header
-files.
+## h2combinator
+
+An `h2combinator` is a way to represent a group of `h2datatype`s that create
+one or more `h2entries` within a layer. They enable us to build more complex
+types such as arrays and structs.
+
+The types we want to represent:
+
+* Single - a single `h2datatype`
+* Array - a fixed-length sequence of the same `h2datatype` or `h2combinator`
+* Struct - an arbitrarily long sequence of different `h2datatype`s or `h2combinators`
+
+Note that any of these can be arbitrarily nested. Note also that they'll know
+how to calculate their own length.
 
 # Ways to manipulate buffers
 
@@ -277,3 +289,16 @@ I think there will be different types:
 
 * File format analyzers, which know certain formats and can annotate
 * Dumb analyzers, which look for and tag certain things (like finding strings)
+
+## h2quickanalyzer
+
+Creating this type to see how I feel about it tomorrow. :)
+
+We need a mini version of `h2analyzer` that can analyze a small part of an
+`h2buffer` and define entries.
+
+The usecases are primarily for different string types, like NTString or a
+length-prefixed string or even a UTF-8 string.
+
+But I can potentially see this as the interface to creating any kind of
+`H2Datatype` and `H2Combinator`. More thought is required.
