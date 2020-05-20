@@ -1,5 +1,8 @@
+#![allow(dead_code)]
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
+
+mod bumpy_hash_map;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct H2Action {
@@ -84,9 +87,9 @@ pub struct H2Analyzer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 
-    #[test]
-    fn test_redo() {
-    }
+    // #[test]
+    // fn test_redo() {
+    // }
 }

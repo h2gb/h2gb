@@ -1,8 +1,6 @@
 use redo::{Command, Record};
 use serde::{Serialize, Deserialize};
 
-mod lib;
-
 #[derive(Serialize, Deserialize, Debug)]
 struct MyTarget {
     i: u32,
@@ -245,7 +243,7 @@ fn try_redo() -> redo::Result<Action> {
 
 fn main() {
     try_redo().unwrap();
-    let a: lib::H2Project = Default::default();
-    let s = ron::ser::to_string(&a).unwrap();
-    println!("Serialized: {}", s);
+    //let a: lib::H2Project = Default::default();
+    //let s = ron::ser::to_string(&a).unwrap();
+    //println!("Serialized: {}", s);
 }
