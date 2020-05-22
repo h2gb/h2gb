@@ -10,7 +10,7 @@ Interesting usecases:
 
 # Questions
 
-* What's the best way to implement undo / redo?
+* What about pointers? If variable A points to an integer at address B, do we define that somehow?
 
 # Goals
 
@@ -249,6 +249,25 @@ The types we want to represent:
 
 Note that any of these can be arbitrarily nested. Note also that they'll know
 how to calculate their own length.
+
+## h2pointer
+
+Pointers are tricky, but important I think.
+
+Pointers need to reference another offset (absolute or relative, from the start
+or end of the data, and maybe other changes). The pointer has an associated
+`h2combinator` or `h2datatype`, which can contain other pointers?
+
+These can't be updated the way h2combinator is, however, because we can't just
+move things around.
+
+We can maybe...
+
+* Mark pointers as not-editable?
+* Use an h2analyzer-type thing for pointers?
+  * Pointers need to exist inside structs, so I'm not sure that'll work
+
+I'm a bit stumped @ how I want to implement this :-/
 
 # Ways to manipulate buffers
 
