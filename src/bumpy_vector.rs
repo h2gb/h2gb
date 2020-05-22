@@ -11,15 +11,15 @@ pub struct BumpyEntry<T> {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 // TODO(ron) Rename to BumpyVector
-pub struct BumpyHashMap<V> {
-    data: HashMap<usize, BumpyEntry<V>>,
+pub struct BumpyVector<T> {
+    data: HashMap<usize, BumpyEntry<T>>,
     max_size: usize,
     iterate_over_empty: bool,
 }
 
-impl<V> BumpyHashMap<V> {
+impl<T> BumpyVector<T> {
     fn new(max_size: usize) -> Self {
-        BumpyHashMap {
+        BumpyVector {
             data: HashMap::new(),
             max_size: max_size,
             iterate_over_empty: false,
@@ -58,7 +58,7 @@ impl<V> BumpyHashMap<V> {
     }
 
     // TODO(ron) Make the index/size/value trio more consistent
-    pub fn insert(&mut self, index: usize, size: usize, value: V) -> Result<(), &'static str> {
+    pub fn insert(&mut self, index: usize, size: usize, value: T) -> Result<(), &'static str> {
         if index + size > self.max_size {
             return Err("Invalid entry: entry exceeds max size");
         }
@@ -96,7 +96,7 @@ impl<V> BumpyHashMap<V> {
     }
 
     // Returns a tuple of: a reference to the entry, the starting address, and the size
-    pub fn get(&self, index: usize) -> Option<(&V, usize, usize)> {
+    pub fn get(&self, index: usize) -> Option<(&T, usize, usize)> {
         // Try to get the real offset
         let real_offset = self.find_left_offset(index);
 
@@ -120,13 +120,13 @@ impl<V> BumpyHashMap<V> {
     }
 }
 
-impl<'a, V> IntoIterator for &'a BumpyHashMap<V> {
-    type Item = (Option<&'a V>, usize, usize);
-    type IntoIter = std::vec::IntoIter<(Option<&'a V>, usize, usize)>;
+impl<'a, T> IntoIterator for &'a BumpyVector<T> {
+    type Item = (Option<&'a T>, usize, usize);
+    type IntoIter = std::vec::IntoIter<(Option<&'a T>, usize, usize)>;
 
-    fn into_iter(self) -> std::vec::IntoIter<(Option<&'a V>, usize, usize)> {
+    fn into_iter(self) -> std::vec::IntoIter<(Option<&'a T>, usize, usize)> {
         let mut a = 0;
-        let mut real_data: Vec<(Option<&'a V>, usize, usize)> = Default::default();
+        let mut real_data: Vec<(Option<&'a T>, usize, usize)> = Default::default();
         while a < self.max_size {
             if self.data.contains_key(&a) {
                 let entry = &self.data.get(&a);
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_insert() {
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(100);
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
 
         // Insert a 5-byte value at 10
         h.insert(10, 5, "hello").unwrap();
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_overlapping_one_byte_inserts() {
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(100);
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
 
         // Insert a 2-byte value at 10
         h.insert(10, 2, "hello").unwrap();
@@ -208,12 +208,12 @@ mod tests {
     #[test]
     fn test_overlapping_multi_byte_inserts() {
         // Define 10-12, put something at 7-9 (good!)
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(100);
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
         h.insert(10, 3, "hello").unwrap();
         assert!(h.insert(7,  3, "ok").is_ok());
 
         // Define 10-12, try every overlapping bit
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(100);
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
         h.insert(10, 3, "hello").unwrap();
         assert!(h.insert(8,  3, "error").is_err());
         assert!(h.insert(9,  3, "error").is_err());
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn test_remove() {
         // Define 10-12, put something at 7-9 (good!)
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(100);
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
         h.insert(8, 2, "hello").unwrap();
         h.insert(10, 2, "hello").unwrap();
         h.insert(12, 2, "hello").unwrap();
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn beginning_works() {
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(10);
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
         h.insert(0, 2, "hello").unwrap();
         assert_eq!(h.entries(), 1);
         assert_eq!(h.get(0).unwrap(), (&"hello", 0, 2));
@@ -273,37 +273,37 @@ mod tests {
     #[test]
     fn max_size() {
         // Inserting at 7-8-9 works
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(10);
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
         h.insert(7, 3, "hello").unwrap();
         assert_eq!(h.entries(), 1);
 
         // Inserting at 8-9-10 and onward does not
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(10);
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
         assert!(h.insert(8, 3, "hello").is_err());
         assert_eq!(h.entries(), 0);
 
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(10);
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
         assert!(h.insert(9, 3, "hello").is_err());
         assert_eq!(h.entries(), 0);
 
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(10);
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
         assert!(h.insert(10, 3, "hello").is_err());
         assert_eq!(h.entries(), 0);
 
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(10);
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
         assert!(h.insert(11, 3, "hello").is_err());
         assert_eq!(h.entries(), 0);
     }
 
     #[test]
     fn test_iterator() {
-        // Create a BumpyHashMap that looks like:
+        // Create a BumpyVector that looks like:
         //
         // [--0-- --1-- --2-- --3-- --4-- --5-- --6-- --7-- --8-- --9--]
         //        +-----------------            +----------------+
         //        |   "a" (2)| "b" |            |      "c"       |
         //        +----------+------            +----------------+
-        let mut h: BumpyHashMap<&str> = BumpyHashMap::new(10);
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
         h.insert(1, 2, "a").unwrap();
         h.insert(3, 1, "b").unwrap();
         h.insert(6, 3, "c").unwrap();

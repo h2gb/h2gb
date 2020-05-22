@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
-mod bumpy_hash_map;
+mod bumpy_vector;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct H2Action {
