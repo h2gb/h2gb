@@ -1,3 +1,5 @@
+//! Provides a vector-like object where elements can be larger than one "space"
+
 #![allow(dead_code)]
 
 use std::collections::HashMap;
@@ -10,7 +12,6 @@ pub struct BumpyEntry<T> {
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
-// TODO(ron) Rename to BumpyVector
 pub struct BumpyVector<T> {
     data: HashMap<usize, BumpyEntry<T>>,
     max_size: usize,
@@ -57,8 +58,7 @@ impl<T> BumpyVector<T> {
         }
     }
 
-    // TODO(ron) Make the index/size/value trio more consistent
-    pub fn insert(&mut self, index: usize, size: usize, value: T) -> Result<(), &'static str> {
+    pub fn insert(&mut self, value: T, index: usize, size: usize) -> Result<(), &'static str> {
         if index + size > self.max_size {
             return Err("Invalid entry: entry exceeds max size");
         }
@@ -84,16 +84,24 @@ impl<T> BumpyVector<T> {
         Ok(())
     }
 
-    pub fn remove(&mut self, index: usize) {
+    pub fn remove(&mut self, index: usize) -> Option<(T, usize, usize)> {
         // Try to get the real offset
         let real_offset = self.find_left_offset(index);
 
         // If there's no element, return none
         if let Some(o) = real_offset {
             // Remove it!
-            self.data.remove(&o);
+            if let Some(d) = self.data.remove(&o) {
+                return Some((d.entry, o, d.size));
+            }
         }
+
+        None
     }
+
+    // pub fn remove_range(&mut self, index: usize, length: usize) -> Vec<t> {
+    //     // TODO
+    // }
 
     // Returns a tuple of: a reference to the entry, the starting address, and the size
     pub fn get(&self, index: usize) -> Option<(&T, usize, usize)> {
@@ -115,7 +123,12 @@ impl<T> BumpyVector<T> {
         None
     }
 
-    pub fn entries(&self) -> usize {
+    // TODO(ron): Can this be used for into_iterator?
+    // pub fn get_range(&self, index: usize, length: usize) -> Vec<(Option<T>, usize, usize)> {
+    // TODO
+    // }
+
+    pub fn len(&self) -> usize {
         return self.data.len();
     }
 }
@@ -125,23 +138,19 @@ impl<'a, T> IntoIterator for &'a BumpyVector<T> {
     type IntoIter = std::vec::IntoIter<(Option<&'a T>, usize, usize)>;
 
     fn into_iter(self) -> std::vec::IntoIter<(Option<&'a T>, usize, usize)> {
-        let mut a = 0;
+        // We're stuffing all of our data into a vector to iterate over it
         let mut real_data: Vec<(Option<&'a T>, usize, usize)> = Default::default();
-        while a < self.max_size {
-            if self.data.contains_key(&a) {
-                let entry = &self.data.get(&a);
 
-                if let Some(e) = entry {
-                    real_data.push((Some(&e.entry), a, e.size));
-                    a += e.size;
-                } else {
-                    // This block shouldn't be able to happen
-                    if self.iterate_over_empty {
-                        real_data.push((None, a, 1));
-                    }
-                    a += 1;
-                }
+        // Loop through by counting, since each entry takes up multiple indices
+        let mut a = 0;
+        while a < self.max_size {
+            // Pull the entry out, if it exists
+            if let Some(e) = self.data.get(&a) {
+                // Add the entry to the vector, and jump over it
+                real_data.push((Some(&e.entry), a, e.size));
+                a += e.size;
             } else {
+                // If the user wants empty elements, push a fake entry
                 if self.iterate_over_empty {
                     real_data.push((None, a, 1));
                 }
@@ -149,6 +158,7 @@ impl<'a, T> IntoIterator for &'a BumpyVector<T> {
             }
         }
 
+        // Convert the vector into an iterator
         return real_data.into_iter();
     }
 }
@@ -163,8 +173,8 @@ mod tests {
         let mut h: BumpyVector<&str> = BumpyVector::new(100);
 
         // Insert a 5-byte value at 10
-        h.insert(10, 5, "hello").unwrap();
-        assert_eq!(h.entries(), 1);
+        h.insert("hello", 10, 5).unwrap();
+        assert_eq!(h.len(), 1);
 
         // Make sure only those 5 values are defined
         assert_eq!(h.get(8), None);
@@ -176,7 +186,7 @@ mod tests {
         assert_eq!(h.get(14).unwrap(), (&"hello", 10, 5));
         assert_eq!(h.get(15), None);
         assert_eq!(h.get(16), None);
-        assert_eq!(h.entries(), 1);
+        assert_eq!(h.len(), 1);
     }
 
     #[test]
@@ -184,78 +194,79 @@ mod tests {
         let mut h: BumpyVector<&str> = BumpyVector::new(100);
 
         // Insert a 2-byte value at 10
-        h.insert(10, 2, "hello").unwrap();
-        assert_eq!(h.entries(), 1);
+        h.insert("hello", 10, 2).unwrap();
+        assert_eq!(h.len(), 1);
 
         // We can insert before
-        assert!(h.insert(8,  1, "ok").is_ok());
-        assert_eq!(h.entries(), 2);
-        assert!(h.insert(9,  1, "ok").is_ok());
-        assert_eq!(h.entries(), 3);
+        assert!(h.insert("ok", 8,  1).is_ok());
+        assert_eq!(h.len(), 2);
+        assert!(h.insert("ok", 9,  1).is_ok());
+        assert_eq!(h.len(), 3);
 
         // We can't insert within
-        assert!(h.insert(10, 1, "error").is_err());
-        assert!(h.insert(11, 1, "error").is_err());
-        assert_eq!(h.entries(), 3);
+        assert!(h.insert("error", 10, 1).is_err());
+        assert!(h.insert("error", 11, 1).is_err());
+        assert_eq!(h.len(), 3);
 
         // We can insert after
-        assert!(h.insert(12, 1, "ok").is_ok());
-        assert_eq!(h.entries(), 4);
-        assert!(h.insert(13, 1, "ok").is_ok());
-        assert_eq!(h.entries(), 5);
+        assert!(h.insert("ok", 12, 1).is_ok());
+        assert_eq!(h.len(), 4);
+        assert!(h.insert("ok", 13, 1).is_ok());
+        assert_eq!(h.len(), 5);
     }
 
     #[test]
     fn test_overlapping_multi_byte_inserts() {
         // Define 10-12, put something at 7-9 (good!)
         let mut h: BumpyVector<&str> = BumpyVector::new(100);
-        h.insert(10, 3, "hello").unwrap();
-        assert!(h.insert(7,  3, "ok").is_ok());
+        h.insert("hello", 10, 3).unwrap();
+        assert!(h.insert("ok", 7,  3).is_ok());
 
         // Define 10-12, try every overlapping bit
         let mut h: BumpyVector<&str> = BumpyVector::new(100);
-        h.insert(10, 3, "hello").unwrap();
-        assert!(h.insert(8,  3, "error").is_err());
-        assert!(h.insert(9,  3, "error").is_err());
-        assert!(h.insert(10, 3, "error").is_err());
-        assert!(h.insert(11, 3, "error").is_err());
-        assert!(h.insert(12, 3, "error").is_err());
+        h.insert("hello", 10, 3).unwrap();
+        assert!(h.insert("error", 8,  3).is_err());
+        assert!(h.insert("error", 9,  3).is_err());
+        assert!(h.insert("error", 10, 3).is_err());
+        assert!(h.insert("error", 11, 3).is_err());
+        assert!(h.insert("error", 12, 3).is_err());
 
         // 6-9 and 13-15 will work
-        assert!(h.insert(6,  3, "ok").is_ok());
-        assert!(h.insert(13, 3, "ok").is_ok());
-        assert_eq!(h.entries(), 3);
+        assert!(h.insert("ok", 6,  3).is_ok());
+        assert!(h.insert("ok", 13, 3).is_ok());
+        assert_eq!(h.len(), 3);
     }
 
     #[test]
     fn test_remove() {
         // Define 10-12, put something at 7-9 (good!)
         let mut h: BumpyVector<&str> = BumpyVector::new(100);
-        h.insert(8, 2, "hello").unwrap();
-        h.insert(10, 2, "hello").unwrap();
-        h.insert(12, 2, "hello").unwrap();
-        assert_eq!(h.entries(), 3);
+        h.insert("hello", 8, 2).unwrap();
+        h.insert("hello", 10, 2).unwrap();
+        h.insert("hello", 12, 2).unwrap();
+        assert_eq!(h.len(), 3);
 
+        // TODO: Check return, remove from middle
         h.remove(10);
-        assert_eq!(h.entries(), 2);
+        assert_eq!(h.len(), 2);
         assert_eq!(h.get(10), None);
         assert_eq!(h.get(11), None);
 
-        h.insert(10, 2, "hello").unwrap();
-        assert_eq!(h.entries(), 3);
+        h.insert("hello", 10, 2).unwrap();
+        assert_eq!(h.len(), 3);
 
         h.remove(11);
-        assert_eq!(h.entries(), 2);
+        assert_eq!(h.len(), 2);
         assert_eq!(h.get(10), None);
         assert_eq!(h.get(11), None);
 
         h.remove(13);
-        assert_eq!(h.entries(), 1);
+        assert_eq!(h.len(), 1);
         assert_eq!(h.get(12), None);
         assert_eq!(h.get(13), None);
 
         h.remove(8);
-        assert_eq!(h.entries(), 0);
+        assert_eq!(h.len(), 0);
         assert_eq!(h.get(8), None);
         assert_eq!(h.get(9), None);
     }
@@ -263,8 +274,8 @@ mod tests {
     #[test]
     fn beginning_works() {
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
-        h.insert(0, 2, "hello").unwrap();
-        assert_eq!(h.entries(), 1);
+        h.insert("hello", 0, 2).unwrap();
+        assert_eq!(h.len(), 1);
         assert_eq!(h.get(0).unwrap(), (&"hello", 0, 2));
         assert_eq!(h.get(1).unwrap(), (&"hello", 0, 2));
         assert_eq!(h.get(2), None);
@@ -274,25 +285,25 @@ mod tests {
     fn max_size() {
         // Inserting at 7-8-9 works
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
-        h.insert(7, 3, "hello").unwrap();
-        assert_eq!(h.entries(), 1);
+        h.insert("hello", 7, 3).unwrap();
+        assert_eq!(h.len(), 1);
 
         // Inserting at 8-9-10 and onward does not
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
-        assert!(h.insert(8, 3, "hello").is_err());
-        assert_eq!(h.entries(), 0);
+        assert!(h.insert("hello", 8, 3).is_err());
+        assert_eq!(h.len(), 0);
 
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
-        assert!(h.insert(9, 3, "hello").is_err());
-        assert_eq!(h.entries(), 0);
+        assert!(h.insert("hello", 9, 3).is_err());
+        assert_eq!(h.len(), 0);
 
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
-        assert!(h.insert(10, 3, "hello").is_err());
-        assert_eq!(h.entries(), 0);
+        assert!(h.insert("hello", 10, 3).is_err());
+        assert_eq!(h.len(), 0);
 
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
-        assert!(h.insert(11, 3, "hello").is_err());
-        assert_eq!(h.entries(), 0);
+        assert!(h.insert("hello", 11, 3).is_err());
+        assert_eq!(h.len(), 0);
     }
 
     #[test]
@@ -304,9 +315,9 @@ mod tests {
         //        |   "a" (2)| "b" |            |      "c"       |
         //        +----------+------            +----------------+
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
-        h.insert(1, 2, "a").unwrap();
-        h.insert(3, 1, "b").unwrap();
-        h.insert(6, 3, "c").unwrap();
+        h.insert("a", 1, 2).unwrap();
+        h.insert("b", 3, 1).unwrap();
+        h.insert("c", 6, 3).unwrap();
 
         // Iterate over everything, including empty values
         h.iterate_over_empty = true;

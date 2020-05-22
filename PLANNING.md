@@ -23,6 +23,7 @@ We will:
 * Allow editing / exporting updated files (within reason)
 * Allow concurrent editing
 * Binary diffing? Could probably (dumbly) compare two buffers, tag stuff in a layer
+* File dissection?
 
 We will not:
 
