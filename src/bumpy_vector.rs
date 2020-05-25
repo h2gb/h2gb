@@ -537,4 +537,27 @@ mod tests {
         assert_eq!(iter.next().unwrap(), (Some(&"c"), 6, 3));
         assert_eq!(iter.next(), None);
     }
+
+    #[test]
+    fn test_serialize() {
+        let mut h: BumpyVector<String> = BumpyVector::new(10);
+        h.insert(String::from("a"), 1, 2).unwrap();
+        h.insert(String::from("b"), 3, 1).unwrap();
+        h.insert(String::from("c"), 6, 3).unwrap();
+
+        // Serialize
+        let serialized = ron::ser::to_string(&h).unwrap();
+
+        // Deserialize
+        let h: BumpyVector<String> = ron::de::from_str(&serialized).unwrap();
+
+        // Make sure we have the same entries
+        assert_eq!(h.get(2).unwrap().0, "a");
+        assert_eq!(h.get(2).unwrap().1, 1);
+        assert_eq!(h.get(2).unwrap().2, 2);
+        assert_eq!(h.get(3).unwrap().0, "b");
+        assert_eq!(None, h.get(4));
+        assert_eq!(None, h.get(5));
+        assert_eq!(h.get(6).unwrap().0, "c");
+    }
 }
