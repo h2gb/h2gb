@@ -179,28 +179,7 @@ impl<'a, T> IntoIterator for &'a BumpyVector<T> {
     type IntoIter = std::vec::IntoIter<(Option<&'a T>, usize, usize)>;
 
     fn into_iter(self) -> std::vec::IntoIter<(Option<&'a T>, usize, usize)> {
-        // We're stuffing all of our data into a vector to iterate over it
-        let mut real_data: Vec<(Option<&'a T>, usize, usize)> = Vec::new();
-
-        // Loop through by counting, since each entry takes up multiple indices
-        let mut a = 0;
-        while a < self.max_size {
-            // Pull the entry out, if it exists
-            if let Some(e) = self.data.get(&a) {
-                // Add the entry to the vector, and jump over it
-                real_data.push((Some(&e.entry), a, e.size));
-                a += e.size;
-            } else {
-                // If the user wants empty elements, push a fake entry
-                if self.iterate_over_empty {
-                    real_data.push((None, a, 1));
-                }
-                a += 1;
-            }
-        }
-
-        // Convert the vector into an iterator
-        real_data.into_iter()
+        return self.get_range(0, self.max_size, self.iterate_over_empty).into_iter();
     }
 }
 
