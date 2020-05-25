@@ -18,7 +18,7 @@ pub struct BumpyVector<T> {
     iterate_over_empty: bool,
 }
 
-impl<T> BumpyVector<T> {
+impl<'a, T> BumpyVector<T> {
     fn new(max_size: usize) -> Self {
         BumpyVector {
             data: HashMap::new(),
@@ -99,9 +99,17 @@ impl<T> BumpyVector<T> {
         None
     }
 
-    // pub fn remove_range(&mut self, index: usize, length: usize) -> Vec<t> {
-    //     // TODO
-    // }
+    pub fn remove_range(&mut self, index: usize, length: usize) -> Vec<(T, usize, usize)> {
+        let mut result: Vec<(T, usize, usize)> = Vec::new();
+
+        for i in index..(index+length) {
+            if let Some(e) = self.remove(i) {
+                result.push(e);
+            }
+        }
+
+        result
+    }
 
     // Returns a tuple of: a reference to the entry, the starting address, and the size
     pub fn get(&self, index: usize) -> Option<(&T, usize, usize)> {
@@ -123,12 +131,45 @@ impl<T> BumpyVector<T> {
         None
     }
 
-    // TODO(ron): Can this be used for into_iterator?
-    // pub fn get_range(&self, index: usize, length: usize) -> Vec<(Option<T>, usize, usize)> {
-    // TODO
-    // }
+    // Return an entry if it starts at the exact address
+    pub fn get_exact(&self, index: usize) -> Option<(&T, usize, usize)> {
+        match self.data.get(&index) {
+            Some(o) => Some((&o.entry, index, o.size)),
+            None    => None,
+        }
+    }
+
+    pub fn get_range(&self, start: usize, length: usize, include_empty: bool) -> Vec<(Option<&T>, usize, usize)> {
+        // We're stuffing all of our data into a vector to iterate over it
+        let mut result: Vec<(Option<&T>, usize, usize)> = Vec::new();
+
+        // Start at the first entry left of what they wanted, if it exists
+        let mut i = match self.find_left_offset(start) {
+            Some(e) => e,
+            None    => start,
+        };
+
+        // Loop up to <length> bytes after the starting index
+        while i < start + length && i < self.max_size {
+            // Pull the entry out, if it exists
+            if let Some(e) = self.data.get(&i) {
+                // Add the entry to the vector, and jump over it
+                result.push((Some(&e.entry), i, e.size));
+                i += e.size;
+            } else {
+                // If the user wants empty elements, push i fake entry
+                if include_empty {
+                    result.push((None, i, 1));
+                }
+                i += 1;
+            }
+        }
+
+        result
+    }
 
     pub fn len(&self) -> usize {
+        // Return the number of entries
         return self.data.len();
     }
 }
@@ -139,7 +180,7 @@ impl<'a, T> IntoIterator for &'a BumpyVector<T> {
 
     fn into_iter(self) -> std::vec::IntoIter<(Option<&'a T>, usize, usize)> {
         // We're stuffing all of our data into a vector to iterate over it
-        let mut real_data: Vec<(Option<&'a T>, usize, usize)> = Default::default();
+        let mut real_data: Vec<(Option<&'a T>, usize, usize)> = Vec::new();
 
         // Loop through by counting, since each entry takes up multiple indices
         let mut a = 0;
@@ -159,7 +200,7 @@ impl<'a, T> IntoIterator for &'a BumpyVector<T> {
         }
 
         // Convert the vector into an iterator
-        return real_data.into_iter();
+        real_data.into_iter()
     }
 }
 
@@ -246,21 +287,36 @@ mod tests {
         h.insert("hello", 12, 2).unwrap();
         assert_eq!(h.len(), 3);
 
-        // TODO: Check return, remove from middle
-        h.remove(10);
+        // Remove from the start of an entry
+        let (e, index, size) = h.remove(10).unwrap();
+        assert_eq!(e, "hello");
+        assert_eq!(index, 10);
+        assert_eq!(size, 2);
         assert_eq!(h.len(), 2);
         assert_eq!(h.get(10), None);
         assert_eq!(h.get(11), None);
 
+        // Put it back
         h.insert("hello", 10, 2).unwrap();
         assert_eq!(h.len(), 3);
 
-        h.remove(11);
+        // Remove from the middle of an entry
+        let (e, index, size) = h.remove(11).unwrap();
+        assert_eq!(e, "hello");
+        assert_eq!(index, 10);
+        assert_eq!(size, 2);
         assert_eq!(h.len(), 2);
         assert_eq!(h.get(10), None);
         assert_eq!(h.get(11), None);
 
-        h.remove(13);
+        // Remove 11 again, which is nothing
+        let result = h.remove(11);
+        assert_eq!(None, result);
+
+        let (e, index, size) = h.remove(13).unwrap();
+        assert_eq!(e, "hello");
+        assert_eq!(index, 12);
+        assert_eq!(size, 2);
         assert_eq!(h.len(), 1);
         assert_eq!(h.get(12), None);
         assert_eq!(h.get(13), None);
@@ -272,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn beginning_works() {
+    fn test_beginning() {
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
         h.insert("hello", 0, 2).unwrap();
         assert_eq!(h.len(), 1);
@@ -282,7 +338,7 @@ mod tests {
     }
 
     #[test]
-    fn max_size() {
+    fn test_max_size() {
         // Inserting at 7-8-9 works
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
         h.insert("hello", 7, 3).unwrap();
@@ -304,6 +360,169 @@ mod tests {
         let mut h: BumpyVector<&str> = BumpyVector::new(10);
         assert!(h.insert("hello", 11, 3).is_err());
         assert_eq!(h.len(), 0);
+    }
+
+    #[test]
+    fn test_remove_range() {
+        // Create an object
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
+        h.insert("hello", 8, 2).unwrap();
+        h.insert("hello", 10, 2).unwrap();
+        h.insert("hello", 12, 2).unwrap();
+        assert_eq!(h.len(), 3);
+
+        // Test removing the first two entries
+        let result = h.remove_range(8, 4);
+        assert_eq!(h.len(), 1);
+        assert_eq!(result.len(), 2);
+
+        let (e, index, size) = result[0];
+        assert_eq!(e, "hello");
+        assert_eq!(index, 8);
+        assert_eq!(size, 2);
+
+        let (e, index, size) = result[1];
+        assert_eq!(e, "hello");
+        assert_eq!(index, 10);
+        assert_eq!(size, 2);
+
+        // Re-create the object
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
+        h.insert("hello", 8, 2).unwrap();
+        h.insert("hello", 10, 2).unwrap();
+        h.insert("hello", 12, 2).unwrap();
+        assert_eq!(h.len(), 3);
+
+        // Test where the first entry starts left of the actual starting index
+        let result = h.remove_range(9, 2);
+        assert_eq!(h.len(), 1);
+        assert_eq!(result.len(), 2);
+
+        let (e, index, size) = result[0];
+        assert_eq!(e, "hello");
+        assert_eq!(index, 8);
+        assert_eq!(size, 2);
+
+        let (e, index, size) = result[1];
+        assert_eq!(e, "hello");
+        assert_eq!(index, 10);
+        assert_eq!(size, 2);
+
+        // Re-create the object
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
+        h.insert("hello", 8, 2).unwrap();
+        h.insert("hello", 10, 2).unwrap();
+        h.insert("hello", 12, 2).unwrap();
+        assert_eq!(h.len(), 3);
+
+        // Test the entire object
+        let result = h.remove_range(0, 1000);
+        assert_eq!(h.len(), 0);
+        assert_eq!(result.len(), 3);
+
+        let (e, index, size) = result[0];
+        assert_eq!(e, "hello");
+        assert_eq!(index, 8);
+        assert_eq!(size, 2);
+
+        let (e, index, size) = result[1];
+        assert_eq!(e, "hello");
+        assert_eq!(index, 10);
+        assert_eq!(size, 2);
+    }
+
+    #[test]
+    fn test_get() {
+        // Create an object
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
+        h.insert("hello", 8, 2).unwrap();
+
+        // Test removing the first two entries
+        assert_eq!(None, h.get(7));
+        assert_ne!(None, h.get(8));
+        assert_ne!(None, h.get(9));
+        assert_eq!(None, h.get(10));
+    }
+
+    #[test]
+    fn test_get_exact() {
+        // Create an object
+        let mut h: BumpyVector<&str> = BumpyVector::new(100);
+        h.insert("hello", 8, 2).unwrap();
+
+        // Test removing the first two entries
+        assert_eq!(None, h.get_exact(7));
+        assert_ne!(None, h.get_exact(8));
+        assert_eq!(None, h.get_exact(9));
+        assert_eq!(None, h.get_exact(10));
+    }
+
+    #[test]
+    fn test_get_range_skip_empty() {
+        // Create a BumpyVector that looks like:
+        //
+        // [--0-- --1-- --2-- --3-- --4-- --5-- --6-- --7-- --8-- --9--]
+        //        +-----------------            +----------------+
+        //        |   "a" (2)| "b" |            |      "c"       |
+        //        +----------+------            +----------------+
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
+        h.insert("a", 1, 2).unwrap();
+        h.insert("b", 3, 1).unwrap();
+        h.insert("c", 6, 3).unwrap();
+
+        // Get just the first two
+        let result = h.get_range(2, 4, false);
+        assert_eq!(result.len(), 2);
+
+        // Get the first two, then just barely the third
+        let result = h.get_range(2, 5, false);
+        assert_eq!(result.len(), 3);
+
+        // Get the first two again, starting further left
+        let result = h.get_range(1, 5, false);
+        assert_eq!(result.len(), 2);
+
+        // Get all three again
+        let result = h.get_range(1, 6, false);
+        assert_eq!(result.len(), 3);
+
+        // Get way more than everything
+        let result = h.get_range(0, 100, false);
+        assert_eq!(result.len(), 3);
+    }
+
+    #[test]
+    fn test_get_range_include_empty() {
+        // Create a BumpyVector that looks like:
+        //
+        // [--0-- --1-- --2-- --3-- --4-- --5-- --6-- --7-- --8-- --9--]
+        //        +-----------------            +----------------+
+        //        |   "a" (2)| "b" |            |      "c"       |
+        //        +----------+------            +----------------+
+        let mut h: BumpyVector<&str> = BumpyVector::new(10);
+        h.insert("a", 1, 2).unwrap();
+        h.insert("b", 3, 1).unwrap();
+        h.insert("c", 6, 3).unwrap();
+
+        // Get just the first two, plus two empty spots
+        let result = h.get_range(2, 4, true);
+        assert_eq!(result.len(), 4);
+
+        // Get the first two, the two empty spots, then just barely the third
+        let result = h.get_range(2, 5, true);
+        assert_eq!(result.len(), 5);
+
+        // Get an empty spot, then the first one
+        let result = h.get_range(0, 3, true);
+        assert_eq!(result.len(), 2);
+
+        // Get an empty spot, then the first two
+        let result = h.get_range(0, 4, true);
+        assert_eq!(result.len(), 3);
+
+        // Get the last one, then the empty spot after it, then we're at the end and should stop
+        let result = h.get_range(8, 1000, true);
+        assert_eq!(result.len(), 2);
     }
 
     #[test]
