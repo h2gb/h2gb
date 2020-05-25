@@ -2,8 +2,6 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
-mod bumpy_vector;
-
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct H2Action {
 }
@@ -88,8 +86,10 @@ pub struct H2Analyzer {
 #[cfg(test)]
 mod tests {
     // use super::*;
+    use bumpy_vector::BumpyVector;
 
-    // #[test]
-    // fn test_redo() {
-    // }
+    #[test]
+    fn test_vector() {
+        let _h: BumpyVector<u32> = BumpyVector::new(1);
+    }
 }
