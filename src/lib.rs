@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
+use bumpy_vector::BumpyVector;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct H2Action {
@@ -23,7 +24,7 @@ pub struct H2Buffer {
     name: String,
 
     // Base address
-    base_address: u64,
+    base_address: usize,
 
     // Memory block
     memory: Vec<u8>,
@@ -52,14 +53,14 @@ pub struct H2Buffer {
 pub struct H2Layer {
     name: String,
     show_undefined: bool,
-    entries: HashMap<u64, H2Entry>,
-    combinators: HashMap<u64, H2Combinator>,
+    entries: BumpyVector<H2Entry>,
+    combinators: BumpyVector<H2Combinator>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct H2Entry {
-    address: u64,
-    size: u64,
+    address: usize,
+    size: usize,
     display: String,
 
     // TODO(ron): I don't feel great about how I'm tracking this
@@ -90,6 +91,9 @@ mod tests {
 
     #[test]
     fn test_vector() {
-        let _h: BumpyVector<u32> = BumpyVector::new(1);
+        let h: BumpyVector<u32> = BumpyVector::new(1);
+
+        let s = ron::ser::to_string(&h).unwrap();
+        println!("Serialized: {}", s);
     }
 }

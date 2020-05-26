@@ -14,8 +14,8 @@ serde_json = "~1.0.53"
 ron = "~0.5.1"
 serde_yaml = "~0.8.12"
 
-# TODO(ron): We'll want to publish this correctly, eventually
-bumpy_vector = { git = "https://github.com/iagox86/bumpy_vector" }
+# Stuff I wrote
+bumpy_vector = { version = "~0.0.0", features = ["serialize"] }
 
 [dev-dependencies]
 pretty_assertions = "~0.6.1"
