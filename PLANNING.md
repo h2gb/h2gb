@@ -29,6 +29,7 @@ We will not:
 
 * Convert one format to another
 * Do in-depth assembly analysis (we're not IDA/etc)
+* Integrate with a debugger
 
 # Overall structure
 
@@ -226,7 +227,7 @@ A few characteristics of all datatypes:
 
 * They are a fixed length
 * They cannot overlap within a layer
-* They are composible, using an `H2Combinator`, but are still fixed length
+* They are composible, using an `h2combinator`, but are still fixed length
 
 ## h2datatype
 
