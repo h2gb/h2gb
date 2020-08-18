@@ -8,10 +8,6 @@ Interesting usecases:
 * .tar.gz - Nested container inside compression
 * .exe - A container format with a bunch of different sub-formats
 
-# Questions
-
-* What about pointers? If variable A points to an integer at address B, do we define that somehow?
-
 # Goals
 
 We will:
@@ -33,110 +29,74 @@ We will not:
 
 # Overall structure
 
+There are two major touchpoints:
+
+1. Data and actions that are part of the core project, such as buffers, entries,
+   undo, redo, etc.
+
+2. Composite actions that take multiple actions on `h2project`, such as an
+   analyzer, UI, etc.
+
+## Important questions
+
+How does a binary get loaded / analyzed?
+
+How do references / cross-references work?
+
+How do you edit data?
+
+How does export work?
+
+How do types work?
+
+## Overview?
+
+To load a binary, we load data as an array of u8 into a "buffer".
+
+That "buffer" has layers, and each "layer" has entries.
+
+
+
 ## h2project
 
-An `h2project` is sort of the core of a working project. An instance of the
-application creates/loads a single project. It contains one base `h2buffer`
-representing the full content of the file, but other `h2buffer`s can be created
-as well. It provides an API interface.
+An `h2project` is sort of the core of a working project. It stores the data,
+can be saved to disk, and implements all transformations that can change the
+data. Holds the undo / redo stack.
 
-This will be the ultimate gateway for all actions, which is what's gonna let us
-have undo/redo functions. All actions can be inverted!
-
-Some of what it does:
-
-* Load a new binary, create the base `h2buffer`
-* Export back to a binary file
-* Save/load to disk
-* Undo / redo
-* Provide an API interface to perform actions
-  * Can be leveraged by: analyzers, web, console, script, etc?
-
-What it contains:
-
-* One or more `h2buffer`s, indexed by name
-* A record of all actions performed
-* Project metadata - name, version, etc.
-
-The very core is going to be the `h2action`s and `h2query`s, since that will
-be the interface to literally everything else.
-
-### h2action
-
-This section lists all actions that can be performed on an `h2project` (or
-anything contained therein). Remember that every action must be invertable,
-unless we can comfortably cut off the undo buffer when performed.
-
-Simple actions:
+Interface:
 
 * H2Project
-  * SetMetadata
-    * Name
+  * Set metadata
   * Undo
   * Redo
+  * Clear undo history
   * Save
-  * Load
-  * CreateH2Buffer
-  * ExportH2Buffer
-* H2Buffer
-  * SetMetadata
-    * BaseAddress
-    * (Setting Name is a bad idea)
-  * CreateH2Buffer
-  * Transform
-  * Clone
-  * CreateH2Layer
-  * DeleteH2Layer
-  * EditBytes
+  * Export data
+  * Get updates since (revision)
 * H2Layer
-  * SetMetadata
-    * ShowUndefined
-    * Name
-  * CreateH2Entry
-  * DeleteH2Entry
-  * UndefineRange
+  * Create layer
 * H2Entry
-  * SetMetadata
-    * HumanReadable
-  * AddReference
-  * RemoveReference
-* H2Datatype
-  * CreateH2Constant
-  * CreateH2Enum
-  * CreateH2Bitmap
-
-### h2query
-
-Whereas `h2action` does something, an `h2query` retrieves some information.
-Anything that will be displayed to the user or used by an analyzer must be done
-through this interface.
-
-I'm not sure I'll even need all these, ultimately.
-
-Queries:
-
-* GetEverything
-* GetUpdatesSince(rev)
-* GetActions
-* GetBuffers
-* GetLayers
-* GetLayersIn(buffer)
-* GetEntries
-* GetEntriesIn(layer)
+  * Create single entry
+  * Create multiple entries
 
 ## h2buffer
 
-An instance of `h2buffer` contains a bunch of bytes with a unique name. By
-default there is a single base `h2buffer` with all data, but more can be
-created. It's ultimately identified by a project-unique name.
+An `h2buffer` contains bytes with a unique name. Data can be imported into an
+`h2buffer`, and an `h2buffer` can be exported back to data.
 
-An `h2buffer` can be created from any sequence of bytes, including a file, a
-part of another `h2buffer`, or even a bunch of bytes pasted by the user. 
+In general, we'll start by importing a file into an `h2buffer`, then analyzing
+it. As such, there's a default buffer that we started with - maybe that'll have
+a unique name?
 
-When an `h2buffer` is split from another buffer, it keeps track of the offset
-it came from. A parent keeps a list of its children, as well, so edited data
-can be merged back together if the user wants to export to a new binary. If
-multiple buffers overlap, that's up to the user to figure out.
+An `h2buffer` can become another `h2buffer` in several ways:
+
+* An `h2buffer` can be cloned - cloned buffers bring their data, but nothing
+  else
+* An `h2buffer` can be extracted - a sequence of bytes in one `h2buffer` can
+  become another `h2buffer`; the parent keeps track of its children and vice
+  versa (so the parent buffer can be exported, including changes to children)
+* An `h2buffer` can be split into a sequence of buffers; each buffer keeps
+  track of the buffer before and after itself (again, for exporting)
 
 An `h2buffer` can contain named references to other buffers. In the context of
 a PE, that might be different sections - the `.data` buffer knows about the
@@ -168,34 +128,39 @@ An `h2buffer` contains:
 * A list of `h2layer`s, which contain `h2entry`s
 * A list of XReferences to its addresses, possibly from other `h2buffer`s
 
+Actions (performed via the `h2project`):
+
+* Create buffer from data
+* Create blank buffer
+* Create xref
+* Clone / split / extract
+* Export
+* Edit bytes
+* Transform
+* More difficult stuff:
+  * Rename
+  * Change base address
+  * Edit
+
 ## h2layer
 
-An `h2layer` is an overlay on top of an `h2buffer` that holds  `h2entry`s. An
-`h2buffer` can contain multiple `h2layer`s, and an `h2layer` can contain
-multiple non-overlapping `h2entry`s. Different `h2layer`s can have overlapping
-`h2entry`s, however.
+An `h2layer` is the actual `BumpyVector` that holds entries. It's created as a
+`MultiVector` entry with a meaningful name (probably like `<buffer>.<layer>` or
+something).
 
-References can be made from any `h2entry` in any `h2layer` to any address in
+Each `h2layer` has an associated `h2buffer`. Every layer of the same buffer is
+the same size and has the same base data.
+
+Each `h2entry` is associated with a `h2layer`.
+
+References can be made from any address in any `h2layer`, to any address in
 any `h2buffer`. Cross references will be tracked by the `h2buffer`. That way,
 every layer will have access to every cross reference.
 
-The reasoning for multiple layers: say you're analyzing an executable. You
-might do a basic `strings`-type analysis to create an `h2layer` with a bunch of
-strings. But then you want to analyze as an executable. That's another layer!
+Actions (performed via the `h2project`):
 
-An `h2layer` also needs information on how to re-create its entries (if
-possible) when data is edited. For that, a map of `h2combinator`s is stored,
-indexed by address, that can be re-executed to update the entries. These can't
-overlap, and therefore must be fixed-length.
-
-An `h2layer` contains:
-
-* A series of non-overlapping `h2entry`s
-* A boolean whether or not to display undefined entries
-* One or more `H2Combinator`s, indexed by address
-
-When data changes (either a user edits it or merges a child buffer's data),
-each layer will need to go through its entries to update them.
+* Create
+* Create reference
 
 ## h2entry
 
@@ -229,47 +194,9 @@ A few characteristics of all datatypes:
 * They cannot overlap within a layer
 * They are composible, using an `h2combinator`, but are still fixed length
 
-## h2datatype
+## h2datatype / h2combinator / h2pointer
 
-An `h2datatype` is a simple building block datatype. It knows its own length,
-and can turn that many bytes into something user-readable.
-
-Although a type is a fixed length, it's possible to have configurable pieces
-(such as endianness).
-
-## h2combinator
-
-An `h2combinator` is a way to represent a group of `h2datatype`s that create
-one or more `h2entries` within a layer. They enable us to build more complex
-types such as arrays and structs.
-
-The types we want to represent:
-
-* Single - a single `h2datatype`
-* Array - a fixed-length sequence of the same `h2datatype` or `h2combinator`
-* Struct - an arbitrarily long sequence of different `h2datatype`s or `h2combinators`
-
-Note that any of these can be arbitrarily nested. Note also that they'll know
-how to calculate their own length.
-
-## h2pointer
-
-Pointers are tricky, but important I think.
-
-Pointers need to reference another offset (absolute or relative, from the start
-or end of the data, and maybe other changes). The pointer has an associated
-`h2combinator` or `h2datatype`, which can contain other pointers?
-
-These can't be updated the way h2combinator is, however, because we can't just
-move things around.
-
-We can maybe...
-
-* Mark pointers as not-editable?
-* Use an h2analyzer-type thing for pointers?
-  * Pointers need to exist inside structs, so I'm not sure that'll work
-
-I'm a bit stumped @ how I want to implement this :-/
+...
 
 # Ways to manipulate buffers
 
@@ -300,26 +227,3 @@ Some examples:
 
 I think it'll be important to "detect" which transformations can work. For
 example, detect a base64 or hex string and suggest that transformation.
-
-## h2analyzer
-
-These will take an `h2buffer` (not necessarily the base buffer), and perform
-any of the operations above to define `h2layer`s, `h2entry`s, and so on. 
-
-I think there will be different types:
-
-* File format analyzers, which know certain formats and can annotate
-* Dumb analyzers, which look for and tag certain things (like finding strings)
-
-## h2quickanalyzer
-
-Creating this type to see how I feel about it tomorrow. :)
-
-We need a mini version of `h2analyzer` that can analyze a small part of an
-`h2buffer` and define entries.
-
-The usecases are primarily for different string types, like NTString or a
-length-prefixed string or even a UTF-8 string.
-
-But I can potentially see this as the interface to creating any kind of
-`H2Datatype` and `H2Combinator`. More thought is required.
