@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO: Disable this
+
 mod h2project;
 mod action;
 
