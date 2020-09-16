@@ -1,33 +1,34 @@
 use redo::Command;
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, SimpleError};
 
 use crate::h2project::H2Project;
 
 pub mod null;
-pub mod change_project_name;
+pub mod project_rename;
+pub mod buffer_create_empty;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
     Null(null::NullAction),
-    ChangeProjectName(change_project_name::ActionChangeProjectName),
+    ProjectRename(project_rename::ActionProjectRename),
 }
 
 impl Command for Action {
     type Target = H2Project;
-    type Error = SimpleResult<()>;
+    type Error = SimpleError;
 
-    fn apply(&mut self, project: &mut H2Project) -> redo::Result<Self> {
+    fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         match self {
             Action::Null(a) => a.apply(project),
-            Action::ChangeProjectName(a) => a.apply(project),
+            Action::ProjectRename(a) => a.apply(project),
         }
     }
 
-    fn undo(&mut self, project: &mut H2Project) -> redo::Result<Self> {
+    fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         match self {
             Action::Null(a) => a.undo(project),
-            Action::ChangeProjectName(a) => a.undo(project),
+            Action::ProjectRename(a) => a.undo(project),
         }
     }
 }

@@ -1,6 +1,6 @@
 use redo::Command;
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, SimpleError};
 
 use crate::h2project::H2Project;
 
@@ -17,13 +17,13 @@ impl NullAction {
 
 impl Command for NullAction {
     type Target = H2Project;
-    type Error = SimpleResult<()>;
+    type Error = SimpleError;
 
-    fn apply(&mut self, _t: &mut H2Project) -> redo::Result<Self> {
+    fn apply(&mut self, _t: &mut H2Project) -> SimpleResult<()> {
         Ok(())
     }
 
-    fn undo(&mut self, _t: &mut H2Project) -> redo::Result<Self> {
+    fn undo(&mut self, _t: &mut H2Project) -> SimpleResult<()> {
         Ok(())
     }
 }

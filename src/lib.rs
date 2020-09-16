@@ -18,40 +18,44 @@ mod tests {
     use super::*;
 
     use simple_error::SimpleResult;
-    use multi_vector::MultiVector;
+    // use multi_vector::MultiVector;
 
     use h2project::H2Project;
     use action::Action;
     use action::null::NullAction;
-    use action::change_project_name::ActionChangeProjectName;
+    use action::project_rename::ActionProjectRename;
     use redo::Record;
+    use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_vector() -> SimpleResult<()> {
-        let mut mv: MultiVector<u32> = MultiVector::new();
-        mv.create_vector("test", 1000)?;
+    fn test_action() -> SimpleResult<()> {
+        let mut record: Record<action::Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
 
-        let s = ron::ser::to_string(&mv).unwrap();
-        println!("Serialized: {}", s);
+        assert_eq!("name", record.target().name);
+
+        record.apply(Action::ProjectRename("newname".into()))?;
+        assert_eq!("newname", record.target().name);
+        record.undo()?;
+        assert_eq!("name", record.target().name);
+        record.redo()?;
+        assert_eq!("newname", record.target().name);
+
+// record.apply(Add('a'))?;
+// record.apply(Add('b'))?;
+// record.apply(Add('c'))?;
+// assert_eq!(record.target(), "abc");
+// record.undo()?;
+// record.undo()?;
+// record.undo()?;
+// assert_eq!(record.target(), "");
+// record.redo()?;
+// record.redo()?;
+// record.redo()?;
+// assert_eq!(record.target(), "abc");
+
 
         Ok(())
-    }
-
-    #[test]
-    fn test_change_project_name() {
-        let project = H2Project::new("name", "version");
-
-        let mut record: Record<Action> = Record::new(project);
-
-        println!("Start: {}", record.target());
-        record.apply(Action::Null(NullAction::new())).unwrap();
-        record.apply(Action::Null(NullAction::new())).unwrap();
-        record.apply(Action::Null(NullAction::new())).unwrap();
-        record.apply(Action::ChangeProjectName(ActionChangeProjectName::new("Hi"))).unwrap();
-        println!("After changing name to 'hi': {}", record.target());
-        record.undo().unwrap();
-        println!("After undo: {}", record.target());
-        record.redo().unwrap();
-        println!("After redo: {}", record.target());
     }
 }
