@@ -32,10 +32,20 @@ pub struct H2Layer {
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Buffer {
-    data: Vec<u8>,
-    base_address: usize,
+    pub data: Vec<u8>,
+    pub base_address: usize,
 
     layers: HashMap<H2LayerName, H2Layer>,
+}
+
+impl H2Buffer {
+    pub fn new(data: Vec<u8>, base_address: usize) -> Self {
+        H2Buffer {
+            data: data,
+            base_address: base_address,
+            layers: HashMap::new(),
+        }
+    }
 }
 
 
@@ -98,33 +108,39 @@ impl fmt::Display for H2Project {
     }
 }
 
-// Meta
+// Buffer
 impl H2Project {
-    pub fn project_rename(&mut self, new_name: String) -> SimpleResult<String> {
-        Ok(mem::replace(&mut self.name, new_name))
+    pub fn buffer_insert(&mut self, name: &str, buffer: H2Buffer) -> SimpleResult<()> {
+        if self.buffers.contains_key(name) {
+            bail!("Buffer already exists");
+        }
+
+        self.buffers.insert(name.to_string(), buffer);
+
+        Ok(())
     }
 
-    pub fn project_rename_undo(&mut self, old_name: String) -> SimpleResult<String> {
-        Ok(mem::replace(&mut self.name, old_name))
+    pub fn buffer_can_be_removed(&self, name: &str) -> SimpleResult<()> {
+        if let Some(b) = self.buffers.get(name) {
+            if b.layers.len() > 0 {
+                bail!("Buffer has data in it");
+            }
+        } else {
+            bail!("Buffer not found");
+        }
+
+        Ok(())
+    }
+
+    pub fn buffer_remove(&mut self, name: &str) -> SimpleResult<H2Buffer> {
+        self.buffer_can_be_removed(name)?;
+
+        match self.buffers.remove(name) {
+            Some(b) => Ok(b),
+            None => bail!("Buffer not found"),
+        }
     }
 }
-
-// // Buffer
-// impl H2Project {
-//     pub fn buffer_create(&mut self, data: BufferCreate) -> SimpleResult<BufferCreateUndo> {
-//         if self.buffers.contains_key(&data.name) {
-//             bail!("Buffer already exists");
-//         }
-
-//         self.buffers.insert(data.name.clone(), data.buffer);
-
-//         Ok(BufferCreateUndo {
-//             name: data.name,
-//         })
-//     }
-
-//     pub fn buffer_create_undo(&mut self, data: BufferCreateUndo) {
-//     }
 
 //     // Only empty buffers can be removed
 //     fn buffer_can_be_removed(&self, name: &H2BufferName) -> SimpleResult<()> {

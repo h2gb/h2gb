@@ -24,11 +24,13 @@ mod tests {
     use action::Action;
     use action::null::NullAction;
     use action::project_rename::ActionProjectRename;
+    use action::buffer_create_empty::ActionBufferCreateEmpty;
     use redo::Record;
     use pretty_assertions::assert_eq;
+    use serde_json::json;
 
     #[test]
-    fn test_action() -> SimpleResult<()> {
+    fn test_project_rename() -> SimpleResult<()> {
         let mut record: Record<action::Action> = Record::new(
             H2Project::new("name", "1.0")
         );
@@ -42,19 +44,27 @@ mod tests {
         record.redo()?;
         assert_eq!("newname", record.target().name);
 
-// record.apply(Add('a'))?;
-// record.apply(Add('b'))?;
-// record.apply(Add('c'))?;
-// assert_eq!(record.target(), "abc");
-// record.undo()?;
-// record.undo()?;
-// record.undo()?;
-// assert_eq!(record.target(), "");
-// record.redo()?;
-// record.redo()?;
-// record.redo()?;
-// assert_eq!(record.target(), "abc");
+        Ok(())
+    }
 
+    #[test]
+    fn test_project_buffer_create_empty() -> SimpleResult<()> {
+        let mut record: Record<action::Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        assert_eq!("name", record.target().name);
+
+        record.apply(Action::BufferCreateEmpty(ActionBufferCreateEmpty::new("name", 100, 0)))?;
+        println!("Before:\n{}\n\n", serde_yaml::to_string(&record).unwrap());
+        record.undo()?;
+        // assert_eq!("name", record.target().name);
+        println!("After:\n{}\n\n", serde_yaml::to_string(&record).unwrap());
+
+        record.redo()?;
+        println!("After redo:\n{}\n\n", serde_yaml::to_string(&record).unwrap());
+        // record.redo()?;
+        // assert_eq!("newname", record.target().name);
 
         Ok(())
     }

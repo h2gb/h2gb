@@ -12,6 +12,7 @@ pub mod buffer_create_empty;
 pub enum Action {
     Null(null::NullAction),
     ProjectRename(project_rename::ActionProjectRename),
+    BufferCreateEmpty(buffer_create_empty::ActionBufferCreateEmpty),
 }
 
 impl Command for Action {
@@ -22,6 +23,7 @@ impl Command for Action {
         match self {
             Action::Null(a) => a.apply(project),
             Action::ProjectRename(a) => a.apply(project),
+            Action::BufferCreateEmpty(a) => a.apply(project),
         }
     }
 
@@ -29,6 +31,7 @@ impl Command for Action {
         match self {
             Action::Null(a) => a.undo(project),
             Action::ProjectRename(a) => a.undo(project),
+            Action::BufferCreateEmpty(a) => a.undo(project),
         }
     }
 }

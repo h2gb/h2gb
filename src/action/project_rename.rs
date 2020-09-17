@@ -1,6 +1,7 @@
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
+use std::mem;
 
 use crate::h2project::H2Project;
 
@@ -42,13 +43,16 @@ impl Command for ActionProjectRename {
     type Error = SimpleError;
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
+        // Get the forward instructions
         let forward = match self.forward.take() {
             Some(f) => f,
             None => bail!("Failed to apply: missing context"),
         };
 
-        let old_name = project.project_rename(forward.new_name)?;
+        // Apply the change
+        let old_name = mem::replace(&mut project.name, forward.new_name);
 
+        // Populate backward for undo
         self.backward = Some(ActionProjectRenameBackward {
             old_name: old_name
         });
@@ -62,7 +66,7 @@ impl Command for ActionProjectRename {
             None => bail!("Failed to undo: missing context"),
         };
 
-        let new_name = project.project_rename(backward.old_name)?;
+        let new_name = mem::replace(&mut project.name, backward.old_name);
 
         self.forward = Some(ActionProjectRenameForward {
             new_name: new_name
