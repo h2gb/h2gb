@@ -1,15 +1,10 @@
-// This implements the simplest "do a thing" stuff to H2Project. It does
-// strict error checking - you can't remove a buffer with layers or entries, for
-// example - but it also doesn't do any handholding, composite commands, etc.
-//
-// These are mostly mirrored by simple actions, whereas composite actions will
-// do multiple of the simple actions.
-use std::fmt;
+use std::{fmt, mem};
 
 use multi_vector::{MultiVector, AutoBumpyEntry};
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
+use h2transformer::H2Transformer;
 
 // Create some types so we can tell what's what
 type H2BufferName = String;
@@ -33,6 +28,7 @@ pub struct H2Buffer {
     pub base_address: usize,
 
     layers: HashMap<H2LayerName, H2Layer>,
+    transformations: Vec<H2Transformer>,
 }
 
 impl H2Buffer {
@@ -41,7 +37,16 @@ impl H2Buffer {
             data: data,
             base_address: base_address,
             layers: HashMap::new(),
+            transformations: Vec::new(),
         }
+    }
+
+    pub fn is_populated(&self) -> bool {
+        if self.layers.len() > 0 {
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -107,6 +112,20 @@ impl fmt::Display for H2Project {
 
 // Buffer
 impl H2Project {
+    fn get_buffer(&self, name: &str) -> SimpleResult<&H2Buffer> {
+        match self.buffers.get(name) {
+            Some(b) => Ok(b),
+            None => bail!("Buffer {} not found", name),
+        }
+    }
+
+    fn get_buffer_mut(&mut self, name: &str) -> SimpleResult<&mut H2Buffer> {
+        match self.buffers.get_mut(name) {
+            Some(b) => Ok(b),
+            None => bail!("Buffer {} not found", name),
+        }
+    }
+
     pub fn buffer_insert(&mut self, name: &str, buffer: H2Buffer) -> SimpleResult<()> {
         if self.buffers.contains_key(name) {
             bail!("Buffer already exists");
@@ -118,12 +137,10 @@ impl H2Project {
     }
 
     pub fn buffer_can_be_removed(&self, name: &str) -> SimpleResult<()> {
-        if let Some(b) = self.buffers.get(name) {
-            if b.layers.len() > 0 {
-                bail!("Buffer has data in it");
-            }
-        } else {
-            bail!("Buffer not found");
+        let buffer = self.get_buffer(name)?;
+
+        if buffer.is_populated() {
+            bail!("Buffer has data in it");
         }
 
         Ok(())
@@ -137,87 +154,86 @@ impl H2Project {
             None => bail!("Buffer not found"),
         }
     }
+
+    pub fn buffer_exists(&mut self, name: &str) -> bool {
+        self.buffers.contains_key(name)
+    }
+
+    pub fn buffer_transform(&mut self, name: &str, transformation: H2Transformer) -> SimpleResult<Vec<u8>> {
+        let buffer = self.get_buffer_mut(name)?;
+        if buffer.is_populated() {
+            bail!("Buffer {} contains data", name);
+        }
+
+        // Transform the data
+        let new_data = transformation.transform(&buffer.data)?;
+
+        // Log the transformation
+        buffer.transformations.push(transformation);
+
+        // Replace it with the transformed, return the original
+        Ok(mem::replace(&mut buffer.data, new_data))
+    }
+
+    pub fn buffer_transform_undo(&mut self, name: &str, original_data: Vec<u8>) -> SimpleResult<H2Transformer> {
+        let buffer = self.get_buffer_mut(name)?;
+        if buffer.is_populated() {
+            bail!("Buffer {} contains data", name);
+        }
+
+        // Remove the transformation
+        let transformation = match buffer.transformations.pop() {
+            Some(t) => t,
+            None => bail!("No transformations in the stack"),
+        };
+
+        // Replace the data
+        buffer.data = original_data;
+
+        Ok(transformation)
+    }
+
+    pub fn buffer_untransform(&mut self, name: &str) -> SimpleResult<(Vec<u8>, H2Transformer)> {
+        let buffer = self.get_buffer_mut(name)?;
+        if buffer.is_populated() {
+            bail!("Buffer {} contains data", name);
+        }
+
+        // Make sure there's a transformation
+        let transformation = match buffer.transformations.last() {
+            Some(t) => t,
+            None => bail!("Buffer {} has no transformations", name),
+        };
+
+        // Attempt to untransform
+        let new_data = transformation.untransform(&buffer.data)?;
+
+        // If we're here, it succeeded and we can remove the last element
+        let transformation = match buffer.transformations.pop() {
+            Some(t) => t,
+            None => bail!("Transformation disappeared while untransforming!"),
+        };
+
+        // Replace it with the untransformed, return the original
+        Ok((mem::replace(&mut buffer.data, new_data), transformation))
+    }
+
+    pub fn buffer_untransform_undo(&mut self, name: &str, original_data: Vec<u8>, transformation: H2Transformer) -> SimpleResult<Vec<u8>> {
+        let buffer = self.get_buffer_mut(name)?;
+        if buffer.is_populated() {
+            bail!("Buffer {} contains data", name);
+        }
+
+        // Replace the data
+        let untransformed_data = mem::replace(&mut buffer.data, original_data);
+
+        // Add the transformation back
+        buffer.transformations.push(transformation);
+
+        // Replace it with the untransformed, return the original
+        Ok(untransformed_data)
+    }
 }
-
-//     // Only empty buffers can be removed
-//     fn buffer_can_be_removed(&self, name: &H2BufferName) -> SimpleResult<()> {
-//         // Check if the buffer exists
-//         if let Some(b) = self.buffers.get(name) {
-//             // Don't allow populated buffers to be removed
-//             if b.layers.len() > 0 {
-//                 bail!("Buffer still has data in it");
-//             }
-
-//             return Ok(())
-//         } else {
-//             bail!("No such buffer");
-//         }
-//     }
-
-//     pub fn buffer_delete(&mut self, name: &H2BufferName) -> SimpleResult<H2Buffer> {
-//         match self.buffer_can_be_removed(name) {
-//             Ok(()) => {
-//                 match self.buffers.remove(name) {
-//                     Some(b) => Ok(b),
-//                     None => Err("No such buffer".into()),
-//                 }
-//             }
-//             Err(e) => Err(e),
-//         }
-//     }
-
-//     pub fn buffer_delete_undo(&mut self, buffer: H2Buffer) -> SimpleResult<()> {
-//         Ok(())
-//     }
-
-//     // Only buffers that haven't been populated yet can be transformed.
-//     fn buffer_can_be_transformed(buffer: &H2Buffer, transformation: &H2Transformer) -> SimpleResult<()> {
-//         // Don't allow populated buffers to be removed
-//         if buffer.layers.len() > 0 {
-//             bail!("Buffer has data");
-//         }
-
-//         if !transformation.can_transform(&buffer.data) {
-//             bail!("Transformation won't work on this buffer");
-//         }
-
-//         return Ok(())
-//     }
-
-//     pub fn buffer_transform(&mut self, name: &H2BufferName, transformation: &H2Transformer) -> SimpleResult<Vec<u8>> {
-//         match self.buffers.get_mut(name) {
-//             Some(buffer) => {
-//                 // Ensure it can be transformed
-//                 Self::buffer_can_be_transformed(&buffer, transformation)?;
-
-//                 // Transform to get the new data
-//                 let new_data = transformation.transform(&buffer.data)?;
-
-//                 // Swap out the old data with the new
-//                 let old_data = mem::replace(&mut buffer.data, new_data);
-
-//                 // Return the old data (so we can undo it later)
-//                 Ok(old_data)
-//             },
-//             None => {
-//                 bail!("No such buffer")
-//             }
-//         }
-//     }
-
-//     pub fn buffer_transform_undo(&mut self, name: &H2BufferName, original_data: Vec<u8>) -> SimpleResult<()> {
-//         match self.buffers.get_mut(name) {
-//             Some(buffer) => {
-//                 buffer.data = original_data;
-
-//                 Ok(())
-//             },
-//             None => {
-//                 bail!("No such buffer")
-//             }
-//         }
-//     }
-// }
 
 // // Layer
 // impl H2Project {

@@ -43,7 +43,9 @@ impl Command for ActionBufferCreateEmpty {
         };
 
         // Sanity check
-        // TODO
+        if project.buffer_exists(&forward.name) {
+            bail!("A buffer with that name already exists");
+        }
 
         // Apply the change
         let buffer = H2Buffer::new(vec![0; forward.size], forward.base_address);

@@ -43,7 +43,9 @@ impl Command for ActionBufferCreateFromBytes {
         };
 
         // Sanity check
-        // TODO
+        if project.buffer_exists(&forward.name) {
+            bail!("A buffer with that name already exists");
+        }
 
         // Apply the change
         let buffer = H2Buffer::new(forward.data, forward.base_address);

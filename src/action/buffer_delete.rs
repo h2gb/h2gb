@@ -54,20 +54,14 @@ impl Command for ActionBufferDelete {
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        // Get the forward instructions
         let backward = match self.backward.take() {
             Some(f) => f,
             None => bail!("Failed to undo: missing context"),
         };
 
-        // Sanity check
-        // TODO
-
-        // Apply the change
         let buffer = H2Buffer::new(backward.data, backward.base_address);
         project.buffer_insert(&backward.name, buffer)?;
 
-        // Populate forward for undo
         self.forward = Some(ActionBufferDeleteForward {
             name: backward.name,
         });
