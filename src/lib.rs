@@ -37,7 +37,7 @@ mod tests {
 
         assert_eq!("name", record.target().name);
 
-        record.apply(Action::ProjectRename("newname".into()))?;
+        record.apply(Action::project_rename("newname"))?;
         assert_eq!("newname", record.target().name);
         record.undo()?;
         assert_eq!("name", record.target().name);
@@ -55,7 +55,7 @@ mod tests {
 
         assert_eq!("name", record.target().name);
 
-        record.apply(Action::BufferCreateEmpty(ActionBufferCreateEmpty::new("name", 100, 0)))?;
+        record.apply(Action::buffer_create_empty("name", 100, 0))?;
         println!("Before:\n{}\n\n", serde_yaml::to_string(&record).unwrap());
         record.undo()?;
         // assert_eq!("name", record.target().name);

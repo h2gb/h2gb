@@ -15,6 +15,16 @@ pub enum Action {
     BufferCreateEmpty(buffer_create_empty::ActionBufferCreateEmpty),
 }
 
+impl Action {
+    pub fn project_rename(name: &str) -> Self {
+        Self::ProjectRename(project_rename::ActionProjectRename::new(name))
+    }
+
+    pub fn buffer_create_empty(name: &str, size: usize, base_address: usize) -> Self {
+        Self::BufferCreateEmpty(buffer_create_empty::ActionBufferCreateEmpty::new(name, size, base_address))
+    }
+}
+
 impl Command for Action {
     type Target = H2Project;
     type Error = SimpleError;
