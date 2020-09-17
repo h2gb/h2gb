@@ -10,9 +10,6 @@ use multi_vector::{MultiVector, AutoBumpyEntry};
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
-use std::mem;
-
-use h2transformer::H2Transformer;
 
 // Create some types so we can tell what's what
 type H2BufferName = String;
@@ -244,10 +241,7 @@ impl H2Project {
 // }
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use simple_error::SimpleResult;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_project_rename() -> SimpleResult<()> {

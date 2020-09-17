@@ -22,12 +22,8 @@ mod tests {
 
     use h2project::H2Project;
     use action::Action;
-    use action::null::NullAction;
-    use action::project_rename::ActionProjectRename;
-    use action::buffer_create_empty::ActionBufferCreateEmpty;
     use redo::Record;
     use pretty_assertions::assert_eq;
-    use serde_json::json;
 
     #[test]
     fn test_project_rename() -> SimpleResult<()> {

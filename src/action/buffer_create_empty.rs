@@ -1,5 +1,3 @@
-use std::mem;
-
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
