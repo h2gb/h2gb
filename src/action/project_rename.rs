@@ -7,11 +7,11 @@ use crate::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionProjectRenameForward {
-    new_name: String,
+    pub new_name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ActionProjectRenameBackward {
+struct ActionProjectRenameBackward {
     old_name: String,
 }
 
@@ -22,19 +22,11 @@ pub struct ActionProjectRename {
 }
 
 impl ActionProjectRename {
-    pub fn new(new_name: &str) -> Self {
+    pub fn new(forward: ActionProjectRenameForward) -> Self {
         ActionProjectRename {
-            forward: Some(ActionProjectRenameForward {
-                new_name: new_name.to_string(),
-            }),
+            forward: Some(forward),
             backward: None,
         }
-    }
-}
-
-impl From<&str> for ActionProjectRename {
-    fn from(o: &str) -> Self {
-        ActionProjectRename::new(o)
     }
 }
 
