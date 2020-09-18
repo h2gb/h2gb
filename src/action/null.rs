@@ -15,6 +15,12 @@ impl NullAction {
     }
 }
 
+impl From<()> for NullAction {
+    fn from(_o: ()) -> Self {
+        NullAction {}
+    }
+}
+
 impl Command for NullAction {
     type Target = H2Project;
     type Error = SimpleError;

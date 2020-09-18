@@ -30,6 +30,17 @@ impl ActionProjectRename {
     }
 }
 
+impl From<&str> for ActionProjectRename {
+    fn from(o: &str) -> Self {
+        ActionProjectRename {
+            forward: Some(ActionProjectRenameForward {
+                new_name: o.to_string()
+            }),
+            backward: None,
+        }
+    }
+}
+
 impl Command for ActionProjectRename {
     type Target = H2Project;
     type Error = SimpleError;
@@ -84,9 +95,7 @@ mod tests {
         );
         assert_eq!("name", record.target().name);
 
-        record.apply(ActionProjectRename::new(ActionProjectRenameForward {
-            new_name: "newname".to_string()
-        }))?;
+        record.apply("newname".into())?;
         assert_eq!("newname", record.target().name);
 
         record.undo()?;

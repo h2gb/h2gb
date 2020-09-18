@@ -31,6 +31,19 @@ impl ActionBufferCreateEmpty {
     }
 }
 
+impl From<(&str, usize, usize)> for ActionBufferCreateEmpty {
+    fn from(o: (&str, usize, usize)) -> Self {
+        ActionBufferCreateEmpty {
+            forward: Some(ActionBufferCreateEmptyForward {
+                name: o.0.to_string(),
+                size: o.1,
+                base_address: o.2,
+            }),
+            backward: None,
+        }
+    }
+}
+
 impl Command for ActionBufferCreateEmpty {
     type Target = H2Project;
     type Error = SimpleError;
@@ -95,11 +108,7 @@ mod tests {
 
         assert_eq!(0, record.target().buffers().len());
 
-        record.apply(ActionBufferCreateEmpty::new(ActionBufferCreateEmptyForward {
-            name: "buffer".to_string(),
-            size: 10,
-            base_address: 0x80000000,
-        }))?;
+        record.apply(("buffer", 10, 0x80000000).into())?;
 
         let buffers = record.target().buffers();
         assert_eq!(1, buffers.len());
@@ -122,17 +131,8 @@ mod tests {
 
         assert_eq!(0, record.target().buffers().len());
 
-        record.apply(ActionBufferCreateEmpty::new(ActionBufferCreateEmptyForward {
-            name: "buffer".to_string(),
-            size: 10,
-            base_address: 0x80000000,
-        }))?;
-
-        assert!(record.apply(ActionBufferCreateEmpty::new(ActionBufferCreateEmptyForward {
-            name: "buffer".to_string(),
-            size: 10,
-            base_address: 0x80000000,
-        })).is_err());
+        assert!(record.apply(("buffer", 10, 0x80000000).into()).is_ok());
+        assert!(record.apply(("buffer", 10, 0x80000000).into()).is_err());
 
         Ok(())
     }

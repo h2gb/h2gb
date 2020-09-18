@@ -31,6 +31,17 @@ impl ActionBufferDelete {
     }
 }
 
+impl From<&str> for ActionBufferDelete {
+    fn from(o: &str) -> Self {
+        ActionBufferDelete {
+            forward: Some(ActionBufferDeleteForward {
+                name: o.to_string()
+            }),
+            backward: None,
+        }
+    }
+}
+
 impl Command for ActionBufferDelete {
     type Target = H2Project;
     type Error = SimpleError;
