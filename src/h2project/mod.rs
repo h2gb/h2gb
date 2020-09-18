@@ -4,7 +4,7 @@ use multi_vector::{MultiVector, AutoBumpyEntry};
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
-use h2transformer::H2Transformer;
+use h2transformer::H2Transformation;
 
 // Create some types so we can tell what's what
 type H2BufferName = String;
@@ -28,7 +28,7 @@ pub struct H2Buffer {
     pub base_address: usize,
 
     layers: HashMap<H2LayerName, H2Layer>,
-    transformations: Vec<H2Transformer>,
+    transformations: Vec<H2Transformation>,
 }
 
 impl H2Buffer {
@@ -163,7 +163,7 @@ impl H2Project {
         self.buffers.contains_key(name)
     }
 
-    pub fn buffer_transform(&mut self, name: &str, transformation: H2Transformer) -> SimpleResult<Vec<u8>> {
+    pub fn buffer_transform(&mut self, name: &str, transformation: H2Transformation) -> SimpleResult<Vec<u8>> {
         let buffer = self.get_buffer_mut(name)?;
         if buffer.is_populated() {
             bail!("Buffer {} contains data", name);
@@ -179,7 +179,7 @@ impl H2Project {
         Ok(mem::replace(&mut buffer.data, new_data))
     }
 
-    pub fn buffer_transform_undo(&mut self, name: &str, original_data: Vec<u8>) -> SimpleResult<H2Transformer> {
+    pub fn buffer_transform_undo(&mut self, name: &str, original_data: Vec<u8>) -> SimpleResult<H2Transformation> {
         let buffer = self.get_buffer_mut(name)?;
         if buffer.is_populated() {
             bail!("Buffer {} contains data", name);
@@ -197,7 +197,7 @@ impl H2Project {
         Ok(transformation)
     }
 
-    pub fn buffer_untransform(&mut self, name: &str) -> SimpleResult<(Vec<u8>, H2Transformer)> {
+    pub fn buffer_untransform(&mut self, name: &str) -> SimpleResult<(Vec<u8>, H2Transformation)> {
         let buffer = self.get_buffer_mut(name)?;
         if buffer.is_populated() {
             bail!("Buffer {} contains data", name);
@@ -222,7 +222,7 @@ impl H2Project {
         Ok((mem::replace(&mut buffer.data, new_data), transformation))
     }
 
-    pub fn buffer_untransform_undo(&mut self, name: &str, original_data: Vec<u8>, transformation: H2Transformer) -> SimpleResult<Vec<u8>> {
+    pub fn buffer_untransform_undo(&mut self, name: &str, original_data: Vec<u8>, transformation: H2Transformation) -> SimpleResult<Vec<u8>> {
         let buffer = self.get_buffer_mut(name)?;
         if buffer.is_populated() {
             bail!("Buffer {} contains data", name);

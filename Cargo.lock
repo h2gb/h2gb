@@ -89,7 +89,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "h2transformer"
 version = "0.0.0"
-source = "git+https://github.com/h2gb/h2transformer.git?branch=dev#b707a595fa924d420f27dcd67ff958d3ee56fc1a"
+source = "git+https://github.com/h2gb/h2transformer.git?branch=dev#ae2929456a07d531c657b692ae3c0261f9cca7fe"
 dependencies = [
  "base32 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "base64 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)",
