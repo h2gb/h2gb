@@ -31,6 +31,19 @@ impl ActionBufferCreateFromBytes {
     }
 }
 
+impl From<(&str, Vec<u8>, usize)> for ActionBufferCreateFromBytes {
+    fn from(o: (&str, Vec<u8>, usize)) -> Self {
+        ActionBufferCreateFromBytes {
+            forward: Some(ActionBufferCreateFromBytesForward {
+                name: o.0.to_string(),
+                data: o.1,
+                base_address: o.2,
+            }),
+            backward: None,
+        }
+    }
+}
+
 impl Command for ActionBufferCreateFromBytes {
     type Target = H2Project;
     type Error = SimpleError;
@@ -73,6 +86,54 @@ impl Command for ActionBufferCreateFromBytes {
             data: buffer.data,
             base_address: buffer.base_address,
         });
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use simple_error::SimpleResult;
+
+    use crate::h2project::H2Project;
+    use redo::Record;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_buffer_create_from_bytes() -> SimpleResult<()> {
+        let mut record: Record<ActionBufferCreateFromBytes> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        assert_eq!(0, record.target().buffers().len());
+
+        record.apply(("buffer", vec![0, 1, 2, 4], 0x80000000).into())?;
+
+        let buffers = record.target().buffers();
+        assert_eq!(1, buffers.len());
+        assert_eq!(4, buffers["buffer"].data.len());
+        assert_eq!(vec![0, 1, 2, 4], buffers["buffer"].data);
+        assert_eq!(0x80000000, buffers["buffer"].base_address);
+
+        record.undo()?;
+
+        record.redo()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_create_from_bytes_fails_if_buffer_already_exists() -> SimpleResult<()> {
+        let mut record: Record<ActionBufferCreateFromBytes> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+
+        assert!(record.apply(("buffer", vec![0, 1, 2, 4], 0x80000000).into()).is_ok());
+        assert!(record.apply(("buffer123", vec![0, 1, 2, 4], 0x80000000).into()).is_ok());
+        assert!(record.apply(("buffer123", vec![0, 1, 2, 4], 0x80000000).into()).is_err());
+        assert!(record.apply(("buffer", vec![0, 1, 2, 4], 0x80000000).into()).is_err());
 
         Ok(())
     }

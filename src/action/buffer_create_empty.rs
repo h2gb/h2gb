@@ -129,10 +129,10 @@ mod tests {
             H2Project::new("name", "1.0")
         );
 
-        assert_eq!(0, record.target().buffers().len());
-
         assert!(record.apply(("buffer", 10, 0x80000000).into()).is_ok());
+        assert!(record.apply(("buffer2", 10, 0x80000000).into()).is_ok());
         assert!(record.apply(("buffer", 10, 0x80000000).into()).is_err());
+        assert!(record.apply(("buffer2", 10, 0x80000000).into()).is_err());
 
         Ok(())
     }

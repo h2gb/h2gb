@@ -80,3 +80,55 @@ impl Command for ActionBufferDelete {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use simple_error::SimpleResult;
+
+    use crate::h2project::H2Project;
+    use redo::Record;
+    use pretty_assertions::assert_eq;
+    use crate::action::Action;
+
+    #[test]
+    fn test_buffer_create_empty() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Start with none
+        assert_eq!(0, record.target().buffers().len());
+
+        // Create one
+        record.apply(Action::buffer_create_empty("buffer", 10, 0x80000000))?;
+        assert_eq!(1, record.target().buffers().len());
+
+        // Create another
+        record.apply(Action::buffer_create_empty("buffer2", 10, 0x80000000))?;
+        assert_eq!(2, record.target().buffers().len());
+
+        // Delete one
+        record.apply(Action::buffer_delete("buffer2"))?;
+        assert_eq!(1, record.target().buffers().len());
+
+        // Fail to delete one that doesn't exist
+        assert!(record.apply(Action::buffer_delete("buffer_fake")).is_err());
+        assert_eq!(1, record.target().buffers().len());
+
+        // Delete the other
+        record.apply(Action::buffer_delete("buffer"))?;
+        assert_eq!(0, record.target().buffers().len());
+
+        // Undo the two deletes
+        record.undo()?;
+        record.undo()?;
+        assert_eq!(2, record.target().buffers().len());
+
+        // Redo them
+        record.redo()?;
+        record.redo()?;
+        assert_eq!(0, record.target().buffers().len());
+
+        Ok(())
+    }
+}
