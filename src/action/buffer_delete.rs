@@ -131,4 +131,9 @@ mod tests {
 
         Ok(())
     }
+
+    fn test_fails_when_buffer_is_populated() -> SimpleResult<()> {
+        // TODO: Fill in when I can create layers
+        Ok(())
+    }
 }

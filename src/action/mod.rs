@@ -2,6 +2,8 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};
 
+use h2transformer::H2Transformation;
+
 use crate::h2project::H2Project;
 
 pub mod null;
@@ -9,11 +11,13 @@ pub mod project_rename;
 pub mod buffer_create_empty;
 pub mod buffer_create_from_bytes;
 pub mod buffer_delete;
+pub mod buffer_transform;
 
 use project_rename::{ActionProjectRename, ActionProjectRenameForward};
 use buffer_create_empty::{ActionBufferCreateEmpty, ActionBufferCreateEmptyForward};
 use buffer_create_from_bytes::{ActionBufferCreateFromBytes, ActionBufferCreateFromBytesForward};
 use buffer_delete::{ActionBufferDelete, ActionBufferDeleteForward};
+use buffer_transform::{ActionBufferTransform, ActionBufferTransformForward};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -22,6 +26,7 @@ pub enum Action {
     BufferCreateEmpty(buffer_create_empty::ActionBufferCreateEmpty),
     BufferCreateFromBytes(buffer_create_from_bytes::ActionBufferCreateFromBytes),
     BufferDelete(buffer_delete::ActionBufferDelete),
+    BufferTransform(buffer_transform::ActionBufferTransform),
 }
 
 impl Action {
@@ -68,6 +73,17 @@ impl Action {
             )
         )
     }
+
+    pub fn buffer_transform(name: &str, transformation: H2Transformation) -> Self {
+        Self::BufferTransform(
+            ActionBufferTransform::new(
+                ActionBufferTransformForward {
+                    name: name.to_string(),
+                    transformation: transformation,
+                }
+            )
+        )
+    }
 }
 
 impl Command for Action {
@@ -81,6 +97,7 @@ impl Command for Action {
             Action::BufferCreateEmpty(a) => a.apply(project),
             Action::BufferCreateFromBytes(a) => a.apply(project),
             Action::BufferDelete(a) => a.apply(project),
+            Action::BufferTransform(a) => a.apply(project),
         }
     }
 
@@ -91,6 +108,7 @@ impl Command for Action {
             Action::BufferCreateEmpty(a) => a.undo(project),
             Action::BufferCreateFromBytes(a) => a.undo(project),
             Action::BufferDelete(a) => a.undo(project),
+            Action::BufferTransform(a) => a.undo(project),
         }
     }
 }

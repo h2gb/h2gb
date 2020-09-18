@@ -116,7 +116,7 @@ impl H2Project {
         return &self.buffers;
     }
 
-    fn get_buffer(&self, name: &str) -> SimpleResult<&H2Buffer> {
+    pub fn get_buffer(&self, name: &str) -> SimpleResult<&H2Buffer> {
         match self.buffers.get(name) {
             Some(b) => Ok(b),
             None => bail!("Buffer {} not found", name),
@@ -236,35 +236,5 @@ impl H2Project {
 
         // Replace it with the untransformed, return the original
         Ok(untransformed_data)
-    }
-}
-
-// // Layer
-// impl H2Project {
-//     pub fn layer_create(layer: H2Layer) {
-//     }
-
-//     pub fn layer_remove(layer: H2LayerInBuffer) {
-//     }
-// }
-
-// // Entry
-// impl H2Project {
-//     pub fn entries_create(entries: Vec<H2Entry>) {
-//     }
-
-//     pub fn entries_remove() {
-//     }
-
-//     pub fn entry_update() {
-//     }
-// }
-#[cfg(test)]
-mod tests {
-    use simple_error::SimpleResult;
-
-    #[test]
-    fn test_project_rename() -> SimpleResult<()> {
-        Ok(())
     }
 }
