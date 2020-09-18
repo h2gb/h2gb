@@ -67,3 +67,34 @@ impl Command for ActionProjectRename {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use simple_error::SimpleResult;
+
+    use crate::h2project::H2Project;
+    use redo::Record;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_project_rename() -> SimpleResult<()> {
+        let mut record: Record<ActionProjectRename> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+        assert_eq!("name", record.target().name);
+
+        record.apply(ActionProjectRename::new(ActionProjectRenameForward {
+            new_name: "newname".to_string()
+        }))?;
+        assert_eq!("newname", record.target().name);
+
+        record.undo()?;
+        assert_eq!("name", record.target().name);
+
+        record.redo()?;
+        assert_eq!("newname", record.target().name);
+
+        Ok(())
+    }
+}

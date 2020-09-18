@@ -77,3 +77,63 @@ impl Command for ActionBufferCreateEmpty {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use simple_error::SimpleResult;
+
+    use crate::h2project::H2Project;
+    use redo::Record;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_buffer_create_empty() -> SimpleResult<()> {
+        let mut record: Record<ActionBufferCreateEmpty> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        assert_eq!(0, record.target().buffers().len());
+
+        record.apply(ActionBufferCreateEmpty::new(ActionBufferCreateEmptyForward {
+            name: "buffer".to_string(),
+            size: 10,
+            base_address: 0x80000000,
+        }))?;
+
+        let buffers = record.target().buffers();
+        assert_eq!(1, buffers.len());
+
+        assert_eq!(10, buffers["buffer"].data.len());
+        assert_eq!(0x80000000, buffers["buffer"].base_address);
+
+        record.undo()?;
+
+        record.redo()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_create_empty_fails_if_buffer_already_exists() -> SimpleResult<()> {
+        let mut record: Record<ActionBufferCreateEmpty> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        assert_eq!(0, record.target().buffers().len());
+
+        record.apply(ActionBufferCreateEmpty::new(ActionBufferCreateEmptyForward {
+            name: "buffer".to_string(),
+            size: 10,
+            base_address: 0x80000000,
+        }))?;
+
+        assert!(record.apply(ActionBufferCreateEmpty::new(ActionBufferCreateEmptyForward {
+            name: "buffer".to_string(),
+            size: 10,
+            base_address: 0x80000000,
+        })).is_err());
+
+        Ok(())
+    }
+}

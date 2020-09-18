@@ -112,6 +112,10 @@ impl fmt::Display for H2Project {
 
 // Buffer
 impl H2Project {
+    pub fn buffers(&self) -> &HashMap<H2BufferName, H2Buffer> {
+        return &self.buffers;
+    }
+
     fn get_buffer(&self, name: &str) -> SimpleResult<&H2Buffer> {
         match self.buffers.get(name) {
             Some(b) => Ok(b),
