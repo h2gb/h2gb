@@ -56,7 +56,8 @@ impl Command for ActionBufferUntransform {
         };
 
         // Apply the change
-        let (original_data, transformation) = project.buffer_untransform(&forward.name)?;
+        let buffer = project.get_buffer_mut(&forward.name)?;
+        let (original_data, transformation) = buffer.untransform()?;
 
         // Populate backward for undo
         self.backward = Some(ActionBufferUntransformBackward {
@@ -77,7 +78,8 @@ impl Command for ActionBufferUntransform {
 
         // Cloning the original data is the only way to keep the record
         // consistent if an error occurs
-        project.buffer_untransform_undo(&backward.name, backward.original_data.clone(), backward.transformation)?;
+        let buffer = project.get_buffer_mut(&backward.name)?;
+        buffer.untransform_undo(backward.original_data.clone(), backward.transformation)?;
 
         self.forward = Some(ActionBufferUntransformForward {
             name: backward.name.clone(),

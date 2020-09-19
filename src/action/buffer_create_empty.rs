@@ -2,7 +2,8 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::h2project::{H2Project, H2Buffer};
+use crate::h2project::H2Project;
+use crate::h2project::h2buffer::H2Buffer;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferCreateEmptyForward {

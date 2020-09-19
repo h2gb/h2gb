@@ -1,55 +1,13 @@
-use std::{fmt, mem};
+use std::fmt;
 
 use multi_vector::{MultiVector, AutoBumpyEntry};
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
-use h2transformer::H2Transformation;
 
-// Create some types so we can tell what's what
-type H2BufferName = String;
-type H2LayerName = String;
-type H2LayerInBuffer = (H2BufferName, H2LayerName);
+pub mod h2buffer;
 
-// H2Layer is conceptually a list of entries with a name associated. We don't
-// actually put the data in here, because we need interaction between multiple
-// layers to happen, so we store the actual entries in H2Project indexed by
-// the same name
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct H2Layer {
-    name: H2LayerName,
-    buffer: H2BufferName,
-}
-
-// H2Buffer holds the actual data, as well as its layers
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct H2Buffer {
-    pub data: Vec<u8>,
-    pub base_address: usize,
-
-    layers: HashMap<H2LayerName, H2Layer>,
-    transformations: Vec<H2Transformation>,
-}
-
-impl H2Buffer {
-    pub fn new(data: Vec<u8>, base_address: usize) -> Self {
-        H2Buffer {
-            data: data,
-            base_address: base_address,
-            layers: HashMap::new(),
-            transformations: Vec::new(),
-        }
-    }
-
-    pub fn is_populated(&self) -> bool {
-        if self.layers.len() > 0 {
-            return true;
-        }
-
-        return false;
-    }
-}
-
+use h2buffer::{H2Buffer, H2BufferName, H2LayerInBuffer};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Entry {
@@ -62,15 +20,6 @@ impl AutoBumpyEntry for H2Entry {
     fn index(&self) -> usize { self.index }
     fn size(&self) -> usize { self.size }
 }
-
-// pub struct BufferCreate {
-//     pub name: H2BufferName,
-//     pub buffer: H2Buffer,
-// }
-
-// pub struct BufferCreateUndo {
-//     pub name: H2BufferName,
-// }
 
 // H2Project is the very core, and the root of undo. All actions will be taken
 // via this object.
@@ -123,16 +72,20 @@ impl H2Project {
         }
     }
 
-    fn get_buffer_mut(&mut self, name: &str) -> SimpleResult<&mut H2Buffer> {
+    pub fn get_buffer_mut(&mut self, name: &str) -> SimpleResult<&mut H2Buffer> {
         match self.buffers.get_mut(name) {
             Some(b) => Ok(b),
             None => bail!("Buffer {} not found", name),
         }
     }
 
+    pub fn buffer_exists(&mut self, name: &str) -> bool {
+        self.buffers.contains_key(name)
+    }
+
     pub fn buffer_insert(&mut self, name: &str, buffer: H2Buffer) -> SimpleResult<()> {
         // Sanity check
-        if self.buffers.contains_key(name) {
+        if self.buffer_exists(name) {
             bail!("Buffer already exists");
         }
 
@@ -161,100 +114,5 @@ impl H2Project {
             Some(b) => Ok(b),
             None => bail!("Buffer not found"),
         }
-    }
-
-    pub fn buffer_exists(&mut self, name: &str) -> bool {
-        self.buffers.contains_key(name)
-    }
-
-    pub fn buffer_transform(&mut self, name: &str, transformation: H2Transformation) -> SimpleResult<Vec<u8>> {
-        // Sanity check
-        let buffer = self.get_buffer_mut(name)?;
-        if buffer.is_populated() {
-            bail!("Buffer {} contains data", name);
-        }
-
-        // Transform the data - if this fails, nothing is left over
-        let new_data = transformation.transform(&buffer.data)?;
-
-        // Log the transformation
-        buffer.transformations.push(transformation);
-
-        // Replace it with the transformed, return the original
-        Ok(mem::replace(&mut buffer.data, new_data))
-    }
-
-    pub fn buffer_transform_undo(&mut self, name: &str, original_data: Vec<u8>) -> SimpleResult<H2Transformation> {
-        let buffer = self.get_buffer_mut(name)?;
-        if buffer.is_populated() {
-            bail!("Buffer {} contains data", name);
-        }
-
-        // Remove the transformation, or fail
-        let transformation = match buffer.transformations.pop() {
-            Some(t) => t,
-            None => bail!("No transformations in the stack"),
-        };
-
-        // Replace the data after we've confirmed the transformation
-        buffer.data = original_data;
-
-        Ok(transformation)
-    }
-
-    pub fn buffer_untransform(&mut self, name: &str) -> SimpleResult<(Vec<u8>, H2Transformation)> {
-        let buffer = self.get_buffer_mut(name)?;
-        if buffer.is_populated() {
-            bail!("Buffer {} contains data", name);
-        }
-
-        // Make sure there's a transformation
-        let transformation = match buffer.transformations.last() {
-            Some(t) => t,
-            None => bail!("Buffer {} has no transformations", name),
-        };
-
-        // Attempt to untransform - fail before making any changes if it's not
-        // possible
-        let new_data = transformation.untransform(&buffer.data)?;
-
-        // If we're here, it succeeded and we can remove the last element
-        let transformation = match buffer.transformations.pop() {
-            Some(t) => t,
-            None => bail!("Transformation disappeared while untransforming!"),
-        };
-
-        // Replace it with the untransformed, return the original
-        Ok((mem::replace(&mut buffer.data, new_data), transformation))
-    }
-
-    pub fn buffer_untransform_undo(&mut self, name: &str, original_data: Vec<u8>, transformation: H2Transformation) -> SimpleResult<()> {
-        let buffer = self.get_buffer_mut(name)?;
-        if buffer.is_populated() {
-            bail!("Buffer {} contains data", name);
-        }
-
-        // Replace the data; there's no need to save the forward data, we can
-        // re-calculate that
-        buffer.data = original_data;
-
-        // Add the transformation back
-        buffer.transformations.push(transformation);
-
-        // We don't need to return anything here
-        Ok(())
-    }
-
-    pub fn buffer_edit(&mut self, name: &str, data: Vec<u8>, offset: usize) -> SimpleResult<Vec<u8>> {
-        // Get a handle to the buffer's data
-        let buffer_data = &mut self.get_buffer_mut(name)?.data;
-
-        // Sanity check
-        if offset + data.len() > buffer_data.len() {
-            bail!("Editing data into buffer is too long");
-        }
-
-        // Splice in our data, get the original data back
-        Ok(buffer_data.splice(offset..(offset+data.len()), data).collect())
     }
 }

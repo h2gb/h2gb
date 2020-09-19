@@ -58,7 +58,8 @@ impl Command for ActionBufferEdit {
         };
 
         // Apply the change
-        let original_data = project.buffer_edit(&forward.name, forward.new_data.clone(), forward.offset)?;
+        let buffer = project.get_buffer_mut(&forward.name)?;
+        let original_data = buffer.edit(forward.new_data.clone(), forward.offset)?;
 
         // Populate backward for undo
         self.backward = Some(ActionBufferEditBackward {
@@ -77,7 +78,8 @@ impl Command for ActionBufferEdit {
             None => bail!("Failed to undo: missing context"),
         };
 
-        let new_data = project.buffer_edit(&backward.name, backward.original_data.clone(), backward.offset)?;
+        let buffer = project.get_buffer_mut(&backward.name)?;
+        let new_data = buffer.edit(backward.original_data.clone(), backward.offset)?;
 
         self.forward = Some(ActionBufferEditForward {
             name: backward.name.clone(),
