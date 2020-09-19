@@ -47,13 +47,13 @@ impl Command for ActionProjectRename {
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         // Get the forward instructions
-        let forward = match self.forward.take() {
+        let forward = match &self.forward {
             Some(f) => f,
             None => bail!("Failed to apply: missing context"),
         };
 
         // Apply the change
-        let old_name = mem::replace(&mut project.name, forward.new_name);
+        let old_name = mem::replace(&mut project.name, forward.new_name.clone());
 
         // Populate backward for undo
         self.backward = Some(ActionProjectRenameBackward {
@@ -64,12 +64,12 @@ impl Command for ActionProjectRename {
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let backward = match self.backward.take() {
+        let backward = match &self.backward {
             Some(b) => b,
             None => bail!("Failed to undo: missing context"),
         };
 
-        let new_name = mem::replace(&mut project.name, backward.old_name);
+        let new_name = mem::replace(&mut project.name, backward.old_name.clone());
 
         self.forward = Some(ActionProjectRenameForward {
             new_name: new_name

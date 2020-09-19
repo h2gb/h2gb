@@ -50,7 +50,7 @@ impl Command for ActionBufferUntransform {
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         // Get the forward instructions
-        let forward = match self.forward.take() {
+        let forward = match &self.forward {
             Some(f) => f,
             None => bail!("Failed to apply: missing context"),
         };
@@ -60,26 +60,29 @@ impl Command for ActionBufferUntransform {
 
         // Populate backward for undo
         self.backward = Some(ActionBufferUntransformBackward {
-            name: forward.name,
+            name: forward.name.clone(),
             original_data: original_data,
             transformation: transformation,
         });
+        self.forward = None;
 
         Ok(())
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let backward = match self.backward.take() {
+        let backward = match &self.backward {
             Some(b) => b,
             None => bail!("Failed to undo: missing context"),
         };
 
-        let name = backward.name;
-        project.buffer_untransform_undo(&name, backward.original_data, backward.transformation)?;
+        // Cloning the original data is the only way to keep the record
+        // consistent if an error occurs
+        project.buffer_untransform_undo(&backward.name, backward.original_data.clone(), backward.transformation)?;
 
         self.forward = Some(ActionBufferUntransformForward {
-            name: name,
+            name: backward.name.clone(),
         });
+        self.backward = None;
 
         Ok(())
     }

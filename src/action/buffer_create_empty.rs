@@ -50,7 +50,7 @@ impl Command for ActionBufferCreateEmpty {
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         // Get the forward instructions
-        let forward = match self.forward.take() {
+        let forward = match &self.forward {
             Some(f) => f,
             None => bail!("Failed to apply: missing context"),
         };
@@ -64,28 +64,30 @@ impl Command for ActionBufferCreateEmpty {
         let buffer = H2Buffer::new(vec![0; forward.size], forward.base_address);
         project.buffer_insert(&forward.name, buffer)?;
 
-        // Populate backward for undo
+        // Swap backward + forward
         self.backward = Some(ActionBufferCreateEmptyBackward {
-            name: forward.name,
+            name: forward.name.to_string(),
         });
+        self.forward = None;
 
         Ok(())
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let backward = match self.backward.take() {
+        let backward = match &self.backward {
             Some(b) => b,
             None => bail!("Failed to undo: missing context"),
         };
 
-        let name = backward.name;
-        let buffer = project.buffer_remove(&name)?;
+        let name = &backward.name;
+        let buffer = project.buffer_remove(name)?;
 
         self.forward = Some(ActionBufferCreateEmptyForward {
-            name: name,
+            name: name.clone(),
             size: buffer.data.len(),
             base_address: buffer.base_address,
         });
+        self.backward = None;
 
         Ok(())
     }

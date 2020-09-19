@@ -131,10 +131,12 @@ impl H2Project {
     }
 
     pub fn buffer_insert(&mut self, name: &str, buffer: H2Buffer) -> SimpleResult<()> {
+        // Sanity check
         if self.buffers.contains_key(name) {
             bail!("Buffer already exists");
         }
 
+        // Go
         self.buffers.insert(name.to_string(), buffer);
 
         Ok(())
@@ -151,8 +153,10 @@ impl H2Project {
     }
 
     pub fn buffer_remove(&mut self, name: &str) -> SimpleResult<H2Buffer> {
+        // Sanity check
         self.buffer_can_be_removed(name)?;
 
+        // Go
         match self.buffers.remove(name) {
             Some(b) => Ok(b),
             None => bail!("Buffer not found"),
@@ -164,12 +168,13 @@ impl H2Project {
     }
 
     pub fn buffer_transform(&mut self, name: &str, transformation: H2Transformation) -> SimpleResult<Vec<u8>> {
+        // Sanity check
         let buffer = self.get_buffer_mut(name)?;
         if buffer.is_populated() {
             bail!("Buffer {} contains data", name);
         }
 
-        // Transform the data
+        // Transform the data - if this fails, nothing is left over
         let new_data = transformation.transform(&buffer.data)?;
 
         // Log the transformation
@@ -185,13 +190,13 @@ impl H2Project {
             bail!("Buffer {} contains data", name);
         }
 
-        // Remove the transformation
+        // Remove the transformation, or fail
         let transformation = match buffer.transformations.pop() {
             Some(t) => t,
             None => bail!("No transformations in the stack"),
         };
 
-        // Replace the data
+        // Replace the data after we've confirmed the transformation
         buffer.data = original_data;
 
         Ok(transformation)
@@ -209,7 +214,8 @@ impl H2Project {
             None => bail!("Buffer {} has no transformations", name),
         };
 
-        // Attempt to untransform
+        // Attempt to untransform - fail before making any changes if it's not
+        // possible
         let new_data = transformation.untransform(&buffer.data)?;
 
         // If we're here, it succeeded and we can remove the last element

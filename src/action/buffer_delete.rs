@@ -47,35 +47,39 @@ impl Command for ActionBufferDelete {
     type Error = SimpleError;
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let forward = match self.forward.take() {
+        let forward = match &self.forward {
             Some(b) => b,
             None => bail!("Failed to apply: missing context"),
         };
 
-        let name = forward.name;
-        let buffer = project.buffer_remove(&name)?;
+        let name = &forward.name;
+        let buffer = project.buffer_remove(name)?;
 
         self.backward = Some(ActionBufferDeleteBackward {
-            name: name,
+            name: name.clone(),
             data: buffer.data,
             base_address: buffer.base_address,
         });
+        self.forward = None;
 
         Ok(())
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let backward = match self.backward.take() {
+        let backward = match &self.backward {
             Some(f) => f,
             None => bail!("Failed to undo: missing context"),
         };
 
-        let buffer = H2Buffer::new(backward.data, backward.base_address);
+        // I don't love cloning here, but it's required to keep the object in
+        // a consistent state if there's an error in buffer_insert()
+        let buffer = H2Buffer::new(backward.data.clone(), backward.base_address);
         project.buffer_insert(&backward.name, buffer)?;
 
         self.forward = Some(ActionBufferDeleteForward {
-            name: backward.name,
+            name: backward.name.clone(),
         });
+        self.backward = None;
 
         Ok(())
     }

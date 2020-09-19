@@ -50,7 +50,7 @@ impl Command for ActionBufferCreateFromBytes {
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         // Get the forward instructions
-        let forward = match self.forward.take() {
+        let forward = match &self.forward {
             Some(f) => f,
             None => bail!("Failed to apply: missing context"),
         };
@@ -61,31 +61,32 @@ impl Command for ActionBufferCreateFromBytes {
         }
 
         // Apply the change
-        let buffer = H2Buffer::new(forward.data, forward.base_address);
+        let buffer = H2Buffer::new(forward.data.clone(), forward.base_address);
         project.buffer_insert(&forward.name, buffer)?;
 
         // Populate backward for undo
         self.backward = Some(ActionBufferCreateFromBytesBackward {
-            name: forward.name,
+            name: forward.name.clone(),
         });
 
         Ok(())
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let backward = match self.backward.take() {
+        let backward = match &self.backward {
             Some(b) => b,
             None => bail!("Failed to undo: missing context"),
         };
 
-        let name = backward.name;
-        let buffer = project.buffer_remove(&name)?;
+        let name = &backward.name;
+        let buffer = project.buffer_remove(name)?;
 
         self.forward = Some(ActionBufferCreateFromBytesForward {
-            name: name,
+            name: name.clone(),
             data: buffer.data,
             base_address: buffer.base_address,
         });
+        self.backward = None;
 
         Ok(())
     }
@@ -117,7 +118,6 @@ mod tests {
         assert_eq!(0x80000000, buffers["buffer"].base_address);
 
         record.undo()?;
-
         record.redo()?;
 
         Ok(())
@@ -128,7 +128,6 @@ mod tests {
         let mut record: Record<ActionBufferCreateFromBytes> = Record::new(
             H2Project::new("name", "1.0")
         );
-
 
         assert!(record.apply(("buffer", vec![0, 1, 2, 4], 0x80000000).into()).is_ok());
         assert!(record.apply(("buffer123", vec![0, 1, 2, 4], 0x80000000).into()).is_ok());
