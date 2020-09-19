@@ -96,7 +96,7 @@ mod tests {
     use h2transformer::H2Transformation;
 
     #[test]
-    fn test_buffer_untransform() -> SimpleResult<()> {
+    fn test_action() -> SimpleResult<()> {
         let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
@@ -144,32 +144,33 @@ mod tests {
         record.redo()?;
         assert_eq!(b"NGE0YjRjNGQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
 
-        println!("{}", serde_json::to_string_pretty(&record).unwrap());
-
         Ok(())
     }
 
-    // #[test]
-    // fn test_buffer_impossible_transform() -> SimpleResult<()> {
-    //     let mut record: Record<Action> = Record::new(
-    //         H2Project::new("name", "1.0")
-    //     );
+    #[test]
+    fn test_action_fails_if_not_transformed() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
 
-    //     // Definitely not hex
-    //     record.apply(Action::buffer_create_from_bytes("buffer", b"abcxyz".to_vec(), 0x80000000))?;
+        // Create a buffer with "JKLMN" encoded as hex
+        record.apply(Action::buffer_create_from_bytes("buffer", b"4a4b4c4d4e".to_vec(), 0x80000000))?;
 
-    //     // Try to unhex
-    //     assert!(record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex)).is_err());
+        // Do a transformation
+        record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
+        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
-    //     // Make sure nothing changed
-    //     assert_eq!(b"abcxyz".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Untransform successfully, then try again with an empty stack
+        record.apply(Action::buffer_untransform("buffer"))?;
+        assert_eq!(b"4a4b4c4d4e".to_vec(), record.target().get_buffer("buffer")?.data);
 
-    //     Ok(())
-    // }
+        // Fail to untransform a second time
+        assert!(record.apply(Action::buffer_untransform("buffer")).is_err());
 
-    // #[test]
-    // fn test_fails_when_buffer_is_populated() -> SimpleResult<()> {
-    //     // TODO: Fill in when I can create layers
-    //     Ok(())
-    // }
+        // Try an undo for good measure
+        record.undo()?;
+        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        Ok(())
+    }
 }
