@@ -12,12 +12,14 @@ pub mod buffer_create_empty;
 pub mod buffer_create_from_bytes;
 pub mod buffer_delete;
 pub mod buffer_transform;
+pub mod buffer_untransform;
 
 use project_rename::{ActionProjectRename, ActionProjectRenameForward};
 use buffer_create_empty::{ActionBufferCreateEmpty, ActionBufferCreateEmptyForward};
 use buffer_create_from_bytes::{ActionBufferCreateFromBytes, ActionBufferCreateFromBytesForward};
 use buffer_delete::{ActionBufferDelete, ActionBufferDeleteForward};
 use buffer_transform::{ActionBufferTransform, ActionBufferTransformForward};
+use buffer_untransform::{ActionBufferUntransform, ActionBufferUntransformForward};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -27,6 +29,7 @@ pub enum Action {
     BufferCreateFromBytes(buffer_create_from_bytes::ActionBufferCreateFromBytes),
     BufferDelete(buffer_delete::ActionBufferDelete),
     BufferTransform(buffer_transform::ActionBufferTransform),
+    BufferUntransform(buffer_untransform::ActionBufferUntransform),
 }
 
 impl Action {
@@ -84,6 +87,16 @@ impl Action {
             )
         )
     }
+
+    pub fn buffer_untransform(name: &str) -> Self {
+        Self::BufferUntransform(
+            ActionBufferUntransform::new(
+                ActionBufferUntransformForward {
+                    name: name.to_string(),
+                }
+            )
+        )
+    }
 }
 
 impl Command for Action {
@@ -98,6 +111,7 @@ impl Command for Action {
             Action::BufferCreateFromBytes(a) => a.apply(project),
             Action::BufferDelete(a) => a.apply(project),
             Action::BufferTransform(a) => a.apply(project),
+            Action::BufferUntransform(a) => a.apply(project),
         }
     }
 
@@ -109,6 +123,7 @@ impl Command for Action {
             Action::BufferCreateFromBytes(a) => a.undo(project),
             Action::BufferDelete(a) => a.undo(project),
             Action::BufferTransform(a) => a.undo(project),
+            Action::BufferUntransform(a) => a.undo(project),
         }
     }
 }

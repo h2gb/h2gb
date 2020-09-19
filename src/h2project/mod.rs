@@ -222,19 +222,20 @@ impl H2Project {
         Ok((mem::replace(&mut buffer.data, new_data), transformation))
     }
 
-    pub fn buffer_untransform_undo(&mut self, name: &str, original_data: Vec<u8>, transformation: H2Transformation) -> SimpleResult<Vec<u8>> {
+    pub fn buffer_untransform_undo(&mut self, name: &str, original_data: Vec<u8>, transformation: H2Transformation) -> SimpleResult<()> {
         let buffer = self.get_buffer_mut(name)?;
         if buffer.is_populated() {
             bail!("Buffer {} contains data", name);
         }
 
-        // Replace the data
-        let untransformed_data = mem::replace(&mut buffer.data, original_data);
+        // Replace the data; there's no need to save the forward data, we can
+        // re-calculate that
+        buffer.data = original_data;
 
         // Add the transformation back
         buffer.transformations.push(transformation);
 
-        // Replace it with the untransformed, return the original
-        Ok(untransformed_data)
+        // We don't need to return anything here
+        Ok(())
     }
 }
