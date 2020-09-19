@@ -244,4 +244,17 @@ impl H2Project {
         // We don't need to return anything here
         Ok(())
     }
+
+    pub fn buffer_edit(&mut self, name: &str, data: Vec<u8>, offset: usize) -> SimpleResult<Vec<u8>> {
+        // Get a handle to the buffer's data
+        let buffer_data = &mut self.get_buffer_mut(name)?.data;
+
+        // Sanity check
+        if offset + data.len() > buffer_data.len() {
+            bail!("Editing data into buffer is too long");
+        }
+
+        // Splice in our data, get the original data back
+        Ok(buffer_data.splice(offset..(offset+data.len()), data).collect())
+    }
 }

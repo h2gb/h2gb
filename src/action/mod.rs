@@ -7,12 +7,13 @@ use h2transformer::H2Transformation;
 use crate::h2project::H2Project;
 
 pub mod null;
-pub mod project_rename;
 pub mod buffer_create_empty;
 pub mod buffer_create_from_bytes;
 pub mod buffer_delete;
+pub mod buffer_edit;
 pub mod buffer_transform;
 pub mod buffer_untransform;
+pub mod project_rename;
 
 use project_rename::{ActionProjectRename, ActionProjectRenameForward};
 use buffer_create_empty::{ActionBufferCreateEmpty, ActionBufferCreateEmptyForward};
@@ -20,6 +21,7 @@ use buffer_create_from_bytes::{ActionBufferCreateFromBytes, ActionBufferCreateFr
 use buffer_delete::{ActionBufferDelete, ActionBufferDeleteForward};
 use buffer_transform::{ActionBufferTransform, ActionBufferTransformForward};
 use buffer_untransform::{ActionBufferUntransform, ActionBufferUntransformForward};
+use buffer_edit::{ActionBufferEdit, ActionBufferEditForward};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -30,6 +32,7 @@ pub enum Action {
     BufferDelete(buffer_delete::ActionBufferDelete),
     BufferTransform(buffer_transform::ActionBufferTransform),
     BufferUntransform(buffer_untransform::ActionBufferUntransform),
+    BufferEdit(buffer_edit::ActionBufferEdit),
 }
 
 impl Action {
@@ -97,6 +100,18 @@ impl Action {
             )
         )
     }
+
+    pub fn buffer_edit(name: &str, new_data: Vec<u8>, offset: usize) -> Self {
+        Self::BufferEdit(
+            ActionBufferEdit::new(
+                ActionBufferEditForward {
+                    name: name.to_string(),
+                    new_data: new_data,
+                    offset: offset,
+                }
+            )
+        )
+    }
 }
 
 impl Command for Action {
@@ -112,6 +127,7 @@ impl Command for Action {
             Action::BufferDelete(a) => a.apply(project),
             Action::BufferTransform(a) => a.apply(project),
             Action::BufferUntransform(a) => a.apply(project),
+            Action::BufferEdit(a) => a.apply(project),
         }
     }
 
@@ -124,6 +140,7 @@ impl Command for Action {
             Action::BufferDelete(a) => a.undo(project),
             Action::BufferTransform(a) => a.undo(project),
             Action::BufferUntransform(a) => a.undo(project),
+            Action::BufferEdit(a) => a.undo(project),
         }
     }
 }
