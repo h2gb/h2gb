@@ -91,7 +91,7 @@ mod tests {
     use crate::action::Action;
 
     #[test]
-    fn test_buffer_create_empty() -> SimpleResult<()> {
+    fn test_action() -> SimpleResult<()> {
         let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
@@ -132,7 +132,7 @@ mod tests {
         Ok(())
     }
 
-    fn test_fails_when_buffer_is_populated() -> SimpleResult<()> {
+    fn test_action_fails_when_buffer_is_populated() -> SimpleResult<()> {
         // TODO: Fill in when I can create layers
         Ok(())
     }

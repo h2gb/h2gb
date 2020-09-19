@@ -101,7 +101,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_buffer_create_from_bytes() -> SimpleResult<()> {
+    fn test_action() -> SimpleResult<()> {
         let mut record: Record<ActionBufferCreateFromBytes> = Record::new(
             H2Project::new("name", "1.0")
         );
@@ -124,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn test_buffer_create_from_bytes_fails_if_buffer_already_exists() -> SimpleResult<()> {
+    fn test_action_fails_if_buffer_already_exists() -> SimpleResult<()> {
         let mut record: Record<ActionBufferCreateFromBytes> = Record::new(
             H2Project::new("name", "1.0")
         );

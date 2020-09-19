@@ -97,7 +97,7 @@ mod tests {
     use h2transformer::H2Transformation;
 
     #[test]
-    fn test_buffer_transform() -> SimpleResult<()> {
+    fn test_action() -> SimpleResult<()> {
         let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
@@ -133,7 +133,7 @@ mod tests {
     }
 
     #[test]
-    fn test_buffer_impossible_transform() -> SimpleResult<()> {
+    fn test_action_fails_on_impossible_transform() -> SimpleResult<()> {
         let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
@@ -151,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fails_when_buffer_is_populated() -> SimpleResult<()> {
+    fn test_action_fails_when_buffer_is_populated() -> SimpleResult<()> {
         // TODO: Fill in when I can create layers
         Ok(())
     }

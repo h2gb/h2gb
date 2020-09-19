@@ -89,7 +89,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_project_rename() -> SimpleResult<()> {
+    fn test_action() -> SimpleResult<()> {
         let mut record: Record<ActionProjectRename> = Record::new(
             H2Project::new("name", "1.0")
         );
