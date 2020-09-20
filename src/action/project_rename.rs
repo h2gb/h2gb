@@ -52,6 +52,11 @@ impl Command for ActionProjectRename {
             None => bail!("Failed to apply: missing context"),
         };
 
+        // Sanity check
+        if forward.new_name.len() == 0 {
+            bail!("Project name can't be blank");
+        }
+
         // Apply the change
         let old_name = mem::replace(&mut project.name, forward.new_name.clone());
 
@@ -103,6 +108,18 @@ mod tests {
 
         record.redo()?;
         assert_eq!("newname", record.target().name);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_name_is_required() -> SimpleResult<()> {
+        let mut record: Record<ActionProjectRename> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        assert!(record.apply("".into()).is_err());
+        assert_eq!("name", record.target().name);
 
         Ok(())
     }

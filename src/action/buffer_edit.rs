@@ -57,6 +57,11 @@ impl Command for ActionBufferEdit {
             None => bail!("Failed to apply: missing context"),
         };
 
+        // Sanity check
+        if forward.new_data.len() == 0 {
+            bail!("Can't edit zero bytes");
+        }
+
         // Apply the change
         let buffer = project.get_buffer_mut(&forward.name)?;
         let original_data = buffer.edit(forward.new_data.clone(), forward.offset)?;
@@ -100,7 +105,6 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
     use crate::action::Action;
-    use h2transformer::H2Transformation;
 
     #[test]
     fn test_action() -> SimpleResult<()> {
@@ -166,26 +170,64 @@ mod tests {
     }
 
     #[test]
-    fn test_action_fails_on_impossible_transform() -> SimpleResult<()> {
+    fn test_action_fails_on_bad_change() -> SimpleResult<()> {
         let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
 
-        // Definitely not hex
-        record.apply(Action::buffer_create_from_bytes("buffer", b"abcxyz".to_vec(), 0x80000000))?;
+        // Create a buffer with some data
+        record.apply(Action::buffer_create_from_bytes("buffer", b"AAAAAAAAAA".to_vec(), 0x80000000))?;
+        assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("buffer")?.data);
 
-        // Try to unhex
-        assert!(record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex)).is_err());
+        // Change some middle bytes so we can test undo
+        record.apply(Action::buffer_edit("buffer", b"BBBBBB".to_vec(), 2))?;
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
 
-        // Make sure nothing changed
-        assert_eq!(b"abcxyz".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Change one too many bytes from the start
+        assert!(record.apply(Action::buffer_edit("buffer", b"AAAAAAAAAAB".to_vec(), 0)).is_err());
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Change one too many bytes from the end
+        assert!(record.apply(Action::buffer_edit("buffer", b"AB".to_vec(), 9)).is_err());
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Change something completely off the end
+        assert!(record.apply(Action::buffer_edit("buffer", b"AB".to_vec(), 100)).is_err());
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Make sure undo and redo are correct
+        record.undo()?;
+        assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("buffer")?.data);
+        record.redo()?;
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
 
         Ok(())
     }
 
     #[test]
-    fn test_action_fails_when_buffer_is_populated() -> SimpleResult<()> {
-        // TODO: Fill in when I can create layers
+    fn test_action_fails_on_zero_size() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Create a buffer with some data
+        record.apply(Action::buffer_create_from_bytes("buffer", b"AAAAAAAAAA".to_vec(), 0x80000000))?;
+        assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Change some middle bytes so we can test undo
+        record.apply(Action::buffer_edit("buffer", b"BBBBBB".to_vec(), 2))?;
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Change zero bytes, make sure it fails
+        assert!(record.apply(Action::buffer_edit("buffer", b"".to_vec(), 0)).is_err());
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Make sure undo and redo are correct
+        record.undo()?;
+        assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("buffer")?.data);
+        record.redo()?;
+        assert_eq!(b"AABBBBBBAA".to_vec(), record.target().get_buffer("buffer")?.data);
+
         Ok(())
     }
 }

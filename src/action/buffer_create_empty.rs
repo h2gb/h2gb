@@ -56,7 +56,12 @@ impl Command for ActionBufferCreateEmpty {
             None => bail!("Failed to apply: missing context"),
         };
 
-        // Sanity check
+        // Sanity check: it has a size
+        if forward.size == 0 {
+            bail!("Can't create a zero-sized buffer");
+        }
+
+        // Sanity check: buffer doesn't already exist
         if project.buffer_exists(&forward.name) {
             bail!("A buffer with that name already exists");
         }
@@ -136,6 +141,17 @@ mod tests {
         assert!(record.apply(("buffer2", 10, 0x80000000).into()).is_ok());
         assert!(record.apply(("buffer", 10, 0x80000000).into()).is_err());
         assert!(record.apply(("buffer2", 10, 0x80000000).into()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_action_fails_with_zero_size() -> SimpleResult<()> {
+        let mut record: Record<ActionBufferCreateEmpty> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        assert!(record.apply(("buffer", 0, 0x80000000).into()).is_err());
 
         Ok(())
     }

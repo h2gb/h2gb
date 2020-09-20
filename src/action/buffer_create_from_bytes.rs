@@ -56,7 +56,12 @@ impl Command for ActionBufferCreateFromBytes {
             None => bail!("Failed to apply: missing context"),
         };
 
-        // Sanity check
+        // Sanity check: it has a size
+        if forward.data.len() == 0 {
+            bail!("Can't create a zero-sized buffer");
+        }
+
+        // Sanity check: the buffer doesn't already exist
         if project.buffer_exists(&forward.name) {
             bail!("A buffer with that name already exists");
         }
@@ -134,6 +139,17 @@ mod tests {
         assert!(record.apply(("buffer123", vec![0, 1, 2, 4], 0x80000000).into()).is_ok());
         assert!(record.apply(("buffer123", vec![0, 1, 2, 4], 0x80000000).into()).is_err());
         assert!(record.apply(("buffer", vec![0, 1, 2, 4], 0x80000000).into()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_action_fails_with_zero_size() -> SimpleResult<()> {
+        let mut record: Record<ActionBufferCreateFromBytes> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        assert!(record.apply(("buffer", vec![], 0x80000000).into()).is_err());
 
         Ok(())
     }
