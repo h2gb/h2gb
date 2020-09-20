@@ -79,7 +79,7 @@ impl H2Project {
         }
     }
 
-    pub fn buffer_exists(&mut self, name: &str) -> bool {
+    pub fn buffer_exists(&self, name: &str) -> bool {
         self.buffers.contains_key(name)
     }
 
@@ -93,6 +93,26 @@ impl H2Project {
         self.buffers.insert(name.to_string(), buffer);
 
         Ok(())
+    }
+
+    pub fn buffer_clone_shallow(&mut self, from: &str, to: &str) -> SimpleResult<()> {
+        // Sanity check
+        if self.buffer_exists(to) {
+            bail!("Buffer already exists");
+        }
+
+        // Get the original
+        let cloned_buffer = self.get_buffer(from)?.clone();
+
+        // Insert it under the new name
+        self.buffers.insert(to.to_string(), cloned_buffer);
+
+        Ok(())
+    }
+
+    pub fn buffer_clone_deep(&mut self, _from: &str, _to: &str) -> SimpleResult<()> {
+        // TODO: Implement this once we support layers/entries
+        bail!("Not implemented");
     }
 
     pub fn buffer_can_be_removed(&self, name: &str) -> SimpleResult<()> {
