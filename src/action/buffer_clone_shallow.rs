@@ -54,16 +54,6 @@ impl Command for ActionBufferCloneShallow {
             None => bail!("Failed to apply: missing context"),
         };
 
-        // Sanity check: the original buffer exists
-        if project.buffer_exists(&forward.clone_to_name) {
-            bail!("A buffer with that name already exists");
-        }
-
-        // Sanity check: the new buffer doesn't already exist
-        if project.buffer_exists(&forward.clone_to_name) {
-            bail!("A buffer with that name already exists");
-        }
-
         // Apply the change
         project.buffer_clone_shallow(&forward.clone_from_name, &forward.clone_to_name)?;
 
