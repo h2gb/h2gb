@@ -4,20 +4,21 @@ use simple_error::{bail, SimpleResult};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use h2transformer::H2Transformation;
+use std::ops::Range;
 
 pub type H2BufferName = String;
 // Create some types so we can tell what's what
 pub type H2LayerName = String;
 pub type H2LayerInBuffer = (H2BufferName, H2LayerName);
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct H2Layer {
     name: H2LayerName,
     buffer: H2BufferName,
 }
 
 // H2Buffer holds the actual data, as well as its layers
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct H2Buffer {
     pub data: Vec<u8>,
     pub base_address: usize,
@@ -38,6 +39,24 @@ impl H2Buffer {
             layers: HashMap::new(),
             transformations: Vec::new(),
         })
+    }
+
+    pub fn clone_shallow(&self) -> SimpleResult<Self> {
+        Self::new(self.data.clone(), self.base_address)
+    }
+
+    pub fn clone_deep(&self) -> SimpleResult<()> {
+        // TODO: Implement this once we support layers/entries
+        bail!("Not implemented");
+    }
+
+    pub fn clone_partial(&self, range: Range<usize>) -> SimpleResult<Self> {
+        // Sanity check
+        if range.end > self.data.len() {
+            bail!("Editing data into buffer is too long");
+        }
+
+        Self::new(self.data[range].into(), self.base_address)
     }
 
     pub fn is_populated(&self) -> bool {

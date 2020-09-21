@@ -64,6 +64,7 @@ impl Command for ActionProjectRename {
         self.backward = Some(ActionProjectRenameBackward {
             old_name: old_name
         });
+        self.forward = None;
 
         Ok(())
     }
@@ -79,6 +80,7 @@ impl Command for ActionProjectRename {
         self.forward = Some(ActionProjectRenameForward {
             new_name: new_name
         });
+        self.backward = None;
 
         Ok(())
     }

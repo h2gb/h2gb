@@ -59,8 +59,16 @@ impl Command for ActionBufferClonePartial {
             None => bail!("Failed to apply: missing context"),
         };
 
+        // Make sure we'll be able to insert - this is mostly to save the
+        // cloning time
+        if project.buffer_exists(&forward.clone_to_name) {
+            bail!("Buffer already exists: {}", forward.clone_to_name);
+        }
+
         // Apply the change
-        project.buffer_clone_partial(&forward.clone_from_name, &forward.clone_to_name, forward.range.clone())?;
+        let original = project.get_buffer(&forward.clone_from_name)?;
+        let new_buffer = original.clone_partial(forward.range.clone())?;
+        project.buffer_insert(&forward.clone_to_name, new_buffer)?;
 
         // Populate backward for undo
         self.backward = Some(ActionBufferClonePartialBackward {

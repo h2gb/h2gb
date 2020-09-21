@@ -65,6 +65,7 @@ impl Command for ActionBufferCreateFromBytes {
         self.backward = Some(ActionBufferCreateFromBytesBackward {
             name: forward.name.clone(),
         });
+        self.forward = None;
 
         Ok(())
     }
