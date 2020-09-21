@@ -157,4 +157,11 @@ impl H2Buffer {
         // Splice in our data, get the original data back
         Ok(buffer_data.splice(offset..(offset+data.len()), data).collect())
     }
+
+    pub fn rebase(&mut self, new_base_address: usize) -> SimpleResult<usize> {
+        let old_base_address = self.base_address;
+        self.base_address = new_base_address;
+
+        Ok(old_base_address)
+    }
 }

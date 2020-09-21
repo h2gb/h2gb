@@ -115,4 +115,35 @@ impl H2Project {
             None => bail!("Buffer not found"),
         }
     }
+
+    pub fn buffer_rename(&mut self, from: &str, to: &str) -> SimpleResult<()> {
+        let buffer = self.get_buffer(from)?;
+
+        // Sanity check
+        // TODO: we'll probably want to allow renaming populated buffers eventually
+        if buffer.is_populated() {
+            bail!("Buffer has data in it");
+        }
+
+        // Ensure a name was given
+        if to == "" {
+            bail!("Can't rename to a blank name");
+        }
+
+        // Ensure the new name doesn't exist
+        if self.buffer_exists(to) {
+            bail!("Target buffer name already exists");
+        }
+
+        // Remove the old name
+        let b = match self.buffers.remove(from) {
+            Some(b) => b,
+            None => bail!("Buffer not found"),
+        };
+
+        // Add the new name
+        self.buffers.insert(to.to_string(), b);
+
+        Ok(())
+    }
 }
