@@ -44,7 +44,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "bumpy_vector"
 version = "0.0.5"
-source = "git+https://github.com/h2gb/bumpy_vector.git?branch=dev#b89b940d6e99e7b4d964108d5475d43bac2d329d"
+source = "git+https://github.com/h2gb/bumpy_vector.git?branch=dev#d4008558ddf75319d8f54c1ab6fa51939925e69e"
 dependencies = [
  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.116 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -147,7 +147,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "multi_vector"
 version = "0.0.2"
-source = "git+https://github.com/h2gb/multi_vector.git?branch=dev#1c774d42e349b49e94f374a1fe27be269e019106"
+source = "git+https://github.com/h2gb/multi_vector.git?branch=dev#a8f1187fb80eba7ce206d75754f11cdacc437b84"
 dependencies = [
  "bumpy_vector 0.0.5 (git+https://github.com/h2gb/bumpy_vector.git?branch=dev)",
  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
