@@ -125,6 +125,30 @@ impl H2Project {
         Ok(())
     }
 
+    pub fn buffer_clone_partial(&mut self, from: &str, to: &str, start: usize, size: usize) -> SimpleResult<()> {
+        // Get a handle to the buffer
+        let from = self.get_buffer(from)?;
+
+        // Make sure the new one doesn't exist yet
+        if self.buffer_exists(to) {
+            bail!("Target buffer already exists");
+        }
+
+        // Sanity check
+        if start + size > from.data.len() {
+            bail!("Editing data into buffer is too long");
+        }
+
+        if size == 0 {
+            bail!("Can't copy zero bytes");
+        }
+
+        let new_buffer = H2Buffer::new(from.data[start..(start+size)].into(), from.base_address);
+        self.buffer_insert(to, new_buffer)?;
+
+        Ok(())
+    }
+
     pub fn buffer_remove(&mut self, name: &str) -> SimpleResult<H2Buffer> {
         // Sanity check
         self.buffer_can_be_removed(name)?;

@@ -14,6 +14,7 @@ pub mod buffer_edit;
 pub mod buffer_transform;
 pub mod buffer_untransform;
 pub mod buffer_clone_shallow;
+pub mod buffer_clone_partial;
 pub mod project_rename;
 
 use project_rename::{ActionProjectRename, ActionProjectRenameForward};
@@ -24,6 +25,7 @@ use buffer_transform::{ActionBufferTransform, ActionBufferTransformForward};
 use buffer_untransform::{ActionBufferUntransform, ActionBufferUntransformForward};
 use buffer_edit::{ActionBufferEdit, ActionBufferEditForward};
 use buffer_clone_shallow::{ActionBufferCloneShallow, ActionBufferCloneShallowForward};
+use buffer_clone_partial::{ActionBufferClonePartial, ActionBufferClonePartialForward};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -36,6 +38,7 @@ pub enum Action {
     BufferUntransform(buffer_untransform::ActionBufferUntransform),
     BufferEdit(buffer_edit::ActionBufferEdit),
     BufferCloneShallow(buffer_clone_shallow::ActionBufferCloneShallow),
+    BufferClonePartial(buffer_clone_partial::ActionBufferClonePartial),
 }
 
 impl Action {
@@ -126,6 +129,19 @@ impl Action {
             )
         )
     }
+
+    pub fn buffer_clone_partial(clone_from_name: &str, clone_to_name: &str, start: usize, size: usize) -> Self {
+        Self::BufferClonePartial(
+            ActionBufferClonePartial::new(
+                ActionBufferClonePartialForward {
+                    clone_from_name: clone_from_name.to_string(),
+                    clone_to_name: clone_to_name.to_string(),
+                    start: start,
+                    size: size,
+                }
+            )
+        )
+    }
 }
 
 impl Command for Action {
@@ -143,6 +159,7 @@ impl Command for Action {
             Action::BufferUntransform(a) => a.apply(project),
             Action::BufferEdit(a) => a.apply(project),
             Action::BufferCloneShallow(a) => a.apply(project),
+            Action::BufferClonePartial(a) => a.apply(project),
         }
     }
 
@@ -157,6 +174,7 @@ impl Command for Action {
             Action::BufferUntransform(a) => a.undo(project),
             Action::BufferEdit(a) => a.undo(project),
             Action::BufferCloneShallow(a) => a.undo(project),
+            Action::BufferClonePartial(a) => a.undo(project),
         }
     }
 }
