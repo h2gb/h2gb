@@ -4,6 +4,7 @@ use multi_vector::{MultiVector, AutoBumpyEntry};
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
+use std::ops::Range;
 
 pub mod h2buffer;
 
@@ -125,7 +126,7 @@ impl H2Project {
         Ok(())
     }
 
-    pub fn buffer_clone_partial(&mut self, from: &str, to: &str, start: usize, size: usize) -> SimpleResult<()> {
+    pub fn buffer_clone_partial(&mut self, from: &str, to: &str, range: Range<usize>) -> SimpleResult<()> {
         // Get a handle to the buffer
         let from = self.get_buffer(from)?;
 
@@ -135,11 +136,11 @@ impl H2Project {
         }
 
         // Sanity check
-        if start + size > from.data.len() {
+        if range.end > from.data.len() {
             bail!("Editing data into buffer is too long");
         }
 
-        let new_buffer = H2Buffer::new(from.data[start..(start+size)].into(), from.base_address)?;
+        let new_buffer = H2Buffer::new(from.data[range].into(), from.base_address)?;
         self.buffer_insert(to, new_buffer)?;
 
         Ok(())

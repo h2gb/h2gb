@@ -1,6 +1,7 @@
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
+use std::ops::Range;
 
 use crate::h2project::H2Project;
 
@@ -9,16 +10,14 @@ use crate::h2project::H2Project;
 pub struct ActionBufferClonePartialForward {
     pub clone_from_name: String,
     pub clone_to_name: String,
-    pub start: usize,
-    pub size: usize,
+    pub range: Range<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ActionBufferClonePartialBackward {
     clone_from_name: String,
     clone_to_name: String,
-    pub start: usize,
-    pub size: usize,
+    pub range: Range<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,14 +35,13 @@ impl ActionBufferClonePartial {
     }
 }
 
-impl From<(&str, &str, usize, usize)> for ActionBufferClonePartial {
-    fn from(o: (&str, &str, usize, usize)) -> Self {
+impl From<(&str, &str, Range<usize>)> for ActionBufferClonePartial {
+    fn from(o: (&str, &str, Range<usize>)) -> Self {
         ActionBufferClonePartial {
             forward: Some(ActionBufferClonePartialForward {
                 clone_from_name: o.0.to_string(),
                 clone_to_name: o.1.to_string(),
-                start: o.2,
-                size: o.3,
+                range: o.2,
             }),
             backward: None,
         }
@@ -62,15 +60,15 @@ impl Command for ActionBufferClonePartial {
         };
 
         // Apply the change
-        project.buffer_clone_partial(&forward.clone_from_name, &forward.clone_to_name, forward.start, forward.size)?;
+        project.buffer_clone_partial(&forward.clone_from_name, &forward.clone_to_name, forward.range.clone())?;
 
         // Populate backward for undo
         self.backward = Some(ActionBufferClonePartialBackward {
             clone_to_name: forward.clone_to_name.clone(),
             clone_from_name: forward.clone_from_name.clone(),
-            start: forward.start,
-            size: forward.size,
+            range: forward.range.clone(),
         });
+        self.forward = None;
 
         Ok(())
     }
@@ -88,8 +86,7 @@ impl Command for ActionBufferClonePartial {
         self.forward = Some(ActionBufferClonePartialForward {
             clone_to_name: backward.clone_to_name.clone(),
             clone_from_name: backward.clone_from_name.clone(),
-            start: backward.start,
-            size: backward.size,
+            range: backward.range.clone(),
         });
         self.backward = None;
 
@@ -118,11 +115,11 @@ mod tests {
         assert_eq!(0x80000000, record.target().get_buffer("buffer")?.base_address);
 
         // Clone the middle of it
-        record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2, 6))?;
+        record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2..8))?;
         assert_eq!(b"BBCCDD".to_vec(), record.target().get_buffer("newbuffer")?.data);
 
         // Clone the end of that
-        record.apply(Action::buffer_clone_partial("newbuffer", "othernewbuffer", 4, 2))?;
+        record.apply(Action::buffer_clone_partial("newbuffer", "othernewbuffer", 4..6))?;
         assert_eq!(b"DD".to_vec(), record.target().get_buffer("othernewbuffer")?.data);
 
         // Test undo / redo
@@ -159,16 +156,18 @@ mod tests {
         assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Clone one too many bytes from the start
-        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 0, 11)).is_err());
+        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 0..11)).is_err());
         assert_eq!(false,  record.target().buffer_exists("newbuffer"));
 
         // Clone one too many bytes from the end
-        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2, 9)).is_err());
+        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2..11)).is_err());
         assert_eq!(false,  record.target().buffer_exists("newbuffer"));
 
         // Change something completely off the end
-        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2, 100)).is_err());
+        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2..100)).is_err());
         assert_eq!(false,  record.target().buffer_exists("newbuffer"));
+
+        // TODO: Test open-ended ranges, ..2 / 2.. / etc
 
         Ok(())
     }
@@ -184,9 +183,9 @@ mod tests {
         assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Clone one too many bytes from the start
-        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 0, 0)).is_err());
-        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2, 0)).is_err());
-        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 100, 0)).is_err());
+        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 0..0)).is_err());
+        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2..2)).is_err());
+        assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 100..100)).is_err());
         assert_eq!(false,  record.target().buffer_exists("newbuffer"));
 
         Ok(())

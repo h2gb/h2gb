@@ -1,6 +1,7 @@
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};
+use std::ops::Range;
 
 use h2transformer::H2Transformation;
 
@@ -130,14 +131,13 @@ impl Action {
         )
     }
 
-    pub fn buffer_clone_partial(clone_from_name: &str, clone_to_name: &str, start: usize, size: usize) -> Self {
+    pub fn buffer_clone_partial(clone_from_name: &str, clone_to_name: &str, range: Range<usize>) -> Self {
         Self::BufferClonePartial(
             ActionBufferClonePartial::new(
                 ActionBufferClonePartialForward {
                     clone_from_name: clone_from_name.to_string(),
                     clone_to_name: clone_to_name.to_string(),
-                    start: start,
-                    size: size,
+                    range: range,
                 }
             )
         )
