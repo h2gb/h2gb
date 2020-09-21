@@ -1,13 +1,12 @@
-use std::fmt;
-
-use multi_vector::{MultiVector, AutoBumpyEntry};
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
+use std::fmt;
 use std::ops::Range;
 
-pub mod h2buffer;
+use multi_vector::{MultiVector, AutoBumpyEntry};
 
+pub mod h2buffer;
 use h2buffer::{H2Buffer, H2BufferName, H2LayerInBuffer};
 
 #[derive(Serialize, Deserialize, Debug)]

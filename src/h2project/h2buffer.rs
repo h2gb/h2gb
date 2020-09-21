@@ -1,10 +1,11 @@
 use std::mem;
 
-use simple_error::{bail, SimpleResult};
 use serde::{Serialize, Deserialize};
+use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
-use h2transformer::H2Transformation;
 use std::ops::Range;
+
+use h2transformer::H2Transformation;
 
 pub type H2BufferName = String;
 // Create some types so we can tell what's what
