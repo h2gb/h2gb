@@ -27,13 +27,17 @@ pub struct H2Buffer {
 }
 
 impl H2Buffer {
-    pub fn new(data: Vec<u8>, base_address: usize) -> Self {
-        H2Buffer {
+    pub fn new(data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
+        if data.len() == 0 {
+            bail!("Can't create a buffer of zero length");
+        }
+
+        Ok(H2Buffer {
             data: data,
             base_address: base_address,
             layers: HashMap::new(),
             transformations: Vec::new(),
-        }
+        })
     }
 
     pub fn is_populated(&self) -> bool {
@@ -125,6 +129,10 @@ impl H2Buffer {
         // Sanity check
         if offset + data.len() > buffer_data.len() {
             bail!("Editing data into buffer is too long");
+        }
+
+        if data.len() == 0 {
+            bail!("Can't edit zero bytes");
         }
 
         // Splice in our data, get the original data back

@@ -57,11 +57,6 @@ impl Command for ActionBufferEdit {
             None => bail!("Failed to apply: missing context"),
         };
 
-        // Sanity check
-        if forward.new_data.len() == 0 {
-            bail!("Can't edit zero bytes");
-        }
-
         // Apply the change
         let buffer = project.get_buffer_mut(&forward.name)?;
         let original_data = buffer.edit(forward.new_data.clone(), forward.offset)?;

@@ -74,7 +74,7 @@ impl Command for ActionBufferDelete {
 
         // I don't love cloning here, but it's required to keep the object in
         // a consistent state if there's an error in buffer_insert()
-        let buffer = H2Buffer::new(backward.data.clone(), backward.base_address);
+        let buffer = H2Buffer::new(backward.data.clone(), backward.base_address)?;
         project.buffer_insert(&backward.name, buffer)?;
 
         self.forward = Some(ActionBufferDeleteForward {

@@ -139,11 +139,7 @@ impl H2Project {
             bail!("Editing data into buffer is too long");
         }
 
-        if size == 0 {
-            bail!("Can't copy zero bytes");
-        }
-
-        let new_buffer = H2Buffer::new(from.data[start..(start+size)].into(), from.base_address);
+        let new_buffer = H2Buffer::new(from.data[start..(start+size)].into(), from.base_address)?;
         self.buffer_insert(to, new_buffer)?;
 
         Ok(())

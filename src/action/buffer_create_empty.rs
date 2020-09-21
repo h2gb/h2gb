@@ -56,18 +56,8 @@ impl Command for ActionBufferCreateEmpty {
             None => bail!("Failed to apply: missing context"),
         };
 
-        // Sanity check: it has a size
-        if forward.size == 0 {
-            bail!("Can't create a zero-sized buffer");
-        }
-
-        // Sanity check: buffer doesn't already exist
-        if project.buffer_exists(&forward.name) {
-            bail!("A buffer with that name already exists");
-        }
-
         // Apply the change
-        let buffer = H2Buffer::new(vec![0; forward.size], forward.base_address);
+        let buffer = H2Buffer::new(vec![0; forward.size], forward.base_address)?;
         project.buffer_insert(&forward.name, buffer)?;
 
         // Swap backward + forward

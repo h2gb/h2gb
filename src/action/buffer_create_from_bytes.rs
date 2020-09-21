@@ -57,17 +57,8 @@ impl Command for ActionBufferCreateFromBytes {
         };
 
         // Sanity check: it has a size
-        if forward.data.len() == 0 {
-            bail!("Can't create a zero-sized buffer");
-        }
-
-        // Sanity check: the buffer doesn't already exist
-        if project.buffer_exists(&forward.name) {
-            bail!("A buffer with that name already exists");
-        }
-
         // Apply the change
-        let buffer = H2Buffer::new(forward.data.clone(), forward.base_address);
+        let buffer = H2Buffer::new(forward.data.clone(), forward.base_address)?;
         project.buffer_insert(&forward.name, buffer)?;
 
         // Populate backward for undo
