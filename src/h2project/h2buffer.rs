@@ -5,6 +5,10 @@
 //!
 //! Conceptionally below the buffer is the context of a "layer", which is where
 //! data is annotated and analyzed.
+//!
+//! In general, you should never have mutable access to a buffer or project.
+//! All changes should be made via actions, otherwise the undo/redo logic will
+//! fall apart!
 
 use std::mem;
 
