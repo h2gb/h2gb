@@ -60,7 +60,7 @@ impl H2Project {
 
 impl fmt::Display for H2Project {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Name: {}, version: {}\n{}", self.name, self.version)
+        write!(f, "Name: {}, version: {}\n", self.name, self.version)
     }
 }
 
