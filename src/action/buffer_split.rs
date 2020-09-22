@@ -277,7 +277,10 @@ mod tests {
         // Split it
         assert!(record.apply(Action::buffer_split("buffer", vec![
             Split { new_name: "e".to_string(), start: 4,  new_base: None },
+            Split { new_name: "f".to_string(), start: 8,  new_base: None },
         ])).is_err());
+        assert_eq!(false, record.target().buffer_exists("e"));
+        assert_eq!(false, record.target().buffer_exists("f"));
 
         Ok(())
     }
@@ -313,6 +316,8 @@ mod tests {
             Split { new_name: "a".to_string(), start: 0,    new_base: None },
             Split { new_name: "e".to_string(), start: 100,  new_base: None },
         ])).is_err());
+        assert_eq!(false, record.target().buffer_exists("a"));
+        assert_eq!(false, record.target().buffer_exists("e"));
 
         Ok(())
     }
@@ -333,6 +338,9 @@ mod tests {
             Split { new_name: "e".to_string(), start: 4,  new_base: None },
             Split { new_name: "f".to_string(), start: 0,  new_base: None },
         ])).is_err());
+        assert_eq!(false, record.target().buffer_exists("a"));
+        assert_eq!(false, record.target().buffer_exists("e"));
+        assert_eq!(false, record.target().buffer_exists("f"));
 
         Ok(())
     }
@@ -348,6 +356,8 @@ mod tests {
             Split { new_name: "a".to_string(), start: 0,  new_base: None },
             Split { new_name: "e".to_string(), start: 4,  new_base: None },
         ])).is_err());
+        assert_eq!(false, record.target().buffer_exists("a"));
+        assert_eq!(false, record.target().buffer_exists("e"));
 
         Ok(())
     }
@@ -367,6 +377,7 @@ mod tests {
             Split { new_name: "a".to_string(), start: 0,  new_base: None },
             Split { new_name: "a".to_string(), start: 4,  new_base: None },
         ])).is_err());
+        assert_eq!(false, record.target().buffer_exists("a"));
 
         Ok(())
     }
@@ -387,6 +398,7 @@ mod tests {
             Split { new_name: "a".to_string(), start: 0,  new_base: None },
             Split { new_name: "exists".to_string(), start: 4,  new_base: None },
         ])).is_err());
+        assert_eq!(false, record.target().buffer_exists("a"));
 
         Ok(())
     }
