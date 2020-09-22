@@ -1,3 +1,5 @@
+//! Replace part of a buffer's data, maintaining the original length.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

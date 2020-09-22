@@ -1,3 +1,15 @@
+//! Undo the last transformation on the buffer.
+//!
+//! Note that this isn't exactly the same as undo'ing a transformation, since
+//! the untransformed data isn't guaranteed to match the transformed data.
+//!
+//! For example, if the data `"4a4B"` is transformed using `FromHex`, it becomes
+//! `"JK"`. If you untransform, you'll get `"4a4b"` back - note the normalized
+//! case.
+//!
+//! This will also work on edited data, so if an `ActionBufferEdit` is used,
+//! the un-transformed data will reflect the change.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

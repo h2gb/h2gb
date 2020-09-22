@@ -1,3 +1,9 @@
+//! Delete a buffer.
+//!
+//! In order to keep data consistent, this will only delete a buffer if it is
+//! unpopulated (no layers or entries). Those will need to be deleted before the
+//! buffer itself can be deleted.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

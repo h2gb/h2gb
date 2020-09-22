@@ -1,3 +1,11 @@
+//! A data buffer, where the actual bytes are stored in an h2gb project.
+//!
+//! When data is created or imported by h2gb, the actual raw bytes end up here.
+//! They can be transformed and edited (with restrictions).
+//!
+//! Conceptionally below the buffer is the context of a "layer", which is where
+//! data is annotated and analyzed.
+
 use std::mem;
 
 use serde::{Serialize, Deserialize};
@@ -46,8 +54,8 @@ impl H2Buffer {
         self.data.len()
     }
 
-    pub fn clone_shallow(&self) -> SimpleResult<Self> {
-        Self::new(self.data.clone(), self.base_address)
+    pub fn clone_shallow(&self, new_base_address: Option<usize>) -> SimpleResult<Self> {
+        Self::new(self.data.clone(), new_base_address.unwrap_or(self.base_address))
     }
 
     pub fn clone_deep(&self) -> SimpleResult<()> {
@@ -55,13 +63,18 @@ impl H2Buffer {
         bail!("Not implemented");
     }
 
-    pub fn clone_partial(&self, range: Range<usize>) -> SimpleResult<Self> {
+    pub fn clone_partial(&self, range: Range<usize>, new_base_address: Option<usize>) -> SimpleResult<Self> {
         // Sanity check
         if range.end > self.data.len() {
             bail!("Editing data into buffer is too long");
         }
 
-        Self::new(self.data[range].into(), self.base_address)
+        let base_address = match new_base_address {
+            Some(b) => b,
+            None => self.base_address + range.start,
+        };
+
+        Self::new(self.data[range].into(), base_address)
     }
 
     pub fn is_populated(&self) -> bool {

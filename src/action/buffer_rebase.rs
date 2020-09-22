@@ -1,3 +1,9 @@
+//! Change the base_address of a buffer.
+//!
+//! This is currently very simple; the address changes and that's it. In the
+//! future, we may take more actions (like letting layers / entries know that
+//! something changed).
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

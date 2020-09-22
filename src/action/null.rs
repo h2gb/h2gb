@@ -1,3 +1,8 @@
+//! Perform no action.
+//!
+//! This is just meant as a test, it probably doesn't need to be implemented
+//! anywhere.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};

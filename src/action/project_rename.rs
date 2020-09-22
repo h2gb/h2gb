@@ -1,3 +1,5 @@
+//! Rename the project.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

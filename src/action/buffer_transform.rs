@@ -1,3 +1,12 @@
+//! Transform a buffer using transformations from the H2Transformation project.
+//!
+//! These act on the raw data, and can change the length in either direction.
+//! Thus, these cannot be applied to a buffer once populated with layers or
+//! entries.
+//!
+//! For many transformations, but not all, it's possible to invert (even after
+//! editing) to get back an encoded buffer of the same length.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

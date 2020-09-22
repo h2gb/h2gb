@@ -1,3 +1,15 @@
+//! Split a buffer into multiple smaller buffers.
+//!
+//! I expect this will be very common when analyzing files - for example,
+//! splitting a PE file into its segments.
+//!
+//! At the core, this uses a vector of `Split` instances. Each split has a
+//! starting address, a name, and optionally a new base address.
+//!
+//! Importantly, the splitting performed here is contiguous - there can't be
+//! empty spots. This means that the split can be two-way - the split-up
+//! buffers can be collapsed back to the original buffer for export.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
@@ -170,7 +182,7 @@ impl Command for ActionBufferSplit {
 
         // Restore the original buffer
         // We have to clone to avoid putting things in a potentially bad state
-        project.buffer_insert(&backward.original_name, backward.original_buffer.clone_shallow()?)?;
+        project.buffer_insert(&backward.original_name, backward.original_buffer.clone_shallow(None)?)?;
 
         // Save the action back to forward
         self.forward = Some(ActionBufferSplitForward {

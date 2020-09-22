@@ -1,3 +1,8 @@
+//! Change the name of a buffer.
+//!
+//! Currently, this will not work on a populated buffer. In the future, we might
+//! want to make that possible, but it'll require "fixing" broken links.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

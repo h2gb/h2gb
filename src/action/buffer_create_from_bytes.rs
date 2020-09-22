@@ -1,3 +1,6 @@
+//! Create a new buffer consisting of the provided data. Will commonly be read
+//! from a file.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

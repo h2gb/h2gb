@@ -1,3 +1,8 @@
+//! An enum that combines all possible actions.
+//!
+//! Most of the methods here are simply wrappers for the actual action, which
+//! are all defined in their respective modules. For documentation, see them.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};
@@ -129,24 +134,26 @@ impl Action {
         )
     }
 
-    pub fn buffer_clone_shallow(clone_from_name: &str, clone_to_name: &str) -> Self {
+    pub fn buffer_clone_shallow(clone_from_name: &str, clone_to_name: &str, new_base_address: Option<usize>) -> Self {
         Self::BufferCloneShallow(
             ActionBufferCloneShallow::new(
                 ActionBufferCloneShallowForward {
                     clone_from_name: clone_from_name.to_string(),
                     clone_to_name: clone_to_name.to_string(),
+                    new_base_address: new_base_address,
                 }
             )
         )
     }
 
-    pub fn buffer_clone_partial(clone_from_name: &str, clone_to_name: &str, range: Range<usize>) -> Self {
+    pub fn buffer_clone_partial(clone_from_name: &str, clone_to_name: &str, range: Range<usize>, new_base_address: Option<usize>) -> Self {
         Self::BufferClonePartial(
             ActionBufferClonePartial::new(
                 ActionBufferClonePartialForward {
                     clone_from_name: clone_from_name.to_string(),
                     clone_to_name: clone_to_name.to_string(),
                     range: range,
+                    new_base_address: new_base_address,
                 }
             )
         )
@@ -185,8 +192,6 @@ impl Action {
         )
     }
 }
-
-
 
 impl Command for Action {
     type Target = H2Project;

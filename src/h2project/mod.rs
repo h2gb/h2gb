@@ -1,3 +1,8 @@
+//! Implement the core project, which everything else builds off of.
+//!
+//! This is likely to change a lot as I get the foundations built, so it's not
+//! quite ready for detailed comments just yet. :)
+
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;

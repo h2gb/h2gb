@@ -1,3 +1,5 @@
+//! Create a new buffer of a particular size, initialized to all zeroes.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};

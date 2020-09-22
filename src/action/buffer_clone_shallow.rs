@@ -1,3 +1,10 @@
+//! An action that clones part of a buffer to a new name.
+//!
+//! Preserves the data and base address, but nothing else. Can be edited and
+//! stuff, like any buffer, but can't be merged back (since it's a copy).
+//!
+//! Copies the original base_address unless a custom one is passed in.
+
 use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
@@ -8,12 +15,14 @@ use crate::h2project::H2Project;
 pub struct ActionBufferCloneShallowForward {
     pub clone_from_name: String,
     pub clone_to_name: String,
+    pub new_base_address: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ActionBufferCloneShallowBackward {
     clone_from_name: String,
     clone_to_name: String,
+    new_base_address: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -31,12 +40,13 @@ impl ActionBufferCloneShallow {
     }
 }
 
-impl From<(&str, &str)> for ActionBufferCloneShallow {
-    fn from(o: (&str, &str)) -> Self {
+impl From<(&str, &str, Option<usize>)> for ActionBufferCloneShallow {
+    fn from(o: (&str, &str, Option<usize>)) -> Self {
         ActionBufferCloneShallow {
             forward: Some(ActionBufferCloneShallowForward {
                 clone_from_name: o.0.to_string(),
                 clone_to_name: o.1.to_string(),
+                new_base_address: o.2,
             }),
             backward: None,
         }
@@ -61,13 +71,14 @@ impl Command for ActionBufferCloneShallow {
         }
 
         let original = project.get_buffer(&forward.clone_from_name)?;
-        let new_buffer = original.clone_shallow()?;
+        let new_buffer = original.clone_shallow(forward.new_base_address)?;
         project.buffer_insert(&forward.clone_to_name, new_buffer)?;
 
         // Populate backward for undo
         self.backward = Some(ActionBufferCloneShallowBackward {
             clone_to_name: forward.clone_to_name.clone(),
             clone_from_name: forward.clone_from_name.clone(),
+            new_base_address: forward.new_base_address,
         });
         self.forward = None;
 
@@ -87,6 +98,7 @@ impl Command for ActionBufferCloneShallow {
         self.forward = Some(ActionBufferCloneShallowForward {
             clone_to_name: backward.clone_to_name.clone(),
             clone_from_name: backward.clone_from_name.clone(),
+            new_base_address: backward.new_base_address,
         });
         self.backward = None;
 
@@ -96,7 +108,7 @@ impl Command for ActionBufferCloneShallow {
 
 #[cfg(test)]
 mod tests {
-    use simple_error::SimpleResult;
+    use simple_error::{SimpleResult, bail};
 
     use crate::h2project::H2Project;
     use redo::Record;
@@ -112,12 +124,10 @@ mod tests {
         // Create a buffer with some data
         record.apply(Action::buffer_create_from_bytes("buffer", b"AAAAAAAAAA".to_vec(), 0x80000000))?;
         assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("buffer")?.data);
-        assert_eq!(0x80000000, record.target().get_buffer("buffer")?.base_address);
 
         // Clone it
-        record.apply(Action::buffer_clone_shallow("buffer", "newbuffer"))?;
+        record.apply(Action::buffer_clone_shallow("buffer", "newbuffer", None))?;
         assert_eq!(b"AAAAAAAAAA".to_vec(), record.target().get_buffer("newbuffer")?.data);
-        assert_eq!(0x80000000, record.target().get_buffer("newbuffer")?.base_address);
 
         // Edit the original and ensure the change isn't reflected
         record.apply(Action::buffer_edit("buffer", b"BBBBBB".to_vec(), 2))?;
@@ -139,7 +149,32 @@ mod tests {
     }
 
     #[test]
+    fn test_base_address() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Create a buffer with some data
+        record.apply(Action::buffer_create_from_bytes("buffer", b"AAAAAAAAAA".to_vec(), 0x80000000))?;
+
+        // Clone it with no base address, it should have the same one
+        record.apply(Action::buffer_clone_shallow("buffer", "newbuffer", None))?;
+        assert_eq!(0x80000000, record.target().get_buffer("newbuffer")?.base_address);
+
+        // Clone it again, this time customize the base address
+        record.apply(Action::buffer_clone_shallow("buffer", "newbuffer2", Some(10)))?;
+        assert_eq!(10, record.target().get_buffer("newbuffer2")?.base_address);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_action_fails_on_bad_change() -> SimpleResult<()> {
         Ok(())
+    }
+
+    #[test]
+    fn test_untransform_is_preserved() -> SimpleResult<()> {
+        bail!("TODO");
     }
 }
