@@ -6,6 +6,10 @@
 //! Conceptionally below the buffer is the context of a "layer", which is where
 //! data is annotated and analyzed.
 //!
+//! All actions done on this buffer are designed to be reversible - anything
+//! that changes is returned so it can be restored later, if desired. That's
+//! a very important design principle!
+//!
 //! In general, you should never have mutable access to a buffer or project.
 //! All changes should be made via actions, otherwise the undo/redo logic will
 //! fall apart!
@@ -41,6 +45,7 @@ pub struct H2Buffer {
 }
 
 impl H2Buffer {
+    /// Create a new buffer with the given data and base_address
     pub fn new(data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
         if data.len() == 0 {
             bail!("Can't create a buffer of zero length");
@@ -54,10 +59,16 @@ impl H2Buffer {
         })
     }
 
+    /// Get the length of the data buffer.
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Clone the buffer and data (but not the layers and entries).
+    ///
+    /// The base address can be preserved or changed as part of the copy. The
+    /// actual data, as well as the list of transformations it's undergone, are
+    /// preserved.
     pub fn clone_shallow(&self, new_base_address: Option<usize>) -> SimpleResult<Self> {
         // Create the basics (use Self::new for consistent error checks)
         let mut cloned = Self::new(self.data.clone(), new_base_address.unwrap_or(self.base_address))?;
@@ -68,11 +79,18 @@ impl H2Buffer {
         Ok(cloned)
     }
 
-    pub fn clone_deep(&self) -> SimpleResult<()> {
-        // TODO: Implement this once we support layers/entries
-        bail!("Not implemented");
-    }
+    // // Not sure whether I want this...
+    // pub fn clone_deep(&self) -> SimpleResult<()> {
+    //     bail!("Not implemented");
+    // }
 
+    /// Clone a range of data within the buffer.
+    ///
+    /// This preserves the starting address of the data as the base address by
+    /// default, or a new base address can be chosen.
+    ///
+    /// This does not clone layers or entries, and does not keep transformation
+    /// history.
     pub fn clone_partial(&self, range: Range<usize>, new_base_address: Option<usize>) -> SimpleResult<Self> {
         // Sanity check
         if range.end > self.data.len() {
@@ -87,6 +105,8 @@ impl H2Buffer {
         Self::new(self.data[range].into(), base_address)
     }
 
+    /// Returns true if the buffer contains layers, entries, or any changes
+    /// that could prevent it from being cleanly removed.
     pub fn is_populated(&self) -> bool {
         if self.layers.len() > 0 {
             return true;

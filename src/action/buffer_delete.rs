@@ -19,8 +19,7 @@ pub struct ActionBufferDeleteForward {
 #[derive(Serialize, Deserialize, Debug)]
 struct ActionBufferDeleteBackward {
     name: String,
-    data: Vec<u8>,
-    base_address: usize,
+    buffer: H2Buffer,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -64,8 +63,7 @@ impl Command for ActionBufferDelete {
 
         self.backward = Some(ActionBufferDeleteBackward {
             name: name.clone(),
-            data: buffer.data,
-            base_address: buffer.base_address,
+            buffer: buffer,
         });
         self.forward = None;
 
@@ -80,8 +78,7 @@ impl Command for ActionBufferDelete {
 
         // I don't love cloning here, but it's required to keep the object in
         // a consistent state if there's an error in buffer_insert()
-        let buffer = H2Buffer::new(backward.data.clone(), backward.base_address)?;
-        project.buffer_insert(&backward.name, buffer)?;
+        project.buffer_insert(&backward.name, backward.buffer.clone_shallow(None)?)?;
 
         self.forward = Some(ActionBufferDeleteForward {
             name: backward.name.clone(),
@@ -94,11 +91,13 @@ impl Command for ActionBufferDelete {
 
 #[cfg(test)]
 mod tests {
+    use pretty_assertions::assert_eq;
+    use redo::Record;
     use simple_error::SimpleResult;
 
+    use h2transformer::H2Transformation;
+
     use crate::h2project::H2Project;
-    use redo::Record;
-    use pretty_assertions::assert_eq;
     use crate::action::Action;
 
     #[test]
@@ -143,6 +142,34 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_action_keeps_transformations() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Create a simple buffer
+        record.apply(Action::buffer_create_from_bytes("buffer", b"4a4B4c4D4e".to_vec(), 0x80000000))?;
+
+        // Transform it
+        record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
+        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Delete
+        record.apply(Action::buffer_delete("buffer"))?;
+
+        // Undo the delete
+        record.undo()?;
+        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        // Make sure it can still untransform
+        record.apply(Action::buffer_untransform("buffer"))?;
+        assert_eq!(b"4a4b4c4d4e".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_action_fails_when_buffer_is_populated() -> SimpleResult<()> {
         // TODO: Fill in when I can create layers
         Ok(())
