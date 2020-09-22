@@ -42,6 +42,10 @@ impl H2Buffer {
         })
     }
 
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
     pub fn clone_shallow(&self) -> SimpleResult<Self> {
         Self::new(self.data.clone(), self.base_address)
     }

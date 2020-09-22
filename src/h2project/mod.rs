@@ -86,11 +86,28 @@ impl H2Project {
     pub fn buffer_insert(&mut self, name: &str, buffer: H2Buffer) -> SimpleResult<()> {
         // Sanity check
         if self.buffer_exists(name) {
-            bail!("Buffer already exists");
+            bail!("Buffer already exists: {}", name);
         }
 
         // Go
         self.buffers.insert(name.to_string(), buffer);
+
+        Ok(())
+    }
+
+    // Guarantees either all or none are inserted
+    pub fn buffer_insert_multiple(&mut self, mut buffers: HashMap<String, H2Buffer>) -> SimpleResult<()> {
+        // Validate first
+        for name in buffers.keys() {
+            if self.buffer_exists(name) {
+                bail!("Buffer already exists: {}", name);
+            }
+        }
+
+        // Then insert
+        for (name, buffer) in buffers.drain() {
+            self.buffers.insert(name.to_string(), buffer);
+        }
 
         Ok(())
     }

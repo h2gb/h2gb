@@ -7,30 +7,32 @@ use h2transformer::H2Transformation;
 
 use crate::h2project::H2Project;
 
-pub mod null;
+pub mod buffer_clone_partial;
+pub mod buffer_clone_shallow;
 pub mod buffer_create_empty;
 pub mod buffer_create_from_bytes;
 pub mod buffer_delete;
 pub mod buffer_edit;
-pub mod buffer_transform;
-pub mod buffer_untransform;
-pub mod buffer_clone_shallow;
-pub mod buffer_clone_partial;
 pub mod buffer_rebase;
 pub mod buffer_rename;
+pub mod buffer_split;
+pub mod buffer_transform;
+pub mod buffer_untransform;
+pub mod null;
 pub mod project_rename;
 
-use project_rename::{ActionProjectRename, ActionProjectRenameForward};
+use buffer_clone_partial::{ActionBufferClonePartial, ActionBufferClonePartialForward};
+use buffer_clone_shallow::{ActionBufferCloneShallow, ActionBufferCloneShallowForward};
 use buffer_create_empty::{ActionBufferCreateEmpty, ActionBufferCreateEmptyForward};
 use buffer_create_from_bytes::{ActionBufferCreateFromBytes, ActionBufferCreateFromBytesForward};
 use buffer_delete::{ActionBufferDelete, ActionBufferDeleteForward};
-use buffer_transform::{ActionBufferTransform, ActionBufferTransformForward};
-use buffer_untransform::{ActionBufferUntransform, ActionBufferUntransformForward};
 use buffer_edit::{ActionBufferEdit, ActionBufferEditForward};
-use buffer_clone_shallow::{ActionBufferCloneShallow, ActionBufferCloneShallowForward};
-use buffer_clone_partial::{ActionBufferClonePartial, ActionBufferClonePartialForward};
 use buffer_rebase::{ActionBufferRebase, ActionBufferRebaseForward};
 use buffer_rename::{ActionBufferRename, ActionBufferRenameForward};
+use buffer_split::{ActionBufferSplit, ActionBufferSplitForward, Split};
+use buffer_transform::{ActionBufferTransform, ActionBufferTransformForward};
+use buffer_untransform::{ActionBufferUntransform, ActionBufferUntransformForward};
+use project_rename::{ActionProjectRename, ActionProjectRenameForward};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -46,6 +48,7 @@ pub enum Action {
     BufferClonePartial(buffer_clone_partial::ActionBufferClonePartial),
     BufferRebase(buffer_rebase::ActionBufferRebase),
     BufferRename(buffer_rename::ActionBufferRename),
+    BufferSplit(buffer_split::ActionBufferSplit),
 }
 
 impl Action {
@@ -170,7 +173,20 @@ impl Action {
             )
         )
     }
+
+    pub fn buffer_split(name: &str, splits: Vec<Split>) -> Self {
+        Self::BufferSplit(
+            ActionBufferSplit::new(
+                ActionBufferSplitForward {
+                    name: name.to_string(),
+                    splits: splits,
+                }
+            )
+        )
+    }
 }
+
+
 
 impl Command for Action {
     type Target = H2Project;
@@ -190,6 +206,7 @@ impl Command for Action {
             Action::BufferClonePartial(a) => a.apply(project),
             Action::BufferRebase(a) => a.apply(project),
             Action::BufferRename(a) => a.apply(project),
+            Action::BufferSplit(a) => a.apply(project),
         }
     }
 
@@ -207,6 +224,7 @@ impl Command for Action {
             Action::BufferClonePartial(a) => a.undo(project),
             Action::BufferRebase(a) => a.undo(project),
             Action::BufferRename(a) => a.undo(project),
+            Action::BufferSplit(a) => a.undo(project),
         }
     }
 }
