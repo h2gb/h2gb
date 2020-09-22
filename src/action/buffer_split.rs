@@ -131,8 +131,20 @@ impl Command for ActionBufferSplit {
         // This will insert all or nothing so we don't end up in a half-way state
         project.buffer_insert_multiple(buffers)?;
 
-        // TODO: If this fails, we are in trouble
-        let original_buffer = project.buffer_remove(&forward.name)?;
+        // This shouldn't fail, but if it does, we need to do our best to back
+        // out the change.
+        let original_buffer = match project.buffer_remove(&forward.name) {
+            Ok(b) => b,
+            Err(e) => {
+                // Try and fix what we've done
+                for split in &forward.splits {
+                    // Ignore errors here
+                    project.buffer_remove(&split.new_name).ok();
+                }
+
+                return Err(e);
+            },
+        };
 
         // Populate backward for undo
         self.backward = Some(ActionBufferSplitBackward {

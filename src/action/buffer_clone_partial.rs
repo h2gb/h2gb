@@ -5,7 +5,6 @@ use std::ops::Range;
 
 use crate::h2project::H2Project;
 
-// TODO: Change start / size to a Range
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferClonePartialForward {
     pub clone_from_name: String,
@@ -174,8 +173,6 @@ mod tests {
         // Change something completely off the end
         assert!(record.apply(Action::buffer_clone_partial("buffer", "newbuffer", 2..100)).is_err());
         assert_eq!(false,  record.target().buffer_exists("newbuffer"));
-
-        // TODO: Test open-ended ranges, ..2 / 2.. / etc
 
         Ok(())
     }
