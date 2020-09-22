@@ -12,6 +12,23 @@ use h2transformer::H2Transformation;
 
 use crate::h2project::H2Project;
 
+// TODO:
+// * Layers
+//   * layer_create
+//   * layer_delete
+//   * layer_rename
+//
+// * Entries
+//   * entry_create
+//   * entry_create_multiple
+//   * entry_delete
+//   * entry_unlink
+//   * entry_recompute / entry_rebase (maybe?)
+//   * entry_edit
+//
+// * Are references separate?
+// * What about pointers / structs / arrays / etc?
+
 pub mod buffer_clone_partial;
 pub mod buffer_clone_shallow;
 pub mod buffer_create_empty;

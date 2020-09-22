@@ -60,7 +60,7 @@ impl H2Project {
 
 impl fmt::Display for H2Project {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Name: {}, version: {}", self.name, self.version)
+        write!(f, "Name: {}, version: {}\n{}", self.name, self.version)
     }
 }
 
@@ -117,6 +117,8 @@ impl H2Project {
         Ok(())
     }
 
+    // TODO: In the future, we should check for references to this buffer to
+    // ensure we aren't breaking anything else
     pub fn buffer_can_be_removed(&self, name: &str) -> SimpleResult<()> {
         let buffer = self.get_buffer(name)?;
 
