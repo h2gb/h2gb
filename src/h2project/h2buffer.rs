@@ -55,7 +55,13 @@ impl H2Buffer {
     }
 
     pub fn clone_shallow(&self, new_base_address: Option<usize>) -> SimpleResult<Self> {
-        Self::new(self.data.clone(), new_base_address.unwrap_or(self.base_address))
+        // Create the basics (use Self::new for consistent error checks)
+        let mut cloned = Self::new(self.data.clone(), new_base_address.unwrap_or(self.base_address))?;
+
+        // Preserve the transformations
+        cloned.transformations = self.transformations.clone();
+
+        Ok(cloned)
     }
 
     pub fn clone_deep(&self) -> SimpleResult<()> {

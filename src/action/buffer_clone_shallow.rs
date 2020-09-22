@@ -108,12 +108,14 @@ impl Command for ActionBufferCloneShallow {
 
 #[cfg(test)]
 mod tests {
-    use simple_error::{SimpleResult, bail};
-
-    use crate::h2project::H2Project;
-    use redo::Record;
     use pretty_assertions::assert_eq;
+    use redo::Record;
+    use simple_error::SimpleResult;
+
+    use h2transformer::H2Transformation;
+
     use crate::action::Action;
+    use crate::h2project::H2Project;
 
     #[test]
     fn test_action() -> SimpleResult<()> {
@@ -175,6 +177,25 @@ mod tests {
 
     #[test]
     fn test_untransform_is_preserved() -> SimpleResult<()> {
-        bail!("TODO");
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Create a simple buffer
+        record.apply(Action::buffer_create_from_bytes("buffer", b"4a4B4c4D4e".to_vec(), 0x80000000))?;
+
+        // Transform it
+        record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
+
+        // Clone
+        record.apply(Action::buffer_clone_shallow("buffer", "newbuffer", None))?;
+        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("newbuffer")?.data);
+
+        // Ensure that untransform works on the new buffer
+        record.apply(Action::buffer_untransform("newbuffer"))?;
+        assert_eq!(b"4a4b4c4d4e".to_vec(), record.target().get_buffer("newbuffer")?.data);
+        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+
+        Ok(())
     }
 }
