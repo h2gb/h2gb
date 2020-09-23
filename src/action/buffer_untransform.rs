@@ -190,4 +190,9 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_error_when_untransform_not_supported() -> SimpleResult<()> {
+        Ok(())
+    }
 }

@@ -1,3 +1,4 @@
+#![feature(range_is_empty)]
 #![allow(dead_code)] // TODO: Disable this
 
 mod action;
