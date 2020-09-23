@@ -2,6 +2,7 @@
 
 mod action;
 mod h2project;
+mod h2buffer;
 
 // Actions we need:
 // * load data as buffer

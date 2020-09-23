@@ -11,8 +11,7 @@ use std::ops::Range;
 
 use multi_vector::{MultiVector, AutoBumpyEntry};
 
-pub mod h2buffer;
-use h2buffer::{H2Buffer, H2BufferName, H2LayerInBuffer};
+use crate::h2buffer::{H2Buffer, H2BufferName, H2LayerInBuffer};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct H2Entry {

@@ -17,7 +17,7 @@ use std::cmp::Ord;
 use std::collections::HashMap;
 
 use crate::h2project::H2Project;
-use crate::h2project::h2buffer::H2Buffer;
+use crate::h2buffer::H2Buffer;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Split {
