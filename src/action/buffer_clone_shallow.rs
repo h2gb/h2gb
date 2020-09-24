@@ -172,6 +172,16 @@ mod tests {
 
     #[test]
     fn test_action_fails_on_bad_change() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Create a buffer with some data
+        record.apply(Action::buffer_create_from_bytes("buffer", b"AAAAAAAAAA".to_vec(), 0x80000000))?;
+
+        // Rename it to itself (invalid)
+        assert!(record.apply(Action::buffer_clone_shallow("buffer", "buffer", None)).is_err());
+
         Ok(())
     }
 
