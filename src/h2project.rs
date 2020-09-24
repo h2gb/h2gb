@@ -89,6 +89,10 @@ impl H2Project {
 
     pub fn buffer_insert(&mut self, name: &str, buffer: H2Buffer) -> SimpleResult<()> {
         // Sanity check
+        if name == "" {
+            bail!("Buffer must have a name");
+        }
+
         if self.buffer_exists(name) {
             bail!("Buffer already exists: {}", name);
         }
@@ -110,7 +114,7 @@ impl H2Project {
 
         // Then insert
         for (name, buffer) in buffers.drain() {
-            self.buffers.insert(name.to_string(), buffer);
+            self.buffers.insert(name, buffer);
         }
 
         Ok(())
@@ -166,6 +170,156 @@ impl H2Project {
 
         // Add the new name
         self.buffers.insert(to.to_string(), b);
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_buffer_insert() -> SimpleResult<()> {
+        let mut project = H2Project::new("name", "1.0");
+        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+
+        // No buffer, can't be retrieved
+        assert_eq!(false, project.buffer_exists("buffer"));
+        assert!(project.get_buffer("buffer").is_err());
+
+        // Insert it
+        project.buffer_insert("buffer", buffer)?;
+
+        // Now it exists and can be retrieved
+        assert_eq!(true, project.buffer_exists("buffer"));
+        assert_eq!(b"ABCD".to_vec(), project.get_buffer("buffer")?.data);
+        assert_eq!(0x100, project.get_buffer("buffer")?.base_address);
+
+        // Try to insert a duplicate, and fail
+        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+        assert!(project.buffer_insert("buffer", buffer).is_err());
+
+        // Try to insert a blank name, and fail
+        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+        assert!(project.buffer_insert("", buffer).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_insert_multiple() -> SimpleResult<()> {
+        let mut project = H2Project::new("name", "1.0");
+
+        let mut buffers: HashMap<String, H2Buffer> = HashMap::new();
+        buffers.insert("buffer1".to_string(), H2Buffer::new(b"ABCD".to_vec(), 0x100)?);
+        buffers.insert("buffer2".to_string(), H2Buffer::new(b"EFGH".to_vec(), 0x100)?);
+        buffers.insert("buffer3".to_string(), H2Buffer::new(b"IJKL".to_vec(), 0x100)?);
+
+        assert_eq!(false, project.buffer_exists("buffer1"));
+        assert_eq!(false, project.buffer_exists("buffer2"));
+        assert_eq!(false, project.buffer_exists("buffer3"));
+
+        project.buffer_insert_multiple(buffers)?;
+
+        assert_eq!(true, project.buffer_exists("buffer1"));
+        assert_eq!(true, project.buffer_exists("buffer2"));
+        assert_eq!(true, project.buffer_exists("buffer3"));
+
+        Ok(())
+    }
+
+    fn test_buffer_insert_multiple_fails_clean() -> SimpleResult<()> {
+        let mut project = H2Project::new("name", "1.0");
+
+        project.buffer_insert("duplicate", H2Buffer::new(b"ZZZZ".to_vec(), 0x200)?)?;
+
+        let mut buffers: HashMap<String, H2Buffer> = HashMap::new();
+        buffers.insert("buffer1".to_string(), H2Buffer::new(b"ABCD".to_vec(), 0x100)?);
+        buffers.insert("buffer2".to_string(), H2Buffer::new(b"EFGH".to_vec(), 0x100)?);
+        buffers.insert("buffer3".to_string(), H2Buffer::new(b"IJKL".to_vec(), 0x100)?);
+        buffers.insert("duplicate".to_string(), H2Buffer::new(b"YYYY".to_vec(), 0x100)?);
+
+        assert_eq!(false, project.buffer_exists("buffer1"));
+        assert_eq!(false, project.buffer_exists("buffer2"));
+        assert_eq!(false, project.buffer_exists("buffer3"));
+        assert_eq!(true, project.buffer_exists("duplicate"));
+
+        project.buffer_insert_multiple(buffers)?;
+
+        // None of them should be inserted
+        assert_eq!(false, project.buffer_exists("buffer1"));
+        assert_eq!(false, project.buffer_exists("buffer2"));
+        assert_eq!(false, project.buffer_exists("buffer3"));
+        assert_eq!(true, project.buffer_exists("duplicate"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_remove() -> SimpleResult<()> {
+        let mut project = H2Project::new("name", "1.0");
+        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+
+        // Insert it
+        project.buffer_insert("buffer", buffer)?;
+
+        // It's there
+        assert_eq!(true, project.buffer_exists("buffer"));
+
+        // Remove it
+        let buffer = project.buffer_remove("buffer")?;
+
+        // It's gone
+        assert_eq!(false, project.buffer_exists("buffer"));
+
+        // Make sure it's the one we inserted
+        assert_eq!(buffer.data, b"ABCD".to_vec());
+        assert_eq!(buffer.base_address, 0x100);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_remove_no_such_buffer() -> SimpleResult<()> {
+        let mut project = H2Project::new("name", "1.0");
+
+        // Remove a fake buffer
+        assert!(project.buffer_remove("fakebuffer").is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_rename() -> SimpleResult<()> {
+        let mut project = H2Project::new("name", "1.0");
+        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+
+        // Insert it
+        project.buffer_insert("buffer", buffer)?;
+
+        // It's there
+        assert_eq!(true, project.buffer_exists("buffer"));
+
+        // Rename it
+        project.buffer_rename("buffer", "newbuffer")?;
+
+        // It's gone from the old name, but exists on the new name
+        assert_eq!(false, project.buffer_exists("buffer"));
+        assert_eq!(true, project.buffer_exists("newbuffer"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_buffer_rename_no_such_buffer() -> SimpleResult<()> {
+        let mut project = H2Project::new("name", "1.0");
+
+        // Rename a fake buffer
+        assert!(project.buffer_rename("fakebuffer", "newbuffer").is_err());
 
         Ok(())
     }
