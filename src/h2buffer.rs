@@ -25,10 +25,7 @@ use std::ops::Range;
 
 use h2transformer::H2Transformation;
 
-use crate::h2layer::{H2Layer, H2LayerName};
-
-pub type H2BufferName = String;
-pub type H2LayerInBuffer = (H2BufferName, H2LayerName);
+use crate::h2layer::H2Layer;
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Serialize, Deserialize, Debug)]
@@ -36,7 +33,7 @@ pub struct H2Buffer {
     pub data: Vec<u8>,
     pub base_address: usize,
 
-    pub layers: HashMap<H2LayerName, H2Layer>,
+    pub layers: HashMap<String, H2Layer>,
     pub transformations: Vec<H2Transformation>,
 }
 

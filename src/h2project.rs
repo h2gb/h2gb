@@ -10,7 +10,7 @@ use std::fmt;
 
 use multi_vector::MultiVector;
 
-use crate::h2buffer::{H2Buffer, H2BufferName, H2LayerInBuffer};
+use crate::h2buffer::H2Buffer;
 use crate::h2entry::H2Entry;
 
 // H2Project is the very core, and the root of undo. All actions will be taken
@@ -22,11 +22,11 @@ pub struct H2Project {
 
     // Buffers that exist, indexed by their name; layers are stored in their
     // respective buffer
-    buffers: HashMap<H2BufferName, H2Buffer>,
+    buffers: HashMap<String, H2Buffer>,
 
     // Entries that exist, index by buffer + layer; additionally, H2Entry
     // tracks its index and size within the buffer + layer
-    entries: MultiVector<H2LayerInBuffer, H2Entry>,
+    entries: MultiVector<(String, String), H2Entry>,
 }
 
 impl H2Project {
@@ -53,7 +53,7 @@ impl fmt::Display for H2Project {
 
 // Buffer
 impl H2Project {
-    pub fn buffers(&self) -> &HashMap<H2BufferName, H2Buffer> {
+    pub fn buffers(&self) -> &HashMap<String, H2Buffer> {
         return &self.buffers;
     }
 

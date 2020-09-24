@@ -23,8 +23,6 @@ use simple_error::SimpleResult;
 // use std::collections::HashMap;
 // use std::ops::Range;
 
-pub type H2LayerName = String;
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct H2Layer {
 }
