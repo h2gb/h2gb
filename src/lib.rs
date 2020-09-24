@@ -5,6 +5,7 @@ mod action;
 mod h2project;
 mod h2buffer;
 mod h2layer;
+mod h2entry;
 
 // Actions we need:
 // * load data as buffer

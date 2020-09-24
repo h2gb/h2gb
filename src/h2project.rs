@@ -7,23 +7,11 @@ use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::fmt;
-use std::ops::Range;
 
-use multi_vector::{MultiVector, AutoBumpyEntry};
+use multi_vector::MultiVector;
 
 use crate::h2buffer::{H2Buffer, H2BufferName, H2LayerInBuffer};
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct H2Entry {
-    display: String,
-    range: Range<usize>,
-    index: usize,
-    size: usize,
-}
-
-impl AutoBumpyEntry for H2Entry {
-    fn range(&self) -> Range<usize> { self.range.clone() }
-}
+use crate::h2entry::H2Entry;
 
 // H2Project is the very core, and the root of undo. All actions will be taken
 // via this object.
