@@ -25,16 +25,10 @@ use std::ops::Range;
 
 use h2transformer::H2Transformation;
 
-pub type H2BufferName = String;
-// Create some types so we can tell what's what
-pub type H2LayerName = String;
-pub type H2LayerInBuffer = (H2BufferName, H2LayerName);
+use crate::h2layer::{H2Layer, H2LayerName};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct H2Layer {
-    name: H2LayerName,
-    buffer: H2BufferName,
-}
+pub type H2BufferName = String;
+pub type H2LayerInBuffer = (H2BufferName, H2LayerName);
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Serialize, Deserialize, Debug)]
