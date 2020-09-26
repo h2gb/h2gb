@@ -8,6 +8,8 @@ use serde::{Serialize, Deserialize};
 use std::fmt;
 use std::ops::Range;
 
+//use crate::h2datatype::H2Type;
+
 use multi_vector::AutoBumpyEntry;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -17,6 +19,7 @@ pub struct H2Entry {
     pub creator: Option<()>,
     pub creations: Option<Vec<()>>,
     pub references: Option<Vec<()>>,
+    //pub datatype: H2Type,
 }
 
 impl fmt::Display for H2Entry {
