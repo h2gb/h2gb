@@ -2,14 +2,18 @@ use serde::{Serialize, Deserialize};
 use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
 
-trait H2SimpleTrait {
-    fn to_string(&self, data: &Vec<u8>, index: usize) -> String;
-    fn length(&self, _data: &Vec<u8>, _index: usize) -> usize;
-    fn related(&self, _data: &Vec<u8>, _index: usize) -> Vec<(usize, H2SimpleType)>;
+pub struct H2Context<'a> {
+    data: &'a Vec<u8>,
+    index: usize,
 }
 
-trait H2NumericType {
-    fn to_number(&self, _data: &Vec<u8>, _index: usize) -> usize;
+impl<'a> From<(&'a Vec<u8>, usize)> for H2Context<'a> {
+    fn from(o: (&'a Vec<u8>, usize)) -> H2Context {
+        Self {
+            data: o.0,
+            index: o.1,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -23,18 +27,16 @@ pub struct H2Integer {
     number_format: NumberFormat
 }
 
-impl H2NumericType for H2Integer {
-    fn to_number(&self, data: &Vec<u8>, index: usize) -> usize {
-        let mut c = Cursor::new(data);
-        c.set_position(index as u64);
+impl H2Integer {
+    fn to_number(&self, context: &H2Context) -> usize {
+        let mut c = Cursor::new(context.data);
+        c.set_position(context.index as u64);
 
         c.read_u32::<BigEndian>().unwrap() as usize
     }
-}
 
-impl H2SimpleTrait for H2Integer {
-    fn to_string(&self, data: &Vec<u8>, index: usize) -> String {
-        let value = self.to_number(data, index);
+    fn to_string(&self, context: &H2Context) -> String {
+        let value = self.to_number(context);
 
         match self.number_format {
             NumberFormat::Decimal => {
@@ -46,11 +48,11 @@ impl H2SimpleTrait for H2Integer {
         }
     }
 
-    fn length(&self, _data: &Vec<u8>, _index: usize) -> usize {
+    fn length(&self) -> usize {
         4
     }
 
-    fn related(&self, _data: &Vec<u8>, _index: usize) -> Vec<(usize, H2SimpleType)> {
+    fn related(&self, _context: &H2Context) -> Vec<(usize, H2SimpleType)> {
         vec![]
     }
 
@@ -61,31 +63,34 @@ pub struct H2Pointer {
     target_type: Box<H2SimpleType>, // TODO: This will be H2Type later
 }
 
-impl H2NumericType for H2Pointer {
-    fn to_number(&self, data: &Vec<u8>, index: usize) -> usize {
-        let mut c = Cursor::new(data);
-        c.set_position(index as u64);
+impl H2Pointer {
+    fn to_number(&self, context: &H2Context) -> usize {
+        let mut c = Cursor::new(context.data);
+        c.set_position(context.index as u64);
 
         c.read_u32::<BigEndian>().unwrap() as usize
     }
-}
 
-impl H2SimpleTrait for H2Pointer {
-    fn to_string(&self, data: &Vec<u8>, index: usize) -> String {
-        let value = self.to_number(data, index);
+    fn to_string(&self, context: &H2Context) -> String {
+        let value = self.to_number(context);
 
-        let target_string = self.target_type.to_string(data, value);
+        let target_context = H2Context {
+            data: context.data,
+            index: value,
+        };
+
+        let target_string = self.target_type.to_string(&target_context);
 
         format!("(ref) {:#010x} => {}", value, target_string)
     }
 
-    fn length(&self, _data: &Vec<u8>, _index: usize) -> usize {
+    fn length(&self) -> usize {
         4
     }
 
-    fn related(&self, data: &Vec<u8>, index: usize) -> Vec<(usize, H2SimpleType)> {
+    fn related(&self, context: &H2Context) -> Vec<(usize, H2SimpleType)> {
         vec![
-            (self.to_number(data, index), *self.target_type.clone())
+            (self.to_number(context), *self.target_type.clone())
         ]
     }
 
@@ -97,18 +102,21 @@ pub enum H2SimpleType {
     Pointer(H2Pointer),
 }
 
+pub trait H2SimpleTrait {
+}
+
 impl H2SimpleType {
-    fn to_string(&self, data: &Vec<u8>, index: usize) -> String {
+    fn to_string(&self, context: &H2Context) -> String {
         match self {
-            Self::Integer(i) => i.to_string(data, index),
-            Self::Pointer(p) => p.to_string(data, index),
+            Self::Integer(i) => i.to_string(context),
+            Self::Pointer(p) => p.to_string(context),
         }
     }
 
-    fn related(&self, data: &Vec<u8>, index: usize) -> Vec<(usize, H2SimpleType)> {
+    fn related(&self, context: &H2Context) -> Vec<(usize, H2SimpleType)> {
         match self {
-            Self::Integer(i) => i.related(data, index),
-            Self::Pointer(p) => p.related(data, index),
+            Self::Integer(i) => i.related(context),
+            Self::Pointer(p) => p.related(context),
         }
     }
 }
@@ -183,7 +191,7 @@ mod tests {
             number_format: NumberFormat::Hex
         });
 
-        println!("{} => 0x00010203", t.to_string(&v, 0));
+        println!("{} => 0x00010203", t.to_string(&(&v, 0).into()));
 
         let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
         let t = H2SimpleType::Pointer(H2Pointer {
@@ -192,7 +200,7 @@ mod tests {
             }))
         });
 
-        println!("{} => (ref) 0x00000008 (0x42424242)", t.to_string(&v, 0));
+        println!("{} => (ref) 0x00000008 (0x42424242)", t.to_string(&(&v, 0).into()));
 
         let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
         let t = H2SimpleType::Pointer(H2Pointer {
@@ -203,7 +211,9 @@ mod tests {
             }))
         });
 
-        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", t.to_string(&v, 0));
+        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", t.to_string(&(&v, 0).into()));
+
+        println!("{}", serde_json::to_string_pretty(&t).unwrap());
 
 
         Ok(())
