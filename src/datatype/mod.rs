@@ -1,0 +1,111 @@
+use serde::{Serialize, Deserialize};
+
+pub mod composite;
+pub mod simple;
+pub mod helpers;
+
+use simple::H2SimpleType;
+use composite::H2CompositeType;
+use helpers::H2Context;
+
+// Composite types should define multiple simple types, eventually
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum H2Type {
+    H2SimpleType(H2SimpleType),
+    H2CompositeType(H2CompositeType),
+}
+
+impl From<H2SimpleType> for H2Type {
+    fn from(o: H2SimpleType) -> H2Type {
+        Self::H2SimpleType(o)
+    }
+}
+
+impl From<H2CompositeType> for H2Type {
+    fn from(o: H2CompositeType) -> H2Type {
+        Self::H2CompositeType(o)
+    }
+}
+
+impl H2Type {
+    pub fn to_simple_types(&self) -> Vec<H2SimpleType> {
+        match self {
+            Self::H2SimpleType(t) => vec![t.clone()],
+            Self::H2CompositeType(t) => t.to_simple_types(),
+        }
+    }
+
+    pub fn length(&self) -> usize {
+        self.to_simple_types().iter().fold(0, |sum, t| {
+            sum + t.length()
+        });
+
+        0
+    }
+
+    pub fn related(&self, context: &H2Context) -> Vec<(usize, H2Type)> {
+        let mut result = Vec::new();
+
+        for t in self.to_simple_types() {
+            result.append(&mut t.related(context));
+        };
+
+        result
+    }
+
+    pub fn to_string(&self, context: &H2Context) -> String {
+        match self {
+            Self::H2SimpleType(t) => t.to_string(context),
+            Self::H2CompositeType(t) => t.to_string(context),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use simple_error::SimpleResult;
+
+    use simple::h2integer::H2Integer;
+    use simple::h2pointer::H2Pointer;
+    use helpers::NumberFormat;
+
+    #[test]
+    fn test_datatype() -> SimpleResult<()> {
+        let v = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".to_vec();
+        let t = H2SimpleType::Integer(H2Integer {
+            number_format: NumberFormat::Hex
+        });
+
+        println!("{} => 0x00010203", t.to_string(&(&v, 0).into()));
+        println!("{}", serde_json::to_string_pretty(&t).unwrap());
+        println!("");
+
+        let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
+        let t = H2SimpleType::Pointer(H2Pointer {
+            target_type: Box::new(H2SimpleType::Integer(H2Integer {
+                number_format: NumberFormat::Hex
+            }).into())
+        });
+
+        println!("{} => (ref) 0x00000008 (0x42424242)", t.to_string(&(&v, 0).into()));
+        println!("{}", serde_json::to_string_pretty(&t).unwrap());
+        println!("");
+
+        let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
+        let t = H2SimpleType::Pointer(H2Pointer {
+            target_type: Box::new(H2SimpleType::Pointer(H2Pointer {
+                target_type: Box::new(H2SimpleType::Integer(H2Integer {
+                    number_format: NumberFormat::Hex
+                }).into())
+            }).into())
+        });
+
+        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", t.to_string(&(&v, 0).into()));
+        println!("{}", serde_json::to_string_pretty(&t).unwrap());
+        println!("");
+
+
+        Ok(())
+    }
+}
