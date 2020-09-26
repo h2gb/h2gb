@@ -3,14 +3,27 @@ use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use crate::datatype::helpers::{H2Context, NumberFormat};
+use crate::datatype::simple::H2SimpleType;
 use crate::datatype::H2Type;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Integer {
-    pub number_format: NumberFormat
+    number_format: NumberFormat
+}
+
+impl From<H2Integer> for H2Type {
+    fn from(o: H2Integer) -> H2Type {
+        H2Type::from(H2SimpleType::Integer(o))
+    }
 }
 
 impl H2Integer {
+    pub fn new(number_format: NumberFormat) -> Self {
+        Self {
+            number_format: number_format,
+        }
+    }
+
     pub fn to_number(&self, context: &H2Context) -> usize {
         let mut c = Cursor::new(context.data);
         c.set_position(context.index as u64);

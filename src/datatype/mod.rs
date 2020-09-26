@@ -4,9 +4,9 @@ pub mod composite;
 pub mod simple;
 pub mod helpers;
 
+use helpers::H2Context;
 use simple::H2SimpleType;
 use composite::H2CompositeType;
-use helpers::H2Context;
 
 // Composite types should define multiple simple types, eventually
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -73,38 +73,24 @@ mod tests {
     #[test]
     fn test_datatype() -> SimpleResult<()> {
         let v = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".to_vec();
-        let t = H2SimpleType::Integer(H2Integer {
-            number_format: NumberFormat::Hex
-        });
+        let i: H2Type = H2Integer::new(NumberFormat::Hex).into();
 
-        println!("{} => 0x00010203", t.to_string(&(&v, 0).into()));
-        println!("{}", serde_json::to_string_pretty(&t).unwrap());
+        println!("{} => 0x00010203", i.to_string(&(&v, 0).into()));
+        println!("{}", serde_json::to_string_pretty(&i).unwrap());
         println!("");
 
         let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
-        let t = H2SimpleType::Pointer(H2Pointer {
-            target_type: Box::new(H2SimpleType::Integer(H2Integer {
-                number_format: NumberFormat::Hex
-            }).into())
-        });
+        let t: H2Type = H2Pointer::new(H2Integer::new(NumberFormat::Hex).into()).into();
 
         println!("{} => (ref) 0x00000008 (0x42424242)", t.to_string(&(&v, 0).into()));
         println!("{}", serde_json::to_string_pretty(&t).unwrap());
         println!("");
 
         let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
-        let t = H2SimpleType::Pointer(H2Pointer {
-            target_type: Box::new(H2SimpleType::Pointer(H2Pointer {
-                target_type: Box::new(H2SimpleType::Integer(H2Integer {
-                    number_format: NumberFormat::Hex
-                }).into())
-            }).into())
-        });
-
+        let t: H2Type = H2Pointer::new(H2Pointer::new(H2Integer::new(NumberFormat::Hex).into()).into()).into();
         println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", t.to_string(&(&v, 0).into()));
         println!("{}", serde_json::to_string_pretty(&t).unwrap());
         println!("");
-
 
         Ok(())
     }

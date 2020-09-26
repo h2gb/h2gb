@@ -3,14 +3,27 @@ use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
 
 use crate::datatype::H2Type;
+use crate::datatype::simple::H2SimpleType;
 use crate::datatype::helpers::H2Context;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
-    pub target_type: Box<H2Type>, // TODO: This will be H2Type later
+    target_type: Box<H2Type>,
+}
+
+impl From<H2Pointer> for H2Type {
+    fn from(o: H2Pointer) -> H2Type {
+        H2Type::from(H2SimpleType::Pointer(o))
+    }
 }
 
 impl H2Pointer {
+    pub fn new(target_type: H2Type) -> Self {
+        H2Pointer {
+            target_type: Box::new(target_type),
+        }
+    }
+
     pub fn to_number(&self, context: &H2Context) -> usize {
         let mut c = Cursor::new(context.data);
         c.set_position(context.index as u64);
