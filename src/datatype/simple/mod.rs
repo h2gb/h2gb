@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use simple_error::SimpleResult;
 
 use crate::datatype::helpers::H2Context;
 use crate::datatype::H2Type;
@@ -16,7 +17,7 @@ pub enum H2SimpleType {
 }
 
 impl H2SimpleType {
-    pub fn to_string(&self, context: &H2Context) -> String {
+    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
         match self {
             Self::Integer(t) => t.to_string(context),
             Self::Pointer(t) => t.to_string(context),

@@ -1,10 +1,5 @@
-use serde::{Serialize, Deserialize};
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum NumberFormat {
-    Decimal,
-    Hex,
-}
+// use serde::{Serialize, Deserialize};
+pub mod number;
 
 pub struct H2Context<'a> {
     pub data: &'a Vec<u8>,

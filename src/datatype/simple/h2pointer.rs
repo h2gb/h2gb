@@ -1,10 +1,12 @@
 use serde::{Serialize, Deserialize};
 use std::io::Cursor;
 use byteorder::{BigEndian, ReadBytesExt};
+use simple_error::SimpleResult;
 
 use crate::datatype::H2Type;
 use crate::datatype::simple::H2SimpleType;
 use crate::datatype::helpers::H2Context;
+// use crate::datatype::helpers::number::NumberDefinition;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
@@ -31,7 +33,7 @@ impl H2Pointer {
         c.read_u32::<BigEndian>().unwrap() as usize
     }
 
-    pub fn to_string(&self, context: &H2Context) -> String {
+    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
         let value = self.to_number(context);
 
         let target_context = H2Context {
@@ -39,9 +41,9 @@ impl H2Pointer {
             index: value,
         };
 
-        let target_string = self.target_type.to_string(&target_context);
+        let target_string = self.target_type.to_string(&target_context)?;
 
-        format!("(ref) {:#010x} => {}", value, target_string)
+        Ok(format!("(ref) {:#010x} => {}", value, target_string))
     }
 
     pub fn length(&self) -> usize {

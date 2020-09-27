@@ -1,14 +1,14 @@
 use serde::{Serialize, Deserialize};
-use std::io::Cursor;
-use byteorder::{BigEndian, ReadBytesExt};
+use simple_error::SimpleResult;
 
-use crate::datatype::helpers::{H2Context, NumberFormat};
+use crate::datatype::helpers::H2Context;
+use crate::datatype::helpers::number::NumberDefinition;
 use crate::datatype::simple::H2SimpleType;
 use crate::datatype::H2Type;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Integer {
-    number_format: NumberFormat
+    format: NumberDefinition,
 }
 
 impl From<H2Integer> for H2Type {
@@ -18,34 +18,18 @@ impl From<H2Integer> for H2Type {
 }
 
 impl H2Integer {
-    pub fn new(number_format: NumberFormat) -> Self {
+    pub fn new(format: NumberDefinition) -> Self {
         Self {
-            number_format: number_format,
+            format: format,
         }
     }
 
-    pub fn to_number(&self, context: &H2Context) -> usize {
-        let mut c = Cursor::new(context.data);
-        c.set_position(context.index as u64);
-
-        c.read_u32::<BigEndian>().unwrap() as usize
-    }
-
-    pub fn to_string(&self, context: &H2Context) -> String {
-        let value = self.to_number(context);
-
-        match self.number_format {
-            NumberFormat::Decimal => {
-                format!("{}", value)
-            },
-            NumberFormat::Hex => {
-                format!("{:#010x}", value)
-            },
-        }
+    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
+        self.format.to_string(context)
     }
 
     pub fn length(&self) -> usize {
-        4
+        self.format.len()
     }
 
     pub fn related(&self, _context: &H2Context) -> Vec<(usize, H2Type)> {

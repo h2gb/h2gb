@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use simple_error::SimpleResult;
 
 pub mod composite;
 pub mod simple;
@@ -53,11 +54,11 @@ impl H2Type {
         result
     }
 
-    pub fn to_string(&self, context: &H2Context) -> String {
-        match self {
-            Self::H2SimpleType(t) => t.to_string(context),
+    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
+        Ok(match self {
+            Self::H2SimpleType(t) => t.to_string(context)?,
             Self::H2CompositeType(t) => t.to_string(context),
-        }
+        })
     }
 }
 
@@ -68,27 +69,28 @@ mod tests {
 
     use simple::h2integer::H2Integer;
     use simple::h2pointer::H2Pointer;
-    use helpers::NumberFormat;
+    use helpers::number::NumberDefinition;
+    //use helpers::NumberFormat;
 
     #[test]
     fn test_datatype() -> SimpleResult<()> {
         let v = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".to_vec();
-        let i: H2Type = H2Integer::new(NumberFormat::Hex).into();
+        let i: H2Type = H2Integer::new(NumberDefinition::u32_big()).into();
 
-        println!("{} => 0x00010203", i.to_string(&(&v, 0).into()));
+        println!("{} => 0x00010203", i.to_string(&(&v, 0).into())?);
         println!("{}", serde_json::to_string_pretty(&i).unwrap());
         println!("");
 
         let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
-        let t: H2Type = H2Pointer::new(H2Integer::new(NumberFormat::Hex).into()).into();
+        let t: H2Type = H2Pointer::new(H2Integer::new(NumberDefinition::u32_big()).into()).into();
 
-        println!("{} => (ref) 0x00000008 (0x42424242)", t.to_string(&(&v, 0).into()));
+        println!("{} => (ref) 0x00000008 (0x42424242)", t.to_string(&(&v, 0).into())?);
         println!("{}", serde_json::to_string_pretty(&t).unwrap());
         println!("");
 
         let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
-        let t: H2Type = H2Pointer::new(H2Pointer::new(H2Integer::new(NumberFormat::Hex).into()).into()).into();
-        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", t.to_string(&(&v, 0).into()));
+        let t: H2Type = H2Pointer::new(H2Pointer::new(H2Integer::new(NumberDefinition::u32_big()).into()).into()).into();
+        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", t.to_string(&(&v, 0).into())?);
         println!("{}", serde_json::to_string_pretty(&t).unwrap());
         println!("");
 
