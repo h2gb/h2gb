@@ -99,15 +99,23 @@ pub struct H2Context<'a> {
 }
 
 impl<'a> From<(&'a Vec<u8>, usize)> for H2Context<'a> {
-    fn from(o: (&'a Vec<u8>, usize)) -> H2Context {
-        Self {
-            data: o.0,
-            index: o.1,
-        }
+    fn from(o: (&'a Vec<u8>, usize)) -> Self {
+        Self::new(o.0, o.1)
     }
 }
 
 impl<'a> H2Context<'a> {
+    fn new(data: &'a Vec<u8>, index: usize) -> Self {
+        Self {
+            data: data,
+            index: index,
+        }
+    }
+
+    pub fn set_index(&mut self, index: usize) {
+        self.index = index;
+    }
+
     pub fn read_generic(&self, endian: Endian, size: NumberSize) -> SimpleResult<u64> {
         // Get the length and make sure it's actually possible
         if self.index + size.len() > self.data.len() {
@@ -134,8 +142,19 @@ impl<'a> H2Context<'a> {
         Ok(n)
     }
 
-    pub fn read_u8(&self, endian: Endian) -> SimpleResult<u8> {
-        Ok(self.read_generic(endian, NumberSize::Eight)? as u8)
+    pub fn consume_generic(&mut self, endian: Endian, size: NumberSize) -> SimpleResult<u64> {
+        // If there's an error, short-circuit right here
+        let result = self.read_generic(endian, size)?;
+
+        // If that succeeded, increment
+        self.index += size.len();
+
+        Ok(result)
+    }
+
+    pub fn read_u8(&self) -> SimpleResult<u8> {
+        // Endian doesn't matter for 8-bit values
+        Ok(self.read_generic(Endian::Big, NumberSize::Eight)? as u8)
     }
     pub fn read_u16(&self, endian: Endian) -> SimpleResult<u16> {
         Ok(self.read_generic(endian, NumberSize::Sixteen)? as u16)
@@ -147,8 +166,9 @@ impl<'a> H2Context<'a> {
         Ok(self.read_generic(endian, NumberSize::SixtyFour)? as u64)
     }
 
-    pub fn read_i8(&self, endian: Endian) -> SimpleResult<i8> {
-        Ok(self.read_generic(endian, NumberSize::Eight)? as i8)
+    pub fn read_i8(&self) -> SimpleResult<i8> {
+        // Endian doesn't matter for 8-bit values
+        Ok(self.read_generic(Endian::Big, NumberSize::Eight)? as i8)
     }
     pub fn read_i16(&self, endian: Endian) -> SimpleResult<i16> {
         Ok(self.read_generic(endian, NumberSize::Sixteen)? as i16)
@@ -160,6 +180,34 @@ impl<'a> H2Context<'a> {
         Ok(self.read_generic(endian, NumberSize::SixtyFour)? as i64)
     }
 
+    pub fn consume_u8(&mut self) -> SimpleResult<u8> {
+        // Endian doesn't matter for 8-bit values
+        Ok(self.consume_generic(Endian::Big, NumberSize::Eight)? as u8)
+    }
+    pub fn consume_u16(&mut self, endian: Endian) -> SimpleResult<u16> {
+        Ok(self.consume_generic(endian, NumberSize::Sixteen)? as u16)
+    }
+    pub fn consume_u32(&mut self, endian: Endian) -> SimpleResult<u32> {
+        Ok(self.consume_generic(endian, NumberSize::ThirtyTwo)? as u32)
+    }
+    pub fn consume_u64(&mut self, endian: Endian) -> SimpleResult<u64> {
+        Ok(self.consume_generic(endian, NumberSize::SixtyFour)? as u64)
+    }
+
+    pub fn consume_i8(&mut self) -> SimpleResult<i8> {
+        // Endian doesn't matter for 8-bit values
+        Ok(self.consume_generic(Endian::Big, NumberSize::Eight)? as i8)
+    }
+    pub fn consume_i16(&mut self, endian: Endian) -> SimpleResult<i16> {
+        Ok(self.consume_generic(endian, NumberSize::Sixteen)? as i16)
+    }
+    pub fn consume_i32(&mut self, endian: Endian) -> SimpleResult<i32> {
+        Ok(self.consume_generic(endian, NumberSize::ThirtyTwo)? as i32)
+    }
+    pub fn consume_i64(&mut self, endian: Endian) -> SimpleResult<i64> {
+        Ok(self.consume_generic(endian, NumberSize::SixtyFour)? as i64)
+    }
+
     pub fn read_number_as_string(&self, definition: NumberDefinition) -> SimpleResult<String> {
         let size   = definition.size;
         let endian = definition.endian;
@@ -168,10 +216,10 @@ impl<'a> H2Context<'a> {
         match size {
             NumberSize::Eight => {
                 Ok(match format {
-                    NumberFormat::Hex             => format!("{:02x}", self.read_u8(endian)?),
-                    NumberFormat::HexUppercase    => format!("{:02X}", self.read_u8(endian)?),
-                    NumberFormat::DecimalUnsigned => format!("{}",     self.read_u8(endian)?),
-                    NumberFormat::DecimalSigned   => format!("{}",     self.read_i8(endian)?),
+                    NumberFormat::Hex             => format!("{:02x}", self.read_u8()?),
+                    NumberFormat::HexUppercase    => format!("{:02X}", self.read_u8()?),
+                    NumberFormat::DecimalUnsigned => format!("{}",     self.read_u8()?),
+                    NumberFormat::DecimalSigned   => format!("{}",     self.read_i8()?),
                 }.to_string())
             },
             NumberSize::Sixteen => {
@@ -440,6 +488,29 @@ mod tests {
 
             assert!(c.read_number_as_string(d).is_err());
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_consume() -> SimpleResult<()> {
+        let data = b"\x00\x7F\x80\xFFABCD\x80AAABBBB".to_vec();
+        let mut c = H2Context::from((&data, 0));
+
+        assert_eq!(0x00, c.consume_u8()?);
+        assert_eq!(0x7f, c.consume_u8()?);
+        assert_eq!(0x80, c.consume_u8()?);
+        assert_eq!(0xff, c.consume_u8()?);
+
+        c.set_index(0);
+        assert_eq!(0x007f, c.consume_u16(Endian::Big)?);
+        assert_eq!(0x80ff4142, c.consume_u32(Endian::Big)?);
+        assert_eq!(0x4344804141414242, c.consume_u64(Endian::Big)?);
+
+        c.set_index(0);
+        assert_eq!(0x7f00, c.consume_u16(Endian::Little)?);
+        assert_eq!(0x4241ff80, c.consume_u32(Endian::Little)?);
+        assert_eq!(0x4242414141804443, c.consume_u64(Endian::Little)?);
 
         Ok(())
     }
