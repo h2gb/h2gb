@@ -113,7 +113,12 @@ impl<'a> H2Context<'a> {
     }
 
     pub fn set_index(&mut self, index: usize) {
+        // Should I sanity check?
         self.index = index;
+    }
+
+    pub fn increment_index(&mut self, offset: usize) {
+        self.set_index(self.index + offset)
     }
 
     pub fn read_generic(&self, endian: Endian, size: NumberSize) -> SimpleResult<u64> {
@@ -147,7 +152,7 @@ impl<'a> H2Context<'a> {
         let result = self.read_generic(endian, size)?;
 
         // If that succeeded, increment
-        self.index += size.len();
+        self.increment_index(size.len());
 
         Ok(result)
     }
@@ -247,6 +252,14 @@ impl<'a> H2Context<'a> {
                 }.to_string())
             },
         }
+    }
+
+    pub fn consume_number_as_string(&mut self, definition: NumberDefinition) -> SimpleResult<String> {
+        let result = self.read_number_as_string(definition)?;
+
+        self.increment_index(definition.size.len());
+
+        Ok(result)
     }
 }
 
