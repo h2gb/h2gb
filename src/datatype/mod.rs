@@ -5,7 +5,7 @@ pub mod composite;
 pub mod simple;
 pub mod helpers;
 
-use helpers::H2Context;
+use helpers::h2context::H2Context;
 use simple::H2SimpleType;
 use composite::H2CompositeType;
 
@@ -69,8 +69,7 @@ mod tests {
 
     use simple::h2integer::H2Integer;
     use simple::h2pointer::H2Pointer;
-    use helpers::number::NumberDefinition;
-    //use helpers::NumberFormat;
+    use helpers::h2context::NumberDefinition;
 
     #[test]
     fn test_datatype() -> SimpleResult<()> {

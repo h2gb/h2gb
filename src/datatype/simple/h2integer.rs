@@ -1,8 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::datatype::helpers::H2Context;
-use crate::datatype::helpers::number::NumberDefinition;
+use crate::datatype::helpers::h2context::{H2Context, NumberDefinition};
 use crate::datatype::simple::H2SimpleType;
 use crate::datatype::H2Type;
 
@@ -25,7 +24,7 @@ impl H2Integer {
     }
 
     pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
-        self.format.to_string(context)
+        context.read_number_as_string(&self.format)
     }
 
     pub fn length(&self) -> usize {

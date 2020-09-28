@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use crate::datatype::simple::H2SimpleType;
-use crate::datatype::helpers::H2Context;
+use crate::datatype::helpers::h2context::H2Context;
 
 pub mod h2struct;
 pub mod h2array;

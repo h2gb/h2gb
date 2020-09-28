@@ -5,7 +5,7 @@ use simple_error::SimpleResult;
 
 use crate::datatype::H2Type;
 use crate::datatype::simple::H2SimpleType;
-use crate::datatype::helpers::H2Context;
+use crate::datatype::helpers::h2context::H2Context;
 // use crate::datatype::helpers::number::NumberDefinition;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

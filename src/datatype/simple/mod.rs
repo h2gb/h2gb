@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::datatype::helpers::H2Context;
+use crate::datatype::helpers::h2context::H2Context;
 use crate::datatype::H2Type;
 
 pub mod h2integer;
