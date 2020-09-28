@@ -57,7 +57,7 @@ impl H2Type {
     pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
         Ok(match self {
             Self::H2SimpleType(t) => t.to_string(context)?,
-            Self::H2CompositeType(t) => t.to_string(context),
+            Self::H2CompositeType(t) => t.to_string(context)?,
         })
     }
 }
