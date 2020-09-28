@@ -31,7 +31,7 @@ impl H2Integer {
         self.format.len()
     }
 
-    pub fn related(&self, _context: &H2Context) -> Vec<(usize, H2Type)> {
-        vec![]
+    pub fn related(&self, _context: &H2Context) -> SimpleResult<Vec<(usize, H2Type)>> {
+        Ok(vec![])
     }
 }

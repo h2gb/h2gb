@@ -44,14 +44,14 @@ impl H2Type {
         0
     }
 
-    pub fn related(&self, context: &H2Context) -> Vec<(usize, H2Type)> {
+    pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(usize, H2Type)>> {
         let mut result = Vec::new();
 
         for t in self.to_simple_types() {
-            result.append(&mut t.related(context));
+            result.append(&mut t.related(context)?);
         };
 
-        result
+        Ok(result)
     }
 
     pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {

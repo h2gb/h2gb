@@ -24,7 +24,7 @@ impl H2SimpleType {
         }
     }
 
-    pub fn related(&self, context: &H2Context) -> Vec<(usize, H2Type)> {
+    pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(usize, H2Type)>> {
         match self {
             Self::Integer(t) => t.related(context),
             Self::Pointer(t) => t.related(context),
