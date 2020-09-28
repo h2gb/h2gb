@@ -69,28 +69,38 @@ mod tests {
 
     use simple::h2integer::H2Integer;
     use simple::h2pointer::H2Pointer;
-    use helpers::h2context::NumberDefinition;
+    use helpers::h2context::{H2Context, NumberDefinition};
 
     #[test]
     fn test_datatype() -> SimpleResult<()> {
         let v = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".to_vec();
-        let i: H2Type = H2Integer::new(NumberDefinition::u32_big()).into();
+        let c = H2Context::from((&v, 0));
+        let i: H2Type = H2Type::from(H2Integer::new(NumberDefinition::u32_big()));
 
-        println!("{} => 0x00010203", i.to_string(&(&v, 0).into())?);
+        println!("{} => 0x00010203", i.to_string(&c)?);
         println!("{}", serde_json::to_string_pretty(&i).unwrap());
         println!("");
 
         let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
-        let t: H2Type = H2Pointer::new(H2Integer::new(NumberDefinition::u32_big()).into()).into();
+        let c = H2Context::from((&v, 0));
+        let i: H2Type = H2Type::from(H2Pointer::u32_big(
+            H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
+        ));
 
-        println!("{} => (ref) 0x00000008 (0x42424242)", t.to_string(&(&v, 0).into())?);
-        println!("{}", serde_json::to_string_pretty(&t).unwrap());
+        println!("{} => (ref) 0x00000008 (0x42424242)", i.to_string(&c)?);
+        println!("{}", serde_json::to_string_pretty(&i).unwrap());
         println!("");
 
         let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
-        let t: H2Type = H2Pointer::new(H2Pointer::new(H2Integer::new(NumberDefinition::u32_big()).into()).into()).into();
-        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", t.to_string(&(&v, 0).into())?);
-        println!("{}", serde_json::to_string_pretty(&t).unwrap());
+        let c = H2Context::from((&v, 0));
+        let i: H2Type = H2Type::from(H2Pointer::u32_big(
+            H2Type::from(H2Pointer::u32_big(
+                H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
+            ))
+        ));
+
+        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", i.to_string(&c)?);
+        println!("{}", serde_json::to_string_pretty(&i).unwrap());
         println!("");
 
         Ok(())

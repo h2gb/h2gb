@@ -24,7 +24,7 @@ impl H2Integer {
     }
 
     pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
-        context.read_number_as_string(&self.format)
+        context.read_number_as_string(self.format)
     }
 
     pub fn length(&self) -> usize {

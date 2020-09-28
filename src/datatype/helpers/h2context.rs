@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum NumberFormat {
     Hex,
     HexUppercase,
@@ -9,7 +9,7 @@ pub enum NumberFormat {
     DecimalUnsigned,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum NumberSize {
     Eight,
     Sixteen,
@@ -18,8 +18,8 @@ pub enum NumberSize {
 }
 
 impl NumberSize {
-    pub fn len(&self) -> usize {
-        match *self {
+    pub fn len(self) -> usize {
+        match self {
             Self::Eight => 1,
             Self::Sixteen => 2,
             Self::ThirtyTwo => 4,
@@ -28,13 +28,13 @@ impl NumberSize {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum Endian {
     Big,
     Little,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct NumberDefinition {
     format: NumberFormat,
     size: NumberSize,
@@ -88,7 +88,7 @@ impl NumberDefinition {
         Self::new(NumberFormat::Hex, NumberSize::SixtyFour, Endian::Little)
     }
 
-    pub fn len(&self) -> usize {
+    pub fn len(self) -> usize {
         self.size.len()
     }
 }
@@ -108,7 +108,7 @@ impl<'a> From<(&'a Vec<u8>, usize)> for H2Context<'a> {
 }
 
 impl<'a> H2Context<'a> {
-    pub fn read_number(&self, endian: &Endian, size: NumberSize) -> SimpleResult<u64> {
+    pub fn read_generic(&self, endian: Endian, size: NumberSize) -> SimpleResult<u64> {
         // Get the length and make sure it's actually possible
         if self.index + size.len() > self.data.len() {
             bail!("Overflow");
@@ -134,36 +134,36 @@ impl<'a> H2Context<'a> {
         Ok(n)
     }
 
-    pub fn read_u8(&self, endian: &Endian) -> SimpleResult<u8> {
-        Ok(self.read_number(endian, NumberSize::Eight)? as u8)
+    pub fn read_u8(&self, endian: Endian) -> SimpleResult<u8> {
+        Ok(self.read_generic(endian, NumberSize::Eight)? as u8)
     }
-    pub fn read_u16(&self, endian: &Endian) -> SimpleResult<u16> {
-        Ok(self.read_number(endian, NumberSize::Sixteen)? as u16)
+    pub fn read_u16(&self, endian: Endian) -> SimpleResult<u16> {
+        Ok(self.read_generic(endian, NumberSize::Sixteen)? as u16)
     }
-    pub fn read_u32(&self, endian: &Endian) -> SimpleResult<u32> {
-        Ok(self.read_number(endian, NumberSize::ThirtyTwo)? as u32)
+    pub fn read_u32(&self, endian: Endian) -> SimpleResult<u32> {
+        Ok(self.read_generic(endian, NumberSize::ThirtyTwo)? as u32)
     }
-    pub fn read_u64(&self, endian: &Endian) -> SimpleResult<u64> {
-        Ok(self.read_number(endian, NumberSize::SixtyFour)? as u64)
-    }
-
-    pub fn read_i8(&self, endian: &Endian) -> SimpleResult<i8> {
-        Ok(self.read_number(endian, NumberSize::Eight)? as i8)
-    }
-    pub fn read_i16(&self, endian: &Endian) -> SimpleResult<i16> {
-        Ok(self.read_number(endian, NumberSize::Sixteen)? as i16)
-    }
-    pub fn read_i32(&self, endian: &Endian) -> SimpleResult<i32> {
-        Ok(self.read_number(endian, NumberSize::ThirtyTwo)? as i32)
-    }
-    pub fn read_i64(&self, endian: &Endian) -> SimpleResult<i64> {
-        Ok(self.read_number(endian, NumberSize::SixtyFour)? as i64)
+    pub fn read_u64(&self, endian: Endian) -> SimpleResult<u64> {
+        Ok(self.read_generic(endian, NumberSize::SixtyFour)? as u64)
     }
 
-    pub fn read_number_as_string(&self, definition: &NumberDefinition) -> SimpleResult<String> {
-        let size   = &definition.size;
-        let endian = &definition.endian;
-        let format = &definition.format;
+    pub fn read_i8(&self, endian: Endian) -> SimpleResult<i8> {
+        Ok(self.read_generic(endian, NumberSize::Eight)? as i8)
+    }
+    pub fn read_i16(&self, endian: Endian) -> SimpleResult<i16> {
+        Ok(self.read_generic(endian, NumberSize::Sixteen)? as i16)
+    }
+    pub fn read_i32(&self, endian: Endian) -> SimpleResult<i32> {
+        Ok(self.read_generic(endian, NumberSize::ThirtyTwo)? as i32)
+    }
+    pub fn read_i64(&self, endian: Endian) -> SimpleResult<i64> {
+        Ok(self.read_generic(endian, NumberSize::SixtyFour)? as i64)
+    }
+
+    pub fn read_number_as_string(&self, definition: NumberDefinition) -> SimpleResult<String> {
+        let size   = definition.size;
+        let endian = definition.endian;
+        let format = definition.format;
 
         match size {
             NumberSize::Eight => {
@@ -306,7 +306,7 @@ mod tests {
         for (index, expected, definition) in tests {
             let c = H2Context::from((&data, index));
             let d = NumberDefinition::from(definition);
-            assert_eq!(expected.to_string(), c.read_number_as_string(&d)?);
+            assert_eq!(expected.to_string(), c.read_number_as_string(d)?);
         }
 
         Ok(())
@@ -353,8 +353,8 @@ mod tests {
             let d = NumberDefinition::from(definition);
 
             match expected {
-                Some(expected) => assert_eq!(expected.to_string(), c.read_number_as_string(&d)?),
-                None => assert!(c.read_number_as_string(&d).is_err()),
+                Some(expected) => assert_eq!(expected.to_string(), c.read_number_as_string(d)?),
+                None => assert!(c.read_number_as_string(d).is_err()),
             }
         }
 
@@ -396,8 +396,8 @@ mod tests {
             let d = NumberDefinition::from(definition);
 
             match expected {
-                Some(expected) => assert_eq!(expected.to_string(), c.read_number_as_string(&d)?),
-                None => assert!(c.read_number_as_string(&d).is_err()),
+                Some(expected) => assert_eq!(expected.to_string(), c.read_number_as_string(d)?),
+                None => assert!(c.read_number_as_string(d).is_err()),
             }
         }
 
@@ -438,7 +438,7 @@ mod tests {
             let c = H2Context::from((&data, index));
             let d = NumberDefinition::from(definition);
 
-            assert!(c.read_number_as_string(&d).is_err());
+            assert!(c.read_number_as_string(d).is_err());
         }
 
         Ok(())
