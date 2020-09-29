@@ -29,12 +29,17 @@ impl H2Array {
         }
     }
 
-    pub fn to_simple_types(&self) -> Vec<H2SimpleType> {
+    pub fn to_simple_types(&self) -> Vec<(String, H2SimpleType)> {
         let mut result = Vec::new();
 
         // TODO: Byte alignment
-        for _ in 0..self.length {
-            result.append(&mut self.field_type.to_simple_types());
+        for i in 0..self.length {
+            for (field_name, simple_type) in self.field_type.to_simple_types() {
+                result.push((
+                    format!("{}.{}", i.to_string(), field_name),
+                    simple_type,
+                ));
+            }
         }
 
         result
@@ -48,7 +53,7 @@ impl H2Array {
         let simple_types = self.to_simple_types();
 
         let mut s = String::from("");
-        for (index, t) in simple_types.iter().enumerate() {
+        for (index, t) in simple_types.iter() {
             s.push_str(&format!("Entry {}: ", index));
             s.push_str(&format!("{}\n", t.to_string(&c)?));
             c.increment_index(t.length());

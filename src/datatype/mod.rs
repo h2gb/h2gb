@@ -29,15 +29,15 @@ impl From<H2CompositeType> for H2Type {
 }
 
 impl H2Type {
-    pub fn to_simple_types(&self) -> Vec<H2SimpleType> {
+    pub fn to_simple_types(&self) -> Vec<(String, H2SimpleType)> {
         match self {
-            Self::H2SimpleType(t) => vec![t.clone()],
+            Self::H2SimpleType(t) => vec![("(TODO: simple type)".to_string(), t.clone())],
             Self::H2CompositeType(t) => t.to_simple_types(),
         }
     }
 
     pub fn length(&self) -> usize {
-        self.to_simple_types().iter().fold(0, |sum, t| {
+        self.to_simple_types().iter().fold(0, |sum, (_, t)| {
             sum + t.length()
         });
 
@@ -47,7 +47,7 @@ impl H2Type {
     pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(usize, H2Type)>> {
         let mut result = Vec::new();
 
-        for t in self.to_simple_types() {
+        for (_, t) in self.to_simple_types() {
             result.append(&mut t.related(context)?);
         };
 
