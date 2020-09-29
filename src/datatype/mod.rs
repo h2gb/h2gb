@@ -73,35 +73,35 @@ mod tests {
 
     #[test]
     fn test_datatype() -> SimpleResult<()> {
-        let v = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".to_vec();
-        let c = H2Context::from((&v, 0));
-        let i: H2Type = H2Type::from(H2Integer::new(NumberDefinition::u32_big()));
+        // let v = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".to_vec();
+        // let c = H2Context::from((&v, 0));
+        // let i: H2Type = H2Type::from(H2Integer::new(NumberDefinition::u32_big()));
 
-        println!("{} => 0x00010203", i.to_string(&c)?);
-        println!("{}", serde_json::to_string_pretty(&i).unwrap());
-        println!("");
+        // println!("{} => 0x00010203", i.to_string(&c)?);
+        // println!("{}", serde_json::to_string_pretty(&i).unwrap());
+        // println!("");
 
-        let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
-        let c = H2Context::from((&v, 0));
-        let i: H2Type = H2Type::from(H2Pointer::u32_big(
-            H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
-        ));
+        // let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
+        // let c = H2Context::from((&v, 0));
+        // let i: H2Type = H2Type::from(H2Pointer::u32_big(
+        //     H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
+        // ));
 
-        println!("{} => (ref) 0x00000008 (0x42424242)", i.to_string(&c)?);
-        println!("{}", serde_json::to_string_pretty(&i).unwrap());
-        println!("");
+        // println!("{} => (ref) 0x00000008 (0x42424242)", i.to_string(&c)?);
+        // println!("{}", serde_json::to_string_pretty(&i).unwrap());
+        // println!("");
 
-        let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
-        let c = H2Context::from((&v, 0));
-        let i: H2Type = H2Type::from(H2Pointer::u32_big(
-            H2Type::from(H2Pointer::u32_big(
-                H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
-            ))
-        ));
+        // let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
+        // let c = H2Context::from((&v, 0));
+        // let i: H2Type = H2Type::from(H2Pointer::u32_big(
+        //     H2Type::from(H2Pointer::u32_big(
+        //         H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
+        //     ))
+        // ));
 
-        println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", i.to_string(&c)?);
-        println!("{}", serde_json::to_string_pretty(&i).unwrap());
-        println!("");
+        // println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", i.to_string(&c)?);
+        // println!("{}", serde_json::to_string_pretty(&i).unwrap());
+        // println!("");
 
         Ok(())
     }

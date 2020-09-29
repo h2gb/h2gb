@@ -93,6 +93,8 @@ impl NumberDefinition {
     }
 }
 
+// We need to clone this sometimes
+#[derive(Debug, Clone)]
 pub struct H2Context<'a> {
     pub data: &'a Vec<u8>,
     pub index: usize,
