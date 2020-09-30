@@ -17,7 +17,7 @@ pub enum H2CompositeType {
 }
 
 impl H2CompositeType {
-    pub fn to_simple_types(&self) -> Vec<(String, H2SimpleType)> {
+    pub fn to_simple_types(&self) -> Vec<(Vec<String>, H2SimpleType)> {
         match self {
             Self::H2Struct(t) => t.to_simple_types(),
             Self::H2Array(t) => t.to_simple_types(),

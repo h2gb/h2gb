@@ -28,6 +28,15 @@ impl H2Pointer {
         }
     }
 
+    pub fn name(&self) -> String {
+        match self.size {
+            NumberSize::Eight     => "ref8",
+            NumberSize::Sixteen   => "ref16",
+            NumberSize::ThirtyTwo => "ref32",
+            NumberSize::SixtyFour => "ref64",
+        }.to_string()
+    }
+
     pub fn u8(target_type: H2Type) -> Self {
         Self::new(target_type, NumberSize::Eight, Endian::Big /* Endian doesn't matter for 8-bit */)
     }

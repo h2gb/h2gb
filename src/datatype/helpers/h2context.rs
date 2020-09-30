@@ -91,6 +91,10 @@ impl NumberDefinition {
     pub fn len(self) -> usize {
         self.size.len()
     }
+
+    pub fn size(self) -> NumberSize {
+        self.size
+    }
 }
 
 // We need to clone this sometimes

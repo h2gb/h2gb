@@ -29,9 +29,9 @@ impl From<H2CompositeType> for H2Type {
 }
 
 impl H2Type {
-    pub fn to_simple_types(&self) -> Vec<(String, H2SimpleType)> {
+    pub fn to_simple_types(&self) -> Vec<(Vec<String>, H2SimpleType)> {
         match self {
-            Self::H2SimpleType(t) => vec![("(TODO: simple type)".to_string(), t.clone())],
+            Self::H2SimpleType(t) => vec![(vec![t.name()], t.clone())],
             Self::H2CompositeType(t) => t.to_simple_types(),
         }
     }

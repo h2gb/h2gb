@@ -37,4 +37,11 @@ impl H2SimpleType {
             Self::Pointer(t) => t.length(),
         }
     }
+
+    pub fn name(&self) -> String {
+        match self {
+            Self::Integer(t) => t.name(),
+            Self::Pointer(t) => t.name(),
+        }
+    }
 }

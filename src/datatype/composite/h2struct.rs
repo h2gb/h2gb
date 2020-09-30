@@ -35,14 +35,18 @@ impl H2Struct {
         }
     }
 
-    pub fn to_simple_types(&self) -> Vec<(String, H2SimpleType)> {
+    pub fn to_simple_types(&self) -> Vec<(Vec<String>, H2SimpleType)> {
         let mut result = Vec::new();
 
         // TODO: Byte alignment
         for (name, field_type) in &self.fields {
-            for (field_name, simple_type) in field_type.to_simple_types() {
+            for (mut field_name, simple_type) in field_type.to_simple_types() {
+                // Append our new name
+                field_name.push(name.to_string());
+
+                // Add it to the results
                 result.push((
-                    format!("{}.{}", name, field_name),
+                    field_name,
                     simple_type,
                 ));
             }
@@ -60,7 +64,9 @@ impl H2Struct {
 
         let mut s = String::from("");
         for (index, t) in simple_types.iter() {
-            s.push_str(&format!("Entry {}: ", index));
+            println!("index: {:?}", index);
+            println!("t: {:?}", t);
+            s.push_str(&format!("Entry {}: ", index.join(".")));
             s.push_str(&format!("{}\n", t.to_string(&c)?));
             c.increment_index(t.length());
         }
@@ -75,7 +81,6 @@ mod tests {
     use simple_error::SimpleResult;
 
     use crate::datatype::simple::h2integer::H2Integer;
-    use crate::datatype::simple::h2pointer::H2Pointer;
     use crate::datatype::helpers::h2context::{H2Context, NumberDefinition};
 
     #[test]
