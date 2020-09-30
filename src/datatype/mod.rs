@@ -1,108 +1,62 @@
+pub mod basic;
+pub mod composite;
+pub mod helpers;
+
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-pub mod composite;
-pub mod simple;
-pub mod helpers;
+use crate::datatype::basic::H2BasicType;
+use crate::datatype::helpers::h2context::H2Context;
 
-use helpers::h2context::H2Context;
-use simple::H2SimpleType;
-use composite::H2CompositeType;
+use composite::h2struct::H2Struct;
+use composite::h2array::H2Array;
+use composite::h2simple::H2Simple;
 
-// Composite types should define multiple simple types, eventually
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum H2Type {
-    H2SimpleType(H2SimpleType),
-    H2CompositeType(H2CompositeType),
+    H2Struct(H2Struct),
+    H2Array(H2Array),
+    H2Simple(H2Simple),
 }
 
-impl From<H2SimpleType> for H2Type {
-    fn from(o: H2SimpleType) -> H2Type {
-        Self::H2SimpleType(o)
-    }
-}
-
-impl From<H2CompositeType> for H2Type {
-    fn from(o: H2CompositeType) -> H2Type {
-        Self::H2CompositeType(o)
-    }
+pub struct ResolvedType {
+    offset: usize,
+    field_names: Option<Vec<String>>,
+    basic_type: H2BasicType,
 }
 
 impl H2Type {
-    pub fn to_simple_types(&self) -> Vec<(Vec<String>, H2SimpleType)> {
+    pub fn resolve_from_offset(&self, starting_offset: Option<usize>, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, usize) {
         match self {
-            Self::H2SimpleType(t) => vec![(vec![t.name()], t.clone())],
-            Self::H2CompositeType(t) => t.to_simple_types(),
+            Self::H2Struct(t) => t.resolve(starting_offset.unwrap_or(0), field_names),
+            Self::H2Array(t)  => t.resolve(starting_offset.unwrap_or(0), field_names),
+            Self::H2Simple(t) => t.resolve(starting_offset.unwrap_or(0), field_names),
         }
     }
 
-    pub fn length(&self) -> usize {
-        self.to_simple_types().iter().fold(0, |sum, (_, t)| {
-            sum + t.length()
-        });
-
-        0
+    pub fn resolve(&self) -> Vec<ResolvedType> {
+        self.resolve_from_offset(None, None).0
     }
 
-    pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(usize, H2Type)>> {
-        let mut result = Vec::new();
-
-        for (_, t) in self.to_simple_types() {
-            result.append(&mut t.related(context)?);
-        };
-
-        Ok(result)
+    pub fn size(&self) -> usize {
+        match self {
+            Self::H2Struct(t) => t.size(),
+            Self::H2Array(t)  => t.size(),
+            Self::H2Simple(t) => t.size(),
+        }
     }
 
-    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
-        Ok(match self {
-            Self::H2SimpleType(t) => t.to_string(context)?,
-            Self::H2CompositeType(t) => t.to_string(context)?,
-        })
-    }
-}
+    pub fn to_strings(&self, context: &H2Context) -> SimpleResult<Vec<String>> {
+        // This is a simple datatype to clone
+        let mut context = context.clone();
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use simple_error::SimpleResult;
+        Ok(self.resolve().iter().map(|r| {
+            context.set_index(r.offset);
 
-    use simple::h2integer::H2Integer;
-    use simple::h2pointer::H2Pointer;
-    use helpers::h2context::{H2Context, NumberDefinition};
-
-    #[test]
-    fn test_datatype() -> SimpleResult<()> {
-        // let v = b"\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f".to_vec();
-        // let c = H2Context::from((&v, 0));
-        // let i: H2Type = H2Type::from(H2Integer::new(NumberDefinition::u32_big()));
-
-        // println!("{} => 0x00010203", i.to_string(&c)?);
-        // println!("{}", serde_json::to_string_pretty(&i).unwrap());
-        // println!("");
-
-        // let v = b"\x00\x00\x00\x08AAAABBBBCCCCDDDD".to_vec();
-        // let c = H2Context::from((&v, 0));
-        // let i: H2Type = H2Type::from(H2Pointer::u32_big(
-        //     H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
-        // ));
-
-        // println!("{} => (ref) 0x00000008 (0x42424242)", i.to_string(&c)?);
-        // println!("{}", serde_json::to_string_pretty(&i).unwrap());
-        // println!("");
-
-        // let v = b"\x00\x00\x00\x04\x00\x00\x00\x08BBBBCCCCDDDD".to_vec();
-        // let c = H2Context::from((&v, 0));
-        // let i: H2Type = H2Type::from(H2Pointer::u32_big(
-        //     H2Type::from(H2Pointer::u32_big(
-        //         H2Type::from(H2Integer::new(NumberDefinition::u32_big()))
-        //     ))
-        // ));
-
-        // println!("{} => (ref) 0x00000004 ((ref) 0x00000008 (0x42424242))", i.to_string(&c)?);
-        // println!("{}", serde_json::to_string_pretty(&i).unwrap());
-        // println!("");
-
-        Ok(())
+            match &r.field_names {
+                Some(f) => format!("{} {} [{}]", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string()), f.join(".")),
+                None => format!("{} {}", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string())),
+            }
+        }).collect())
     }
 }

@@ -1,11 +1,5 @@
-use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
-use std::iter;
-
-use crate::datatype::H2Type;
-use crate::datatype::helpers::h2context::H2Context;
-use crate::datatype::simple::H2SimpleType;
-use crate::datatype::composite::H2CompositeType;
+use crate::datatype::{H2Type, ResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Array {
@@ -16,7 +10,7 @@ pub struct H2Array {
 
 impl From<H2Array> for H2Type {
     fn from(o: H2Array) -> H2Type {
-        H2Type::from(H2CompositeType::H2Array(o))
+        H2Type::from(H2Type::H2Array(o))
     }
 }
 
@@ -29,38 +23,26 @@ impl H2Array {
         }
     }
 
-    pub fn to_simple_types(&self) -> Vec<(Vec<String>, H2SimpleType)> {
-        let mut result = Vec::new();
+    pub fn resolve(&self, starting_offset: usize, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, usize) {
+        let mut result: Vec<ResolvedType> = Vec::new();
+        let field_names = field_names.unwrap_or(Vec::new());
+        let mut offset = starting_offset;
 
-        // TODO: Byte alignment
         for i in 0..self.length {
-            for (mut field_name, simple_type) in self.field_type.to_simple_types() {
-                field_name.push(i.to_string());
-                result.push((
-                    field_name,
-                    simple_type,
-                ));
-            }
+            let mut this_field_name = field_names.clone();
+            this_field_name.push(i.to_string());
+
+            let (mut basic, new_offset) = self.field_type.resolve_from_offset(Some(offset), Some(this_field_name));
+            result.append(&mut basic);
+
+            offset = new_offset;
         }
 
-        result
+        (result, offset)
     }
 
-    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
-        // Clone it so we can change it
-        let mut c = context.clone();
-
-        // Get the simple types that represent the array
-        let simple_types = self.to_simple_types();
-
-        let mut s = String::from("");
-        for (index, t) in simple_types.iter() {
-            s.push_str(&format!("Entry {}: ", index[0]));
-            s.push_str(&format!("{}\n", t.to_string(&c)?));
-            c.increment_index(t.length());
-        }
-
-        Ok(s)
+    pub fn size(&self) -> usize {
+        self.length * self.field_type.size()
     }
 }
 
@@ -69,44 +51,29 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::datatype::simple::h2integer::H2Integer;
-    use crate::datatype::simple::h2pointer::H2Pointer;
     use crate::datatype::helpers::h2context::{H2Context, NumberDefinition};
+    use crate::datatype::basic::h2integer::H2Integer;
 
     #[test]
     fn test_array() -> SimpleResult<()> {
-        let v = b"AABBCC123456".to_vec();
-        let c = H2Context::from((&v, 0));
+        let data = b"AAAABBBBCCCCDDDD".to_vec();
+        let context = H2Context::new(&data, 0);
 
-        let i: H2Type = H2Type::from(
-            H2Array::new(H2Type::from(
-                H2Integer::new(NumberDefinition::u16_big())
-            ), 6)
-        );
+        let i = H2Integer::new(NumberDefinition::u32_big());
+        let a = H2Array::new(H2Type::from(i), 4);
+        let t = H2Type::from(a);
 
-        println!("Found:\n{}", i.to_string(&c)?);
-        println!("\n\nExpected:\n4141\n4242\n4343\n3132\n3334\n3536\n");
-        println!("\n\n{}", serde_json::to_string_pretty(&i).unwrap());
+        assert_eq!(16, t.size());
 
-        Ok(())
-    }
+        let resolved = t.resolve();
+        assert_eq!(4, resolved.len());
+        assert_eq!(0, resolved[0].offset);
+        assert_eq!(4, resolved[1].offset);
+        assert_eq!(8, resolved[2].offset);
+        assert_eq!(12, resolved[3].offset);
 
-    #[test]
-    fn test_pointer_array() -> SimpleResult<()> {
-        let v = b"\x04\x08\x0c\x10AAAABBBBCCCCDDDD".to_vec();
-        let c = H2Context::from((&v, 0));
-
-        let i: H2Type = H2Type::from(
-            H2Array::new(H2Type::from(
-                H2Pointer::u8(H2Type::from(
-                    H2Integer::new(NumberDefinition::u32_big())
-                ))
-            ), 4)
-        );
-
-        println!("Found:\n{}", i.to_string(&c)?);
-        println!("\n\nExpected:\n04 41414141\n08 42424242\n0c 43434343\n10 44444444\n");
-        println!("\n\n{}", serde_json::to_string_pretty(&i).unwrap());
+        println!("Type: {:?}", t);
+        println!("\nto_strings:\n{}", t.to_strings(&context)?.join("\n"));
 
         Ok(())
     }

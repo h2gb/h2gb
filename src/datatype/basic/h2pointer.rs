@@ -2,9 +2,8 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
 use crate::datatype::H2Type;
-use crate::datatype::simple::H2SimpleType;
+use crate::datatype::basic::H2BasicType;
 use crate::datatype::helpers::h2context::{H2Context, Endian, NumberSize};
-// use crate::datatype::helpers::number::NumberDefinition;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
@@ -15,7 +14,7 @@ pub struct H2Pointer {
 
 impl From<H2Pointer> for H2Type {
     fn from(o: H2Pointer) -> H2Type {
-        H2Type::from(H2SimpleType::Pointer(o))
+        H2Type::from(H2BasicType::Pointer(o))
     }
 }
 
@@ -75,12 +74,12 @@ impl H2Pointer {
             index: self.to_number(context)?,
         };
 
-        let target_string = self.target_type.to_string(&target_context)?;
+        //let target_string = self.target_type.to_string(&target_context)?;
 
-        Ok(format!("(ref) {:#010x} => {}", self.to_number(context)?, target_string))
+        Ok(format!("(ref) {}", self.size.number_to_hex(self.to_number(context)? as u64)))
     }
 
-    pub fn length(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.size.len()
     }
 

@@ -26,6 +26,15 @@ impl NumberSize {
             Self::SixtyFour => 8,
         }
     }
+
+    pub fn number_to_hex(self, number: u64) -> String {
+        match self {
+            Self::Eight     => format!("{:02x}",   number),
+            Self::Sixteen   => format!("{:04x}",   number),
+            Self::ThirtyTwo => format!("{:08x}",   number),
+            Self::SixtyFour => format!("{:016x}",  number),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
@@ -104,14 +113,14 @@ pub struct H2Context<'a> {
     pub index: usize,
 }
 
-impl<'a> From<(&'a Vec<u8>, usize)> for H2Context<'a> {
-    fn from(o: (&'a Vec<u8>, usize)) -> Self {
-        Self::new(o.0, o.1)
-    }
-}
+// impl<'a> From<(&'a Vec<u8>, usize)> for H2Context<'a> {
+//     fn from(o: (&'a Vec<u8>, usize)) -> Self {
+//         Self::new(o.0, o.1)
+//     }
+// }
 
 impl<'a> H2Context<'a> {
-    fn new(data: &'a Vec<u8>, index: usize) -> Self {
+    pub fn new(data: &'a Vec<u8>, index: usize) -> Self {
         Self {
             data: data,
             index: index,
@@ -371,7 +380,7 @@ mod tests {
         ];
 
         for (index, expected, definition) in tests {
-            let c = H2Context::from((&data, index));
+            let c = H2Context::new(&data, index);
             let d = NumberDefinition::from(definition);
             assert_eq!(expected.to_string(), c.read_number_as_string(d)?);
         }
@@ -416,7 +425,7 @@ mod tests {
         ];
 
         for (index, expected, definition) in bad_tests {
-            let c = H2Context::from((&data, index));
+            let c = H2Context::new(&data, index);
             let d = NumberDefinition::from(definition);
 
             match expected {
@@ -459,7 +468,7 @@ mod tests {
         ];
 
         for (index, expected, definition) in bad_tests {
-            let c = H2Context::from((&data, index));
+            let c = H2Context::new(&data, index);
             let d = NumberDefinition::from(definition);
 
             match expected {
@@ -502,7 +511,7 @@ mod tests {
         ];
 
         for (index, definition) in bad_tests {
-            let c = H2Context::from((&data, index));
+            let c = H2Context::new(&data, index);
             let d = NumberDefinition::from(definition);
 
             assert!(c.read_number_as_string(d).is_err());
@@ -514,7 +523,7 @@ mod tests {
     #[test]
     fn test_consume() -> SimpleResult<()> {
         let data = b"\x00\x7F\x80\xFFABCD\x80AAABBBB".to_vec();
-        let mut c = H2Context::from((&data, 0));
+        let mut c = H2Context::new(&data, 0);
 
         assert_eq!(0x00, c.consume_u8()?);
         assert_eq!(0x7f, c.consume_u8()?);
