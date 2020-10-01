@@ -17,40 +17,19 @@ impl From<H2Integer> for H2Type {
 }
 
 impl H2Integer {
+    pub const U8:         Self = Self { format: NumberDefinition::U8         };
+    pub const U16_BIG:    Self = Self { format: NumberDefinition::U16_BIG    };
+    pub const U16_LITTLE: Self = Self { format: NumberDefinition::U16_LITTLE };
+    pub const U32_BIG:    Self = Self { format: NumberDefinition::U32_BIG    };
+    pub const U32_LITTLE: Self = Self { format: NumberDefinition::U32_LITTLE };
+    pub const U64_BIG:    Self = Self { format: NumberDefinition::U64_BIG    };
+    pub const U64_LITTLE: Self = Self { format: NumberDefinition::U64_LITTLE };
+
     pub fn new(format: NumberDefinition) -> Self {
         Self {
             format: format,
         }
     }
-
-    pub fn u8() -> Self {
-        Self::new(NumberDefinition::u8())
-    }
-
-    pub fn u16_big() -> Self {
-        Self::new(NumberDefinition::u16_big())
-    }
-
-    pub fn u16_little() -> Self {
-        Self::new(NumberDefinition::u16_little())
-    }
-
-    pub fn u32_big() -> Self {
-        Self::new(NumberDefinition::u32_big())
-    }
-
-    pub fn u32_little() -> Self {
-        Self::new(NumberDefinition::u32_little())
-    }
-
-    pub fn u64_big() -> Self {
-        Self::new(NumberDefinition::u64_big())
-    }
-
-    pub fn u64_little() -> Self {
-        Self::new(NumberDefinition::u64_little())
-    }
-
     pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
         context.read_number_as_string(self.format)
     }

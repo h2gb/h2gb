@@ -104,7 +104,7 @@ mod tests {
         let data = b"\x00\x08AAAAAA\x00\x01\x02\x03".to_vec();
         let context = H2Context::new(&data, 0);
 
-        let t = H2Type::from(H2Pointer::u16_big(H2Type::from(H2Integer::u32_big())));
+        let t = H2Type::from(H2Pointer::u16_big(H2Type::from(H2Integer::U32_BIG)));
 
         assert_eq!(2, t.size());
 
@@ -119,7 +119,7 @@ mod tests {
         let data = b"\x00\x00\x00\x08\x00\x00\x00\x10AABBCCDD\x00\x01\x02\x03\x04\x05\x06\x07\x08".to_vec();
         let context = H2Context::new(&data, 0);
 
-        let t = H2Type::from(H2Array::new(H2Type::from(H2Pointer::u32_big(H2Type::from(H2Array::new(H2Type::from(H2Integer::u16_big()), 4)))), 2));
+        let t = H2Type::from(H2Array::new(H2Type::from(H2Pointer::u32_big(H2Type::from(H2Array::new(H2Type::from(H2Integer::U16_BIG), 4)))), 2));
 
         assert_eq!(8, t.size());
 

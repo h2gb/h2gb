@@ -60,7 +60,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::datatype::helpers::h2context::{H2Context, NumberDefinition};
+    use crate::datatype::helpers::h2context::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
 
     #[test]
@@ -69,10 +69,10 @@ mod tests {
         let context = H2Context::new(&data, 0);
 
         let a = H2Struct::new(vec![
-            ("field_u32".to_string(), H2Type::from(H2Integer::new(NumberDefinition::u32_big()))),
-            ("field_u16".to_string(), H2Type::from(H2Integer::new(NumberDefinition::u16_big()))),
-            ("field_u8".to_string(), H2Type::from(H2Integer::new(NumberDefinition::u8()))),
-            ("field_u32_little".to_string(), H2Type::from(H2Integer::new(NumberDefinition::u32_little()))),
+            ("field_u32".to_string(),        H2Type::from(H2Integer::U32_BIG)),
+            ("field_u16".to_string(),        H2Type::from(H2Integer::U16_BIG)),
+            ("field_u8".to_string(),         H2Type::from(H2Integer::U8)),
+            ("field_u32_little".to_string(), H2Type::from(H2Integer::U32_LITTLE)),
         ]);
         let t = H2Type::from(a);
 

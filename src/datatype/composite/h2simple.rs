@@ -44,7 +44,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::datatype::helpers::h2context::{H2Context, NumberDefinition};
+    use crate::datatype::helpers::h2context::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
 
     #[test]
@@ -52,7 +52,7 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let context = H2Context::new(&data, 0);
 
-        let t = H2Type::from(H2Integer::new(NumberDefinition::u32_big()));
+        let t = H2Type::from(H2Integer::U32_BIG);
         assert_eq!(4, t.size());
 
         let resolved = t.resolve();

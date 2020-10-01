@@ -61,40 +61,20 @@ impl From<(NumberFormat, NumberSize, Endian)> for NumberDefinition {
 }
 
 impl NumberDefinition {
+    pub const U8:         Self = Self { format: NumberFormat::Hex, size: NumberSize::Eight,     endian: Endian::Big };
+    pub const U16_BIG:    Self = Self { format: NumberFormat::Hex, size: NumberSize::Sixteen,   endian: Endian::Big };
+    pub const U16_LITTLE: Self = Self { format: NumberFormat::Hex, size: NumberSize::Sixteen,   endian: Endian::Little };
+    pub const U32_BIG:    Self = Self { format: NumberFormat::Hex, size: NumberSize::ThirtyTwo, endian: Endian::Big };
+    pub const U32_LITTLE: Self = Self { format: NumberFormat::Hex, size: NumberSize::ThirtyTwo, endian: Endian::Little };
+    pub const U64_BIG:    Self = Self { format: NumberFormat::Hex, size: NumberSize::SixtyFour, endian: Endian::Big };
+    pub const U64_LITTLE: Self = Self { format: NumberFormat::Hex, size: NumberSize::SixtyFour, endian: Endian::Little };
+
     pub fn new(format: NumberFormat, size: NumberSize, endian: Endian) -> Self {
         Self {
             format: format,
             size:   size,
             endian: endian,
         }
-    }
-
-    pub fn u8() -> Self {
-        Self::new(NumberFormat::Hex, NumberSize::Eight, Endian::Big)
-    }
-
-    pub fn u16_big() -> Self {
-        Self::new(NumberFormat::Hex, NumberSize::Sixteen, Endian::Big)
-    }
-
-    pub fn u16_little() -> Self {
-        Self::new(NumberFormat::Hex, NumberSize::Sixteen, Endian::Little)
-    }
-
-    pub fn u32_big() -> Self {
-        Self::new(NumberFormat::Hex, NumberSize::ThirtyTwo, Endian::Big)
-    }
-
-    pub fn u32_little() -> Self {
-        Self::new(NumberFormat::Hex, NumberSize::ThirtyTwo, Endian::Little)
-    }
-
-    pub fn u64_big() -> Self {
-        Self::new(NumberFormat::Hex, NumberSize::SixtyFour, Endian::Big)
-    }
-
-    pub fn u64_little() -> Self {
-        Self::new(NumberFormat::Hex, NumberSize::SixtyFour, Endian::Little)
     }
 
     pub fn len(self) -> usize {

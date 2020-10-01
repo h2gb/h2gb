@@ -59,7 +59,7 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let context = H2Context::new(&data, 0);
 
-        let i = H2Integer::new(NumberDefinition::u32_big());
+        let i = H2Integer::new(NumberDefinition::U32_BIG);
         let a = H2Array::new(H2Type::from(i), 4);
         let t = H2Type::from(a);
 
