@@ -3,22 +3,16 @@ use simple_error::SimpleResult;
 
 use crate::datatype::H2Type;
 use crate::datatype::basic::H2BasicType;
-use crate::datatype::helpers::h2context::{H2Context, NumberDefinition, NumberSize};
+use crate::datatype::helpers::h2context::{H2Context, NumberDefinition};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Integer {
     format: NumberDefinition,
 }
 
-impl From<H2Integer> for H2BasicType {
-    fn from(o: H2Integer) -> H2BasicType {
-        H2BasicType::Integer(o)
-    }
-}
-
 impl From<H2Integer> for H2Type {
     fn from(o: H2Integer) -> H2Type {
-        H2Type::from(H2BasicType::from(o))
+        H2Type::from(H2BasicType::Integer(o))
     }
 }
 
