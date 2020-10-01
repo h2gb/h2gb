@@ -74,9 +74,9 @@ impl H2Pointer {
             index: self.to_number(context)?,
         };
 
-        //let target_string = self.target_type.to_string(&target_context)?;
+        let target_string = self.target_type.to_strings(&target_context)?.join(" / ");
 
-        Ok(format!("(ref) {}", self.size.number_to_hex(self.to_number(context)? as u64)))
+        Ok(format!("(ref) {} => {}", self.size.number_to_hex(self.to_number(&context)? as u64), target_string))
     }
 
     pub fn size(&self) -> usize {
@@ -87,5 +87,45 @@ impl H2Pointer {
         Ok(vec![
             (self.to_number(context)?, *self.target_type.clone())
         ])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use simple_error::SimpleResult;
+
+    use crate::datatype::helpers::h2context::H2Context;
+    use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::composite::h2array::H2Array;
+
+    #[test]
+    fn test_pointer() -> SimpleResult<()> {
+        let data = b"\x00\x08AAAAAA\x00\x01\x02\x03".to_vec();
+        let context = H2Context::new(&data, 0);
+
+        let t = H2Type::from(H2Pointer::u16_big(H2Type::from(H2Integer::u32_big())));
+
+        assert_eq!(2, t.size());
+
+        println!("Type: {:?}", t);
+        println!("\nto_strings:\n{}", t.to_strings(&context)?.join("\n"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_complex_pointer() -> SimpleResult<()> {
+        let data = b"\x00\x00\x00\x08\x00\x00\x00\x10AABBCCDD\x00\x01\x02\x03\x04\x05\x06\x07\x08".to_vec();
+        let context = H2Context::new(&data, 0);
+
+        let t = H2Type::from(H2Array::new(H2Type::from(H2Pointer::u32_big(H2Type::from(H2Array::new(H2Type::from(H2Integer::u16_big()), 4)))), 2));
+
+        assert_eq!(8, t.size());
+
+        println!("Type: {:?}", t);
+        println!("\nto_strings:\n{}", t.to_strings(&context)?.join("\n"));
+
+        Ok(())
     }
 }

@@ -50,13 +50,17 @@ impl H2Type {
         // This is a simple datatype to clone
         let mut context = context.clone();
 
-        Ok(self.resolve().iter().map(|r| {
+        let (resolved, _) = self.resolve_from_offset(Some(context.index), None);
+
+        let results = resolved.iter().map(|r| {
             context.set_index(r.offset);
 
             match &r.field_names {
                 Some(f) => format!("{} {} [{}]", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string()), f.join(".")),
                 None => format!("{} {}", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string())),
             }
-        }).collect())
+        }).collect();
+
+        Ok(results)
     }
 }
