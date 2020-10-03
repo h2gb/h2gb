@@ -112,9 +112,9 @@ impl<'a> H2Context<'a> {
         self.index = index;
     }
 
-    pub fn increment_index(&mut self, offset: usize) {
-        self.set_index(self.index + offset)
-    }
+    // pub fn increment_index(&mut self, offset: usize) {
+    //     self.set_index(self.index + offset)
+    // }
 
     pub fn read_generic(&self, endian: Endian, size: NumberSize) -> SimpleResult<u64> {
         // Get the length and make sure it's actually possible
@@ -142,15 +142,15 @@ impl<'a> H2Context<'a> {
         Ok(n)
     }
 
-    pub fn consume_generic(&mut self, endian: Endian, size: NumberSize) -> SimpleResult<u64> {
-        // If there's an error, short-circuit right here
-        let result = self.read_generic(endian, size)?;
+    // pub fn consume_generic(&mut self, endian: Endian, size: NumberSize) -> SimpleResult<u64> {
+    //     // If there's an error, short-circuit right here
+    //     let result = self.read_generic(endian, size)?;
 
-        // If that succeeded, increment
-        self.increment_index(size.len());
+    //     // If that succeeded, increment
+    //     self.increment_index(size.len());
 
-        Ok(result)
-    }
+    //     Ok(result)
+    // }
 
     pub fn read_u8(&self) -> SimpleResult<u8> {
         // Endian doesn't matter for 8-bit values
@@ -180,33 +180,33 @@ impl<'a> H2Context<'a> {
         Ok(self.read_generic(endian, NumberSize::SixtyFour)? as i64)
     }
 
-    pub fn consume_u8(&mut self) -> SimpleResult<u8> {
-        // Endian doesn't matter for 8-bit values
-        Ok(self.consume_generic(Endian::Big, NumberSize::Eight)? as u8)
-    }
-    pub fn consume_u16(&mut self, endian: Endian) -> SimpleResult<u16> {
-        Ok(self.consume_generic(endian, NumberSize::Sixteen)? as u16)
-    }
-    pub fn consume_u32(&mut self, endian: Endian) -> SimpleResult<u32> {
-        Ok(self.consume_generic(endian, NumberSize::ThirtyTwo)? as u32)
-    }
-    pub fn consume_u64(&mut self, endian: Endian) -> SimpleResult<u64> {
-        Ok(self.consume_generic(endian, NumberSize::SixtyFour)? as u64)
-    }
+    // pub fn consume_u8(&mut self) -> SimpleResult<u8> {
+    //     // Endian doesn't matter for 8-bit values
+    //     Ok(self.consume_generic(Endian::Big, NumberSize::Eight)? as u8)
+    // }
+    // pub fn consume_u16(&mut self, endian: Endian) -> SimpleResult<u16> {
+    //     Ok(self.consume_generic(endian, NumberSize::Sixteen)? as u16)
+    // }
+    // pub fn consume_u32(&mut self, endian: Endian) -> SimpleResult<u32> {
+    //     Ok(self.consume_generic(endian, NumberSize::ThirtyTwo)? as u32)
+    // }
+    // pub fn consume_u64(&mut self, endian: Endian) -> SimpleResult<u64> {
+    //     Ok(self.consume_generic(endian, NumberSize::SixtyFour)? as u64)
+    // }
 
-    pub fn consume_i8(&mut self) -> SimpleResult<i8> {
-        // Endian doesn't matter for 8-bit values
-        Ok(self.consume_generic(Endian::Big, NumberSize::Eight)? as i8)
-    }
-    pub fn consume_i16(&mut self, endian: Endian) -> SimpleResult<i16> {
-        Ok(self.consume_generic(endian, NumberSize::Sixteen)? as i16)
-    }
-    pub fn consume_i32(&mut self, endian: Endian) -> SimpleResult<i32> {
-        Ok(self.consume_generic(endian, NumberSize::ThirtyTwo)? as i32)
-    }
-    pub fn consume_i64(&mut self, endian: Endian) -> SimpleResult<i64> {
-        Ok(self.consume_generic(endian, NumberSize::SixtyFour)? as i64)
-    }
+    // pub fn consume_i8(&mut self) -> SimpleResult<i8> {
+    //     // Endian doesn't matter for 8-bit values
+    //     Ok(self.consume_generic(Endian::Big, NumberSize::Eight)? as i8)
+    // }
+    // pub fn consume_i16(&mut self, endian: Endian) -> SimpleResult<i16> {
+    //     Ok(self.consume_generic(endian, NumberSize::Sixteen)? as i16)
+    // }
+    // pub fn consume_i32(&mut self, endian: Endian) -> SimpleResult<i32> {
+    //     Ok(self.consume_generic(endian, NumberSize::ThirtyTwo)? as i32)
+    // }
+    // pub fn consume_i64(&mut self, endian: Endian) -> SimpleResult<i64> {
+    //     Ok(self.consume_generic(endian, NumberSize::SixtyFour)? as i64)
+    // }
 
     pub fn read_number_as_string(&self, definition: NumberDefinition) -> SimpleResult<String> {
         let size   = definition.size;
@@ -249,13 +249,13 @@ impl<'a> H2Context<'a> {
         }
     }
 
-    pub fn consume_number_as_string(&mut self, definition: NumberDefinition) -> SimpleResult<String> {
-        let result = self.read_number_as_string(definition)?;
+    // pub fn consume_number_as_string(&mut self, definition: NumberDefinition) -> SimpleResult<String> {
+    //     let result = self.read_number_as_string(definition)?;
 
-        self.increment_index(definition.size.len());
+    //     self.increment_index(definition.size.len());
 
-        Ok(result)
-    }
+    //     Ok(result)
+    // }
 }
 
 #[cfg(test)]
@@ -500,26 +500,26 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_consume() -> SimpleResult<()> {
-        let data = b"\x00\x7F\x80\xFFABCD\x80AAABBBB".to_vec();
-        let mut c = H2Context::new(&data, 0);
+    // #[test]
+    // fn test_consume() -> SimpleResult<()> {
+    //     let data = b"\x00\x7F\x80\xFFABCD\x80AAABBBB".to_vec();
+    //     let mut c = H2Context::new(&data, 0);
 
-        assert_eq!(0x00, c.consume_u8()?);
-        assert_eq!(0x7f, c.consume_u8()?);
-        assert_eq!(0x80, c.consume_u8()?);
-        assert_eq!(0xff, c.consume_u8()?);
+    //     assert_eq!(0x00, c.consume_u8()?);
+    //     assert_eq!(0x7f, c.consume_u8()?);
+    //     assert_eq!(0x80, c.consume_u8()?);
+    //     assert_eq!(0xff, c.consume_u8()?);
 
-        c.set_index(0);
-        assert_eq!(0x007f, c.consume_u16(Endian::Big)?);
-        assert_eq!(0x80ff4142, c.consume_u32(Endian::Big)?);
-        assert_eq!(0x4344804141414242, c.consume_u64(Endian::Big)?);
+    //     c.set_index(0);
+    //     assert_eq!(0x007f, c.consume_u16(Endian::Big)?);
+    //     assert_eq!(0x80ff4142, c.consume_u32(Endian::Big)?);
+    //     assert_eq!(0x4344804141414242, c.consume_u64(Endian::Big)?);
 
-        c.set_index(0);
-        assert_eq!(0x7f00, c.consume_u16(Endian::Little)?);
-        assert_eq!(0x4241ff80, c.consume_u32(Endian::Little)?);
-        assert_eq!(0x4242414141804443, c.consume_u64(Endian::Little)?);
+    //     c.set_index(0);
+    //     assert_eq!(0x7f00, c.consume_u16(Endian::Little)?);
+    //     assert_eq!(0x4241ff80, c.consume_u32(Endian::Little)?);
+    //     assert_eq!(0x4242414141804443, c.consume_u64(Endian::Little)?);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
