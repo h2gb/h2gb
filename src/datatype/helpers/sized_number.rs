@@ -30,12 +30,12 @@ pub enum Endian {
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct NumberFormat {
+pub struct SizedFormat {
     size: NumberSize,
     endian: Endian,
 }
 
-impl NumberFormat {
+impl SizedFormat {
     pub const U8:  Self = Self {
         size: NumberSize::Eight,
         endian: Endian::BigEndian,
@@ -145,7 +145,7 @@ impl From<i64> for SizedNumber {
 }
 
 impl SizedNumber {
-    pub fn read(context: &H2Context, format: NumberFormat) -> std::io::Result<Self> {
+    pub fn read(context: &H2Context, format: SizedFormat) -> std::io::Result<Self> {
         let mut context = context.clone();
 
         Ok(match (format.size, format.endian) {

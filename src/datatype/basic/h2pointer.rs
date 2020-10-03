@@ -3,12 +3,12 @@ use simple_error::SimpleResult;
 
 use crate::datatype::H2Type;
 use crate::datatype::basic::H2BasicType;
-use crate::datatype::helpers::sized_number::{SizedNumber, NumberFormat, SizedDisplay};
+use crate::datatype::helpers::sized_number::{SizedNumber, SizedFormat, SizedDisplay};
 use crate::datatype::helpers::H2Context;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
-    number_format: NumberFormat,
+    number_format: SizedFormat,
     display_format: SizedDisplay,
     target_type: Box<H2Type>,
 }
@@ -20,7 +20,7 @@ impl From<H2Pointer> for H2Type {
 }
 
 impl H2Pointer {
-    pub fn new(number_format: NumberFormat, display_format: SizedDisplay, target_type: H2Type) -> Self {
+    pub fn new(number_format: SizedFormat, display_format: SizedDisplay, target_type: H2Type) -> Self {
         H2Pointer {
             target_type: Box::new(target_type),
             number_format: number_format,
@@ -67,7 +67,7 @@ mod tests {
     use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
     use crate::datatype::composite::h2array::H2Array;
-    use crate::datatype::helpers::sized_number::{SizedNumber, NumberFormat, SizedDisplay};
+    use crate::datatype::helpers::sized_number::{SizedFormat, SizedDisplay};
 
     #[test]
     fn test_pointer() -> SimpleResult<()> {
@@ -75,9 +75,9 @@ mod tests {
         let context = H2Context::new(&data);
 
         let t: H2Type = H2Pointer::new(
-            NumberFormat::U16_BIG,
+            SizedFormat::U16_BIG,
             SizedDisplay::Hex,
-            H2Integer::new(NumberFormat::U32_BIG, SizedDisplay::Hex).into()
+            H2Integer::new(SizedFormat::U32_BIG, SizedDisplay::Hex).into()
         ).into();
 
         assert_eq!(2, t.size());
@@ -94,10 +94,10 @@ mod tests {
         let context = H2Context::new(&data);
 
         let t: H2Type = H2Array::new(2,
-            H2Pointer::new(NumberFormat::U32_BIG, SizedDisplay::Hex,
+            H2Pointer::new(SizedFormat::U32_BIG, SizedDisplay::Hex,
                 H2Array::new(4,
                     H2Integer::new(
-                        NumberFormat::U16_BIG, SizedDisplay::Hex,
+                        SizedFormat::U16_BIG, SizedDisplay::Hex,
                     ).into()
                 ).into()
             ).into()
