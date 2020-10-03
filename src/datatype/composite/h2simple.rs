@@ -22,7 +22,7 @@ impl H2Simple {
         }
     }
 
-    pub fn resolve(&self, starting_offset: usize, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, usize) {
+    pub fn resolve(&self, starting_offset: u64, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, u64) {
         let v: Vec<ResolvedType> = vec![
             ResolvedType {
                 offset: starting_offset,
@@ -34,7 +34,7 @@ impl H2Simple {
         (v, starting_offset + self.basic_type.size())
     }
 
-    pub fn size(&self) -> usize {
+    pub fn size(&self) -> u64 {
         self.basic_type.size()
     }
 }
@@ -44,15 +44,16 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::datatype::helpers::h2context::H2Context;
+    use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::helpers::number::NumberFormat;
 
     #[test]
     fn test_simple() -> SimpleResult<()> {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
-        let context = H2Context::new(&data, 0);
+        let context = H2Context::new(&data);
 
-        let t = H2Type::from(H2Integer::U32_BIG);
+        let t: H2Type = H2Integer::new(NumberFormat::U32_BIG).into();
         assert_eq!(4, t.size());
 
         let resolved = t.resolve();

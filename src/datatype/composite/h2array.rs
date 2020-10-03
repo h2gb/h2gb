@@ -4,8 +4,8 @@ use crate::datatype::{H2Type, ResolvedType};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Array {
     field_type: Box<H2Type>,
-    length: usize,
-    byte_alignment: Option<usize>,
+    length: u64,
+    byte_alignment: Option<u64>,
 }
 
 impl From<H2Array> for H2Type {
@@ -15,7 +15,7 @@ impl From<H2Array> for H2Type {
 }
 
 impl H2Array {
-    pub fn new(field_type: H2Type, length: usize) -> Self {
+    pub fn new(length: u64, field_type: H2Type) -> Self {
         Self {
             field_type: Box::new(field_type),
             length: length,
@@ -23,7 +23,7 @@ impl H2Array {
         }
     }
 
-    pub fn resolve(&self, starting_offset: usize, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, usize) {
+    pub fn resolve(&self, starting_offset: u64, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, u64) {
         let mut result: Vec<ResolvedType> = Vec::new();
         let field_names = field_names.unwrap_or(Vec::new());
         let mut offset = starting_offset;
@@ -41,7 +41,7 @@ impl H2Array {
         (result, offset)
     }
 
-    pub fn size(&self) -> usize {
+    pub fn size(&self) -> u64 {
         self.length * self.field_type.size()
     }
 }
@@ -51,17 +51,18 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::datatype::helpers::h2context::{H2Context, NumberDefinition};
+    use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::helpers::number::NumberFormat;
 
     #[test]
     fn test_array() -> SimpleResult<()> {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
-        let context = H2Context::new(&data, 0);
+        let context = H2Context::new(&data);
 
-        let i = H2Integer::new(NumberDefinition::U32_BIG);
-        let a = H2Array::new(H2Type::from(i), 4);
-        let t = H2Type::from(a);
+        let t: H2Type = H2Array::new(4,
+            H2Integer::new(NumberFormat::U32_BIG).into()
+        ).into();
 
         assert_eq!(16, t.size());
 

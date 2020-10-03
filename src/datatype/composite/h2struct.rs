@@ -6,7 +6,7 @@ use crate::datatype::{H2Type, ResolvedType};
 pub struct H2Struct {
     // An array of strings and types (which might be other types)
     fields: Vec<(String, H2Type)>,
-    byte_alignment: Option<usize>,
+    byte_alignment: Option<u64>,
 }
 
 impl From<H2Struct> for H2Type {
@@ -16,7 +16,7 @@ impl From<H2Struct> for H2Type {
 }
 
 impl H2Struct {
-    pub fn new_aligned(fields: Vec<(String, H2Type)>, byte_alignment: usize) -> Self {
+    pub fn new_aligned(fields: Vec<(String, H2Type)>, byte_alignment: u64) -> Self {
         Self {
             fields: fields,
             byte_alignment: Some(byte_alignment),
@@ -30,7 +30,7 @@ impl H2Struct {
         }
     }
 
-    pub fn resolve(&self, starting_offset: usize, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, usize) {
+    pub fn resolve(&self, starting_offset: u64, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, u64) {
         let mut result: Vec<ResolvedType> = Vec::new();
         let field_names = field_names.unwrap_or(Vec::new());
         let mut offset = starting_offset;
@@ -48,7 +48,7 @@ impl H2Struct {
         (result, offset)
     }
 
-    pub fn size(&self) -> usize {
+    pub fn size(&self) -> u64 {
         self.fields.iter().fold(0, |sum, (_, t)| {
             sum + t.size()
         })
@@ -60,21 +60,21 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::datatype::helpers::h2context::H2Context;
+    use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::helpers::number::NumberFormat;
 
     #[test]
     fn test_struct() -> SimpleResult<()> {
         let data = b"\x00\x01\x02\x03\x00\x01\x00\x0f\x0e\x0d\x0c".to_vec();
-        let context = H2Context::new(&data, 0);
+        let context = H2Context::new(&data);
 
-        let a = H2Struct::new(vec![
-            ("field_u32".to_string(),        H2Type::from(H2Integer::U32_BIG)),
-            ("field_u16".to_string(),        H2Type::from(H2Integer::U16_BIG)),
-            ("field_u8".to_string(),         H2Type::from(H2Integer::U8)),
-            ("field_u32_little".to_string(), H2Type::from(H2Integer::U32_LITTLE)),
-        ]);
-        let t = H2Type::from(a);
+        let t: H2Type = H2Struct::new(vec![
+            ("field_u32".to_string(),        H2Integer::new(NumberFormat::U32_BIG).into()),
+            ("field_u16".to_string(),        H2Integer::new(NumberFormat::U16_BIG).into()),
+            ("field_u8".to_string(),         H2Integer::new(NumberFormat::U8).into()),
+            ("field_u32_little".to_string(), H2Integer::new(NumberFormat::U32_LITTLE).into()),
+        ]).into();
 
         assert_eq!(11, t.size());
 

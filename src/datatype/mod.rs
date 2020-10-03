@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
 use crate::datatype::basic::H2BasicType;
-use crate::datatype::helpers::h2context::H2Context;
+use crate::datatype::helpers::H2Context;
 
 use composite::h2struct::H2Struct;
 use composite::h2array::H2Array;
@@ -20,13 +20,13 @@ pub enum H2Type {
 }
 
 pub struct ResolvedType {
-    offset: usize,
+    offset: u64,
     field_names: Option<Vec<String>>,
     basic_type: H2BasicType,
 }
 
 impl H2Type {
-    pub fn resolve_from_offset(&self, starting_offset: Option<usize>, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, usize) {
+    pub fn resolve_from_offset(&self, starting_offset: Option<u64>, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, u64) {
         match self {
             Self::H2Struct(t) => t.resolve(starting_offset.unwrap_or(0), field_names),
             Self::H2Array(t)  => t.resolve(starting_offset.unwrap_or(0), field_names),
@@ -38,7 +38,7 @@ impl H2Type {
         self.resolve_from_offset(None, None).0
     }
 
-    pub fn size(&self) -> usize {
+    pub fn size(&self) -> u64 {
         match self {
             Self::H2Struct(t) => t.size(),
             Self::H2Array(t)  => t.size(),
@@ -50,10 +50,10 @@ impl H2Type {
         // This is a simple datatype to clone
         let mut context = context.clone();
 
-        let (resolved, _) = self.resolve_from_offset(Some(context.index), None);
+        let (resolved, _) = self.resolve_from_offset(Some(context.position()), None);
 
         let results = resolved.iter().map(|r| {
-            context.set_index(r.offset);
+            context.set_position(r.offset);
 
             match &r.field_names {
                 Some(f) => format!("{} {} [{}]", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string()), f.join(".")),

@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 
 use crate::datatype::H2Type;
 use crate::datatype::composite::h2simple::H2Simple;
-use crate::datatype::helpers::h2context::H2Context;
+use crate::datatype::helpers::H2Context;
 
 pub mod h2integer;
 pub mod h2pointer;
@@ -31,14 +31,14 @@ impl H2BasicType {
         }
     }
 
-    pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(usize, H2Type)>> {
+    pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         match self {
             Self::Integer(t) => t.related(context),
             Self::Pointer(t) => t.related(context),
         }
     }
 
-    pub fn size(&self) -> usize {
+    pub fn size(&self) -> u64 {
         match self {
             Self::Integer(t) => t.size(),
             Self::Pointer(t) => t.size(),
