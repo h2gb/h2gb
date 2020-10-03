@@ -62,7 +62,7 @@ mod tests {
 
     use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
-    use crate::datatype::helpers::number::NumberFormat;
+    use crate::datatype::helpers::sized_number::{SizedNumber, NumberFormat, SizedDisplay};
 
     #[test]
     fn test_struct() -> SimpleResult<()> {
@@ -70,10 +70,10 @@ mod tests {
         let context = H2Context::new(&data);
 
         let t: H2Type = H2Struct::new(vec![
-            ("field_u32".to_string(),        H2Integer::new(NumberFormat::U32_BIG).into()),
-            ("field_u16".to_string(),        H2Integer::new(NumberFormat::U16_BIG).into()),
-            ("field_u8".to_string(),         H2Integer::new(NumberFormat::U8).into()),
-            ("field_u32_little".to_string(), H2Integer::new(NumberFormat::U32_LITTLE).into()),
+            ("field_u32".to_string(),        H2Integer::new(NumberFormat::U32_BIG,    SizedDisplay::Hex).into()),
+            ("field_u16".to_string(),        H2Integer::new(NumberFormat::U16_BIG,    SizedDisplay::Hex).into()),
+            ("field_u8".to_string(),         H2Integer::new(NumberFormat::U8,         SizedDisplay::Hex).into()),
+            ("field_u32_little".to_string(), H2Integer::new(NumberFormat::U32_LITTLE, SizedDisplay::Hex).into()),
         ]).into();
 
         assert_eq!(11, t.size());

@@ -24,13 +24,6 @@ impl NumberSize {
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub enum NumberDisplayFormat {
-    Hex,
-    HexUppercase,
-    Decimal,
-}
-
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub enum Endian {
     BigEndian,
     LittleEndian,
@@ -39,69 +32,54 @@ pub enum Endian {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct NumberFormat {
     size: NumberSize,
-    display: NumberDisplayFormat,
     endian: Endian,
 }
 
 impl NumberFormat {
     pub const U8:  Self = Self {
-        display: NumberDisplayFormat::Hex,
         size: NumberSize::Eight,
         endian: Endian::BigEndian,
     };
 
     pub const U16_BIG:  Self = Self {
-        display: NumberDisplayFormat::Hex,
         size: NumberSize::Sixteen,
         endian: Endian::BigEndian,
     };
 
     pub const U32_BIG:  Self = Self {
-        display: NumberDisplayFormat::Hex,
         size: NumberSize::ThirtyTwo,
         endian: Endian::BigEndian,
     };
 
     pub const U64_BIG:  Self = Self {
-        display: NumberDisplayFormat::Hex,
         size: NumberSize::SixtyFour,
         endian: Endian::BigEndian,
     };
 
     pub const U16_LITTLE:  Self = Self {
-        display: NumberDisplayFormat::Hex,
         size: NumberSize::Sixteen,
         endian: Endian::LittleEndian,
     };
 
     pub const U32_LITTLE:  Self = Self {
-        display: NumberDisplayFormat::Hex,
         size: NumberSize::ThirtyTwo,
         endian: Endian::LittleEndian,
     };
 
     pub const U64_LITTLE:  Self = Self {
-        display: NumberDisplayFormat::Hex,
         size: NumberSize::SixtyFour,
         endian: Endian::LittleEndian,
     };
 
-    //pub fn from_context(context: &H2Context, size: NumberSize, endian: Endian) -> std::io::Result<Self> {
-    pub fn to_sized_number(self, context: &H2Context) -> SimpleResult<SizedNumber> {
-        match SizedNumber::from_context(context, self.size, self.endian) {
+    pub fn size(self) -> u64 {
+        self.size.size()
+    }
+
+    pub fn read(self, context: &H2Context) -> SimpleResult<SizedNumber> {
+        match SizedNumber::read(context, self) {
             Ok(n) => Ok(n),
             Err(e) => bail!("Couldn't read number: {}", e),
         }
-    }
-
-    pub fn to_string(self, context: &H2Context) -> SimpleResult<String> {
-        let number = self.to_sized_number(context)?;
-
-        Ok(number.to_string(self.display))
-    }
-
-    pub fn size(self) -> u64 {
-        self.size.size()
     }
 }
 
@@ -166,22 +144,11 @@ impl From<i64> for SizedNumber {
     }
 }
 
-impl From<(NumberSize, u64)> for SizedNumber {
-    fn from(o: (NumberSize, u64)) -> SizedNumber {
-        match o.0 {
-            NumberSize::Eight     => (o.1 as u8).into(),
-            NumberSize::Sixteen   => (o.1 as u16).into(),
-            NumberSize::ThirtyTwo => (o.1 as u32).into(),
-            NumberSize::SixtyFour => (o.1 as u64).into(),
-        }
-    }
-}
-
 impl SizedNumber {
-    pub fn from_context(context: &H2Context, size: NumberSize, endian: Endian) -> std::io::Result<Self> {
+    pub fn read(context: &H2Context, format: NumberFormat) -> std::io::Result<Self> {
         let mut context = context.clone();
 
-        Ok(match (size, endian) {
+        Ok(match (format.size, format.endian) {
             (NumberSize::Eight,     Endian::BigEndian)    => Self::from(context.read_u8()?),
             (NumberSize::Sixteen,   Endian::BigEndian)    => Self::from(context.read_u16::<BigEndian>()?),
             (NumberSize::ThirtyTwo, Endian::BigEndian)    => Self::from(context.read_u32::<BigEndian>()?),
@@ -196,40 +163,6 @@ impl SizedNumber {
         })
     }
 
-    pub fn to_string(self, format: NumberDisplayFormat) -> String {
-        match (format, self) {
-            (NumberDisplayFormat::Hex, Self::Eight(i))     => format!("{:02x}", i),
-            (NumberDisplayFormat::Hex, Self::Sixteen(i))   => format!("{:04x}", i),
-            (NumberDisplayFormat::Hex, Self::ThirtyTwo(i)) => format!("{:08x}", i),
-            (NumberDisplayFormat::Hex, Self::SixtyFour(i)) => format!("{:016x}", i),
-
-            (NumberDisplayFormat::Hex, Self::EightSigned(i))     => format!("{:02x}", i),
-            (NumberDisplayFormat::Hex, Self::SixteenSigned(i))   => format!("{:04x}", i),
-            (NumberDisplayFormat::Hex, Self::ThirtyTwoSigned(i)) => format!("{:08x}", i),
-            (NumberDisplayFormat::Hex, Self::SixtyFourSigned(i)) => format!("{:016x}", i),
-
-            (NumberDisplayFormat::HexUppercase, Self::Eight(i))     => format!("{:02X}", i),
-            (NumberDisplayFormat::HexUppercase, Self::Sixteen(i))   => format!("{:04X}", i),
-            (NumberDisplayFormat::HexUppercase, Self::ThirtyTwo(i)) => format!("{:08X}", i),
-            (NumberDisplayFormat::HexUppercase, Self::SixtyFour(i)) => format!("{:016X}", i),
-
-            (NumberDisplayFormat::HexUppercase, Self::EightSigned(i))     => format!("{:02X}", i),
-            (NumberDisplayFormat::HexUppercase, Self::SixteenSigned(i))   => format!("{:04X}", i),
-            (NumberDisplayFormat::HexUppercase, Self::ThirtyTwoSigned(i)) => format!("{:08X}", i),
-            (NumberDisplayFormat::HexUppercase, Self::SixtyFourSigned(i)) => format!("{:016X}", i),
-
-            (NumberDisplayFormat::Decimal, Self::Eight(i))     => format!("{}", i),
-            (NumberDisplayFormat::Decimal, Self::Sixteen(i))   => format!("{}", i),
-            (NumberDisplayFormat::Decimal, Self::ThirtyTwo(i)) => format!("{}", i),
-            (NumberDisplayFormat::Decimal, Self::SixtyFour(i)) => format!("{}", i),
-
-            (NumberDisplayFormat::Decimal, Self::EightSigned(i))     => format!("{}", i),
-            (NumberDisplayFormat::Decimal, Self::SixteenSigned(i))   => format!("{}", i),
-            (NumberDisplayFormat::Decimal, Self::ThirtyTwoSigned(i)) => format!("{}", i),
-            (NumberDisplayFormat::Decimal, Self::SixtyFourSigned(i)) => format!("{}", i),
-        }
-    }
-
     pub fn to_index(self) -> SimpleResult<u64> {
         match self {
             Self::Eight(i)     => Ok(i as u64),
@@ -241,6 +174,49 @@ impl SizedNumber {
             Self::SixteenSigned(_i)   => bail!("Can't use a signed integer as an index (yet)"),
             Self::ThirtyTwoSigned(_i) => bail!("Can't use a signed integer as an index (yet)"),
             Self::SixtyFourSigned(_i) => bail!("Can't use a signed integer as an index (yet)"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub enum SizedDisplay {
+    Hex,
+    HexUppercase,
+    Decimal,
+}
+
+impl SizedDisplay {
+    pub fn to_string(self, n: SizedNumber) -> String {
+        match (self, n) {
+            (Self::Hex, SizedNumber::Eight(i))     => format!("{:02x}", i),
+            (Self::Hex, SizedNumber::Sixteen(i))   => format!("{:04x}", i),
+            (Self::Hex, SizedNumber::ThirtyTwo(i)) => format!("{:08x}", i),
+            (Self::Hex, SizedNumber::SixtyFour(i)) => format!("{:016x}", i),
+
+            (Self::Hex, SizedNumber::EightSigned(i))     => format!("{:02x}", i),
+            (Self::Hex, SizedNumber::SixteenSigned(i))   => format!("{:04x}", i),
+            (Self::Hex, SizedNumber::ThirtyTwoSigned(i)) => format!("{:08x}", i),
+            (Self::Hex, SizedNumber::SixtyFourSigned(i)) => format!("{:016x}", i),
+
+            (Self::HexUppercase, SizedNumber::Eight(i))     => format!("{:02X}", i),
+            (Self::HexUppercase, SizedNumber::Sixteen(i))   => format!("{:04X}", i),
+            (Self::HexUppercase, SizedNumber::ThirtyTwo(i)) => format!("{:08X}", i),
+            (Self::HexUppercase, SizedNumber::SixtyFour(i)) => format!("{:016X}", i),
+
+            (Self::HexUppercase, SizedNumber::EightSigned(i))     => format!("{:02X}", i),
+            (Self::HexUppercase, SizedNumber::SixteenSigned(i))   => format!("{:04X}", i),
+            (Self::HexUppercase, SizedNumber::ThirtyTwoSigned(i)) => format!("{:08X}", i),
+            (Self::HexUppercase, SizedNumber::SixtyFourSigned(i)) => format!("{:016X}", i),
+
+            (Self::Decimal, SizedNumber::Eight(i))     => format!("{}", i),
+            (Self::Decimal, SizedNumber::Sixteen(i))   => format!("{}", i),
+            (Self::Decimal, SizedNumber::ThirtyTwo(i)) => format!("{}", i),
+            (Self::Decimal, SizedNumber::SixtyFour(i)) => format!("{}", i),
+
+            (Self::Decimal, SizedNumber::EightSigned(i))     => format!("{}", i),
+            (Self::Decimal, SizedNumber::SixteenSigned(i))   => format!("{}", i),
+            (Self::Decimal, SizedNumber::ThirtyTwoSigned(i)) => format!("{}", i),
+            (Self::Decimal, SizedNumber::SixtyFourSigned(i)) => format!("{}", i),
         }
     }
 }

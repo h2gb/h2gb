@@ -46,14 +46,14 @@ mod tests {
 
     use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
-    use crate::datatype::helpers::number::NumberFormat;
+    use crate::datatype::helpers::sized_number::{SizedNumber, NumberFormat, SizedDisplay};
 
     #[test]
     fn test_simple() -> SimpleResult<()> {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let context = H2Context::new(&data);
 
-        let t: H2Type = H2Integer::new(NumberFormat::U32_BIG).into();
+        let t: H2Type = H2Integer::new(NumberFormat::U32_BIG, SizedDisplay::Hex).into();
         assert_eq!(4, t.size());
 
         let resolved = t.resolve();
