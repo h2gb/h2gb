@@ -1,15 +1,15 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use sized_number::{Context, SizedNumberDefinition, SizedNumberDisplay};
+use sized_number::{Context, SizedDefinition, SizedDisplay};
 
 use crate::datatype::H2Type;
 use crate::datatype::basic::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
-    definition: SizedNumberDefinition,
-    display: SizedNumberDisplay,
+    definition: SizedDefinition,
+    display: SizedDisplay,
 
     target_type: Box<H2Type>,
 }
@@ -21,7 +21,7 @@ impl From<H2Pointer> for H2Type {
 }
 
 impl H2Pointer {
-    pub fn new(definition: SizedNumberDefinition, display: SizedNumberDisplay, target_type: H2Type) -> Self {
+    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> Self {
         H2Pointer {
             definition: definition,
             display: display,
@@ -76,12 +76,12 @@ mod tests {
         let context = Context::new(&data);
 
         let t: H2Type = H2Pointer::new(
-            SizedNumberDefinition::SixteenBitUnsigned(Endian::BigEndian),
-            SizedNumberDisplay::Hex(Default::default()),
+            SizedDefinition::U16(Endian::Big),
+            SizedDisplay::Hex(Default::default()),
 
             H2Integer::new(
-                SizedNumberDefinition::ThirtyTwoBitUnsigned(Endian::BigEndian),
-                SizedNumberDisplay::Hex(Default::default()),
+                SizedDefinition::U32(Endian::Big),
+                SizedDisplay::Hex(Default::default()),
             ).into()
         ).into();
 
@@ -99,9 +99,9 @@ mod tests {
         let context = Context::new(&data);
 
         let t: H2Type = H2Array::new(2,
-            H2Pointer::new(SizedNumberDefinition::ThirtyTwoBitUnsigned(Endian::BigEndian), SizedNumberDisplay::Hex(Default::default()),
+            H2Pointer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default()),
                 H2Array::new(4,
-                    H2Integer::new(SizedNumberDefinition::SixteenBitUnsigned(Endian::BigEndian), SizedNumberDisplay::Hex(Default::default())).into()
+                    H2Integer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
                 ).into()
             ).into()
         ).into();

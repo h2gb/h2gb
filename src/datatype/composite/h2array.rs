@@ -50,7 +50,7 @@ impl H2Array {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use sized_number::{Context, SizedNumberDefinition, SizedNumberDisplay, Endian};
+    use sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
 
     use crate::datatype::basic::h2integer::H2Integer;
 
@@ -60,7 +60,7 @@ mod tests {
         let context = Context::new(&data);
 
         let t: H2Type = H2Array::new(4,
-            H2Integer::new(SizedNumberDefinition::ThirtyTwoBitUnsigned(Endian::BigEndian), SizedNumberDisplay::Hex(Default::default())).into()
+            H2Integer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
         ).into();
 
         assert_eq!(16, t.size());

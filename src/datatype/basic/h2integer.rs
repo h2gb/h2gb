@@ -1,15 +1,15 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use sized_number::{Context, SizedNumberDefinition, SizedNumberDisplay};
+use sized_number::{Context, SizedDefinition, SizedDisplay};
 
 use crate::datatype::H2Type;
 use crate::datatype::basic::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Integer {
-    definition: SizedNumberDefinition,
-    display: SizedNumberDisplay,
+    definition: SizedDefinition,
+    display: SizedDisplay,
 }
 
 impl From<H2Integer> for H2Type {
@@ -19,7 +19,7 @@ impl From<H2Integer> for H2Type {
 }
 
 impl H2Integer {
-    pub fn new(definition: SizedNumberDefinition, display: SizedNumberDisplay) -> Self {
+    pub fn new(definition: SizedDefinition, display: SizedDisplay) -> Self {
         Self {
             definition: definition,
             display: display,

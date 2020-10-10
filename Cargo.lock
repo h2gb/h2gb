@@ -282,7 +282,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "sized_number"
 version = "0.0.0"
-source = "git+https://github.com/h2gb/sized_number.git?branch=dev#fbe8cd6887316ddf168860ceb72aa7e9c575556e"
+source = "git+https://github.com/h2gb/sized_number.git?branch=dev#750073713a5055f30fed1105eff3559d321f00a6"
 dependencies = [
  "byteorder 1.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
