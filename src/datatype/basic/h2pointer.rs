@@ -1,15 +1,16 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
+use sized_number::{Context, SizedNumberDefinition, SizedNumberDisplay};
+
 use crate::datatype::H2Type;
 use crate::datatype::basic::H2BasicType;
-use crate::datatype::helpers::sized_number::{SizedNumber, SizedFormat, SizedDisplay};
-use crate::datatype::helpers::H2Context;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
-    number_format: SizedFormat,
-    display_format: SizedDisplay,
+    definition: SizedNumberDefinition,
+    display: SizedNumberDisplay,
+
     target_type: Box<H2Type>,
 }
 
@@ -20,26 +21,27 @@ impl From<H2Pointer> for H2Type {
 }
 
 impl H2Pointer {
-    pub fn new(number_format: SizedFormat, display_format: SizedDisplay, target_type: H2Type) -> Self {
+    pub fn new(definition: SizedNumberDefinition, display: SizedNumberDisplay, target_type: H2Type) -> Self {
         H2Pointer {
+            definition: definition,
+            display: display,
+
             target_type: Box::new(target_type),
-            number_format: number_format,
-            display_format: display_format,
         }
     }
 
-    pub fn to_number(&self, context: &H2Context) -> SimpleResult<SizedNumber> {
-        self.number_format.read(context)
+    pub fn to_u64(&self, context: &Context) -> SimpleResult<u64> {
+        self.definition.to_u64(context)
     }
 
-    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
         // Read the current value
-        let number = self.number_format.read(context)?;
-        let pointer_display = self.display_format.to_string(number);
+        let target_offset = self.to_u64(context)?;
+        let pointer_display = self.definition.to_string(context, self.display)?;
 
         // Read the target from a separate context
         let mut target_context = context.clone();
-        target_context.set_position(number.to_index()?);
+        target_context.set_position(target_offset);
         let target_display = match self.target_type.to_strings(&target_context) {
             Ok(v) => v.join(" / "),
             Err(e) => format!("Invalid pointer target: {}", e),
@@ -49,12 +51,12 @@ impl H2Pointer {
     }
 
     pub fn size(&self) -> u64 {
-        self.number_format.size()
+        self.definition.size()
     }
 
-    pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![
-            (self.number_format.read(context)?.to_index()?, *self.target_type.clone())
+            (self.to_u64(context)?, *self.target_type.clone())
         ])
     }
 }
@@ -63,21 +65,24 @@ impl H2Pointer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
+    use sized_number::Endian;
 
-    use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
     use crate::datatype::composite::h2array::H2Array;
-    use crate::datatype::helpers::sized_number::{SizedFormat, SizedDisplay};
 
     #[test]
     fn test_pointer() -> SimpleResult<()> {
         let data = b"\x00\x08AAAAAA\x00\x01\x02\x03".to_vec();
-        let context = H2Context::new(&data);
+        let context = Context::new(&data);
 
         let t: H2Type = H2Pointer::new(
-            SizedFormat::U16_BIG,
-            SizedDisplay::Hex,
-            H2Integer::new(SizedFormat::U32_BIG, SizedDisplay::Hex).into()
+            SizedNumberDefinition::SixteenBitUnsigned(Endian::BigEndian),
+            SizedNumberDisplay::Hex(Default::default()),
+
+            H2Integer::new(
+                SizedNumberDefinition::ThirtyTwoBitUnsigned(Endian::BigEndian),
+                SizedNumberDisplay::Hex(Default::default()),
+            ).into()
         ).into();
 
         assert_eq!(2, t.size());
@@ -91,14 +96,12 @@ mod tests {
     #[test]
     fn test_complex_pointer() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x08\x00\x00\x00\x10AABBCCDD\x00\x01\x02\x03\x04\x05\x06\x07\x08".to_vec();
-        let context = H2Context::new(&data);
+        let context = Context::new(&data);
 
         let t: H2Type = H2Array::new(2,
-            H2Pointer::new(SizedFormat::U32_BIG, SizedDisplay::Hex,
+            H2Pointer::new(SizedNumberDefinition::ThirtyTwoBitUnsigned(Endian::BigEndian), SizedNumberDisplay::Hex(Default::default()),
                 H2Array::new(4,
-                    H2Integer::new(
-                        SizedFormat::U16_BIG, SizedDisplay::Hex,
-                    ).into()
+                    H2Integer::new(SizedNumberDefinition::SixteenBitUnsigned(Endian::BigEndian), SizedNumberDisplay::Hex(Default::default())).into()
                 ).into()
             ).into()
         ).into();

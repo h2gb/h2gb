@@ -1,15 +1,15 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
+use sized_number::{Context, SizedNumberDefinition, SizedNumberDisplay};
+
 use crate::datatype::H2Type;
 use crate::datatype::basic::H2BasicType;
-use crate::datatype::helpers::sized_number::{SizedFormat, SizedDisplay};
-use crate::datatype::helpers::H2Context;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Integer {
-    number_format: SizedFormat,
-    display_format: SizedDisplay,
+    definition: SizedNumberDefinition,
+    display: SizedNumberDisplay,
 }
 
 impl From<H2Integer> for H2Type {
@@ -19,23 +19,22 @@ impl From<H2Integer> for H2Type {
 }
 
 impl H2Integer {
-    pub fn new(number_format: SizedFormat, display_format: SizedDisplay) -> Self {
+    pub fn new(definition: SizedNumberDefinition, display: SizedNumberDisplay) -> Self {
         Self {
-            number_format: number_format,
-            display_format: display_format,
+            definition: definition,
+            display: display,
         }
     }
 
-    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
-        let number = self.number_format.read(context)?;
-        Ok(self.display_format.to_string(number))
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+        self.definition.to_string(context, self.display)
     }
 
     pub fn size(&self) -> u64 {
-        self.number_format.size()
+        self.definition.size()
     }
 
-    pub fn related(&self, _context: &H2Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![])
     }
 }

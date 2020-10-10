@@ -22,6 +22,7 @@ simple-error = "~0.2.1"
 bumpy_vector = { git = "https://github.com/h2gb/bumpy_vector.git", version = "~0.0.0", features = ["serialize"], branch = "dev"}
 multi_vector = { git = "https://github.com/h2gb/multi_vector.git", version = "~0.0.0", features = ["serialize"], branch = "dev"}
 h2transformer = { git = "https://github.com/h2gb/h2transformer.git", version = "~0.0.0", features = ["serialize"], branch = "dev"}
+sized_number = { git = "https://github.com/h2gb/sized_number.git", version = "~0.0.0", features = ["serialize"], branch = "dev"}
 
 [dev-dependencies]
 pretty_assertions = "~0.6.1"

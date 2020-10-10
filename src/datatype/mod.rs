@@ -5,8 +5,9 @@ pub mod helpers;
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
+use sized_number::Context;
+
 use crate::datatype::basic::H2BasicType;
-use crate::datatype::helpers::H2Context;
 
 use composite::h2struct::H2Struct;
 use composite::h2array::H2Array;
@@ -46,7 +47,7 @@ impl H2Type {
         }
     }
 
-    pub fn to_strings(&self, context: &H2Context) -> SimpleResult<Vec<String>> {
+    pub fn to_strings(&self, context: &Context) -> SimpleResult<Vec<String>> {
         // This is a simple datatype to clone
         let mut context = context.clone();
 

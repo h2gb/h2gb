@@ -59,21 +59,44 @@ impl H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
+    use sized_number::{Context, SizedNumberDefinition, SizedNumberDisplay, Endian};
 
-    use crate::datatype::helpers::H2Context;
     use crate::datatype::basic::h2integer::H2Integer;
-    use crate::datatype::helpers::sized_number::{SizedFormat, SizedDisplay};
 
     #[test]
     fn test_struct() -> SimpleResult<()> {
         let data = b"\x00\x01\x02\x03\x00\x01\x00\x0f\x0e\x0d\x0c".to_vec();
-        let context = H2Context::new(&data);
+        let context = Context::new(&data);
 
         let t: H2Type = H2Struct::new(vec![
-            ("field_u32".to_string(),        H2Integer::new(SizedFormat::U32_BIG,    SizedDisplay::Hex).into()),
-            ("field_u16".to_string(),        H2Integer::new(SizedFormat::U16_BIG,    SizedDisplay::Hex).into()),
-            ("field_u8".to_string(),         H2Integer::new(SizedFormat::U8,         SizedDisplay::Hex).into()),
-            ("field_u32_little".to_string(), H2Integer::new(SizedFormat::U32_LITTLE, SizedDisplay::Hex).into()),
+            (
+                "field_u32".to_string(),
+                H2Integer::new(
+                    SizedNumberDefinition::ThirtyTwoBitUnsigned(Endian::BigEndian),
+                    SizedNumberDisplay::Hex(Default::default()),
+                ).into()
+            ),
+            (
+                "field_u16".to_string(),
+                H2Integer::new(
+                    SizedNumberDefinition::SixteenBitUnsigned(Endian::BigEndian),
+                    SizedNumberDisplay::Hex(Default::default()),
+                ).into()
+            ),
+            (
+                "field_u8".to_string(),
+                H2Integer::new(
+                    SizedNumberDefinition::EightBitUnsigned,
+                    SizedNumberDisplay::Hex(Default::default()),
+                ).into()
+            ),
+            (
+                "field_u32_little".to_string(),
+                H2Integer::new(
+                    SizedNumberDefinition::ThirtyTwoBitUnsigned(Endian::LittleEndian),
+                    SizedNumberDisplay::Hex(Default::default()),
+                ).into()
+            ),
         ]).into();
 
         assert_eq!(11, t.size());

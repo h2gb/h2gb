@@ -1,9 +1,9 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
+use sized_number::Context;
 
 use crate::datatype::H2Type;
 use crate::datatype::composite::h2simple::H2Simple;
-use crate::datatype::helpers::H2Context;
 
 pub mod h2integer;
 pub mod h2pointer;
@@ -24,14 +24,14 @@ impl From<H2BasicType> for H2Type {
 }
 
 impl H2BasicType {
-    pub fn to_string(&self, context: &H2Context) -> SimpleResult<String> {
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
         match self {
             Self::Integer(t) => t.to_string(context),
             Self::Pointer(t) => t.to_string(context),
         }
     }
 
-    pub fn related(&self, context: &H2Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         match self {
             Self::Integer(t) => t.related(context),
             Self::Pointer(t) => t.related(context),
