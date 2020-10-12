@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
+use simple_error::SimpleResult;
 use sized_number::Context;
 
 use crate::datatype::{H2Type, ResolvedType};
