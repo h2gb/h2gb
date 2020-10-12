@@ -43,7 +43,7 @@ impl H2Number {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use sized_number::{new_context, Endian};
+    use sized_number::{Context, Endian};
     use sized_number::{SizedDefinition, SizedDisplay};
 
     #[test]
@@ -55,12 +55,14 @@ mod tests {
             SizedDisplay::Hex(Default::default()),
         );
 
+        let c = Context::new(&data);
+
         assert_eq!(1, t.size());
-        assert_eq!(0, t.related(&new_context(&data, 0))?.len());
-        assert_eq!("0x00", t.to_string(&new_context(&data, 0))?);
-        assert_eq!("0x7f", t.to_string(&new_context(&data, 1))?);
-        assert_eq!("0x80", t.to_string(&new_context(&data, 2))?);
-        assert_eq!("0xff", t.to_string(&new_context(&data, 3))?);
+        assert_eq!(0, t.related(&c)?.len());
+        assert_eq!("0x00", t.to_string(&c.at(0))?);
+        assert_eq!("0x7f", t.to_string(&c.at(1))?);
+        assert_eq!("0x80", t.to_string(&c.at(2))?);
+        assert_eq!("0xff", t.to_string(&c.at(3))?);
 
         Ok(())
     }
@@ -74,12 +76,14 @@ mod tests {
             SizedDisplay::Decimal,
         );
 
+        let c = Context::new(&data);
+
         assert_eq!(2, t.size());
-        assert_eq!(0, t.related(&new_context(&data, 0))?.len());
-        assert_eq!("0", t.to_string(&new_context(&data, 0))?);
-        assert_eq!("32767", t.to_string(&new_context(&data, 2))?);
-        assert_eq!("-32768", t.to_string(&new_context(&data, 4))?);
-        assert_eq!("-1", t.to_string(&new_context(&data, 6))?);
+        assert_eq!(0, t.related(&c.at(0))?.len());
+        assert_eq!("0", t.to_string(&c.at(0))?);
+        assert_eq!("32767", t.to_string(&c.at(2))?);
+        assert_eq!("-32768", t.to_string(&c.at(4))?);
+        assert_eq!("-1", t.to_string(&c.at(6))?);
 
         Ok(())
     }

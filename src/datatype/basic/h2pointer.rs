@@ -40,8 +40,7 @@ impl H2Pointer {
         let pointer_display = self.definition.to_string(context, self.display)?;
 
         // Read the target from a separate context
-        let mut target_context = context.clone();
-        target_context.set_position(target_offset);
+        let target_context = context.at(target_offset);
         let target_display = match self.target_type.to_strings(&target_context) {
             Ok(v) => v.join(" / "),
             Err(e) => format!("Invalid pointer target: {}", e),

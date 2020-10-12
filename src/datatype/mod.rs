@@ -47,13 +47,10 @@ impl H2Type {
     }
 
     pub fn to_strings(&self, context: &Context) -> SimpleResult<Vec<String>> {
-        // This is a simple datatype to clone
-        let mut context = context.clone();
-
         let (resolved, _) = self.resolve_from_offset(Some(context.position()), None);
 
         let results = resolved.iter().map(|r| {
-            context.set_position(r.offset);
+            let context = context.at(r.offset);
 
             match &r.field_names {
                 Some(f) => format!("{} {} [{}]", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string()), f.join(".")),
