@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, bail};
 
 use sized_number::{Context, SizedDefinition, SizedDisplay};
 
@@ -21,13 +21,17 @@ impl From<H2Pointer> for H2Type {
 }
 
 impl H2Pointer {
-    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> Self {
-        H2Pointer {
+    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> SimpleResult<Self> {
+        if !definition.can_be_u64() {
+            bail!("H2Pointer's definition must be an unsigned value no more than 64 bits / 8 bytes");
+        }
+
+        Ok(H2Pointer {
             definition: definition,
             display: display,
 
             target_type: Box::new(target_type),
-        }
+        })
     }
 
     pub fn to_u64(&self, context: &Context) -> SimpleResult<u64> {
@@ -83,7 +87,7 @@ mod tests {
                 SizedDefinition::U32(Endian::Big),
                 SizedDisplay::Hex(Default::default()),
             ).into()
-        ).into();
+        )?.into();
 
         assert_eq!(2, t.size());
 
@@ -103,7 +107,7 @@ mod tests {
                 H2Array::new(4,
                     H2Integer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
                 ).into()
-            ).into()
+            )?.into()
         ).into();
 
         assert_eq!(8, t.size());
