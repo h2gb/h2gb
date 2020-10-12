@@ -44,10 +44,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use sized_number::{new_context, Endian};
-    use sized_number::{Context, SizedDefinition, SizedDisplay};
-
-    use crate::datatype::basic::h2number::H2Number;
-    use crate::datatype::composite::h2array::H2Array;
+    use sized_number::{SizedDefinition, SizedDisplay};
 
     #[test]
     fn test_u8_hex() -> SimpleResult<()> {
