@@ -48,8 +48,14 @@ impl H2Array {
         self.length * self.field_type.size()
     }
 
-    pub fn to_string(&self, _context: &Context) -> SimpleResult<String> {
-        bail!("Not implemented");
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+        let mut strings: Vec<String> = vec![];
+
+        for i in 0..self.length {
+            strings.push(self.field_type.to_string(&context.at(i * self.field_type.size()))?);
+        }
+
+        Ok(format!("[{}]", strings.join(", ")))
     }
 }
 

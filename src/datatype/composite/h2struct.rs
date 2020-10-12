@@ -1,4 +1,6 @@
 use serde::{Serialize, Deserialize};
+use simple_error::{SimpleResult, bail};
+use sized_number::Context;
 
 use crate::datatype::{H2Type, ResolvedType};
 
@@ -52,6 +54,19 @@ impl H2Struct {
         self.fields.iter().fold(0, |sum, (_, t)| {
             sum + t.size()
         })
+    }
+
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+        let mut strings: Vec<String> = vec![];
+        let mut offset = 0;
+
+        for (name, field_type) in self.fields.iter() {
+            strings.push(format!("{}: {}", name, field_type.to_string(&context.at(offset))?));
+
+            offset += field_type.size();
+        }
+
+        Ok(format!("[{}]", strings.join(", ")))
     }
 }
 
@@ -109,7 +124,7 @@ mod tests {
         assert_eq!(7, resolved[3].offset);
 
         println!("Type: {:?}", t);
-        println!("\nto_strings:\n{}", t.to_strings(&context)?.join("\n"));
+        println!("\nto_string:\n{}", t.to_string(&context)?);
 
         Ok(())
     }

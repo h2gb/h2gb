@@ -1,4 +1,6 @@
 use serde::{Serialize, Deserialize};
+use simple_error::SimpleResult;
+use sized_number::Context;
 
 use crate::datatype::H2Type;
 use crate::datatype::ResolvedType;
@@ -37,6 +39,10 @@ impl H2Simple {
     pub fn size(&self) -> u64 {
         self.basic_type.size()
     }
+
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+        self.basic_type.to_string(context)
+    }
 }
 
 #[cfg(test)]
@@ -61,7 +67,7 @@ mod tests {
         assert_eq!(None, resolved[0].field_names);
 
         println!("Type: {:?}", t);
-        println!("\nto_strings:\n{:?}", t.to_strings(&context)?);
+        println!("\nto_string:\n{}", t.to_string(&context)?);
 
         Ok(())
     }

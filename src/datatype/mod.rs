@@ -46,18 +46,11 @@ impl H2Type {
         }
     }
 
-    pub fn to_strings(&self, context: &Context) -> SimpleResult<Vec<String>> {
-        let (resolved, _) = self.resolve_from_offset(Some(context.position()), None);
-
-        let results = resolved.iter().map(|r| {
-            let context = context.at(r.offset);
-
-            match &r.field_names {
-                Some(f) => format!("{} {} [{}]", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string()), f.join(".")),
-                None => format!("{} {}", r.offset, r.basic_type.to_string(&context).unwrap_or("Invalid".to_string())),
-            }
-        }).collect();
-
-        Ok(results)
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+        match self {
+            Self::H2Struct(t) => t.to_string(context),
+            Self::H2Array(t)  => t.to_string(context),
+            Self::H2Simple(t) => t.to_string(context),
+        }
     }
 }
