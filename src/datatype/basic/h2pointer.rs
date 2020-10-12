@@ -34,13 +34,9 @@ impl H2Pointer {
         })
     }
 
-    pub fn to_u64(&self, context: &Context) -> SimpleResult<u64> {
-        self.definition.to_u64(context)
-    }
-
     pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
         // Read the current value
-        let target_offset = self.to_u64(context)?;
+        let target_offset = self.definition.to_u64(context)?;
         let pointer_display = self.definition.to_string(context, self.display)?;
 
         // Read the target from a separate context
@@ -60,7 +56,7 @@ impl H2Pointer {
 
     pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![
-            (self.to_u64(context)?, *self.target_type.clone())
+            (self.definition.to_u64(context)?, *self.target_type.clone())
         ])
     }
 }
@@ -72,48 +68,54 @@ mod tests {
     use sized_number::Endian;
 
     use crate::datatype::basic::h2number::H2Number;
-    use crate::datatype::composite::h2array::H2Array;
 
     #[test]
     fn test_pointer() -> SimpleResult<()> {
         let data = b"\x00\x08AAAAAA\x00\x01\x02\x03".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Pointer::new(
+        // 16-bit big-endian pointer (0x0008) that displays as hex
+        let t = H2Pointer::new(
             SizedDefinition::U16(Endian::Big),
             SizedDisplay::Hex(Default::default()),
 
+            // ...pointing to a 32-bit big-endian number (0x00010203)
             H2Number::new(
                 SizedDefinition::U32(Endian::Big),
                 SizedDisplay::Hex(Default::default()),
             ).into()
-        )?.into();
+        )?;
 
+        // A 16-bit pointer is 2 bytes
         assert_eq!(2, t.size());
+        assert!(t.to_string(&context)?.starts_with("(ref) 0x0008"));
 
-        println!("Type: {:?}", t);
-        println!("\nto_strings:\n{}", t.to_strings(&context)?.join("\n"));
+        // It has one related value - the int it points to
+        let r = t.related(&context)?;
+        assert_eq!(1, r.len());
 
         Ok(())
     }
 
     #[test]
-    fn test_complex_pointer() -> SimpleResult<()> {
-        let data = b"\x00\x00\x00\x08\x00\x00\x00\x10AABBCCDD\x00\x01\x02\x03\x04\x05\x06\x07\x08".to_vec();
+    fn test_nested_pointer() -> SimpleResult<()> {
+        //           -P1-  --P2-- -----P3--------
+        let data = b"\x01\x00\x03\x07\x00\x00\x00ABCDEFGH".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Array::new(2,
-            H2Pointer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default()),
-                H2Array::new(4,
-                    H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
-                ).into()
-            )?.into()
-        ).into();
+        let hex_display = SizedDisplay::Hex(Default::default());
 
-        assert_eq!(8, t.size());
+        let t = H2Pointer::new(SizedDefinition::U8, hex_display, // P1
+            H2Pointer::new(SizedDefinition::U16(Endian::Big), hex_display, // P2
+                H2Pointer::new(SizedDefinition::U32(Endian::Little), hex_display, // P3
+                    H2Number::new(SizedDefinition::U64(Endian::Big), hex_display).into(),
+                )?.into(),
+            )?.into(),
+        )?;
 
-        println!("Type: {:?}", t);
-        println!("\nto_strings:\n{}", t.to_strings(&context)?.join("\n"));
+        assert_eq!(1, t.size());
+        assert_eq!(1, t.related(&context)?.len());
+        assert!(t.to_string(&context)?.ends_with("0x4142434445464748"));
 
         Ok(())
     }

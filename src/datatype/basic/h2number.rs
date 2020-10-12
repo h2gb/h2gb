@@ -56,6 +56,7 @@ mod tests {
         );
 
         assert_eq!(1, t.size());
+        assert_eq!(0, t.related(&new_context(&data, 0))?.len());
         assert_eq!("0x00", t.to_string(&new_context(&data, 0))?);
         assert_eq!("0x7f", t.to_string(&new_context(&data, 1))?);
         assert_eq!("0x80", t.to_string(&new_context(&data, 2))?);
@@ -74,6 +75,7 @@ mod tests {
         );
 
         assert_eq!(2, t.size());
+        assert_eq!(0, t.related(&new_context(&data, 0))?.len());
         assert_eq!("0", t.to_string(&new_context(&data, 0))?);
         assert_eq!("32767", t.to_string(&new_context(&data, 2))?);
         assert_eq!("-32768", t.to_string(&new_context(&data, 4))?);
