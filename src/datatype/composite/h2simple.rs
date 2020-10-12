@@ -45,14 +45,14 @@ mod tests {
     use simple_error::SimpleResult;
     use sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
 
-    use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::basic::h2number::H2Number;
 
     #[test]
     fn test_simple() -> SimpleResult<()> {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Integer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into();
+        let t: H2Type = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into();
         assert_eq!(4, t.size());
 
         let resolved = t.resolve();

@@ -52,7 +52,7 @@ mod tests {
     use simple_error::SimpleResult;
     use sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
 
-    use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::basic::h2number::H2Number;
 
     #[test]
     fn test_array() -> SimpleResult<()> {
@@ -60,7 +60,7 @@ mod tests {
         let context = Context::new(&data);
 
         let t: H2Type = H2Array::new(4,
-            H2Integer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
+            H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
         ).into();
 
         assert_eq!(16, t.size());

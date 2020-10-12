@@ -71,7 +71,7 @@ mod tests {
     use simple_error::SimpleResult;
     use sized_number::Endian;
 
-    use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::basic::h2number::H2Number;
     use crate::datatype::composite::h2array::H2Array;
 
     #[test]
@@ -83,7 +83,7 @@ mod tests {
             SizedDefinition::U16(Endian::Big),
             SizedDisplay::Hex(Default::default()),
 
-            H2Integer::new(
+            H2Number::new(
                 SizedDefinition::U32(Endian::Big),
                 SizedDisplay::Hex(Default::default()),
             ).into()
@@ -105,7 +105,7 @@ mod tests {
         let t: H2Type = H2Array::new(2,
             H2Pointer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default()),
                 H2Array::new(4,
-                    H2Integer::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
+                    H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
                 ).into()
             )?.into()
         ).into();

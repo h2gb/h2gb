@@ -61,7 +61,7 @@ mod tests {
     use simple_error::SimpleResult;
     use sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
 
-    use crate::datatype::basic::h2integer::H2Integer;
+    use crate::datatype::basic::h2number::H2Number;
 
     #[test]
     fn test_struct() -> SimpleResult<()> {
@@ -71,28 +71,28 @@ mod tests {
         let t: H2Type = H2Struct::new(vec![
             (
                 "field_u32".to_string(),
-                H2Integer::new(
+                H2Number::new(
                     SizedDefinition::U32(Endian::Big),
                     SizedDisplay::Hex(Default::default()),
                 ).into()
             ),
             (
                 "field_u16".to_string(),
-                H2Integer::new(
+                H2Number::new(
                     SizedDefinition::U16(Endian::Big),
                     SizedDisplay::Hex(Default::default()),
                 ).into()
             ),
             (
                 "field_u8".to_string(),
-                H2Integer::new(
+                H2Number::new(
                     SizedDefinition::U8,
                     SizedDisplay::Hex(Default::default()),
                 ).into()
             ),
             (
                 "field_u32_little".to_string(),
-                H2Integer::new(
+                H2Number::new(
                     SizedDefinition::U32(Endian::Little),
                     SizedDisplay::Hex(Default::default()),
                 ).into()
