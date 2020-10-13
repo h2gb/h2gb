@@ -1,8 +1,10 @@
 pub mod basic;
 pub mod composite;
+pub mod helpers;
 
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
+use std::ops::Range;
 
 use sized_number::Context;
 
@@ -20,13 +22,13 @@ pub enum H2Type {
 }
 
 pub struct ResolvedType {
-    offset: u64,
+    offset: Range<u64>,
     field_names: Option<Vec<String>>,
     basic_type: H2BasicType,
 }
 
 impl H2Type {
-    pub fn resolve_from_offset(&self, starting_offset: Option<u64>, field_names: Option<Vec<String>>) -> (Vec<ResolvedType>, u64) {
+    pub fn resolve_from_offset(&self, starting_offset: Option<u64>, field_names: Option<Vec<String>>) -> Vec<ResolvedType> {
         match self {
             Self::H2Struct(t) => t.resolve(starting_offset.unwrap_or(0), field_names),
             Self::H2Array(t)  => t.resolve(starting_offset.unwrap_or(0), field_names),
@@ -35,7 +37,7 @@ impl H2Type {
     }
 
     pub fn resolve(&self) -> Vec<ResolvedType> {
-        self.resolve_from_offset(None, None).0
+        self.resolve_from_offset(None, None)
     }
 
     pub fn size(&self) -> u64 {
