@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 use sized_number::Context;
 
 use crate::datatype::helpers;
-use crate::datatype::{H2Type, ResolvedType};
+use crate::datatype::{H2Type, ResolvedType, PartiallyResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Struct {
@@ -33,7 +33,7 @@ impl H2Struct {
         }
     }
 
-    pub fn types_with_offsets(&self, start: u64) -> Vec<(u64, u64, String, H2Type)> {
+    pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
         let mut result = vec![];
         let mut offset: u64 = start;
 
@@ -43,24 +43,13 @@ impl H2Struct {
                 None    => offset + field_type.size(),
             };
 
-            result.push((offset, end_offset, name.clone(), field_type.clone()));
+            result.push(PartiallyResolvedType {
+                offset: offset..end_offset,
+                field_name: Some(name.clone()),
+                field_type: field_type.clone(),
+            });
 
             offset = end_offset;
-        }
-
-        result
-    }
-
-    pub fn resolve(&self, starting_offset: u64, field_names: Option<Vec<String>>) -> Vec<ResolvedType> {
-        let mut result: Vec<ResolvedType> = Vec::new();
-        let field_names = field_names.unwrap_or(Vec::new());
-
-        for (starting_offset, _ending_offset, field_name, field_type) in self.types_with_offsets(starting_offset).into_iter() {
-            // Update the breadcrumbs
-            let mut this_field_name = field_names.clone();
-            this_field_name.push(field_name.clone());
-
-            result.append(&mut field_type.resolve_from_offset(Some(starting_offset), Some(this_field_name)));
         }
 
         result
@@ -75,8 +64,11 @@ impl H2Struct {
     pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
         let mut strings: Vec<String> = vec![];
 
-        for (starting_offset, _ending_offset, field_name, field_type) in self.types_with_offsets(context.position()).into_iter() {
-            strings.push(format!("{}: {}", field_name, field_type.to_string(&context.at(starting_offset))?));
+        for r in self.partially_resolve(context.position()) {
+            strings.push(format!("{}: {}",
+                r.field_name.unwrap_or("unknown".to_string()),
+                r.field_type.to_string(&context.at(r.offset.start))?
+            ));
         }
 
         Ok(format!("[{}]", strings.join(", ")))
@@ -129,12 +121,12 @@ mod tests {
 
         assert_eq!(11, t.size());
 
-        let resolved = t.resolve();
+        let resolved = t.fully_resolve(0, None);
         assert_eq!(4, resolved.len());
-        // assert_eq!(0, resolved[0].offset);
-        // assert_eq!(4, resolved[1].offset);
-        // assert_eq!(6, resolved[2].offset);
-        // assert_eq!(7, resolved[3].offset);
+        assert_eq!(0..4, resolved[0].offset);
+        assert_eq!(4..6, resolved[1].offset);
+        assert_eq!(6..7, resolved[2].offset);
+        assert_eq!(7..11, resolved[3].offset);
 
         println!("Type: {:?}", t);
         println!("\nto_string:\n{}", t.to_string(&context)?);

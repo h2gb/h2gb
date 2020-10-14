@@ -1,18 +1,18 @@
-pub mod basic;
-pub mod composite;
-pub mod helpers;
-
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
 
 use sized_number::Context;
 
-use crate::datatype::basic::H2BasicType;
-
+pub mod composite;
 use composite::h2struct::H2Struct;
 use composite::h2array::H2Array;
 use composite::h2simple::H2Simple;
+
+pub mod basic;
+use basic::H2BasicType;
+
+pub mod helpers;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum H2Type {
@@ -21,23 +21,59 @@ pub enum H2Type {
     H2Simple(H2Simple),
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ResolvedType {
     offset: Range<u64>,
-    field_names: Option<Vec<String>>,
+    breadcrumbs: Option<Vec<String>>,
     basic_type: H2BasicType,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PartiallyResolvedType {
+    offset: Range<u64>,
+    field_name: Option<String>,
+    field_type: H2Type,
+}
+
 impl H2Type {
-    pub fn resolve_from_offset(&self, starting_offset: Option<u64>, field_names: Option<Vec<String>>) -> Vec<ResolvedType> {
+    // Resolve "one layer" - ie, to one or more `H2Type`s
+    pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
         match self {
-            Self::H2Struct(t) => t.resolve(starting_offset.unwrap_or(0), field_names),
-            Self::H2Array(t)  => t.resolve(starting_offset.unwrap_or(0), field_names),
-            Self::H2Simple(t) => t.resolve(starting_offset.unwrap_or(0), field_names),
+            Self::H2Struct(t) => t.partially_resolve(start),
+            Self::H2Array(t)  => t.partially_resolve(start),
+            Self::H2Simple(t) => t.partially_resolve(start),
         }
     }
 
-    pub fn resolve(&self) -> Vec<ResolvedType> {
-        self.resolve_from_offset(None, None)
+    // Resolve right down to `H2BasicType`s
+    pub fn fully_resolve(&self, starting_offset: u64, breadcrumbs: Option<Vec<String>>) -> Vec<ResolvedType> {
+        match self {
+            // If we've made it to H2Simple, we can just return it
+            Self::H2Simple(t) => {
+                vec![t.to_resolved_type(starting_offset, breadcrumbs)]
+            },
+            // If it's anything else, we're going to do some recursion
+            _ => {
+                // Ensure this is always initialized
+                let breadcrumbs = breadcrumbs.unwrap_or(Vec::new());
+
+                let mut result: Vec<ResolvedType> = Vec::new();
+
+                for partial in self.partially_resolve(starting_offset).into_iter() {
+                    // Update the breadcrumbs
+                    let mut new_breadcrumbs = breadcrumbs.clone();
+
+                    if let Some(f) = partial.field_name {
+                        new_breadcrumbs.push(f.clone());
+                    }
+
+                    // Recurse with each result (until we get to H2Simple)
+                    result.append(&mut partial.field_type.fully_resolve(partial.offset.start, Some(new_breadcrumbs)));
+                }
+
+                result
+            },
+        }
     }
 
     pub fn size(&self) -> u64 {

@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use sized_number::Context;
 
-use crate::datatype::{helpers, H2Type, ResolvedType};
+use crate::datatype::{helpers, H2Type, ResolvedType, PartiallyResolvedType};
 use crate::datatype::basic::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -25,29 +25,25 @@ impl H2Simple {
         }
     }
 
-    pub fn types_with_offsets(&self, start: u64) -> Vec<(u64, u64, String, H2Type)> {
-        let mut result = vec![];
-
+    pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
         let end_offset = match self.byte_alignment {
             Some(a) => helpers::round_up(start + self.basic_type.size(), a),
             None    => start + self.basic_type.size(),
         };
 
-        result.push((start, end_offset, "".to_string(), H2Type::from(self.clone())));
-
-        result
+        vec![PartiallyResolvedType {
+            offset: start..end_offset,
+            field_name: None,
+            field_type: H2Type::from(self.clone()),
+        }]
     }
 
-    pub fn resolve(&self, starting_offset: u64, field_names: Option<Vec<String>>) -> Vec<ResolvedType> {
-        let v: Vec<ResolvedType> = vec![
-            ResolvedType {
-                offset: starting_offset..(starting_offset + self.basic_type.size()),
-                field_names: field_names,
-                basic_type: (*self.basic_type).clone(),
-            }
-        ];
-
-        v
+    pub fn to_resolved_type(&self, starting_offset: u64, breadcrumbs: Option<Vec<String>>) -> ResolvedType {
+        ResolvedType {
+            offset: starting_offset..(starting_offset + self.basic_type.size()),
+            breadcrumbs: breadcrumbs,
+            basic_type: (*self.basic_type).clone(),
+        }
     }
 
     pub fn size(&self) -> u64 {
@@ -75,12 +71,12 @@ mod tests {
         let t: H2Type = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into();
         assert_eq!(4, t.size());
 
-        let resolved = t.resolve();
+        let resolved = t.fully_resolve(0, None);
         assert_eq!(1, resolved.len());
-        //assert_eq!(0, resolved[0].offset);
-        assert_eq!(None, resolved[0].field_names);
+        assert_eq!(0..4, resolved[0].offset);
+        assert_eq!(None, resolved[0].breadcrumbs);
 
-        println!("Type: {:?}", t);
+        println!("Resolved: {:#?}", resolved);
         println!("\nto_string:\n{}", t.to_string(&context)?);
 
         Ok(())
