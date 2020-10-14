@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 use sized_number::Context;
 
 use crate::datatype::helpers;
-use crate::datatype::{H2Type, ResolvedType, PartiallyResolvedType};
+use crate::datatype::{H2Type, PartiallyResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Struct {
@@ -71,7 +71,7 @@ impl H2Struct {
             ));
         }
 
-        Ok(format!("[{}]", strings.join(", ")))
+        Ok(format!("{{{}}}", strings.join(", ")))
     }
 }
 
@@ -85,7 +85,8 @@ mod tests {
 
     #[test]
     fn test_struct() -> SimpleResult<()> {
-        let data = b"\x00\x01\x02\x03\x00\x01\x00\x0f\x0e\x0d\x0c".to_vec();
+        //           ----- hex ------ --hex-- -o- ----decimal----
+        let data = b"\x00\x01\x02\x03\x00\x01\x0f\x0f\x0e\x0d\x0c".to_vec();
         let context = Context::new(&data);
 
         let t: H2Type = H2Struct::new(vec![
@@ -107,14 +108,14 @@ mod tests {
                 "field_u8".to_string(),
                 H2Number::new(
                     SizedDefinition::U8,
-                    SizedDisplay::Hex(Default::default()),
+                    SizedDisplay::Octal(Default::default()),
                 ).into()
             ),
             (
                 "field_u32_little".to_string(),
                 H2Number::new(
                     SizedDefinition::U32(Endian::Little),
-                    SizedDisplay::Hex(Default::default()),
+                    SizedDisplay::Decimal,
                 ).into()
             ),
         ]).into();
@@ -124,12 +125,16 @@ mod tests {
         let resolved = t.fully_resolve(0, None);
         assert_eq!(4, resolved.len());
         assert_eq!(0..4, resolved[0].offset);
-        assert_eq!(4..6, resolved[1].offset);
-        assert_eq!(6..7, resolved[2].offset);
-        assert_eq!(7..11, resolved[3].offset);
+        assert_eq!("0x00010203", resolved[0].to_string(&context)?);
 
-        println!("Type: {:?}", t);
-        println!("\nto_string:\n{}", t.to_string(&context)?);
+        assert_eq!(4..6, resolved[1].offset);
+        assert_eq!("0x0001", resolved[1].to_string(&context)?);
+
+        assert_eq!(6..7, resolved[2].offset);
+        assert_eq!("0o17", resolved[2].to_string(&context)?);
+
+        assert_eq!(7..11, resolved[3].offset);
+        assert_eq!("202182159", resolved[3].to_string(&context)?);
 
         Ok(())
     }

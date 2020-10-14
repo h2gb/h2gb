@@ -87,16 +87,16 @@ mod tests {
         assert_eq!(4, resolved.len());
 
         assert_eq!(0..4, resolved[0].offset);
-        assert_eq!("0x41414141", resolved[0].basic_type.to_string(&context.at(resolved[0].offset.start))?);
+        assert_eq!("0x41414141", resolved[0].to_string(&context)?);
 
         assert_eq!(4..8, resolved[1].offset);
-        assert_eq!("0x42424242", resolved[1].basic_type.to_string(&context.at(resolved[1].offset.start))?);
+        assert_eq!("0x42424242", resolved[1].to_string(&context)?);
 
         assert_eq!(8..12, resolved[2].offset);
-        assert_eq!("0x43434343", resolved[2].basic_type.to_string(&context.at(resolved[2].offset.start))?);
+        assert_eq!("0x43434343", resolved[2].to_string(&context)?);
 
         assert_eq!(12..16, resolved[3].offset);
-        assert_eq!("0x44444444", resolved[3].basic_type.to_string(&context.at(resolved[3].offset.start))?);
+        assert_eq!("0x44444444", resolved[3].to_string(&context)?);
 
         Ok(())
     }
@@ -119,20 +119,20 @@ mod tests {
         let resolved = t.fully_resolve(0, None);
         assert_eq!(12, resolved.len());
 
-        assert_eq!("0",    resolved[0].basic_type.to_string(&context.at(resolved[0].offset.start))?);
-        assert_eq!("0",    resolved[1].basic_type.to_string(&context.at(resolved[1].offset.start))?);
-        assert_eq!("0",    resolved[2].basic_type.to_string(&context.at(resolved[2].offset.start))?);
-        assert_eq!("0",    resolved[3].basic_type.to_string(&context.at(resolved[3].offset.start))?);
+        assert_eq!("0",    resolved[0].to_string(&context)?);
+        assert_eq!("0",    resolved[1].to_string(&context)?);
+        assert_eq!("0",    resolved[2].to_string(&context)?);
+        assert_eq!("0",    resolved[3].to_string(&context)?);
 
-        assert_eq!("127",  resolved[4].basic_type.to_string(&context.at(resolved[4].offset.start))?);
-        assert_eq!("127",  resolved[5].basic_type.to_string(&context.at(resolved[5].offset.start))?);
-        assert_eq!("127",  resolved[6].basic_type.to_string(&context.at(resolved[6].offset.start))?);
-        assert_eq!("127",  resolved[7].basic_type.to_string(&context.at(resolved[7].offset.start))?);
+        assert_eq!("127",  resolved[4].to_string(&context)?);
+        assert_eq!("127",  resolved[5].to_string(&context)?);
+        assert_eq!("127",  resolved[6].to_string(&context)?);
+        assert_eq!("127",  resolved[7].to_string(&context)?);
 
-        assert_eq!("-128", resolved[8].basic_type.to_string(&context.at(resolved[8].offset.start))?);
-        assert_eq!("-128", resolved[9].basic_type.to_string(&context.at(resolved[9].offset.start))?);
-        assert_eq!("-1",   resolved[10].basic_type.to_string(&context.at(resolved[10].offset.start))?);
-        assert_eq!("-1",   resolved[11].basic_type.to_string(&context.at(resolved[11].offset.start))?);
+        assert_eq!("-128", resolved[8].to_string(&context)?);
+        assert_eq!("-128", resolved[9].to_string(&context)?);
+        assert_eq!("-1",  resolved[10].to_string(&context)?);
+        assert_eq!("-1",  resolved[11].to_string(&context)?);
 
         Ok(())
     }

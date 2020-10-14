@@ -70,14 +70,13 @@ mod tests {
 
         let t: H2Type = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into();
         assert_eq!(4, t.size());
+        assert_eq!("0x41414141", t.to_string(&context)?);
 
         let resolved = t.fully_resolve(0, None);
         assert_eq!(1, resolved.len());
         assert_eq!(0..4, resolved[0].offset);
         assert_eq!(None, resolved[0].breadcrumbs);
-
-        println!("Resolved: {:#?}", resolved);
-        println!("\nto_string:\n{}", t.to_string(&context)?);
+        assert_eq!("0x41414141", resolved[0].to_string(&context)?);
 
         Ok(())
     }
