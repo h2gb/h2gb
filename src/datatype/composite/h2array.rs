@@ -216,4 +216,35 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_array_not_starting_at_zero() -> SimpleResult<()> {
+        //           ----------- ignored ------------
+        let data = b"\x00\x00\x00\x00\x00\x00\x00\x00AAAABBBBCCCCDDDD".to_vec();
+        let context = Context::new(&data);
+
+        // An array of 4 32-bit unsigned integers
+        let t: H2Type = H2Array::new(4,
+            H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
+        ).into();
+
+        assert_eq!(16, t.size());
+
+        let resolved = t.fully_resolve(8, None);
+        assert_eq!(4, resolved.len());
+
+        assert_eq!(8..12, resolved[0].offset);
+        assert_eq!("0x41414141", resolved[0].to_string(&context)?);
+
+        assert_eq!(12..16, resolved[1].offset);
+        assert_eq!("0x42424242", resolved[1].to_string(&context)?);
+
+        assert_eq!(16..20, resolved[2].offset);
+        assert_eq!("0x43434343", resolved[2].to_string(&context)?);
+
+        assert_eq!(20..24, resolved[3].offset);
+        assert_eq!("0x44444444", resolved[3].to_string(&context)?);
+
+        Ok(())
+    }
 }
