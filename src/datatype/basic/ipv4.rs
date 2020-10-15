@@ -69,4 +69,13 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_ipv4_error() -> SimpleResult<()> {
+        let data = b"\x7f\x00\x00".to_vec();
+
+        assert!(IPv4::new(Endian::Big).to_string(&Context::new(&data)).is_err());
+
+        Ok(())
+    }
 }
