@@ -20,6 +20,12 @@ impl From<H2Pointer> for H2Type {
     }
 }
 
+impl From<H2Pointer> for H2BasicType {
+    fn from(o: H2Pointer) -> H2BasicType {
+        H2BasicType::Pointer(o)
+    }
+}
+
 impl H2Pointer {
     pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> SimpleResult<Self> {
         if !definition.can_be_u64() {

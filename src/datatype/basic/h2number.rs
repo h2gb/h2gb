@@ -18,6 +18,12 @@ impl From<H2Number> for H2Type {
     }
 }
 
+impl From<H2Number> for H2BasicType {
+    fn from(o: H2Number) -> H2BasicType {
+        H2BasicType::Number(o)
+    }
+}
+
 impl H2Number {
     pub fn new(definition: SizedDefinition, display: SizedDisplay) -> Self {
         Self {

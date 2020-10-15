@@ -64,7 +64,7 @@ impl H2Array {
     pub fn size(&self) -> u64 {
         match self.byte_alignment {
             Some(a) => self.length * helpers::round_up(self.field_type.size(), a),
-            None => self.length * self.field_type.size()
+            None => self.length * self.field_type.size(),
         }
     }
 

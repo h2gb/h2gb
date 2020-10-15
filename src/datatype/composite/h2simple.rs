@@ -25,6 +25,13 @@ impl H2Simple {
         }
     }
 
+    pub fn new_aligned(byte_alignment: u64, basic_type: H2BasicType) -> Self {
+        Self {
+            basic_type: Box::new(basic_type),
+            byte_alignment: Some(byte_alignment),
+        }
+    }
+
     pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
         let end_offset = match self.byte_alignment {
             Some(a) => helpers::round_up(start + self.basic_type.size(), a),
@@ -47,7 +54,10 @@ impl H2Simple {
     }
 
     pub fn size(&self) -> u64 {
-        self.basic_type.size()
+        match self.byte_alignment {
+            Some(a) => helpers::round_up(self.basic_type.size(), a),
+            None => self.basic_type.size(),
+        }
     }
 
     pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
@@ -77,6 +87,26 @@ mod tests {
         assert_eq!(0..4, resolved[0].offset);
         assert_eq!(None, resolved[0].breadcrumbs);
         assert_eq!("0x41414141", resolved[0].to_string(&context)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_simple_aligned() -> SimpleResult<()> {
+        let data = b"AAAABBBBCCCCDDDD".to_vec();
+        let context = Context::new(&data);
+
+        let t: H2Type = H2Simple::new_aligned(4,
+            H2BasicType::from(H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())))
+        ).into();
+        assert_eq!(4, t.size());
+        assert_eq!("0x41", t.to_string(&context)?);
+
+        let resolved = t.fully_resolve(0, None);
+        assert_eq!(1, resolved.len());
+        assert_eq!(0..1, resolved[0].offset);
+        assert_eq!(None, resolved[0].breadcrumbs);
+        assert_eq!("0x41", resolved[0].to_string(&context)?);
 
         Ok(())
     }
