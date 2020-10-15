@@ -14,7 +14,7 @@ pub struct H2Number {
 
 impl From<H2Number> for H2Type {
     fn from(o: H2Number) -> H2Type {
-        H2Type::from(H2BasicType::Number(o))
+        H2Type::from(H2BasicType::from(o))
     }
 }
 

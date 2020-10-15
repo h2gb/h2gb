@@ -16,7 +16,7 @@ pub struct H2Pointer {
 
 impl From<H2Pointer> for H2Type {
     fn from(o: H2Pointer) -> H2Type {
-        H2Type::from(H2BasicType::Pointer(o))
+        H2Type::from(H2BasicType::from(o))
     }
 }
 

@@ -7,14 +7,17 @@ use crate::datatype::composite::h2simple::H2Simple;
 
 pub mod h2number;
 pub mod h2pointer;
+pub mod ipv4;
 
 use h2number::H2Number;
 use h2pointer::H2Pointer;
+use ipv4::IPv4;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum H2BasicType {
     Number(H2Number),
     Pointer(H2Pointer),
+    IPv4(IPv4),
 }
 
 impl From<H2BasicType> for H2Type {
@@ -28,6 +31,7 @@ impl H2BasicType {
         match self {
             Self::Number(t)  => t.to_string(context),
             Self::Pointer(t) => t.to_string(context),
+            Self::IPv4(t)    => t.to_string(context),
         }
     }
 
@@ -35,6 +39,7 @@ impl H2BasicType {
         match self {
             Self::Number(t)  => t.related(context),
             Self::Pointer(t) => t.related(context),
+            Self::IPv4(t)    => t.related(context),
         }
     }
 
@@ -42,6 +47,7 @@ impl H2BasicType {
         match self {
             Self::Number(t)  => t.size(),
             Self::Pointer(t) => t.size(),
+            Self::IPv4(t)    => t.size(),
         }
     }
 }
