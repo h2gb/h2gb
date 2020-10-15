@@ -5,9 +5,10 @@ use std::ops::Range;
 use sized_number::Context;
 
 pub mod composite;
-use composite::h2struct::H2Struct;
 use composite::h2array::H2Array;
+use composite::h2enum::H2Enum;
 use composite::h2simple::H2Simple;
+use composite::h2struct::H2Struct;
 
 pub mod basic;
 use basic::H2BasicType;
@@ -16,9 +17,10 @@ pub mod helpers;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum H2Type {
-    H2Struct(H2Struct),
     H2Array(H2Array),
+    H2Enum(H2Enum),
     H2Simple(H2Simple),
+    H2Struct(H2Struct),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -55,9 +57,10 @@ impl H2Type {
     // Resolve "one layer" - ie, to one or more `H2Type`s
     pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
         match self {
-            Self::H2Struct(t) => t.partially_resolve(start),
             Self::H2Array(t)  => t.partially_resolve(start),
+            Self::H2Enum(t)   => t.partially_resolve(start),
             Self::H2Simple(t) => t.partially_resolve(start),
+            Self::H2Struct(t) => t.partially_resolve(start),
         }
     }
 
@@ -94,17 +97,19 @@ impl H2Type {
 
     pub fn size(&self) -> u64 {
         match self {
-            Self::H2Struct(t) => t.size(),
             Self::H2Array(t)  => t.size(),
+            Self::H2Enum(t)   => t.size(),
             Self::H2Simple(t) => t.size(),
+            Self::H2Struct(t) => t.size(),
         }
     }
 
     pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
         match self {
-            Self::H2Struct(t) => t.to_string(context),
             Self::H2Array(t)  => t.to_string(context),
+            Self::H2Enum(t)   => t.to_string(context),
             Self::H2Simple(t) => t.to_string(context),
+            Self::H2Struct(t) => t.to_string(context),
         }
     }
 }
