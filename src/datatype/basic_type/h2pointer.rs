@@ -3,20 +3,20 @@ use simple_error::{SimpleResult, bail};
 
 use sized_number::{Context, SizedDefinition, SizedDisplay};
 
-use crate::datatype::H2StaticType;
-use crate::datatype::basic::H2BasicType;
+use crate::datatype::StaticType;
+use crate::datatype::basic_type::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
     definition: SizedDefinition,
     display: SizedDisplay,
 
-    target_type: Box<H2StaticType>,
+    target_type: Box<StaticType>,
 }
 
-impl From<H2Pointer> for H2StaticType {
-    fn from(o: H2Pointer) -> H2StaticType {
-        H2StaticType::from(H2BasicType::from(o))
+impl From<H2Pointer> for StaticType {
+    fn from(o: H2Pointer) -> StaticType {
+        StaticType::from(H2BasicType::from(o))
     }
 }
 
@@ -27,7 +27,7 @@ impl From<H2Pointer> for H2BasicType {
 }
 
 impl H2Pointer {
-    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2StaticType) -> SimpleResult<Self> {
+    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: StaticType) -> SimpleResult<Self> {
         if !definition.can_be_u64() {
             bail!("H2Pointer's definition must be an unsigned value no more than 64 bits / 8 bytes");
         }
@@ -59,7 +59,7 @@ impl H2Pointer {
         self.definition.size()
     }
 
-    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
+    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
         Ok(vec![
             (self.definition.to_u64(context)?, *self.target_type.clone())
         ])
@@ -72,7 +72,7 @@ mod tests {
     use simple_error::SimpleResult;
     use sized_number::Endian;
 
-    use crate::datatype::basic::h2number::H2Number;
+    use crate::datatype::basic_type::h2number::H2Number;
 
     #[test]
     fn test_pointer() -> SimpleResult<()> {

@@ -4,17 +4,17 @@ use std::char;
 
 use sized_number::{Context, Endian};
 
-use crate::datatype::H2StaticType;
-use crate::datatype::basic::H2BasicType;
+use crate::datatype::StaticType;
+use crate::datatype::basic_type::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Unicode {
     endian: Endian,
 }
 
-impl From<Unicode> for H2StaticType {
-    fn from(o: Unicode) -> H2StaticType {
-        H2StaticType::from(H2BasicType::Unicode(o))
+impl From<Unicode> for StaticType {
+    fn from(o: Unicode) -> StaticType {
+        StaticType::from(H2BasicType::Unicode(o))
     }
 }
 
@@ -47,7 +47,7 @@ impl Unicode {
         2
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
+    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
         Ok(vec![])
     }
 }

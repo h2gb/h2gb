@@ -3,16 +3,16 @@ use simple_error::SimpleResult;
 
 use sized_number::Context;
 
-use crate::datatype::H2StaticType;
-use crate::datatype::basic::H2BasicType;
+use crate::datatype::StaticType;
+use crate::datatype::basic_type::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Character {
 }
 
-impl From<Character> for H2StaticType {
-    fn from(o: Character) -> H2StaticType {
-        H2StaticType::from(H2BasicType::Character(o))
+impl From<Character> for StaticType {
+    fn from(o: Character) -> StaticType {
+        StaticType::from(H2BasicType::Character(o))
     }
 }
 
@@ -41,7 +41,7 @@ impl Character {
         1
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
+    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
         Ok(vec![])
     }
 }

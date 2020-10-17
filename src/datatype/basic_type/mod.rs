@@ -2,8 +2,8 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use sized_number::Context;
 
-use crate::datatype::H2StaticType;
-use crate::datatype::composite::h2simple::H2Simple;
+use crate::datatype::StaticType;
+use crate::datatype::static_type::h2simple::H2Simple;
 
 pub mod h2number;
 use h2number::H2Number;
@@ -33,9 +33,9 @@ pub enum H2BasicType {
     Unicode(Unicode),
 }
 
-impl From<H2BasicType> for H2StaticType {
-    fn from(o: H2BasicType) -> H2StaticType {
-        H2StaticType::from(H2Simple::new(o))
+impl From<H2BasicType> for StaticType {
+    fn from(o: H2BasicType) -> StaticType {
+        StaticType::from(H2Simple::new(o))
     }
 }
 
@@ -51,7 +51,7 @@ impl H2BasicType {
         }
     }
 
-    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
+    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
         match self {
             Self::Number(t)    => t.related(context),
             Self::Pointer(t)   => t.related(context),

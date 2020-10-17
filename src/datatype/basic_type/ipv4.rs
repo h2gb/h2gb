@@ -4,17 +4,17 @@ use std::net::{Ipv4Addr};
 
 use sized_number::{Endian, Context};
 
-use crate::datatype::H2StaticType;
-use crate::datatype::basic::H2BasicType;
+use crate::datatype::StaticType;
+use crate::datatype::basic_type::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IPv4 {
     endian: Endian,
 }
 
-impl From<IPv4> for H2StaticType {
-    fn from(o: IPv4) -> H2StaticType {
-        H2StaticType::from(H2BasicType::IPv4(o))
+impl From<IPv4> for StaticType {
+    fn from(o: IPv4) -> StaticType {
+        StaticType::from(H2BasicType::IPv4(o))
     }
 }
 
@@ -41,7 +41,7 @@ impl IPv4 {
         4
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
+    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
         Ok(vec![])
     }
 }
