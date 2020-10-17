@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use sized_number::{Context};
+use sized_number::Context;
 
 use crate::datatype::H2StaticType;
 use crate::datatype::basic::H2BasicType;

@@ -20,6 +20,9 @@ use ipv6::IPv6;
 pub mod character;
 use character::Character;
 
+pub mod unicode;
+use unicode::Unicode;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum H2BasicType {
     Number(H2Number),
@@ -27,6 +30,7 @@ pub enum H2BasicType {
     IPv4(IPv4),
     IPv6(IPv6),
     Character(Character),
+    Unicode(Unicode),
 }
 
 impl From<H2BasicType> for H2StaticType {
@@ -43,6 +47,7 @@ impl H2BasicType {
             Self::IPv4(t)      => t.to_string(context),
             Self::IPv6(t)      => t.to_string(context),
             Self::Character(t) => t.to_string(context),
+            Self::Unicode(t)   => t.to_string(context),
         }
     }
 
@@ -53,6 +58,7 @@ impl H2BasicType {
             Self::IPv4(t)      => t.related(context),
             Self::IPv6(t)      => t.related(context),
             Self::Character(t) => t.related(context),
+            Self::Unicode(t)   => t.related(context),
         }
     }
 
@@ -63,6 +69,7 @@ impl H2BasicType {
             Self::IPv4(t)      => t.size(),
             Self::IPv6(t)      => t.size(),
             Self::Character(t) => t.size(),
+            Self::Unicode(t)   => t.size(),
         }
     }
 }
