@@ -17,12 +17,16 @@ use ipv4::IPv4;
 pub mod ipv6;
 use ipv6::IPv6;
 
+pub mod character;
+use character::Character;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum H2BasicType {
     Number(H2Number),
     Pointer(H2Pointer),
     IPv4(IPv4),
     IPv6(IPv6),
+    Character(Character),
 }
 
 impl From<H2BasicType> for H2StaticType {
@@ -34,28 +38,31 @@ impl From<H2BasicType> for H2StaticType {
 impl H2BasicType {
     pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
         match self {
-            Self::Number(t)  => t.to_string(context),
-            Self::Pointer(t) => t.to_string(context),
-            Self::IPv4(t)    => t.to_string(context),
-            Self::IPv6(t)    => t.to_string(context),
+            Self::Number(t)    => t.to_string(context),
+            Self::Pointer(t)   => t.to_string(context),
+            Self::IPv4(t)      => t.to_string(context),
+            Self::IPv6(t)      => t.to_string(context),
+            Self::Character(t) => t.to_string(context),
         }
     }
 
     pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
         match self {
-            Self::Number(t)  => t.related(context),
-            Self::Pointer(t) => t.related(context),
-            Self::IPv4(t)    => t.related(context),
-            Self::IPv6(t)    => t.related(context),
+            Self::Number(t)    => t.related(context),
+            Self::Pointer(t)   => t.related(context),
+            Self::IPv4(t)      => t.related(context),
+            Self::IPv6(t)      => t.related(context),
+            Self::Character(t) => t.related(context),
         }
     }
 
     pub fn size(&self) -> u64 {
         match self {
-            Self::Number(t)  => t.size(),
-            Self::Pointer(t) => t.size(),
-            Self::IPv4(t)    => t.size(),
-            Self::IPv6(t)    => t.size(),
+            Self::Number(t)    => t.size(),
+            Self::Pointer(t)   => t.size(),
+            Self::IPv4(t)      => t.size(),
+            Self::IPv6(t)      => t.size(),
+            Self::Character(t) => t.size(),
         }
     }
 }
