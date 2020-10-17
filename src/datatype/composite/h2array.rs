@@ -2,23 +2,23 @@ use serde::{Serialize, Deserialize};
 use sized_number::Context;
 use simple_error::SimpleResult;
 
-use crate::datatype::{helpers, H2Type, PartiallyResolvedType};
+use crate::datatype::{helpers, H2StaticType, PartiallyResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Array {
-    field_type: Box<H2Type>,
+    field_type: Box<H2StaticType>,
     length: u64,
     byte_alignment: Option<u64>,
 }
 
-impl From<H2Array> for H2Type {
-    fn from(o: H2Array) -> H2Type {
-        H2Type::from(H2Type::H2Array(o))
+impl From<H2Array> for H2StaticType {
+    fn from(o: H2Array) -> H2StaticType {
+        H2StaticType::from(H2StaticType::H2Array(o))
     }
 }
 
 impl H2Array {
-    pub fn new(length: u64, field_type: H2Type) -> Self {
+    pub fn new(length: u64, field_type: H2StaticType) -> Self {
         Self {
             field_type: Box::new(field_type),
             length: length,
@@ -26,7 +26,7 @@ impl H2Array {
         }
     }
 
-    pub fn new_aligned(length: u64, alignment: u64, field_type: H2Type) -> Self {
+    pub fn new_aligned(length: u64, alignment: u64, field_type: H2StaticType) -> Self {
         Self {
             field_type: Box::new(field_type),
             length: length,
@@ -93,7 +93,7 @@ mod tests {
         let context = Context::new(&data);
 
         // An array of 4 32-bit unsigned integers
-        let t: H2Type = H2Array::new(4,
+        let t: H2StaticType = H2Array::new(4,
             H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
         ).into();
 
@@ -123,7 +123,7 @@ mod tests {
         let context = Context::new(&data);
 
         // An array of 4 4-element I8 arrays that will print as decimal
-        let t: H2Type = H2Array::new(4,
+        let t: H2StaticType = H2Array::new(4,
             H2Array::new(3,
                 H2Number::new(SizedDefinition::I8, SizedDisplay::Decimal).into()
             ).into(),
@@ -159,7 +159,7 @@ mod tests {
         let context = Context::new(&data);
 
         // An array of 4 32-bit unsigned integers
-        let t: H2Type = H2Array::new_aligned(4, 4,
+        let t: H2StaticType = H2Array::new_aligned(4, 4,
             H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())).into()
         ).into();
 
@@ -190,7 +190,7 @@ mod tests {
         let context = Context::new(&data);
 
         // An array of 4 32-bit unsigned integers
-        let t: H2Type = H2Array::new_aligned(4, 4,
+        let t: H2StaticType = H2Array::new_aligned(4, 4,
             H2Array::new_aligned(2, 2,
                 H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())).into()
             ).into()
@@ -224,7 +224,7 @@ mod tests {
         let context = Context::new(&data);
 
         // An array of 4 32-bit unsigned integers
-        let t: H2Type = H2Array::new(4,
+        let t: H2StaticType = H2Array::new(4,
             H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
         ).into();
 

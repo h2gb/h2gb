@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use sized_number::Context;
 
-use crate::datatype::H2Type;
+use crate::datatype::H2StaticType;
 use crate::datatype::composite::h2simple::H2Simple;
 
 pub mod h2number;
@@ -25,9 +25,9 @@ pub enum H2BasicType {
     IPv6(IPv6),
 }
 
-impl From<H2BasicType> for H2Type {
-    fn from(o: H2BasicType) -> H2Type {
-        H2Type::from(H2Simple::new(o))
+impl From<H2BasicType> for H2StaticType {
+    fn from(o: H2BasicType) -> H2StaticType {
+        H2StaticType::from(H2Simple::new(o))
     }
 }
 
@@ -41,7 +41,7 @@ impl H2BasicType {
         }
     }
 
-    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
         match self {
             Self::Number(t)  => t.related(context),
             Self::Pointer(t) => t.related(context),

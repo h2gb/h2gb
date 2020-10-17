@@ -3,30 +3,30 @@ use simple_error::SimpleResult;
 use sized_number::Context;
 
 use crate::datatype::helpers;
-use crate::datatype::{H2Type, PartiallyResolvedType};
+use crate::datatype::{H2StaticType, PartiallyResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Struct {
     // An array of strings and types (which might be other types)
-    fields: Vec<(String, H2Type)>,
+    fields: Vec<(String, H2StaticType)>,
     byte_alignment: Option<u64>,
 }
 
-impl From<H2Struct> for H2Type {
-    fn from(o: H2Struct) -> H2Type {
-        H2Type::from(H2Type::H2Struct(o))
+impl From<H2Struct> for H2StaticType {
+    fn from(o: H2Struct) -> H2StaticType {
+        H2StaticType::from(H2StaticType::H2Struct(o))
     }
 }
 
 impl H2Struct {
-    pub fn new(fields: Vec<(String, H2Type)>) -> Self {
+    pub fn new(fields: Vec<(String, H2StaticType)>) -> Self {
         Self {
             fields: fields,
             byte_alignment: None,
         }
     }
 
-    pub fn new_aligned(byte_alignment: u64, fields: Vec<(String, H2Type)>) -> Self {
+    pub fn new_aligned(byte_alignment: u64, fields: Vec<(String, H2StaticType)>) -> Self {
         Self {
             fields: fields,
             byte_alignment: Some(byte_alignment),
@@ -96,7 +96,7 @@ mod tests {
         let data = b"\x00\x01\x02\x03\x00\x01\x0f\x0f\x0e\x0d\x0c".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Struct::new(vec![
+        let t: H2StaticType = H2Struct::new(vec![
             (
                 "field_u32".to_string(),
                 H2Number::new(
@@ -154,7 +154,7 @@ mod tests {
         let data = b"\x00\x01\x02\x03\x41\x42\x43\x43\x01\x00\x00\x00".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Struct::new(vec![
+        let t: H2StaticType = H2Struct::new(vec![
             (
                 "field_u32".to_string(),
                 H2Number::new(
@@ -214,7 +214,7 @@ mod tests {
         let data = b"\x00\x01\x02\x03\x00\x01PP\x0fPPP\x0f\x0e\x0d\x0c".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Struct::new_aligned(4, vec![
+        let t: H2StaticType = H2Struct::new_aligned(4, vec![
             (
                 "field_u32".to_string(),
                 H2Number::new(
@@ -273,7 +273,7 @@ mod tests {
         let data = b"\x00\x01\x02\x03PPPP\x41P\x42P\x43\x43PP\x01\x00\x00\x00PPPP".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Struct::new_aligned(8, vec![
+        let t: H2StaticType = H2Struct::new_aligned(8, vec![
             (
                 "field_u32".to_string(),
                 H2Number::new(
@@ -327,7 +327,7 @@ mod tests {
         let data = b"AAAAAAA\x00\x01\x02\x03\x00\x01\x0f\x0f\x0e\x0d\x0c".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Struct::new(vec![
+        let t: H2StaticType = H2Struct::new(vec![
             (
                 "field_u32".to_string(),
                 H2Number::new(

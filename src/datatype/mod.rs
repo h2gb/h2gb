@@ -16,7 +16,7 @@ use basic::H2BasicType;
 pub mod helpers;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum H2Type {
+pub enum H2StaticType {
     H2Array(H2Array),
     H2Enum(H2Enum),
     H2Simple(H2Simple),
@@ -42,7 +42,7 @@ impl ResolvedType {
 pub struct PartiallyResolvedType {
     offset: Range<u64>,
     field_name: Option<String>,
-    field_type: H2Type,
+    field_type: H2StaticType,
 }
 
 impl PartiallyResolvedType {
@@ -53,8 +53,8 @@ impl PartiallyResolvedType {
     }
 }
 
-impl H2Type {
-    // Resolve "one layer" - ie, to one or more `H2Type`s
+impl H2StaticType {
+    // Resolve "one layer" - ie, to one or more `H2StaticType`s
     pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
         match self {
             Self::H2Array(t)  => t.partially_resolve(start),

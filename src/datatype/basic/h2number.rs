@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 
 use sized_number::{Context, SizedDefinition, SizedDisplay};
 
-use crate::datatype::H2Type;
+use crate::datatype::H2StaticType;
 use crate::datatype::basic::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -12,9 +12,9 @@ pub struct H2Number {
     display: SizedDisplay,
 }
 
-impl From<H2Number> for H2Type {
-    fn from(o: H2Number) -> H2Type {
-        H2Type::from(H2BasicType::from(o))
+impl From<H2Number> for H2StaticType {
+    fn from(o: H2Number) -> H2StaticType {
+        H2StaticType::from(H2BasicType::from(o))
     }
 }
 
@@ -40,7 +40,7 @@ impl H2Number {
         self.definition.size()
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2StaticType)>> {
         Ok(vec![])
     }
 }

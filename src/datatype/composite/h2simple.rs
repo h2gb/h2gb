@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use sized_number::Context;
 
-use crate::datatype::{helpers, H2Type, ResolvedType, PartiallyResolvedType};
+use crate::datatype::{helpers, H2StaticType, ResolvedType, PartiallyResolvedType};
 use crate::datatype::basic::H2BasicType;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -11,9 +11,9 @@ pub struct H2Simple {
     byte_alignment: Option<u64>,
 }
 
-impl From<H2Simple> for H2Type {
-    fn from(o: H2Simple) -> H2Type {
-        H2Type::from(H2Type::H2Simple(o))
+impl From<H2Simple> for H2StaticType {
+    fn from(o: H2Simple) -> H2StaticType {
+        H2StaticType::from(H2StaticType::H2Simple(o))
     }
 }
 
@@ -41,7 +41,7 @@ impl H2Simple {
         vec![PartiallyResolvedType {
             offset: start..end_offset,
             field_name: None,
-            field_type: H2Type::from(self.clone()),
+            field_type: H2StaticType::from(self.clone()),
         }]
     }
 
@@ -78,7 +78,7 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into();
+        let t: H2StaticType = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into();
         assert_eq!(4, t.size());
         assert_eq!("0x41414141", t.to_string(&context)?);
 
@@ -96,7 +96,7 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let context = Context::new(&data);
 
-        let t: H2Type = H2Simple::new_aligned(4,
+        let t: H2StaticType = H2Simple::new_aligned(4,
             H2BasicType::from(H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())))
         ).into();
         assert_eq!(4, t.size());

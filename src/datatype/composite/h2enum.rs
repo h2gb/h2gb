@@ -5,30 +5,30 @@ use std::cmp;
 use sized_number::Context;
 
 use crate::datatype::helpers;
-use crate::datatype::{H2Type, PartiallyResolvedType};
+use crate::datatype::{H2StaticType, PartiallyResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Enum {
     // An array of strings and types (which might be other types)
-    options: Vec<(String, H2Type)>,
+    options: Vec<(String, H2StaticType)>,
     byte_alignment: Option<u64>,
 }
 
-impl From<H2Enum> for H2Type {
-    fn from(o: H2Enum) -> H2Type {
-        H2Type::from(H2Type::H2Enum(o))
+impl From<H2Enum> for H2StaticType {
+    fn from(o: H2Enum) -> H2StaticType {
+        H2StaticType::from(H2StaticType::H2Enum(o))
     }
 }
 
 impl H2Enum {
-    pub fn new(options: Vec<(String, H2Type)>) -> Self {
+    pub fn new(options: Vec<(String, H2StaticType)>) -> Self {
         Self {
             options: options,
             byte_alignment: None,
         }
     }
 
-    pub fn new_aligned(byte_alignment: u64, options: Vec<(String, H2Type)>) -> Self {
+    pub fn new_aligned(byte_alignment: u64, options: Vec<(String, H2StaticType)>) -> Self {
         Self {
             options: options,
             byte_alignment: Some(byte_alignment),
@@ -88,7 +88,7 @@ mod tests {
     fn test_enum() -> SimpleResult<()> {
         let data = b"ABCD".to_vec();
 
-        let e: H2Type = H2Enum::new(vec![
+        let e: H2StaticType = H2Enum::new(vec![
             (
                 "field_u32".to_string(),
                 H2Number::new(
