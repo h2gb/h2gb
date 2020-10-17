@@ -26,6 +26,14 @@ impl H2Array {
         }
     }
 
+    pub fn new_maybe_aligned(length: u64, alignment: Option<u64>, field_type: StaticType) -> Self {
+        Self {
+            field_type: Box::new(field_type),
+            length: length,
+            byte_alignment: alignment,
+        }
+    }
+
     pub fn new_aligned(length: u64, alignment: u64, field_type: StaticType) -> Self {
         Self {
             field_type: Box::new(field_type),

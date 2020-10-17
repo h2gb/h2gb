@@ -4,11 +4,13 @@ use std::ops::Range;
 
 use sized_number::Context;
 
+pub mod basic_type;
+use basic_type::H2BasicType;
+
 pub mod static_type;
 use static_type::StaticType;
 
-pub mod basic_type;
-use basic_type::H2BasicType;
+pub mod dynamic_type;
 
 pub mod helpers;
 
@@ -33,6 +35,17 @@ pub struct PartiallyResolvedType {
     field_name: Option<String>,
     field_type: StaticType,
 }
+
+impl PartiallyResolvedType {
+    fn new(start: u64, field_name: Option<String>, field_type: StaticType) -> Self {
+        PartiallyResolvedType {
+            offset: start..(start + field_type.size()),
+            field_name: field_name,
+            field_type: field_type,
+        }
+    }
+}
+
 
 impl PartiallyResolvedType {
     // This is a simpler way to display the type for the right part of the
