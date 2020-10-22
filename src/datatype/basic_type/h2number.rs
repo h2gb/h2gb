@@ -3,8 +3,8 @@ use simple_error::SimpleResult;
 
 use sized_number::{Context, SizedDefinition, SizedDisplay};
 
-use crate::datatype::StaticType;
-use crate::datatype::basic_type::H2BasicType;
+use crate::datatype::H2Type;
+use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Number {
@@ -12,15 +12,9 @@ pub struct H2Number {
     display: SizedDisplay,
 }
 
-impl From<H2Number> for StaticType {
-    fn from(o: H2Number) -> StaticType {
-        StaticType::from(H2BasicType::from(o))
-    }
-}
-
 impl From<H2Number> for H2BasicType {
     fn from(o: H2Number) -> H2BasicType {
-        H2BasicType::Number(o)
+        H2BasicType::new(H2BasicTypes::Number(o))
     }
 }
 
@@ -31,16 +25,18 @@ impl H2Number {
             display: display,
         }
     }
+}
 
-    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+impl H2BasicTrait for H2Number {
+    fn to_string(&self, context: &Context) -> SimpleResult<String> {
         self.definition.to_string(context, self.display)
     }
 
-    pub fn size(&self) -> u64 {
+    fn size(&self) -> u64 {
         self.definition.size()
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
+    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![])
     }
 }

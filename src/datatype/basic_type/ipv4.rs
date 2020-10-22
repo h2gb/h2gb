@@ -4,23 +4,17 @@ use std::net::{Ipv4Addr};
 
 use sized_number::{Endian, Context};
 
-use crate::datatype::StaticType;
-use crate::datatype::basic_type::H2BasicType;
+use crate::datatype::H2Type;
+use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IPv4 {
     endian: Endian,
 }
 
-impl From<IPv4> for StaticType {
-    fn from(o: IPv4) -> StaticType {
-        StaticType::from(H2BasicType::IPv4(o))
-    }
-}
-
 impl From<IPv4> for H2BasicType {
     fn from(o: IPv4) -> H2BasicType {
-        H2BasicType::IPv4(o)
+        H2BasicType::new(H2BasicTypes::IPv4(o))
     }
 }
 
@@ -30,18 +24,20 @@ impl IPv4 {
             endian: endian,
         }
     }
+}
 
-    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+impl H2BasicTrait for IPv4 {
+    fn to_string(&self, context: &Context) -> SimpleResult<String> {
         let number = context.read_u32(self.endian)?;
 
         Ok(Ipv4Addr::from(number).to_string())
     }
 
-    pub fn size(&self) -> u64 {
+    fn size(&self) -> u64 {
         4
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
+    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![])
     }
 }

@@ -1,9 +1,9 @@
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{bail, SimpleResult};
 use sized_number::Context;
+use std::ops::Range;
 
-use crate::datatype::StaticType;
-use crate::datatype::static_type::h2simple::H2Simple;
+use crate::datatype::{helpers, H2Type, PartiallyResolvedType};
 
 pub mod h2number;
 use h2number::H2Number;
@@ -24,7 +24,7 @@ pub mod unicode;
 use unicode::Unicode;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum H2BasicType {
+pub enum H2BasicTypes {
     Number(H2Number),
     Pointer(H2Pointer),
     IPv4(IPv4),
@@ -33,43 +33,70 @@ pub enum H2BasicType {
     Unicode(Unicode),
 }
 
-impl From<H2BasicType> for StaticType {
-    fn from(o: H2BasicType) -> StaticType {
-        StaticType::from(H2Simple::new(o))
-    }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct H2BasicType {
+    field: H2BasicTypes,
+    byte_alignment: Option<u64>,
+}
+
+pub trait H2BasicTrait {
+    fn to_string(&self, context: &Context) -> SimpleResult<String>;
+    fn size(&self) -> u64;
+    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>>;
 }
 
 impl H2BasicType {
-    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
-        match self {
-            Self::Number(t)    => t.to_string(context),
-            Self::Pointer(t)   => t.to_string(context),
-            Self::IPv4(t)      => t.to_string(context),
-            Self::IPv6(t)      => t.to_string(context),
-            Self::Character(t) => t.to_string(context),
-            Self::Unicode(t)   => t.to_string(context),
+    pub fn new(field: H2BasicTypes) -> Self {
+        Self {
+            field: field,
+            byte_alignment: None,
         }
     }
 
-    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
-        match self {
-            Self::Number(t)    => t.related(context),
-            Self::Pointer(t)   => t.related(context),
-            Self::IPv4(t)      => t.related(context),
-            Self::IPv6(t)      => t.related(context),
-            Self::Character(t) => t.related(context),
-            Self::Unicode(t)   => t.related(context),
+    pub fn new_aligned(field: H2BasicTypes, byte_alignment: Option<u64>) -> Self {
+        Self {
+            field: field,
+            byte_alignment: byte_alignment,
         }
+    }
+
+    pub fn as_basic_trait(&self) -> Box<&dyn H2BasicTrait> {
+        match &self.field {
+            H2BasicTypes::Number(t)    => Box::new(t),
+            H2BasicTypes::Pointer(t)   => Box::new(t),
+            H2BasicTypes::IPv4(t)      => Box::new(t),
+            H2BasicTypes::IPv6(t)      => Box::new(t),
+            H2BasicTypes::Character(t) => Box::new(t),
+            H2BasicTypes::Unicode(t)   => Box::new(t),
+        }
+    }
+
+    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+        self.as_basic_trait().to_string(context)
+    }
+
+    pub fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+        self.as_basic_trait().related(context)
     }
 
     pub fn size(&self) -> u64 {
-        match self {
-            Self::Number(t)    => t.size(),
-            Self::Pointer(t)   => t.size(),
-            Self::IPv4(t)      => t.size(),
-            Self::IPv6(t)      => t.size(),
-            Self::Character(t) => t.size(),
-            Self::Unicode(t)   => t.size(),
-        }
+        let size = self.as_basic_trait().size();
+
+        // Round up to alignment, if it's set
+        helpers::maybe_round_up(size, self.byte_alignment)
+    }
+
+    pub fn range(&self, start: u64) -> Range<u64> {
+        start..(start + self.size())
+    }
+
+    pub fn partially_resolve(&self, start: u64) -> SimpleResult<Vec<PartiallyResolvedType>> {
+        let partially_resolved = PartiallyResolvedType {
+            offset: self.range(start),
+            field_name: None,
+            field_type: H2Type::from(self.clone()),
+        };
+
+        Ok(vec![partially_resolved])
     }
 }

@@ -4,23 +4,17 @@ use std::char;
 
 use sized_number::{Context, Endian};
 
-use crate::datatype::StaticType;
-use crate::datatype::basic_type::H2BasicType;
+use crate::datatype::H2Type;
+use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Unicode {
     endian: Endian,
 }
 
-impl From<Unicode> for StaticType {
-    fn from(o: Unicode) -> StaticType {
-        StaticType::from(H2BasicType::Unicode(o))
-    }
-}
-
 impl From<Unicode> for H2BasicType {
     fn from(o: Unicode) -> H2BasicType {
-        H2BasicType::Unicode(o)
+        H2BasicType::new(H2BasicTypes::Unicode(o))
     }
 }
 
@@ -30,8 +24,10 @@ impl Unicode {
             endian: endian,
         }
     }
+}
 
-    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+impl H2BasicTrait for Unicode {
+    fn to_string(&self, context: &Context) -> SimpleResult<String> {
         let number = context.read_u16(self.endian)?;
 
         match char::decode_utf16(vec![number]).next() {
@@ -43,11 +39,11 @@ impl Unicode {
         }
     }
 
-    pub fn size(&self) -> u64 {
+    fn size(&self) -> u64 {
         2
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
+    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![])
     }
 }

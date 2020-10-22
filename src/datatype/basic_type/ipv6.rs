@@ -4,23 +4,17 @@ use std::net::{Ipv6Addr};
 
 use sized_number::{Endian, Context};
 
-use crate::datatype::StaticType;
-use crate::datatype::basic_type::H2BasicType;
+use crate::datatype::H2Type;
+use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IPv6 {
     endian: Endian,
 }
 
-impl From<IPv6> for StaticType {
-    fn from(o: IPv6) -> StaticType {
-        StaticType::from(H2BasicType::IPv6(o))
-    }
-}
-
 impl From<IPv6> for H2BasicType {
     fn from(o: IPv6) -> H2BasicType {
-        H2BasicType::IPv6(o)
+        H2BasicType::new(H2BasicTypes::IPv6(o))
     }
 }
 
@@ -30,18 +24,20 @@ impl IPv6 {
             endian: endian,
         }
     }
+}
 
-    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+impl H2BasicTrait for IPv6 {
+    fn to_string(&self, context: &Context) -> SimpleResult<String> {
         let number = context.read_u128(self.endian)?;
 
         Ok(Ipv6Addr::from(number).to_string())
     }
 
-    pub fn size(&self) -> u64 {
+    fn size(&self) -> u64 {
         16
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
+    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![])
     }
 }

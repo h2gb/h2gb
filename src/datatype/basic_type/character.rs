@@ -3,22 +3,16 @@ use simple_error::SimpleResult;
 
 use sized_number::Context;
 
-use crate::datatype::StaticType;
-use crate::datatype::basic_type::H2BasicType;
+use crate::datatype::H2Type;
+use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Character {
 }
 
-impl From<Character> for StaticType {
-    fn from(o: Character) -> StaticType {
-        StaticType::from(H2BasicType::Character(o))
-    }
-}
-
 impl From<Character> for H2BasicType {
     fn from(o: Character) -> H2BasicType {
-        H2BasicType::Character(o)
+        H2BasicType::new(H2BasicTypes::Character(o))
     }
 }
 
@@ -27,8 +21,10 @@ impl Character {
         Self {
         }
     }
+}
 
-    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+impl H2BasicTrait for Character {
+    fn to_string(&self, context: &Context) -> SimpleResult<String> {
         let number = context.read_u8()?;
 
         match number > 0x1F && number < 0x7F {
@@ -37,11 +33,11 @@ impl Character {
         }
     }
 
-    pub fn size(&self) -> u64 {
+    fn size(&self) -> u64 {
         1
     }
 
-    pub fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, StaticType)>> {
+    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![])
     }
 }
