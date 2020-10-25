@@ -118,10 +118,10 @@ impl H2Type {
         }
     }
 
-    pub fn new_aligned(field: H2Types, byte_alignment: Option<u64>) -> Self {
+    pub fn new_aligned(byte_alignment: Option<u64>, field: H2Types) -> Self {
         Self {
-            field: field,
             byte_alignment: byte_alignment,
+            field: field,
         }
     }
 

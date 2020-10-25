@@ -17,9 +17,9 @@ impl From<H2Number> for H2Type {
     }
 }
 
-impl From<(H2Number, u64)> for H2Type {
-    fn from(o: (H2Number, u64)) -> H2Type {
-        H2Type::new_aligned(H2Types::H2Number(o.0), Some(o.1))
+impl From<(u64, H2Number)> for H2Type {
+    fn from(o: (u64, H2Number)) -> H2Type {
+        H2Type::new_aligned(Some(o.0), H2Types::H2Number(o.1))
     }
 }
 
@@ -82,14 +82,35 @@ mod tests {
     fn test_i16_decimal() -> SimpleResult<()> {
         let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
 
-        let t = H2Number::new(
+        let t = H2Type::from(H2Number::new(
             SizedDefinition::I16(Endian::Big),
             SizedDisplay::Decimal,
-        );
+        ));
 
         let c = Context::new(&data);
 
         assert_eq!(2, t.static_size().unwrap());
+        assert_eq!(0, t.related(&c.at(0))?.len());
+        assert_eq!("0", t.to_string(&c.at(0))?);
+        assert_eq!("32767", t.to_string(&c.at(2))?);
+        assert_eq!("-32768", t.to_string(&c.at(4))?);
+        assert_eq!("-1", t.to_string(&c.at(6))?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_alignment() -> SimpleResult<()> {
+        let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
+
+        let t = H2Type::from((4, H2Number::new(
+            SizedDefinition::I16(Endian::Big),
+            SizedDisplay::Decimal,
+        )));
+
+        let c = Context::new(&data);
+
+        assert_eq!(4, t.static_size().unwrap());
         assert_eq!(0, t.related(&c.at(0))?.len());
         assert_eq!("0", t.to_string(&c.at(0))?);
         assert_eq!("32767", t.to_string(&c.at(2))?);

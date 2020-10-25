@@ -19,9 +19,9 @@ impl From<H2Pointer> for H2Type {
     }
 }
 
-impl From<(H2Pointer, u64)> for H2Type {
-    fn from(o: (H2Pointer, u64)) -> H2Type {
-        H2Type::new_aligned(H2Types::H2Pointer(o.0), Some(o.1))
+impl From<(u64, H2Pointer)> for H2Type {
+    fn from(o: (u64, H2Pointer)) -> H2Type {
+        H2Type::new_aligned(Some(o.0), H2Types::H2Pointer(o.1))
     }
 }
 
