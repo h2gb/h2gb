@@ -118,6 +118,13 @@ impl H2Type {
         }
     }
 
+    pub fn new_aligned(field: H2Types, byte_alignment: Option<u64>) -> Self {
+        Self {
+            field: field,
+            byte_alignment: byte_alignment,
+        }
+    }
+
     pub fn as_trait(&self) -> Box<&dyn H2TypeTrait> {
         match &self.field {
             H2Types::H2Number(t)  => t.as_trait(),

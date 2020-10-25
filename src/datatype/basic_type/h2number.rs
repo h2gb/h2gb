@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 
 use sized_number::{Context, SizedDefinition, SizedDisplay};
 
-use crate::datatype::{helpers, H2Type, PartiallyResolvedType, H2TypeTrait};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Number {
@@ -11,11 +11,17 @@ pub struct H2Number {
     display: SizedDisplay,
 }
 
-// impl From<H2Number> for H2Type {
-//     fn from(o: H2Number) -> H2BasicType {
-//         H2BasicType::new(H2BasicTypes::Number(o))
-//     }
-// }
+impl From<H2Number> for H2Type {
+    fn from(o: H2Number) -> H2Type {
+        H2Type::new(H2Types::H2Number(o))
+    }
+}
+
+impl From<(H2Number, u64)> for H2Type {
+    fn from(o: (H2Number, u64)) -> H2Type {
+        H2Type::new_aligned(H2Types::H2Number(o.0), Some(o.1))
+    }
+}
 
 impl H2Number {
     pub fn new(definition: SizedDefinition, display: SizedDisplay) -> Self {
@@ -55,10 +61,10 @@ mod tests {
     fn test_u8_hex() -> SimpleResult<()> {
         let data = b"\x00\x7f\x80\xff".to_vec();
 
-        let t = H2Number::new(
+        let t = H2Type::from(H2Number::new(
             SizedDefinition::U8,
             SizedDisplay::Hex(Default::default()),
-        );
+        ));
 
         let c = Context::new(&data);
 
