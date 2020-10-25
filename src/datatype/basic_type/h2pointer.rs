@@ -3,8 +3,7 @@ use simple_error::{SimpleResult, bail};
 
 use sized_number::{Context, SizedDefinition, SizedDisplay};
 
-use crate::datatype::H2Type;
-use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
+use crate::datatype::{helpers, H2Type, PartiallyResolvedType, H2TypeTrait};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
@@ -14,28 +13,25 @@ pub struct H2Pointer {
     target_type: Box<H2Type>,
 }
 
-impl From<H2Pointer> for H2BasicType {
-    fn from(o: H2Pointer) -> H2BasicType {
-        H2BasicType::new(H2BasicTypes::Pointer(o))
+// impl From<H2Pointer> for H2BasicType {
+//     fn from(o: H2Pointer) -> H2BasicType {
+//         H2BasicType::new(H2BasicTypes::Pointer(o))
+//     }
+// }
+
+impl H2TypeTrait for H2Pointer {
+    fn is_static(&self) -> bool {
+        true
     }
-}
 
-impl H2Pointer {
-    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> SimpleResult<Self> {
-        if !definition.can_be_u64() {
-            bail!("H2Pointer's definition must be an unsigned value no more than 64 bits / 8 bytes");
-        }
-
-        Ok(H2Pointer {
-            definition: definition,
-            display: display,
-
-            target_type: Box::new(target_type),
-        })
+    fn static_size(&self) -> Option<u64> {
+        Some(self.definition.size())
     }
-}
 
-impl H2BasicTrait for H2Pointer {
+    fn name(&self) -> String {
+        "Pointer".to_string()
+    }
+
     fn to_string(&self, context: &Context) -> SimpleResult<String> {
         // Read the current value
         let target_offset = self.definition.to_u64(context)?;
@@ -49,10 +45,6 @@ impl H2BasicTrait for H2Pointer {
         };
 
         Ok(format!("(ref) {} => {}", pointer_display, target_display))
-    }
-
-    fn size(&self) -> u64 {
-        self.definition.size()
     }
 
     fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
