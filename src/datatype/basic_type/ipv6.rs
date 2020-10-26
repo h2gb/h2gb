@@ -4,17 +4,22 @@ use std::net::{Ipv6Addr};
 
 use sized_number::{Endian, Context};
 
-use crate::datatype::H2Type;
-use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IPv6 {
     endian: Endian,
 }
 
-impl From<IPv6> for H2BasicType {
-    fn from(o: IPv6) -> H2BasicType {
-        H2BasicType::new(H2BasicTypes::IPv6(o))
+impl From<IPv6> for H2Type {
+    fn from(o: IPv6) -> H2Type {
+        H2Type::new(H2Types::IPv6(o))
+    }
+}
+
+impl From<(u64, IPv6)> for H2Type {
+    fn from(o: (u64, IPv6)) -> H2Type {
+        H2Type::new_aligned(Some(o.0), H2Types::IPv6(o.1))
     }
 }
 
@@ -26,19 +31,23 @@ impl IPv6 {
     }
 }
 
-impl H2BasicTrait for IPv6 {
+impl H2TypeTrait for IPv6 {
+    fn is_static(&self) -> bool {
+        true
+    }
+
+    fn static_size(&self) -> Option<u64> {
+        Some(16)
+    }
+
+    fn name(&self) -> String {
+        "IPv6 Address".to_string()
+    }
+
     fn to_string(&self, context: &Context) -> SimpleResult<String> {
         let number = context.read_u128(self.endian)?;
 
         Ok(Ipv6Addr::from(number).to_string())
-    }
-
-    fn size(&self) -> u64 {
-        16
-    }
-
-    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
-        Ok(vec![])
     }
 }
 
@@ -49,7 +58,7 @@ mod tests {
     use sized_number::{Context, Endian};
 
     #[test]
-    fn test_ipv4() -> SimpleResult<()> {
+    fn test_ipv6() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
         assert_eq!("::", IPv6::new(Endian::Big).to_string(&Context::new(&data))?);
 
@@ -60,7 +69,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ipv4_little() -> SimpleResult<()> {
+    fn test_ipv6_little() -> SimpleResult<()> {
         let data = b"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
 
         assert_eq!("::1", IPv6::new(Endian::Little).to_string(&Context::new(&data))?);
@@ -69,7 +78,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ipv4_error() -> SimpleResult<()> {
+    fn test_ipv6_error() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
         assert!(IPv6::new(Endian::Big).to_string(&Context::new(&data)).is_err());
 

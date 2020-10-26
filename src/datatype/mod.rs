@@ -17,6 +17,7 @@ pub enum H2Types {
     H2Pointer(basic_type::h2pointer::H2Pointer),
     Character(basic_type::character::Character),
     IPv4(basic_type::ipv4::IPv4),
+    IPv6(basic_type::ipv6::IPv6),
 
     // Complex
     H2Array(complex_type::h2array::H2Array),
@@ -134,6 +135,7 @@ impl H2Type {
             H2Types::H2Pointer(t) => t.as_trait(),
             H2Types::Character(t) => t.as_trait(),
             H2Types::IPv4(t)      => t.as_trait(),
+            H2Types::IPv6(t)      => t.as_trait(),
 
             // Complex
             H2Types::H2Array(t)   => t.as_trait(),
