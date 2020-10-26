@@ -16,6 +16,7 @@ pub enum H2Types {
     H2Number(basic_type::h2number::H2Number),
     H2Pointer(basic_type::h2pointer::H2Pointer),
     Character(basic_type::character::Character),
+    IPv4(basic_type::ipv4::IPv4),
 
     // Complex
     H2Array(complex_type::h2array::H2Array),
@@ -128,9 +129,11 @@ impl H2Type {
 
     pub fn as_trait(&self) -> Box<&dyn H2TypeTrait> {
         match &self.field {
+            // Basic
             H2Types::H2Number(t)  => t.as_trait(),
             H2Types::H2Pointer(t) => t.as_trait(),
             H2Types::Character(t) => t.as_trait(),
+            H2Types::IPv4(t)      => t.as_trait(),
 
             // Complex
             H2Types::H2Array(t)   => t.as_trait(),
