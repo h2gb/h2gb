@@ -3,18 +3,24 @@ use simple_error::SimpleResult;
 
 use sized_number::Context;
 
-use crate::datatype::H2Type;
-use crate::datatype::basic_type::{H2BasicTrait, H2BasicType, H2BasicTypes};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Character {
 }
 
-impl From<Character> for H2BasicType {
-    fn from(o: Character) -> H2BasicType {
-        H2BasicType::new(H2BasicTypes::Character(o))
+impl From<Character> for H2Type {
+    fn from(o: Character) -> H2Type {
+        H2Type::new(H2Types::Character(o))
     }
 }
+
+impl From<(u64, Character)> for H2Type {
+    fn from(o: (u64, Character)) -> H2Type {
+        H2Type::new_aligned(Some(o.0), H2Types::Character(o.1))
+    }
+}
+
 
 impl Character {
     pub fn new() -> Self {
@@ -23,7 +29,19 @@ impl Character {
     }
 }
 
-impl H2BasicTrait for Character {
+impl H2TypeTrait for Character {
+    fn is_static(&self) -> bool {
+        true
+    }
+
+    fn static_size(&self) -> Option<u64> {
+        Some(1)
+    }
+
+    fn name(&self) -> String {
+        "Character".to_string()
+    }
+
     fn to_string(&self, context: &Context) -> SimpleResult<String> {
         let number = context.read_u8()?;
 
@@ -31,14 +49,6 @@ impl H2BasicTrait for Character {
             true  => Ok((number as char).to_string()),
             false => Ok("<invalid>".to_string()),
         }
-    }
-
-    fn size(&self) -> u64 {
-        1
-    }
-
-    fn related(&self, _context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
-        Ok(vec![])
     }
 }
 
