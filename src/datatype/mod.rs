@@ -67,13 +67,6 @@ pub trait H2TypeTrait {
 
     // Render as a string
     fn to_string(&self, context: &Context) -> SimpleResult<String>;
-
-    fn as_trait(&self) -> Box<&dyn H2TypeTrait>
-    where Self: Sized
-    {
-        Box::new(self)
-    }
-
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -112,21 +105,21 @@ impl H2Type {
         }
     }
 
-    pub fn as_trait(&self) -> Box<&dyn H2TypeTrait> {
+    pub fn as_trait(&self) -> &dyn H2TypeTrait {
         match &self.field {
             // Basic
-            H2Types::H2Number(t)  => t.as_trait(),
-            H2Types::H2Pointer(t) => t.as_trait(),
-            H2Types::Character(t) => t.as_trait(),
-            H2Types::IPv4(t)      => t.as_trait(),
-            H2Types::IPv6(t)      => t.as_trait(),
-            H2Types::Unicode(t)   => t.as_trait(),
+            H2Types::H2Number(t)  => t,
+            H2Types::H2Pointer(t) => t,
+            H2Types::Character(t) => t,
+            H2Types::IPv4(t)      => t,
+            H2Types::IPv6(t)      => t,
+            H2Types::Unicode(t)   => t,
 
             // Complex
-            H2Types::H2Array(t)   => t.as_trait(),
+            H2Types::H2Array(t)   => t,
 
             // Dynamic
-            H2Types::NTString(t)  => t.as_trait(),
+            H2Types::NTString(t)  => t,
         }
     }
 
