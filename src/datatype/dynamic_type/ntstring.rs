@@ -31,8 +31,8 @@ impl H2TypeTrait for NTString {
         false
     }
 
-    fn static_size(&self) -> Option<u64> {
-        None
+    fn static_size(&self) -> SimpleResult<u64> {
+        bail!("No size for dynamic types");
     }
 
     fn name(&self) -> String {
@@ -74,7 +74,7 @@ impl H2TypeTrait for NTString {
         }
     }
 
-    fn children(&self, context: &Context) -> SimpleResult<Option<Vec<PartiallyResolvedType>>> {
+    fn children(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
         let size = self.size(context)?;
         let mut result: Vec<PartiallyResolvedType> = Vec::new();
 
@@ -93,7 +93,7 @@ impl H2TypeTrait for NTString {
         // ));
 
 
-        Ok(Some(result))
+        Ok(result)
     }
 }
 

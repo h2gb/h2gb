@@ -37,8 +37,8 @@ impl H2TypeTrait for H2Number {
         true
     }
 
-    fn static_size(&self) -> Option<u64> {
-        Some(self.definition.size())
+    fn static_size(&self) -> SimpleResult<u64> {
+        Ok(self.definition.size())
     }
 
     fn name(&self) -> String {

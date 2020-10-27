@@ -34,8 +34,8 @@ impl H2TypeTrait for Character {
         true
     }
 
-    fn static_size(&self) -> Option<u64> {
-        Some(1)
+    fn static_size(&self) -> SimpleResult<u64> {
+        Ok(1)
     }
 
     fn name(&self) -> String {

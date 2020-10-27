@@ -32,14 +32,14 @@ pub trait H2TypeTrait {
     fn is_static(&self) -> bool;
 
     // Get the static size, if possible
-    fn static_size(&self) -> Option<u64>;
+    fn static_size(&self) -> SimpleResult<u64>;
 
     // Get "child" nodes (array elements, struct body, etc), if possible
     // Empty vector = a leaf node
-    fn children_static(&self, _start: u64) -> Option<Vec<PartiallyResolvedType>> {
+    fn children_static(&self, _start: u64) -> SimpleResult<Vec<PartiallyResolvedType>> {
         match self.is_static() {
-            true  => Some(vec![]),
-            false => None,
+            true  => Ok(vec![]),
+            false => bail!("Can't get children_static() for a non-static type"),
         }
     }
 
@@ -48,17 +48,15 @@ pub trait H2TypeTrait {
 
     // Get the actual size, including dynamic parts
     fn size(&self, _context: &Context) -> SimpleResult<u64> {
-        match self.static_size() {
-            Some(s) => Ok(s),
-            None => bail!("No size() implementation on {}", self.name())
-        }
+        self.static_size()
     }
 
-    // Get the children - this will work for static or dynamic types
-    fn children(&self, context: &Context) -> SimpleResult<Option<Vec<PartiallyResolvedType>>> {
+    // Get the children - this will work for static or dynamic types, but is
+    // only implemented here for static
+    fn children(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
         match self.is_static() {
-            true  => Ok(self.children_static(context.position())),
-            false => Ok(None),
+            true  => self.children_static(context.position()),
+            false => bail!("children() must be implemented on a dynamic type"),
         }
     }
 
@@ -77,21 +75,6 @@ pub trait H2TypeTrait {
     }
 
 }
-
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct ResolvedType {
-//     offset: Range<u64>,
-//     breadcrumbs: Option<Vec<String>>,
-//     basic_type: H2BasicType,
-// }
-
-// impl ResolvedType {
-//     // This is a simpler way to display the type for the right part of the
-//     // context
-//     pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
-//         self.basic_type.to_string(&context.at(self.offset.start))
-//     }
-// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PartiallyResolvedType {
@@ -147,8 +130,23 @@ impl H2Type {
         }
     }
 
-    pub fn resolve(&self) -> SimpleResult<()> {
-        bail!("Not implemented");
+    pub fn resolve(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
+        let mut children = self.children(context)?;
+        let mut result: Vec<PartiallyResolvedType> = Vec::new();
+
+        if children.len() == 0 {
+            // No children? Return ourself!
+            result.push(PartiallyResolvedType {
+                offset: context.position()..(context.position() + self.size(context)?),
+                field_name: None,
+                field_type: self.clone(),
+            });
+        } else {
+            // Children? Gotta get 'em all!
+            result.append(&mut children);
+        }
+
+        Ok(result)
     }
 }
 
@@ -159,16 +157,16 @@ impl H2TypeTrait for H2Type {
     }
 
     // Get the static size, if possible
-    fn static_size(&self) -> Option<u64> {
+    fn static_size(&self) -> SimpleResult<u64> {
         match self.as_trait().static_size() {
-            Some(s) => Some(helpers::maybe_round_up(s, self.byte_alignment)),
-            None    => None,
+            Ok(s)   => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
+            Err(e)  => Err(e),
         }
     }
 
     // Get "child" nodes (array elements, struct body, etc), if possible
     // Empty vector = a leaf node
-    fn children_static(&self, start: u64) -> Option<Vec<PartiallyResolvedType>> {
+    fn children_static(&self, start: u64) -> SimpleResult<Vec<PartiallyResolvedType>> {
         self.as_trait().children_static(start)
     }
 
@@ -186,7 +184,7 @@ impl H2TypeTrait for H2Type {
     }
 
     // Get the children - this will work for static or dynamic types
-    fn children(&self, context: &Context) -> SimpleResult<Option<Vec<PartiallyResolvedType>>> {
+    fn children(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
         self.as_trait().children(context)
     }
 

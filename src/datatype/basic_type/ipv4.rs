@@ -36,8 +36,8 @@ impl H2TypeTrait for IPv4 {
         true
     }
 
-    fn static_size(&self) -> Option<u64> {
-        Some(4)
+    fn static_size(&self) -> SimpleResult<u64> {
+        Ok(4)
     }
 
     fn name(&self) -> String {

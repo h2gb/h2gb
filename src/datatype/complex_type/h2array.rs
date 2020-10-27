@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use sized_number::Context;
 use simple_error::{bail, SimpleResult};
 
-use crate::datatype::{helpers, H2Type, PartiallyResolvedType, H2TypeTrait};
+use crate::datatype::{H2Type, PartiallyResolvedType, H2TypeTrait};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Array {
@@ -22,14 +22,14 @@ impl H2Array {
 
 impl H2TypeTrait for H2Array {
     fn is_static(&self) -> bool {
-        self.static_size().is_some()
+        self.static_size().is_ok()
     }
 
-    fn static_size(&self) -> Option<u64> {
-        Some(self.length * self.field_type.static_size()?)
+    fn static_size(&self) -> SimpleResult<u64> {
+        Ok(self.length * self.field_type.static_size()?)
     }
 
-    fn children_static(&self, start: u64) -> Option<Vec<PartiallyResolvedType>> {
+    fn children_static(&self, start: u64) -> SimpleResult<Vec<PartiallyResolvedType>> {
         let mut result = vec![];
         let mut offset: u64 = start;
 
@@ -46,7 +46,7 @@ impl H2TypeTrait for H2Array {
             offset = end_offset;
         };
 
-        Some(result)
+        Ok(result)
     }
 
     fn name(&self) -> String {
@@ -61,7 +61,7 @@ impl H2TypeTrait for H2Array {
 
     // Note that this isn't quite the same as static_children - this can handle
     // dynamic fields
-    fn children(&self, context: &Context) -> SimpleResult<Option<Vec<PartiallyResolvedType>>> {
+    fn children(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
         let mut result = vec![];
         let mut offset: u64 = context.position();
 
@@ -78,7 +78,7 @@ impl H2TypeTrait for H2Array {
             offset = end_offset;
         };
 
-        Ok(Some(result))
+        Ok(result)
     }
 
     fn to_string(&self, context: &Context) -> SimpleResult<String> {
@@ -86,10 +86,8 @@ impl H2TypeTrait for H2Array {
 
         let resolved = self.children(context)?;
 
-        if let Some(resolved) = resolved {
-            for r in resolved {
-                strings.push(r.field_type.to_string(&context.at(r.offset.start))?);
-            }
+        for r in resolved {
+            strings.push(r.field_type.to_string(&context.at(r.offset.start))?);
         }
 
         Ok(format!("[{}]", strings.join(", ")))

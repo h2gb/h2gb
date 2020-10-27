@@ -36,8 +36,8 @@ impl H2TypeTrait for Unicode {
         true
     }
 
-    fn static_size(&self) -> Option<u64> {
-        Some(2)
+    fn static_size(&self) -> SimpleResult<u64> {
+        Ok(2)
     }
 
     fn name(&self) -> String {
