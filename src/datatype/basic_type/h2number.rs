@@ -99,24 +99,24 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_alignment() -> SimpleResult<()> {
-        let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
+    // #[test]
+    // fn test_alignment() -> SimpleResult<()> {
+    //     let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
 
-        let t = H2Type::from((4, H2Number::new(
-            SizedDefinition::I16(Endian::Big),
-            SizedDisplay::Decimal,
-        )));
+    //     let t = H2Type::from((4, H2Number::new(
+    //         SizedDefinition::I16(Endian::Big),
+    //         SizedDisplay::Decimal,
+    //     )));
 
-        let c = Context::new(&data);
+    //     let c = Context::new(&data);
 
-        assert_eq!(4, t.static_size().unwrap());
-        assert_eq!(0, t.related(&c.at(0))?.len());
-        assert_eq!("0", t.to_string(&c.at(0))?);
-        assert_eq!("32767", t.to_string(&c.at(2))?);
-        assert_eq!("-32768", t.to_string(&c.at(4))?);
-        assert_eq!("-1", t.to_string(&c.at(6))?);
+    //     assert_eq!(4, t.static_size().unwrap());
+    //     assert_eq!(0, t.related(&c.at(0))?.len());
+    //     assert_eq!("0", t.to_string(&c.at(0))?);
+    //     assert_eq!("32767", t.to_string(&c.at(2))?);
+    //     assert_eq!("-32768", t.to_string(&c.at(4))?);
+    //     assert_eq!("-1", t.to_string(&c.at(6))?);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }

@@ -21,7 +21,6 @@ impl From<(u64, Character)> for H2Type {
     }
 }
 
-
 impl Character {
     pub fn new() -> Self {
         Self {

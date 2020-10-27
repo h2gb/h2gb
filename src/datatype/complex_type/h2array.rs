@@ -2,12 +2,24 @@ use serde::{Serialize, Deserialize};
 use sized_number::Context;
 use simple_error::{bail, SimpleResult};
 
-use crate::datatype::{H2Type, PartiallyResolvedType, H2TypeTrait};
+use crate::datatype::{H2Type, H2Types, PartiallyResolvedType, H2TypeTrait};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Array {
     field_type: Box<H2Type>,
     length: u64,
+}
+
+impl From<H2Array> for H2Type {
+    fn from(o: H2Array) -> H2Type {
+        H2Type::new(H2Types::H2Array(o))
+    }
+}
+
+impl From<(u64, H2Array)> for H2Type {
+    fn from(o: (u64, H2Array)) -> H2Type {
+        H2Type::new_aligned(Some(o.0), H2Types::H2Array(o.1))
+    }
 }
 
 impl H2Array {
@@ -102,71 +114,80 @@ mod tests {
 
     use crate::datatype::basic_type::h2number::H2Number;
 
-    // #[test]
-    // fn test_array() -> SimpleResult<()> {
-    //     let data = b"AAAABBBBCCCCDDDD".to_vec();
-    //     let context = Context::new(&data);
+    #[test]
+    fn test_array() -> SimpleResult<()> {
+        let data = b"AAAABBBBCCCCDDDD".to_vec();
+        let context = Context::new(&data);
 
-    //     // An array of 4 32-bit unsigned integers
-    //     let t: StaticType = H2Array::new(4,
-    //         H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
-    //     ).into();
+        // An array of 4 32-bit unsigned integers
+        let t = H2Type::from(H2Array::new(4,
+            H2Type::from(H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())))
+        ));
 
-    //     assert_eq!(16, t.size());
+        assert_eq!(true, t.is_static());
+        assert_eq!(16, t.static_size()?);
 
-    //     let resolved = t.fully_resolve(0, None);
-    //     assert_eq!(4, resolved.len());
+        let children = t.children_static(0)?;
+        assert_eq!(4, children.len());
 
-    //     assert_eq!(0..4, resolved[0].offset);
-    //     assert_eq!("0x41414141", resolved[0].to_string(&context)?);
+        let resolved = t.resolve(&context)?;
+        assert_eq!(4, resolved.len());
 
-    //     assert_eq!(4..8, resolved[1].offset);
-    //     assert_eq!("0x42424242", resolved[1].to_string(&context)?);
+        assert_eq!(0..4, resolved[0].offset);
+        assert_eq!("0x41414141", resolved[0].to_string(&context)?);
 
-    //     assert_eq!(8..12, resolved[2].offset);
-    //     assert_eq!("0x43434343", resolved[2].to_string(&context)?);
+        assert_eq!(4..8, resolved[1].offset);
+        assert_eq!("0x42424242", resolved[1].to_string(&context)?);
 
-    //     assert_eq!(12..16, resolved[3].offset);
-    //     assert_eq!("0x44444444", resolved[3].to_string(&context)?);
+        assert_eq!(8..12, resolved[2].offset);
+        assert_eq!("0x43434343", resolved[2].to_string(&context)?);
 
-    //     Ok(())
-    // }
+        assert_eq!(12..16, resolved[3].offset);
+        assert_eq!("0x44444444", resolved[3].to_string(&context)?);
 
-    // #[test]
-    // fn test_nested_array() -> SimpleResult<()> {
-    //     let data = b"\x00\x00\x00\x00\x7f\x7f\x7f\x7f\x80\x80\xff\xff".to_vec();
-    //     let context = Context::new(&data);
+        Ok(())
+    }
 
-    //     // An array of 4 4-element I8 arrays that will print as decimal
-    //     let t: StaticType = H2Array::new(4,
-    //         H2Array::new(3,
-    //             H2Number::new(SizedDefinition::I8, SizedDisplay::Decimal).into()
-    //         ).into(),
-    //     ).into();
+    #[test]
+    fn test_nested_array() -> SimpleResult<()> {
+        let data = b"\x00\x00\x00\x00\x7f\x7f\x7f\x7f\x80\x80\xff\xff".to_vec();
+        let context = Context::new(&data);
 
-    //     assert_eq!(12, t.size());
+        // An array of 4 4-element I8 arrays that will print as decimal
+        let t = H2Type::from(H2Array::new(4,
+            H2Type::from(H2Array::new(3,
+                H2Number::new(SizedDefinition::I8, SizedDisplay::Decimal).into()
+            )),
+        ));
 
-    //     // This will resolve to the 12 I8 values
-    //     let resolved = t.fully_resolve(0, None);
-    //     assert_eq!(12, resolved.len());
+        assert_eq!(12, t.static_size()?);
+        assert_eq!(12, t.size(&context)?);
 
-    //     assert_eq!("0",    resolved[0].to_string(&context)?);
-    //     assert_eq!("0",    resolved[1].to_string(&context)?);
-    //     assert_eq!("0",    resolved[2].to_string(&context)?);
-    //     assert_eq!("0",    resolved[3].to_string(&context)?);
+        // Should have 4 direct children
+        let children = t.children_static(0)?;
+        assert_eq!(4, children.len());
 
-    //     assert_eq!("127",  resolved[4].to_string(&context)?);
-    //     assert_eq!("127",  resolved[5].to_string(&context)?);
-    //     assert_eq!("127",  resolved[6].to_string(&context)?);
-    //     assert_eq!("127",  resolved[7].to_string(&context)?);
+        // And a total length of 12
+        let resolved = t.resolve(&context)?;
+        assert_eq!(12, resolved.len());
 
-    //     assert_eq!("-128", resolved[8].to_string(&context)?);
-    //     assert_eq!("-128", resolved[9].to_string(&context)?);
-    //     assert_eq!("-1",  resolved[10].to_string(&context)?);
-    //     assert_eq!("-1",  resolved[11].to_string(&context)?);
+        assert_eq!("0",    resolved[0].to_string(&context)?);
+        assert_eq!("0",    resolved[1].to_string(&context)?);
+        assert_eq!("0",    resolved[2].to_string(&context)?);
+        assert_eq!("0",    resolved[3].to_string(&context)?);
 
-    //     Ok(())
-    // }
+        assert_eq!("127",  resolved[4].to_string(&context)?);
+        assert_eq!("127",  resolved[5].to_string(&context)?);
+        assert_eq!("127",  resolved[6].to_string(&context)?);
+        assert_eq!("127",  resolved[7].to_string(&context)?);
+
+        assert_eq!("-128", resolved[8].to_string(&context)?);
+        assert_eq!("-128", resolved[9].to_string(&context)?);
+        assert_eq!("-1",  resolved[10].to_string(&context)?);
+        assert_eq!("-1",  resolved[11].to_string(&context)?);
+
+        Ok(())
+    }
 
     // #[test]
     // fn test_alignment() -> SimpleResult<()> {
@@ -262,4 +283,9 @@ mod tests {
 
     //     Ok(())
     // }
+
+    #[test]
+    fn test_dynamic_array() -> SimpleResult<()> {
+        Ok(())
+    }
 }

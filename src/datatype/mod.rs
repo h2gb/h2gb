@@ -124,19 +124,21 @@ impl H2Type {
     }
 
     pub fn resolve(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
-        let mut children = self.children(context)?;
+        let children = self.children(context)?;
         let mut result: Vec<PartiallyResolvedType> = Vec::new();
 
         if children.len() == 0 {
             // No children? Return ourself!
             result.push(PartiallyResolvedType {
-                offset: context.position()..(context.position() + self.size(context)?),
+                offset: context.position()..helpers::maybe_round_up(context.position() + self.size(context)?, self.byte_alignment),
                 field_name: None,
                 field_type: self.clone(),
             });
         } else {
             // Children? Gotta get 'em all!
-            result.append(&mut children);
+            for child in children.iter() {
+                result.append(&mut child.field_type.resolve(&context.at(child.offset.start))?);
+            }
         }
 
         Ok(result)
@@ -144,18 +146,20 @@ impl H2Type {
 
     // Get the static size, if possible
     fn static_size(&self) -> SimpleResult<u64> {
-        match self.field_type().static_size() {
-            Ok(s)   => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
-            Err(e)  => Err(e),
-        }
+        self.field_type().static_size()
+        // match self.field_type().static_size() {
+        //     Ok(s)   => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
+        //     Err(e)  => Err(e),
+        // }
     }
 
     // Get the actual size, including dynamic parts
     fn size(&self, context: &Context) -> SimpleResult<u64> {
-        match self.field_type().size(context) {
-            Ok(s)  => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
-            Err(e) => Err(e),
-        }
+        self.field_type().size(context)
+        // match self.field_type().size(context) {
+        //     Ok(s)  => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
+        //     Err(e) => Err(e),
+        // }
     }
 
     // Is the size known ahead of time?
@@ -187,5 +191,109 @@ impl H2Type {
     // Render as a string
     fn to_string(&self, context: &Context) -> SimpleResult<String> {
         self.field_type().to_string(context)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use simple_error::SimpleResult;
+    use sized_number::Context;
+    use basic_type::character::Character;
+
+    #[test]
+    fn test_character() -> SimpleResult<()> {
+        let t = H2Type::from(Character::new());
+        let data = b"ABCD".to_vec();
+
+        assert_eq!(1, t.static_size()?);
+        assert_eq!(1, t.size(&Context::new(&data).at(0))?);
+        assert_eq!("A", t.to_string(&Context::new(&data).at(0))?);
+        assert_eq!("B", t.to_string(&Context::new(&data).at(1))?);
+        assert_eq!("C", t.to_string(&Context::new(&data).at(2))?);
+        assert_eq!("D", t.to_string(&Context::new(&data).at(3))?);
+
+        assert_eq!(0, t.children_static(0)?.len());
+        assert_eq!(0, t.children(&Context::new(&data).at(0))?.len());
+
+        let resolved = t.resolve(&Context::new(&data).at(0))?;
+        assert_eq!(1, resolved.len());
+        assert_eq!(0..1, resolved[0].offset);
+        assert_eq!("A", resolved[0].to_string(&Context::new(&data))?);
+
+        let resolved = t.resolve(&Context::new(&data).at(1))?;
+        assert_eq!(1, resolved.len());
+        assert_eq!(1..2, resolved[0].offset);
+        assert_eq!("B", resolved[0].to_string(&Context::new(&data))?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_align() -> SimpleResult<()> {
+        // Align to 4-byte boundaries
+        let t = H2Type::from((4, Character::new()));
+        let data = b"ABCD".to_vec();
+
+        assert_eq!(1, t.static_size()?);
+        assert_eq!(1, t.size(&Context::new(&data).at(0))?);
+        assert_eq!("A", t.to_string(&Context::new(&data).at(0))?);
+        assert_eq!("B", t.to_string(&Context::new(&data).at(1))?);
+        assert_eq!("C", t.to_string(&Context::new(&data).at(2))?);
+        assert_eq!("D", t.to_string(&Context::new(&data).at(3))?);
+
+        assert_eq!(0, t.children_static(0)?.len());
+        assert_eq!(0, t.children(&Context::new(&data).at(0))?.len());
+
+        let resolved = t.resolve(&Context::new(&data).at(0))?;
+        assert_eq!(1, resolved.len());
+        assert_eq!(0..4, resolved[0].offset);
+        assert_eq!("A", resolved[0].to_string(&Context::new(&data))?);
+
+        let resolved = t.resolve(&Context::new(&data).at(1))?;
+        assert_eq!(1, resolved.len());
+        assert_eq!(1..4, resolved[0].offset);
+        assert_eq!("B", resolved[0].to_string(&Context::new(&data))?);
+
+        Ok(())
+    }
+
+    fn test_pointer() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
+    fn test_static_array() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
+    fn test_dynamic_array() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
+    fn test_aligned_array() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
+    fn test_static_struct() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
+    fn test_dynamic_struct() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
+    fn test_enum() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
+    fn test_ntstring() -> SimpleResult<()> {
+        Ok(())
     }
 }
