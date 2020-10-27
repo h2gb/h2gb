@@ -105,7 +105,7 @@ impl H2Type {
         }
     }
 
-    pub fn as_trait(&self) -> &dyn H2TypeTrait {
+    pub fn field_type(&self) -> &dyn H2TypeTrait {
         match &self.field {
             // Basic
             H2Types::H2Number(t)  => t,
@@ -141,53 +141,51 @@ impl H2Type {
 
         Ok(result)
     }
-}
-
-impl H2TypeTrait for H2Type {
-    // Is the size known ahead of time?
-    fn is_static(&self) -> bool {
-        self.as_trait().is_static()
-    }
 
     // Get the static size, if possible
     fn static_size(&self) -> SimpleResult<u64> {
-        match self.as_trait().static_size() {
+        match self.field_type().static_size() {
             Ok(s)   => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
             Err(e)  => Err(e),
         }
     }
 
-    // Get "child" nodes (array elements, struct body, etc), if possible
-    // Empty vector = a leaf node
-    fn children_static(&self, start: u64) -> SimpleResult<Vec<PartiallyResolvedType>> {
-        self.as_trait().children_static(start)
-    }
-
-    // Get the user-facing name of the type
-    fn name(&self) -> String {
-        self.as_trait().name()
-    }
-
     // Get the actual size, including dynamic parts
     fn size(&self, context: &Context) -> SimpleResult<u64> {
-        match self.as_trait().size(context) {
+        match self.field_type().size(context) {
             Ok(s)  => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
             Err(e) => Err(e),
         }
     }
 
+    // Is the size known ahead of time?
+    fn is_static(&self) -> bool {
+        self.field_type().is_static()
+    }
+
+    // Get "child" nodes (array elements, struct body, etc), if possible
+    // Empty vector = a leaf node
+    fn children_static(&self, start: u64) -> SimpleResult<Vec<PartiallyResolvedType>> {
+        self.field_type().children_static(start)
+    }
+
+    // Get the user-facing name of the type
+    fn name(&self) -> String {
+        self.field_type().name()
+    }
+
     // Get the children - this will work for static or dynamic types
     fn children(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
-        self.as_trait().children(context)
+        self.field_type().children(context)
     }
 
     // Get "related" nodes - ie, what a pointer points to
     fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
-        self.as_trait().related(context)
+        self.field_type().related(context)
     }
 
     // Render as a string
     fn to_string(&self, context: &Context) -> SimpleResult<String> {
-        self.as_trait().to_string(context)
+        self.field_type().to_string(context)
     }
 }
