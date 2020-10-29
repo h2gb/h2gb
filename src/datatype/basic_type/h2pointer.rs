@@ -1,9 +1,9 @@
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{bail, SimpleResult};
 
 use sized_number::{Context, SizedDefinition, SizedDisplay};
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
@@ -40,33 +40,39 @@ impl H2TypeTrait for H2Pointer {
         true
     }
 
-    fn static_size(&self) -> SimpleResult<u64> {
+    fn size(&self, _offset: &ResolveOffset) -> SimpleResult<u64> {
         Ok(self.definition.size())
     }
 
-    fn name(&self) -> String {
-        "Pointer".to_string()
+    fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
+        match offset {
+            ResolveOffset::Static(_) => Ok(format!("Pointer to {}", self.target_type.to_string(offset)?)),
+            ResolveOffset::Dynamic(context) => {
+                // Read the current value
+                let target_offset = self.definition.to_u64(context)?;
+                let pointer_display = self.definition.to_string(context, self.display)?;
+
+                // Read the target from a separate context
+                let target = ResolveOffset::from(context.at(target_offset));
+                let target_display = match self.target_type.to_string(&target) {
+                    Ok(v) => v,
+                    Err(e) => format!("Invalid pointer target: {}", e),
+                };
+
+                Ok(format!("(ref) {} => {}", pointer_display, target_display))
+            }
+        }
     }
 
-    fn to_string(&self, context: &Context) -> SimpleResult<String> {
-        // Read the current value
-        let target_offset = self.definition.to_u64(context)?;
-        let pointer_display = self.definition.to_string(context, self.display)?;
-
-        // Read the target from a separate context
-        let target_context = context.at(target_offset);
-        let target_display = match self.target_type.to_string(&target_context) {
-            Ok(v) => v,
-            Err(e) => format!("Invalid pointer target: {}", e),
-        };
-
-        Ok(format!("(ref) {} => {}", pointer_display, target_display))
-    }
-
-    fn related(&self, context: &Context) -> SimpleResult<Vec<(u64, H2Type)>> {
-        Ok(vec![
-            (self.definition.to_u64(context)?, *self.target_type.clone())
-        ])
+    fn related(&self, offset: &ResolveOffset) -> SimpleResult<Vec<(u64, H2Type)>> {
+        match offset {
+            ResolveOffset::Static(_) => bail!("Cannot get related statically"),
+            ResolveOffset::Dynamic(context) => {
+                Ok(vec![
+                    (self.definition.to_u64(context)?, *self.target_type.clone())
+                ])
+            }
+        }
     }
 }
 
@@ -77,11 +83,13 @@ mod tests {
     use sized_number::Endian;
 
     use crate::datatype::basic_type::h2number::H2Number;
+    use crate::datatype::Align;
 
     #[test]
     fn test_pointer() -> SimpleResult<()> {
         let data = b"\x00\x08AAAAAA\x00\x01\x02\x03".to_vec();
-        let context = Context::new(&data);
+        let s_offset = ResolveOffset::Static(0);
+        let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
         // 16-bit big-endian pointer (0x0008) that displays as hex
         let t = H2Type::from(H2Pointer::new(
@@ -96,12 +104,15 @@ mod tests {
         ));
 
         // A 16-bit pointer is 2 bytes
-        assert_eq!(2, t.static_size().unwrap());
-        assert!(t.to_string(&context)?.starts_with("(ref) 0x0008"));
+        assert_eq!(2, t.size(&s_offset, Align::No).unwrap());
+        assert_eq!(2, t.size(&d_offset, Align::No).unwrap());
+
+        // Make sure it resolves the other variable
+        assert!(t.to_string(&d_offset)?.starts_with("(ref) 0x0008"));
 
         // It has one related value - the int it points to
-        let r = t.related(&context)?;
-        assert_eq!(1, r.len());
+        assert!(t.related(&s_offset).is_err());
+        assert_eq!(1, t.related(&d_offset)?.len());
 
         Ok(())
     }
@@ -110,7 +121,8 @@ mod tests {
     fn test_nested_pointer() -> SimpleResult<()> {
         //           -P1-  --P2-- -----P3--------
         let data = b"\x01\x00\x03\x07\x00\x00\x00ABCDEFGH".to_vec();
-        let context = Context::new(&data);
+        let s_offset = ResolveOffset::Static(0);
+        let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
         let hex_display = SizedDisplay::Hex(Default::default());
 
@@ -122,9 +134,11 @@ mod tests {
             ))
         ));
 
-        assert_eq!(1, t.static_size().unwrap());
-        assert_eq!(1, t.related(&context)?.len());
-        assert!(t.to_string(&context)?.ends_with("0x4142434445464748"));
+        assert_eq!(1, t.size(&s_offset, Align::No).unwrap());
+        assert_eq!(1, t.size(&d_offset, Align::No).unwrap());
+
+        assert_eq!(1, t.related(&d_offset)?.len());
+        assert!(t.to_string(&d_offset)?.ends_with("0x4142434445464748"));
 
         Ok(())
     }
