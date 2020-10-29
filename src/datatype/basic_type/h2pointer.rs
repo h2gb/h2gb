@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 
-use sized_number::{Context, SizedDefinition, SizedDisplay};
+use sized_number::{SizedDefinition, SizedDisplay};
 
 use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
 
@@ -80,7 +80,7 @@ impl H2TypeTrait for H2Pointer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use sized_number::Endian;
+    use sized_number::{Context, Endian};
 
     use crate::datatype::basic_type::h2number::H2Number;
     use crate::datatype::Align;

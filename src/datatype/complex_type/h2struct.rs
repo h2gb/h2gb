@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 use sized_number::Context;
 
 use crate::datatype::helpers;
-use crate::datatype::{StaticType, PartiallyResolvedType};
+use crate::datatype::{StaticType, ResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Struct {
@@ -33,7 +33,7 @@ impl H2Struct {
         }
     }
 
-    pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
+    pub fn partially_resolve(&self, start: u64) -> Vec<ResolvedType> {
         let mut result = vec![];
         let mut offset: u64 = start;
 
@@ -47,7 +47,7 @@ impl H2Struct {
                 None    => end_offset,
             };
 
-            result.push(PartiallyResolvedType {
+            result.push(ResolvedType {
                 offset: offset..end_offset,
                 field_name: Some(name.clone()),
                 field_type: field_type.clone(),
@@ -129,7 +129,7 @@ mod tests {
 
         assert_eq!(11, t.size());
 
-        let resolved = t.fully_resolve(0, None);
+        let resolved = t.resolve_full(0, None);
         //println!("{:#?}", resolved);
         assert_eq!(4, resolved.len());
         assert_eq!(0..4, resolved[0].offset);
@@ -181,7 +181,7 @@ mod tests {
 
         assert_eq!(12, t.size());
 
-        let resolved = t.fully_resolve(0, None);
+        let resolved = t.resolve_full(0, None);
         assert_eq!(5, resolved.len());
 
         assert_eq!(0..4,         resolved[0].offset);
@@ -247,7 +247,7 @@ mod tests {
 
         assert_eq!(16, t.size());
 
-        let resolved = t.fully_resolve(0, None);
+        let resolved = t.resolve_full(0, None);
 
         assert_eq!(4, resolved.len());
         assert_eq!(0..4, resolved[0].offset);
@@ -300,7 +300,7 @@ mod tests {
 
         assert_eq!(24, t.size());
 
-        let resolved = t.fully_resolve(0, None);
+        let resolved = t.resolve_full(0, None);
         assert_eq!(5, resolved.len());
 
         assert_eq!(0..4,         resolved[0].offset);
@@ -360,7 +360,7 @@ mod tests {
 
         assert_eq!(11, t.size());
 
-        let resolved = t.fully_resolve(7, None);
+        let resolved = t.resolve_full(7, None);
         //println!("{:#?}", resolved);
         assert_eq!(4, resolved.len());
         assert_eq!(7..11, resolved[0].offset);

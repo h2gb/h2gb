@@ -3,7 +3,7 @@ use simple_error::{SimpleResult, bail};
 // use sized_number::{Context, SizedDefinition, SizedDisplay};
 use sized_number::Context;
 
-use crate::datatype::{H2Type, PartiallyResolvedType, H2TypeTrait};
+use crate::datatype::{H2Type, ResolvedType, H2TypeTrait};
 // use crate::datatype::basic_type::character::Character;
 // use crate::datatype::basic_type::h2number::H2Number;
 // use crate::datatype::static_type::h2array::H2Array;
@@ -74,13 +74,13 @@ impl H2TypeTrait for NTString {
         }
     }
 
-    fn children(&self, context: &Context) -> SimpleResult<Vec<PartiallyResolvedType>> {
+    fn resolve_partial(&self, context: &Context) -> SimpleResult<Vec<ResolvedType>> {
         let size = self.size(context)?;
-        let mut result: Vec<PartiallyResolvedType> = Vec::new();
+        let mut result: Vec<ResolvedType> = Vec::new();
 
         // TODO
         // if size > 1 {
-        //     result.push(PartiallyResolvedType::new(context.position(), None,
+        //     result.push(ResolvedType::new(context.position(), None,
         //         StaticType::from(H2Array::new(
         //             size - 1,
         //             StaticType::from(Character::new()),
@@ -88,7 +88,7 @@ impl H2TypeTrait for NTString {
         //     ));
         // }
 
-        // result.push(PartiallyResolvedType::new(context.position() + size - 1, None,
+        // result.push(ResolvedType::new(context.position() + size - 1, None,
         //     StaticType::from(H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal))
         // ));
 

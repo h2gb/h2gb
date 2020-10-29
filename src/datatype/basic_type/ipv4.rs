@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::net::Ipv4Addr;
 
-use sized_number::{Endian, Context};
+use sized_number::Endian;
 
 use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
 

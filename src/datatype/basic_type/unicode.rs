@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 use std::char;
 
-use sized_number::{Context, Endian};
+use sized_number::Endian;
 
 use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
 

@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use sized_number::{Context, SizedDefinition, SizedDisplay};
+use sized_number::{SizedDefinition, SizedDisplay};
 
 use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
 
@@ -70,8 +70,6 @@ mod tests {
             SizedDisplay::Hex(Default::default()),
         ));
 
-        let c = Context::new(&data);
-
         assert_eq!(1, t.size(&s_offset, Align::No).unwrap());
         assert_eq!(1, t.size(&d_offset, Align::No).unwrap());
 
@@ -96,8 +94,6 @@ mod tests {
             SizedDefinition::I16(Endian::Big),
             SizedDisplay::Decimal,
         ));
-
-        let c = Context::new(&data);
 
         assert_eq!(2, t.size(&s_offset, Align::No).unwrap());
         assert_eq!(2, t.size(&d_offset, Align::No).unwrap());

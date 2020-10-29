@@ -77,7 +77,7 @@ pub trait H2TypeTrait {
 
     // Get "child" nodes (array elements, struct body, etc), if possible
     // Empty vector = a leaf node
-    fn children(&self, _offset: &ResolveOffset) -> SimpleResult<Vec<PartiallyResolvedType>> {
+    fn resolve_partial(&self, _offset: &ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
         Ok(vec![])
     }
 
@@ -91,13 +91,13 @@ pub trait H2TypeTrait {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PartiallyResolvedType {
+pub struct ResolvedType {
     offset: Range<u64>,
     field_name: Option<String>,
     field_type: H2Type,
 }
 
-impl PartiallyResolvedType {
+impl ResolvedType {
     // This is a simpler way to display the type for the right part of the
     // context
     pub fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
@@ -160,8 +160,8 @@ impl H2Type {
         // }
     }
 
-    fn children(&self, offset: &ResolveOffset) -> SimpleResult<Vec<PartiallyResolvedType>> {
-        self.field_type().children(offset)
+    fn resolve_partial(&self, offset: &ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
+        self.field_type().resolve_partial(offset)
     }
 
     // Render as a string
@@ -174,13 +174,13 @@ impl H2Type {
         self.field_type().related(offset)
     }
 
-    pub fn fully_resolve(&self, offset: &ResolveOffset) -> SimpleResult<Vec<PartiallyResolvedType>> {
-        let children = self.children(offset)?;
-        let mut result: Vec<PartiallyResolvedType> = Vec::new();
+    fn resolve_full(&self, offset: &ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
+        let children = self.resolve_partial(offset)?;
+        let mut result: Vec<ResolvedType> = Vec::new();
 
         if children.len() == 0 {
             // No children? Return ourself!
-            result.push(PartiallyResolvedType {
+            result.push(ResolvedType {
                 offset: offset.position()..(offset.position() + self.size(offset, Align::No)?),
                 field_name: None,
                 field_type: self.clone(),
@@ -188,7 +188,7 @@ impl H2Type {
         } else {
             // Children? Gotta get 'em all!
             for child in children.iter() {
-                result.append(&mut child.field_type.fully_resolve(&offset.at(child.offset.start))?);
+                result.append(&mut child.field_type.resolve_full(&offset.at(child.offset.start))?);
             }
         }
 
@@ -218,25 +218,25 @@ mod tests {
         assert_eq!("C", t.to_string(&d_offset.at(2))?);
         assert_eq!("D", t.to_string(&d_offset.at(3))?);
 
-        assert_eq!(0, t.children(&s_offset)?.len());
-        assert_eq!(0, t.children(&d_offset)?.len());
+        assert_eq!(0, t.resolve_partial(&s_offset)?.len());
+        assert_eq!(0, t.resolve_partial(&d_offset)?.len());
 
-        let resolved = t.fully_resolve(&s_offset)?;
+        let resolved = t.resolve_full(&s_offset)?;
         assert_eq!(1, resolved.len());
         assert_eq!(0..1, resolved[0].offset);
         assert_eq!("Character", resolved[0].to_string(&s_offset)?);
 
-        let resolved = t.fully_resolve(&s_offset.at(1))?;
+        let resolved = t.resolve_full(&s_offset.at(1))?;
         assert_eq!(1, resolved.len());
         assert_eq!(1..2, resolved[0].offset);
         assert_eq!("Character", resolved[0].to_string(&s_offset)?);
 
-        let resolved = t.fully_resolve(&d_offset)?;
+        let resolved = t.resolve_full(&d_offset)?;
         assert_eq!(1, resolved.len());
         assert_eq!(0..1, resolved[0].offset);
         assert_eq!("A", resolved[0].to_string(&d_offset)?);
 
-        let resolved = t.fully_resolve(&d_offset.at(1))?;
+        let resolved = t.resolve_full(&d_offset.at(1))?;
         assert_eq!(1, resolved.len());
         assert_eq!(1..2, resolved[0].offset);
         assert_eq!("B", resolved[0].to_string(&d_offset)?);
@@ -259,7 +259,7 @@ mod tests {
     //     assert_eq!("D", t.to_string(&Context::new(&data).at(3))?);
 
     //     assert_eq!(0, t.children_static(0)?.len());
-    //     assert_eq!(0, t.children(&Context::new(&data).at(0))?.len());
+    //     assert_eq!(0, t.resolve_partial(&Context::new(&data).at(0))?.len());
 
     //     let resolved = t.resolve(&Context::new(&data).at(0))?;
     //     assert_eq!(1, resolved.len());

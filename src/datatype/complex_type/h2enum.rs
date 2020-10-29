@@ -5,7 +5,7 @@ use std::cmp;
 use sized_number::Context;
 
 use crate::datatype::helpers;
-use crate::datatype::{StaticType, PartiallyResolvedType};
+use crate::datatype::{StaticType, ResolvedType};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Enum {
@@ -35,11 +35,11 @@ impl H2Enum {
         }
     }
 
-    pub fn partially_resolve(&self, start: u64) -> Vec<PartiallyResolvedType> {
+    pub fn partially_resolve(&self, start: u64) -> Vec<ResolvedType> {
         let mut result = vec![];
 
         for (name, field_type) in self.options.iter() {
-            result.push(PartiallyResolvedType {
+            result.push(ResolvedType {
                 offset: start..(start + field_type.size()),
                 field_name: Some(name.clone()),
                 field_type: field_type.clone(),
@@ -136,7 +136,7 @@ mod tests {
         // Size will be the longest field, which is 32-bit
         assert_eq!(4, e.size());
 
-        let r = e.fully_resolve(0, None);
+        let r = e.resolve_full(0, None);
         assert_eq!(0..4, r[0].offset);
         assert_eq!("0x41424344", r[0].to_string(&Context::new(&data))?);
 
