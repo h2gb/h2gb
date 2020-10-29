@@ -10,6 +10,13 @@ pub mod dynamic_type;
 
 pub mod helpers;
 
+// Allow us to resolve either statically or dynamically, depending on what's
+// needed. One or the other might throw an error, though.
+// pub enum ResolveOffset<'a> {
+//     Static(u64),
+//     Dynamic(&'a Context<'a>),
+// }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum H2Types {
     // Basic
@@ -130,7 +137,7 @@ impl H2Type {
         if children.len() == 0 {
             // No children? Return ourself!
             result.push(PartiallyResolvedType {
-                offset: context.position()..helpers::maybe_round_up(context.position() + self.size(context)?, self.byte_alignment),
+                offset: context.position()..(context.position() + self.size(context)?),
                 field_name: None,
                 field_type: self.clone(),
             });
@@ -153,6 +160,10 @@ impl H2Type {
         // }
     }
 
+    fn aligned_static_size(&self) -> SimpleResult<u64> {
+        Ok(helpers::maybe_round_up(self.static_size()?, self.byte_alignment))
+    }
+
     // Get the actual size, including dynamic parts
     fn size(&self, context: &Context) -> SimpleResult<u64> {
         self.field_type().size(context)
@@ -160,6 +171,10 @@ impl H2Type {
         //     Ok(s)  => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
         //     Err(e) => Err(e),
         // }
+    }
+
+    fn aligned_size(&self, context: &Context) -> SimpleResult<u64> {
+        Ok(helpers::maybe_round_up(self.size(context)?, self.byte_alignment))
     }
 
     // Is the size known ahead of time?
@@ -247,12 +262,12 @@ mod tests {
 
         let resolved = t.resolve(&Context::new(&data).at(0))?;
         assert_eq!(1, resolved.len());
-        assert_eq!(0..4, resolved[0].offset);
+        assert_eq!(0..1, resolved[0].offset);
         assert_eq!("A", resolved[0].to_string(&Context::new(&data))?);
 
         let resolved = t.resolve(&Context::new(&data).at(1))?;
         assert_eq!(1, resolved.len());
-        assert_eq!(1..4, resolved[0].offset);
+        assert_eq!(1..2, resolved[0].offset);
         assert_eq!("B", resolved[0].to_string(&Context::new(&data))?);
 
         Ok(())

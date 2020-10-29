@@ -38,7 +38,7 @@ impl H2TypeTrait for H2Array {
     }
 
     fn static_size(&self) -> SimpleResult<u64> {
-        Ok(self.length * self.field_type.static_size()?)
+        Ok(self.length * self.field_type.aligned_static_size()?)
     }
 
     fn children_static(&self, start: u64) -> SimpleResult<Vec<PartiallyResolvedType>> {
@@ -46,16 +46,14 @@ impl H2TypeTrait for H2Array {
         let mut offset: u64 = start;
 
         for i in 0..self.length {
-            // Where the current entry ends
-            let end_offset = offset + self.field_type.static_size()?;
-
             result.push(PartiallyResolvedType {
-                offset: offset..end_offset,
+                // Note: the end depends on the normal size, not the static one
+                offset: offset..(offset + self.field_type.static_size()?),
                 field_name: Some(i.to_string()),
                 field_type: (*self.field_type).clone(),
             });
 
-            offset = end_offset;
+            offset = offset + self.field_type.aligned_static_size()?;
         };
 
         Ok(result)
@@ -66,9 +64,9 @@ impl H2TypeTrait for H2Array {
     }
 
     fn size(&self, context: &Context) -> SimpleResult<u64> {
-        // Note taht this isn't the same as `static_size`, since it might have
+        // Note that this isn't the same as `static_size`, since it might have
         // dynamic fields
-        Ok(self.length * self.field_type.size(context)?)
+        Ok(self.length * self.field_type.aligned_size(context)?)
     }
 
     // Note that this isn't quite the same as static_children - this can handle
@@ -78,16 +76,17 @@ impl H2TypeTrait for H2Array {
         let mut offset: u64 = context.position();
 
         for i in 0..self.length {
-            // Where the current entry ends
-            let end_offset = offset + self.field_type.size(&context.at(offset))?;
+            let local_context = context.at(offset);
 
             result.push(PartiallyResolvedType {
-                offset: offset..end_offset,
+                // Note: the end depends on the normal size, not the static one
+                offset: offset..(offset + self.field_type.size(&local_context)?),
                 field_name: Some(i.to_string()),
                 field_type: (*self.field_type).clone(),
             });
 
-            offset = end_offset;
+            // Be sure to do alignment
+            offset = offset + self.field_type.aligned_size(&local_context)?;
         };
 
         Ok(result)
@@ -189,36 +188,42 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_alignment() -> SimpleResult<()> {
-    //     let data = b"AAAABBBBCCCCDDDD".to_vec();
-    //     let context = Context::new(&data);
+    #[test]
+    fn test_alignment() -> SimpleResult<()> {
+        let data = b"AAAABBBBCCCCDDDD".to_vec();
+        let context = Context::new(&data);
 
-    //     // An array of 4 32-bit unsigned integers
-    //     let t: StaticType = H2Array::new_aligned(4, 4,
-    //         H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())).into()
-    //     ).into();
+        // An array of 4 32-bit unsigned integers
+        let t = H2Type::from(H2Array::new(4,
+            H2Type::from((4, H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default()))))
+        ));
 
-    //     // Even though it's 4x U8 values, with padding it should be 16
-    //     assert_eq!(16, t.size());
+        // Even though it's 4x U8 values, with padding it should be 16
+        assert_eq!(16, t.static_size()?);
+        assert_eq!(16, t.size(&context)?);
 
-    //     let resolved = t.fully_resolve(0, None);
-    //     assert_eq!(4, resolved.len());
+        let children = t.children_static(0)?;
+        assert_eq!(4, children.len());
+        assert_eq!(0..1, children[0].offset);
+        assert_eq!("0x41", children[0].to_string(&context)?);
 
-    //     assert_eq!(0..1,   resolved[0].offset);
-    //     assert_eq!("0x41", resolved[0].to_string(&context)?);
+        let resolved = t.resolve(&context)?;
+        assert_eq!(4, resolved.len());
 
-    //     assert_eq!(4..5,   resolved[1].offset);
-    //     assert_eq!("0x42", resolved[1].to_string(&context)?);
+        assert_eq!(0..1,   resolved[0].offset);
+        assert_eq!("0x41", resolved[0].to_string(&context)?);
 
-    //     assert_eq!(8..9,   resolved[2].offset);
-    //     assert_eq!("0x43", resolved[2].to_string(&context)?);
+        assert_eq!(4..5,   resolved[1].offset);
+        assert_eq!("0x42", resolved[1].to_string(&context)?);
 
-    //     assert_eq!(12..13, resolved[3].offset);
-    //     assert_eq!("0x44", resolved[3].to_string(&context)?);
+        assert_eq!(8..9,   resolved[2].offset);
+        assert_eq!("0x43", resolved[2].to_string(&context)?);
 
-    //     Ok(())
-    // }
+        assert_eq!(12..13, resolved[3].offset);
+        assert_eq!("0x44", resolved[3].to_string(&context)?);
+
+        Ok(())
+    }
 
     // #[test]
     // fn test_nested_alignment() -> SimpleResult<()> {
