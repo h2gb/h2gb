@@ -4,30 +4,22 @@ use std::char;
 
 use sized_number::Endian;
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Unicode {
     endian: Endian,
 }
 
-impl From<Unicode> for H2Type {
-    fn from(o: Unicode) -> H2Type {
-        H2Type::new(H2Types::Unicode(o))
-    }
-}
-
-impl From<(u64, Unicode)> for H2Type {
-    fn from(o: (u64, Unicode)) -> H2Type {
-        H2Type::new_aligned(Some(o.0), H2Types::Unicode(o.1))
-    }
-}
-
 impl Unicode {
-    pub fn new(endian: Endian) -> Self {
-        Self {
-            endian: endian,
-        }
+    pub fn new_aligned(alignment: AlignValue, endian: Endian) -> H2Type {
+        H2Type::new(alignment, H2Types::Unicode(Self {
+            endian: endian
+        }))
+    }
+
+    pub fn new(endian: Endian) -> H2Type {
+        Self::new_aligned(AlignValue::None, endian)
     }
 }
 

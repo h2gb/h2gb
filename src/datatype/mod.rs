@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
 use sized_number::Context;
@@ -45,10 +45,67 @@ impl<'a> ResolveOffset<'a> {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum Align {
-    Yes,
-    No,
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum AlignValue {
+    /// Don't align at all
+    None,
+
+    /// Align after.
+    ///
+    /// Each field is padded until its length is a multiple of the padding
+    /// Length.. so 0..1 aligned to 4 will be 0..4, and 1..2 aligned to 4 will
+    /// be 1..5
+    After(u64),
+
+    /// Align before and after.
+    ///
+    /// Each field must start and end on a multiple of the alignment value.
+    Full(u64),
+
+    /// Only pad after, but error out if the start isn't aligned.
+    StrictAfter(u64),
+}
+
+impl AlignValue {
+    fn round_up(number: u64, multiple: u64) -> u64 {
+        if multiple == 0 {
+            return number;
+        }
+
+        let remainder = number % multiple;
+        if remainder == 0 {
+            return number;
+        }
+
+        number - remainder + multiple
+    }
+
+    fn round_down(number: u64, multiple: u64) -> u64 {
+        if multiple == 0 {
+            return number;
+        }
+
+        number - (number % multiple)
+    }
+
+    pub fn round(self, range: Range<u64>) -> SimpleResult<Range<u64>> {
+        match self {
+            Self::None => Ok(range),
+            Self::After(m) => {
+                Ok(range.start..Self::round_up(range.end, m))
+            },
+            Self::Full(m) => {
+                Ok(Self::round_down(range.start, m)..Self::round_up(range.end, m))
+            },
+            Self::StrictAfter(m) => {
+                if range.start % m != 0 {
+                    bail!("Alignment error");
+                }
+
+                Ok(range.start..Self::round_up(range.end, m))
+            },
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -108,21 +165,14 @@ impl ResolvedType {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Type {
     field: H2Types,
-    byte_alignment: Option<u64>,
+    alignment: AlignValue,
 }
 
 impl H2Type {
-    pub fn new(field: H2Types) -> Self {
+    pub fn new(alignment: AlignValue, field: H2Types) -> Self {
         Self {
             field: field,
-            byte_alignment: None,
-        }
-    }
-
-    pub fn new_aligned(byte_alignment: Option<u64>, field: H2Types) -> Self {
-        Self {
-            byte_alignment: byte_alignment,
-            field: field,
+            alignment: alignment,
         }
     }
 
@@ -149,15 +199,36 @@ impl H2Type {
         self.field_type().is_static()
     }
 
-    fn size(&self, offset: &ResolveOffset, align: Align) -> SimpleResult<u64> {
-        match align {
-            Align::Yes  => Ok(helpers::maybe_round_up(self.field_type().size(offset)?, self.byte_alignment)),
-            Align::No   => Ok(self.field_type().size(offset)?),
-        }
-        // match self.field_type().static_size() {
-        //     Ok(s)   => Ok(helpers::maybe_round_up(s, self.byte_alignment)),
-        //     Err(e)  => Err(e),
-        // }
+    /// Size of just the field - no padding
+    fn actual_size(&self, offset: &ResolveOffset) -> SimpleResult<u64> {
+        self.field_type().size(offset)
+    }
+
+    /// Range of values this covers, with alignment padding built-in
+    fn actual_range(&self, offset: &ResolveOffset) -> SimpleResult<Range<u64>> {
+        // Get the start and end
+        let start = offset.position();
+        let end   = offset.position() + self.actual_size(offset)?;
+
+        // Do the rounding
+        Ok(start..end)
+    }
+
+    /// Range of values this covers, with alignment padding built-in
+    fn aligned_range(&self, offset: &ResolveOffset) -> SimpleResult<Range<u64>> {
+        // Get the start and end
+        let start = offset.position();
+        let end   = offset.position() + self.actual_size(offset)?;
+
+        // Do the rounding
+        self.alignment.round(start..end)
+    }
+
+    /// Size including padding either before or after
+    fn aligned_size(&self, offset: &ResolveOffset) -> SimpleResult<u64> {
+        let range = self.aligned_range(offset)?;
+
+        Ok(range.end - range.start)
     }
 
     fn resolve_partial(&self, offset: &ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
@@ -181,7 +252,7 @@ impl H2Type {
         if children.len() == 0 {
             // No children? Return ourself!
             result.push(ResolvedType {
-                offset: offset.position()..(offset.position() + self.size(offset, Align::No)?),
+                offset: offset.position()..(offset.position() + self.actual_size(offset)?),
                 field_name: None,
                 field_type: self.clone(),
             });
@@ -205,13 +276,13 @@ mod tests {
 
     #[test]
     fn test_character() -> SimpleResult<()> {
-        let t = H2Type::from(Character::new());
+        let t = Character::new();
         let data = b"ABCD".to_vec();
         let s_offset = ResolveOffset::Static(0);
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        assert_eq!(1, t.size(&s_offset, Align::No)?);
-        assert_eq!(1, t.size(&d_offset, Align::No)?);
+        assert_eq!(1, t.actual_size(&s_offset)?);
+        assert_eq!(1, t.actual_size(&d_offset)?);
 
         assert_eq!("A", t.to_string(&d_offset.at(0))?);
         assert_eq!("B", t.to_string(&d_offset.at(1))?);
@@ -274,6 +345,12 @@ mod tests {
     //     Ok(())
     // }
 
+    #[test]
+    fn test_padding() -> SimpleResult<()> {
+        Ok(())
+    }
+
+    #[test]
     fn test_pointer() -> SimpleResult<()> {
         Ok(())
     }

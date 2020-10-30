@@ -4,30 +4,22 @@ use std::net::Ipv4Addr;
 
 use sized_number::Endian;
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IPv4 {
     endian: Endian,
 }
 
-impl From<IPv4> for H2Type {
-    fn from(o: IPv4) -> H2Type {
-        H2Type::new(H2Types::IPv4(o))
-    }
-}
-
-impl From<(u64, IPv4)> for H2Type {
-    fn from(o: (u64, IPv4)) -> H2Type {
-        H2Type::new_aligned(Some(o.0), H2Types::IPv4(o.1))
-    }
-}
-
 impl IPv4 {
-    pub fn new(endian: Endian) -> Self {
-        Self {
-            endian: endian,
-        }
+    pub fn new_aligned(alignment: AlignValue, endian: Endian) -> H2Type {
+        H2Type::new(alignment, H2Types::IPv4(Self {
+            endian: endian
+        }))
+    }
+
+    pub fn new(endian: Endian) -> H2Type {
+        Self::new_aligned(AlignValue::None, endian)
     }
 }
 

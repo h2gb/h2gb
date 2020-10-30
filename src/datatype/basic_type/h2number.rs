@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 
 use sized_number::{SizedDefinition, SizedDisplay};
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Number {
@@ -11,24 +11,16 @@ pub struct H2Number {
     display: SizedDisplay,
 }
 
-impl From<H2Number> for H2Type {
-    fn from(o: H2Number) -> H2Type {
-        H2Type::new(H2Types::H2Number(o))
-    }
-}
-
-impl From<(u64, H2Number)> for H2Type {
-    fn from(o: (u64, H2Number)) -> H2Type {
-        H2Type::new_aligned(Some(o.0), H2Types::H2Number(o.1))
-    }
-}
-
 impl H2Number {
-    pub fn new(definition: SizedDefinition, display: SizedDisplay) -> Self {
-        Self {
+    pub fn new_aligned(alignment: AlignValue, definition: SizedDefinition, display: SizedDisplay) -> H2Type {
+        H2Type::new(alignment, H2Types::H2Number(Self {
             definition: definition,
             display: display,
-        }
+        }))
+    }
+
+    pub fn new(definition: SizedDefinition, display: SizedDisplay) -> H2Type {
+        Self::new_aligned(AlignValue::None, definition, display)
     }
 }
 
@@ -57,7 +49,6 @@ mod tests {
     use simple_error::SimpleResult;
     use sized_number::{Context, Endian};
     use sized_number::{SizedDefinition, SizedDisplay};
-    use crate::datatype::Align;
 
     #[test]
     fn test_u8_hex() -> SimpleResult<()> {
@@ -65,13 +56,13 @@ mod tests {
         let s_offset = ResolveOffset::Static(0);
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        let t = H2Type::from(H2Number::new(
+        let t = H2Number::new(
             SizedDefinition::U8,
             SizedDisplay::Hex(Default::default()),
-        ));
+        );
 
-        assert_eq!(1, t.size(&s_offset, Align::No).unwrap());
-        assert_eq!(1, t.size(&d_offset, Align::No).unwrap());
+        assert_eq!(1, t.actual_size(&s_offset).unwrap());
+        assert_eq!(1, t.actual_size(&d_offset).unwrap());
 
         assert_eq!(0, t.related(&s_offset)?.len());
         assert_eq!(0, t.related(&d_offset)?.len());
@@ -90,13 +81,13 @@ mod tests {
         let s_offset = ResolveOffset::Static(0);
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        let t = H2Type::from(H2Number::new(
+        let t = H2Number::new(
             SizedDefinition::I16(Endian::Big),
             SizedDisplay::Decimal,
-        ));
+        );
 
-        assert_eq!(2, t.size(&s_offset, Align::No).unwrap());
-        assert_eq!(2, t.size(&d_offset, Align::No).unwrap());
+        assert_eq!(2, t.actual_size(&s_offset).unwrap());
+        assert_eq!(2, t.actual_size(&d_offset).unwrap());
 
         assert_eq!(0, t.related(&s_offset)?.len());
         assert_eq!(0, t.related(&d_offset)?.len());
@@ -115,16 +106,17 @@ mod tests {
         let s_offset = ResolveOffset::Static(0);
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        let t = H2Type::from((8, H2Number::new(
+        let t = H2Number::new_aligned(
+            AlignValue::After(8),
             SizedDefinition::I16(Endian::Big),
             SizedDisplay::Decimal,
-        )));
+        );
 
-        assert_eq!(2, t.size(&s_offset, Align::No ).unwrap());
-        assert_eq!(8, t.size(&s_offset, Align::Yes).unwrap());
+        assert_eq!(2, t.actual_size(&s_offset)?);
+        assert_eq!(8, t.aligned_size(&s_offset)?);
 
-        assert_eq!(2, t.size(&d_offset, Align::No ).unwrap());
-        assert_eq!(8, t.size(&d_offset, Align::Yes).unwrap());
+        assert_eq!(2, t.actual_size(&d_offset)?);
+        assert_eq!(8, t.aligned_size(&d_offset)?);
 
         assert_eq!("0",      t.to_string(&d_offset.at(0))?);
         assert_eq!("32767",  t.to_string(&d_offset.at(2))?);

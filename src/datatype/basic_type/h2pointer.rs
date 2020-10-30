@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use sized_number::{SizedDefinition, SizedDisplay};
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
@@ -13,25 +13,17 @@ pub struct H2Pointer {
     target_type: Box<H2Type>,
 }
 
-impl From<H2Pointer> for H2Type {
-    fn from(o: H2Pointer) -> H2Type {
-        H2Type::new(H2Types::H2Pointer(o))
-    }
-}
-
-impl From<(u64, H2Pointer)> for H2Type {
-    fn from(o: (u64, H2Pointer)) -> H2Type {
-        H2Type::new_aligned(Some(o.0), H2Types::H2Pointer(o.1))
-    }
-}
-
 impl H2Pointer {
-    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> Self {
-        Self {
+    pub fn new_aligned(alignment: AlignValue, definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> H2Type {
+        H2Type::new(alignment, H2Types::H2Pointer(Self {
             definition: definition,
             display: display,
             target_type: Box::new(target_type),
-        }
+        }))
+    }
+
+    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> H2Type {
+        Self::new_aligned(AlignValue::None, definition, display, target_type)
     }
 }
 
@@ -83,7 +75,6 @@ mod tests {
     use sized_number::{Context, Endian};
 
     use crate::datatype::basic_type::h2number::H2Number;
-    use crate::datatype::Align;
 
     #[test]
     fn test_pointer() -> SimpleResult<()> {
@@ -92,20 +83,20 @@ mod tests {
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
         // 16-bit big-endian pointer (0x0008) that displays as hex
-        let t = H2Type::from(H2Pointer::new(
+        let t = H2Pointer::new(
             SizedDefinition::U16(Endian::Big),
             SizedDisplay::Hex(Default::default()),
 
             // ...pointing to a 32-bit big-endian number (0x00010203)
-            H2Type::from(H2Number::new(
+            H2Number::new(
                 SizedDefinition::U32(Endian::Big),
                 SizedDisplay::Hex(Default::default()),
-            ))
-        ));
+            )
+        );
 
         // A 16-bit pointer is 2 bytes
-        assert_eq!(2, t.size(&s_offset, Align::No).unwrap());
-        assert_eq!(2, t.size(&d_offset, Align::No).unwrap());
+        assert_eq!(2, t.actual_size(&s_offset).unwrap());
+        assert_eq!(2, t.actual_size(&d_offset).unwrap());
 
         // Make sure it resolves the other variable
         assert!(t.to_string(&d_offset)?.starts_with("(ref) 0x0008"));
@@ -126,16 +117,16 @@ mod tests {
 
         let hex_display = SizedDisplay::Hex(Default::default());
 
-        let t = H2Type::from(H2Pointer::new(SizedDefinition::U8, hex_display, // P1
-            H2Type::from(H2Pointer::new(SizedDefinition::U16(Endian::Big), hex_display, // P2
-                H2Type::from(H2Pointer::new(SizedDefinition::U32(Endian::Little), hex_display, // P3
-                    H2Type::from(H2Number::new(SizedDefinition::U64(Endian::Big), hex_display)),
-                ))
-            ))
-        ));
+        let t = H2Pointer::new(SizedDefinition::U8, hex_display, // P1
+            H2Pointer::new(SizedDefinition::U16(Endian::Big), hex_display, // P2
+                H2Pointer::new(SizedDefinition::U32(Endian::Little), hex_display, // P3
+                    H2Number::new(SizedDefinition::U64(Endian::Big), hex_display),
+                )
+            )
+        );
 
-        assert_eq!(1, t.size(&s_offset, Align::No).unwrap());
-        assert_eq!(1, t.size(&d_offset, Align::No).unwrap());
+        assert_eq!(1, t.actual_size(&s_offset).unwrap());
+        assert_eq!(1, t.actual_size(&d_offset).unwrap());
 
         assert_eq!(1, t.related(&d_offset)?.len());
         assert!(t.to_string(&d_offset)?.ends_with("0x4142434445464748"));
