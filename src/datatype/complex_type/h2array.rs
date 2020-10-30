@@ -237,7 +237,8 @@ mod tests {
 
     #[test]
     fn test_offset_padding() -> SimpleResult<()> {
-        let data = b"XAXXXBXXXCXXXDXX".to_vec();
+        // The - characters will be in the padding
+        let data = b"-A---B---C---D--".to_vec();
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
         // An array of 4 32-bit unsigned integers
