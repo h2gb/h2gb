@@ -3,7 +3,8 @@ use simple_error::SimpleResult;
 
 use sized_number::{SizedDefinition, SizedDisplay};
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::alignment::Alignment;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Number {
@@ -12,7 +13,7 @@ pub struct H2Number {
 }
 
 impl H2Number {
-    pub fn new_aligned(alignment: AlignValue, definition: SizedDefinition, display: SizedDisplay) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, definition: SizedDefinition, display: SizedDisplay) -> H2Type {
         H2Type::new(alignment, H2Types::H2Number(Self {
             definition: definition,
             display: display,
@@ -20,7 +21,7 @@ impl H2Number {
     }
 
     pub fn new(definition: SizedDefinition, display: SizedDisplay) -> H2Type {
-        Self::new_aligned(AlignValue::None, definition, display)
+        Self::new_aligned(Alignment::None, definition, display)
     }
 }
 
@@ -107,7 +108,7 @@ mod tests {
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
         let t = H2Number::new_aligned(
-            AlignValue::After(8),
+            Alignment::After(8),
             SizedDefinition::I16(Endian::Big),
             SizedDisplay::Decimal,
         );

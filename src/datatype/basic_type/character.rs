@@ -1,20 +1,21 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::alignment::Alignment;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Character {
 }
 
 impl Character {
-    pub fn new_aligned(alignment: AlignValue) -> H2Type {
+    pub fn new_aligned(alignment: Alignment) -> H2Type {
         H2Type::new(alignment, H2Types::Character(Self {
         }))
     }
 
     pub fn new() -> H2Type {
-        Self::new_aligned(AlignValue::None)
+        Self::new_aligned(Alignment::None)
     }
 }
 

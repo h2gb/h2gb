@@ -4,7 +4,8 @@ use std::net::Ipv4Addr;
 
 use sized_number::Endian;
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::alignment::Alignment;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IPv4 {
@@ -12,14 +13,14 @@ pub struct IPv4 {
 }
 
 impl IPv4 {
-    pub fn new_aligned(alignment: AlignValue, endian: Endian) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, endian: Endian) -> H2Type {
         H2Type::new(alignment, H2Types::IPv4(Self {
             endian: endian
         }))
     }
 
     pub fn new(endian: Endian) -> H2Type {
-        Self::new_aligned(AlignValue::None, endian)
+        Self::new_aligned(Alignment::None, endian)
     }
 }
 

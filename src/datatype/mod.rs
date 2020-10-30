@@ -4,11 +4,12 @@ use std::ops::Range;
 
 use sized_number::Context;
 
+pub mod alignment;
+use alignment::Alignment;
+
 pub mod basic_type;
 pub mod complex_type;
 // pub mod dynamic_type;
-
-pub mod helpers;
 
 // Allow us to resolve either statically or dynamically, depending on what's
 // needed. One or the other might throw an error, though.
@@ -41,69 +42,6 @@ impl<'a> ResolveOffset<'a> {
         match self {
             Self::Static(_) => Self::Static(offset),
             Self::Dynamic(c) => Self::Dynamic(c.at(offset)),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum AlignValue {
-    /// Don't align at all
-    None,
-
-    /// Align after.
-    ///
-    /// Each field is padded until its length is a multiple of the padding
-    /// Length.. so 0..1 aligned to 4 will be 0..4, and 1..2 aligned to 4 will
-    /// be 1..5
-    After(u64),
-
-    /// Align before and after.
-    ///
-    /// Each field must start and end on a multiple of the alignment value.
-    Full(u64),
-
-    /// Only pad after, but error out if the start isn't aligned.
-    StrictAfter(u64),
-}
-
-impl AlignValue {
-    fn round_up(number: u64, multiple: u64) -> u64 {
-        if multiple == 0 {
-            return number;
-        }
-
-        let remainder = number % multiple;
-        if remainder == 0 {
-            return number;
-        }
-
-        number - remainder + multiple
-    }
-
-    fn round_down(number: u64, multiple: u64) -> u64 {
-        if multiple == 0 {
-            return number;
-        }
-
-        number - (number % multiple)
-    }
-
-    pub fn round(self, range: Range<u64>) -> SimpleResult<Range<u64>> {
-        match self {
-            Self::None => Ok(range),
-            Self::After(m) => {
-                Ok(range.start..Self::round_up(range.end, m))
-            },
-            Self::Full(m) => {
-                Ok(Self::round_down(range.start, m)..Self::round_up(range.end, m))
-            },
-            Self::StrictAfter(m) => {
-                if range.start % m != 0 {
-                    bail!("Alignment error");
-                }
-
-                Ok(range.start..Self::round_up(range.end, m))
-            },
         }
     }
 }
@@ -165,11 +103,11 @@ impl ResolvedType {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Type {
     field: H2Types,
-    alignment: AlignValue,
+    alignment: Alignment,
 }
 
 impl H2Type {
-    pub fn new(alignment: AlignValue, field: H2Types) -> Self {
+    pub fn new(alignment: Alignment, field: H2Types) -> Self {
         Self {
             field: field,
             alignment: alignment,
@@ -221,7 +159,7 @@ impl H2Type {
         let end   = offset.position() + self.actual_size(offset)?;
 
         // Do the rounding
-        self.alignment.round(start..end)
+        self.alignment.align(start..end)
     }
 
     /// Size including padding either before or after

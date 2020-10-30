@@ -1,7 +1,8 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 
-use crate::datatype::{H2Type, H2Types, ResolvedType, H2TypeTrait, ResolveOffset, AlignValue};
+use crate::datatype::{H2Type, H2Types, ResolvedType, H2TypeTrait, ResolveOffset};
+use crate::datatype::alignment::Alignment;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Array {
@@ -11,7 +12,7 @@ pub struct H2Array {
 
 impl H2Array {
     // TODO: We need to prevent zero-length arrays
-    pub fn new_aligned(alignment: AlignValue, length: u64, field_type: H2Type) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, length: u64, field_type: H2Type) -> H2Type {
         H2Type::new(alignment, H2Types::H2Array(Self {
             field_type: Box::new(field_type),
             length: length,
@@ -19,7 +20,7 @@ impl H2Array {
     }
 
     pub fn new(length: u64, field_type: H2Type) -> H2Type {
-        Self::new_aligned(AlignValue::None, length, field_type)
+        Self::new_aligned(Alignment::None, length, field_type)
     }
 }
 
@@ -160,7 +161,7 @@ mod tests {
 
         // An array of 4 32-bit unsigned integers
         let t = H2Array::new(4,
-            H2Number::new_aligned(AlignValue::After(4), SizedDefinition::U8, SizedDisplay::Hex(Default::default()))
+            H2Number::new_aligned(Alignment::After(4), SizedDefinition::U8, SizedDisplay::Hex(Default::default()))
         );
 
         // Even though it's 4x U8 values, with padding it should be 16
@@ -200,9 +201,9 @@ mod tests {
         // An array of 4 elements
         let t = H2Array::new(4,
             // Array of 2 elements, each of which is aligned to a 4-byte boundary
-            H2Array::new_aligned(AlignValue::After(4), 2,
+            H2Array::new_aligned(Alignment::After(4), 2,
                 // Each element is a 1-byte hex number aligned to a 2-byte bounary
-                H2Number::new_aligned(AlignValue::After(2), SizedDefinition::U8, SizedDisplay::Hex(Default::default()))
+                H2Number::new_aligned(Alignment::After(2), SizedDefinition::U8, SizedDisplay::Hex(Default::default()))
             )
         );
 

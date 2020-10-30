@@ -3,7 +3,8 @@ use simple_error::{bail, SimpleResult};
 
 use sized_number::{SizedDefinition, SizedDisplay};
 
-use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset, AlignValue};
+use crate::datatype::{H2Type, H2Types, H2TypeTrait, ResolveOffset};
+use crate::datatype::alignment::Alignment;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct H2Pointer {
@@ -14,7 +15,7 @@ pub struct H2Pointer {
 }
 
 impl H2Pointer {
-    pub fn new_aligned(alignment: AlignValue, definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> H2Type {
         H2Type::new(alignment, H2Types::H2Pointer(Self {
             definition: definition,
             display: display,
@@ -23,7 +24,7 @@ impl H2Pointer {
     }
 
     pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> H2Type {
-        Self::new_aligned(AlignValue::None, definition, display, target_type)
+        Self::new_aligned(Alignment::None, definition, display, target_type)
     }
 }
 
