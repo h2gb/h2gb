@@ -198,38 +198,46 @@ mod tests {
         Ok(())
     }
 
-    // // #[test]
-    // // fn test_nested_alignment() -> SimpleResult<()> {
-    // //     let data = b"AABBCCDDEEFFGGHH".to_vec();
-    // //     let context = Context::new(&data);
+    #[test]
+    fn test_nested_alignment() -> SimpleResult<()> {
+        let data = b"AABBCCDDEEFFGGHH".to_vec();
+        let s_offset = ResolveOffset::Static(0);
+        let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-    // //     // An array of 4 32-bit unsigned integers
-    // //     let t: StaticType = H2Array::new_aligned(4, 4,
-    // //         H2Array::new_aligned(2, 2,
-    // //             H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())).into()
-    // //         ).into()
-    // //     ).into();
+        // An array of 4 elements
+        let t = H2Type::from(H2Array::new(4,
+            // Array of 2 elements, each of which is aligned to a 4-byte boundary
+            H2Type::from((4, H2Array::new(2,
+                // Each element is a 1-byte hex number aligned to a 2-byte bounary
+                H2Type::from((2, H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default()))))
+            )))
+        ));
 
-    // //     // Even though it's 4x U8 values, with padding it should be 16
-    // //     assert_eq!(16, t.size());
+        // Even though it's 4x U8 values, with padding it should be 16
+        assert_eq!(16, t.size(&s_offset, Align::No)?);
+        assert_eq!(16, t.size(&d_offset, Align::No)?);
 
-    // //     let resolved = t.resolve_full(0, None);
-    // //     assert_eq!(8, resolved.len());
+        // Make sure there are 4 direct children
+        assert_eq!(4, t.resolve_partial(&d_offset)?.len());
 
-    // //     assert_eq!(0..1,   resolved[0].offset);
-    // //     assert_eq!("0x41", resolved[0].to_string(&context)?);
+        // Make sure there are 8 total values
+        let resolved = t.resolve_full(&d_offset)?;
+        assert_eq!(8, resolved.len());
 
-    // //     assert_eq!(2..3,   resolved[1].offset);
-    // //     assert_eq!("0x42", resolved[1].to_string(&context)?);
+        assert_eq!(0..1,   resolved[0].offset);
+        assert_eq!("0x41", resolved[0].to_string(&d_offset)?);
 
-    // //     assert_eq!(4..5,   resolved[2].offset);
-    // //     assert_eq!("0x43", resolved[2].to_string(&context)?);
+        assert_eq!(2..3,   resolved[1].offset);
+        assert_eq!("0x42", resolved[1].to_string(&d_offset)?);
 
-    // //     assert_eq!(6..7,   resolved[3].offset);
-    // //     assert_eq!("0x44", resolved[3].to_string(&context)?);
+        assert_eq!(4..5,   resolved[2].offset);
+        assert_eq!("0x43", resolved[2].to_string(&d_offset)?);
 
-    // //     Ok(())
-    // // }
+        assert_eq!(6..7,   resolved[3].offset);
+        assert_eq!("0x44", resolved[3].to_string(&d_offset)?);
+
+        Ok(())
+    }
 
     // // #[test]
     // // fn test_array_not_starting_at_zero() -> SimpleResult<()> {
