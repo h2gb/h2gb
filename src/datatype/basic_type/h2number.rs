@@ -108,13 +108,19 @@ mod tests {
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
         let t = H2Number::new_aligned(
-            Alignment::After(8),
+            Alignment::Full(8),
             SizedDefinition::I16(Endian::Big),
             SizedDisplay::Decimal,
         );
 
+        // Starting at 0
         assert_eq!(2, t.actual_size(&s_offset)?);
         assert_eq!(8, t.aligned_size(&s_offset)?);
+
+        // Starting at 7, the value spans two alignment blocks, and therefore
+        // the size is double
+        assert_eq!(2, t.actual_size(&s_offset.at(7))?);
+        assert_eq!(16, t.aligned_size(&s_offset.at(7))?);
 
         assert_eq!(2, t.actual_size(&d_offset)?);
         assert_eq!(8, t.aligned_size(&d_offset)?);

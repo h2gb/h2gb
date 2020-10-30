@@ -46,7 +46,8 @@ impl H2TypeTrait for H2Array {
 
             result.push(ResolvedType {
                 // Note: the end depends on the normal size, not the static one
-                offset: self.field_type.actual_range(&this_offset)?,
+                actual_range:  self.field_type.actual_range(&this_offset)?,
+                aligned_range: self.field_type.aligned_range(&this_offset)?,
                 field_name: Some(i.to_string()),
                 field_type: (*self.field_type).clone(),
             });
@@ -61,7 +62,7 @@ impl H2TypeTrait for H2Array {
         // Because the collect() expects a result, this will end and bubble
         // up errors automatically!
         let strings: Vec<String> = self.resolve_partial(offset)?.iter().map(|c| {
-            c.field_type.to_string(&offset.at(c.offset.start))
+            c.field_type.to_string(&offset.at(c.actual_range.start))
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("[{}]", strings.join(", ")))
@@ -75,6 +76,7 @@ mod tests {
     use sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
 
     use crate::datatype::basic_type::h2number::H2Number;
+    use crate::datatype::basic_type::character::Character;
 
     #[test]
     fn test_array() -> SimpleResult<()> {
@@ -96,16 +98,16 @@ mod tests {
         let resolved = t.resolve_full(&d_offset)?;
         assert_eq!(4, resolved.len());
 
-        assert_eq!(0..4, resolved[0].offset);
+        assert_eq!(0..4, resolved[0].actual_range);
         assert_eq!("0x41414141", resolved[0].to_string(&d_offset)?);
 
-        assert_eq!(4..8, resolved[1].offset);
+        assert_eq!(4..8, resolved[1].actual_range);
         assert_eq!("0x42424242", resolved[1].to_string(&d_offset)?);
 
-        assert_eq!(8..12, resolved[2].offset);
+        assert_eq!(8..12, resolved[2].actual_range);
         assert_eq!("0x43434343", resolved[2].to_string(&d_offset)?);
 
-        assert_eq!(12..16, resolved[3].offset);
+        assert_eq!(12..16, resolved[3].actual_range);
         assert_eq!("0x44444444", resolved[3].to_string(&d_offset)?);
 
         Ok(())
@@ -171,22 +173,22 @@ mod tests {
 
         let children = t.resolve_partial(&d_offset)?;
         assert_eq!(4, children.len());
-        assert_eq!(0..1, children[0].offset);
+        assert_eq!(0..1, children[0].actual_range);
         assert_eq!("0x41", children[0].to_string(&d_offset)?);
 
         let resolved = t.resolve_full(&d_offset)?;
         assert_eq!(4, resolved.len());
 
-        assert_eq!(0..1,   resolved[0].offset);
+        assert_eq!(0..1,   resolved[0].actual_range);
         assert_eq!("0x41", resolved[0].to_string(&d_offset)?);
 
-        assert_eq!(4..5,   resolved[1].offset);
+        assert_eq!(4..5,   resolved[1].actual_range);
         assert_eq!("0x42", resolved[1].to_string(&d_offset)?);
 
-        assert_eq!(8..9,   resolved[2].offset);
+        assert_eq!(8..9,   resolved[2].actual_range);
         assert_eq!("0x43", resolved[2].to_string(&d_offset)?);
 
-        assert_eq!(12..13, resolved[3].offset);
+        assert_eq!(12..13, resolved[3].actual_range);
         assert_eq!("0x44", resolved[3].to_string(&d_offset)?);
 
         Ok(())
@@ -218,52 +220,54 @@ mod tests {
         let resolved = t.resolve_full(&d_offset)?;
         assert_eq!(8, resolved.len());
 
-        assert_eq!(0..1,   resolved[0].offset);
+        assert_eq!(0..1,   resolved[0].actual_range);
         assert_eq!("0x41", resolved[0].to_string(&d_offset)?);
 
-        assert_eq!(2..3,   resolved[1].offset);
+        assert_eq!(2..3,   resolved[1].actual_range);
         assert_eq!("0x42", resolved[1].to_string(&d_offset)?);
 
-        assert_eq!(4..5,   resolved[2].offset);
+        assert_eq!(4..5,   resolved[2].actual_range);
         assert_eq!("0x43", resolved[2].to_string(&d_offset)?);
 
-        assert_eq!(6..7,   resolved[3].offset);
+        assert_eq!(6..7,   resolved[3].actual_range);
         assert_eq!("0x44", resolved[3].to_string(&d_offset)?);
 
         Ok(())
     }
 
-    // // #[test]
-    // // fn test_array_not_starting_at_zero() -> SimpleResult<()> {
-    // //     //           ----------- ignored ------------
-    // //     let data = b"\x00\x00\x00\x00\x00\x00\x00\x00AAAABBBBCCCCDDDD".to_vec();
-    // //     let context = Context::new(&data);
+    #[test]
+    fn test_offset_padding() -> SimpleResult<()> {
+        let data = b"XAXXXBXXXCXXXDXX".to_vec();
+        let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-    // //     // An array of 4 32-bit unsigned integers
-    // //     let t: StaticType = H2Array::new(4,
-    // //         H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Hex(Default::default())).into()
-    // //     ).into();
+        // An array of 4 32-bit unsigned integers
+        let t = H2Array::new(4,
+            Character::new_aligned(Alignment::Full(4))
+        );
 
-    // //     assert_eq!(16, t.size());
+        // Resolve starting at 1, but due to the padding the range will be
+        // 0..4
+        let resolved = t.resolve_full(&d_offset.at(1))?;
+        assert_eq!(4, resolved.len());
 
-    // //     let resolved = t.resolve_full(8, None);
-    // //     assert_eq!(4, resolved.len());
+        assert_eq!(1..2, resolved[0].actual_range);
+        assert_eq!(0..4, resolved[0].aligned_range);
+        assert_eq!("A", resolved[0].to_string(&d_offset)?);
 
-    // //     assert_eq!(8..12, resolved[0].offset);
-    // //     assert_eq!("0x41414141", resolved[0].to_string(&context)?);
+        assert_eq!(5..6, resolved[1].actual_range);
+        assert_eq!(4..8, resolved[1].aligned_range);
+        assert_eq!("B", resolved[1].to_string(&d_offset)?);
 
-    // //     assert_eq!(12..16, resolved[1].offset);
-    // //     assert_eq!("0x42424242", resolved[1].to_string(&context)?);
+        assert_eq!(9..10, resolved[2].actual_range);
+        assert_eq!(8..12, resolved[2].aligned_range);
+        assert_eq!("C", resolved[2].to_string(&d_offset)?);
 
-    // //     assert_eq!(16..20, resolved[2].offset);
-    // //     assert_eq!("0x43434343", resolved[2].to_string(&context)?);
+        assert_eq!(13..14, resolved[3].actual_range);
+        assert_eq!(12..16, resolved[3].aligned_range);
+        assert_eq!("D", resolved[3].to_string(&d_offset)?);
 
-    // //     assert_eq!(20..24, resolved[3].offset);
-    // //     assert_eq!("0x44444444", resolved[3].to_string(&context)?);
-
-    // //     Ok(())
-    // // }
-
+        Ok(())
+    }
     // #[test]
     // fn test_dynamic_array() -> SimpleResult<()> {
     //     Ok(())

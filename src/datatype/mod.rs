@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{bail, SimpleResult};
+use simple_error::SimpleResult;
 use std::ops::Range;
 
 use sized_number::Context;
@@ -87,7 +87,8 @@ pub trait H2TypeTrait {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ResolvedType {
-    offset: Range<u64>,
+    actual_range: Range<u64>,
+    aligned_range: Range<u64>,
     field_name: Option<String>,
     field_type: H2Type,
 }
@@ -96,7 +97,7 @@ impl ResolvedType {
     // This is a simpler way to display the type for the right part of the
     // context
     pub fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
-        self.field_type.to_string(&offset.at(self.offset.start))
+        self.field_type.to_string(&offset.at(self.actual_range.start))
     }
 }
 
@@ -190,14 +191,15 @@ impl H2Type {
         if children.len() == 0 {
             // No children? Return ourself!
             result.push(ResolvedType {
-                offset: offset.position()..(offset.position() + self.actual_size(offset)?),
+                actual_range: self.actual_range(offset)?,
+                aligned_range: self.aligned_range(offset)?,
                 field_name: None,
                 field_type: self.clone(),
             });
         } else {
             // Children? Gotta get 'em all!
             for child in children.iter() {
-                result.append(&mut child.field_type.resolve_full(&offset.at(child.offset.start))?);
+                result.append(&mut child.field_type.resolve_full(&offset.at(child.actual_range.start))?);
             }
         }
 
@@ -232,22 +234,22 @@ mod tests {
 
         let resolved = t.resolve_full(&s_offset)?;
         assert_eq!(1, resolved.len());
-        assert_eq!(0..1, resolved[0].offset);
+        assert_eq!(0..1, resolved[0].actual_range);
         assert_eq!("Character", resolved[0].to_string(&s_offset)?);
 
         let resolved = t.resolve_full(&s_offset.at(1))?;
         assert_eq!(1, resolved.len());
-        assert_eq!(1..2, resolved[0].offset);
+        assert_eq!(1..2, resolved[0].actual_range);
         assert_eq!("Character", resolved[0].to_string(&s_offset)?);
 
         let resolved = t.resolve_full(&d_offset)?;
         assert_eq!(1, resolved.len());
-        assert_eq!(0..1, resolved[0].offset);
+        assert_eq!(0..1, resolved[0].actual_range);
         assert_eq!("A", resolved[0].to_string(&d_offset)?);
 
         let resolved = t.resolve_full(&d_offset.at(1))?;
         assert_eq!(1, resolved.len());
-        assert_eq!(1..2, resolved[0].offset);
+        assert_eq!(1..2, resolved[0].actual_range);
         assert_eq!("B", resolved[0].to_string(&d_offset)?);
 
         Ok(())
