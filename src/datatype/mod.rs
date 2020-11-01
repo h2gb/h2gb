@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
 use sized_number::Context;
@@ -58,6 +58,7 @@ pub enum H2Types {
 
     // Complex
     H2Array(complex_type::h2array::H2Array),
+    H2Struct(complex_type::h2struct::H2Struct),
 
     // Dynamic
     // NTString(dynamic_type::ntstring::NTString),
@@ -127,6 +128,7 @@ impl H2Type {
 
             // Complex
             H2Types::H2Array(t)   => t,
+            H2Types::H2Struct(t)  => t,
 
             // Dynamic
             // H2Types::NTString(t)  => t,
