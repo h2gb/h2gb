@@ -24,11 +24,11 @@ impl H2TypeTrait for Character {
         true
     }
 
-    fn size(&self, _offset: &ResolveOffset) -> SimpleResult<u64> {
+    fn size(&self, _offset: ResolveOffset) -> SimpleResult<u64> {
         Ok(1)
     }
 
-    fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
+    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
         match offset {
             ResolveOffset::Static(_) => Ok("Character".to_string()),
             ResolveOffset::Dynamic(context) => {
@@ -54,15 +54,15 @@ mod tests {
         let data = b"\x00\x1F\x20\x41\x42\x7e\x7f\x80\xff".to_vec();
         let offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        assert_eq!("<invalid>", Character::new().to_string(&offset.at(0))?);
-        assert_eq!("<invalid>", Character::new().to_string(&offset.at(1))?);
-        assert_eq!(" ",         Character::new().to_string(&offset.at(2))?);
-        assert_eq!("A",         Character::new().to_string(&offset.at(3))?);
-        assert_eq!("B",         Character::new().to_string(&offset.at(4))?);
-        assert_eq!("~",         Character::new().to_string(&offset.at(5))?);
-        assert_eq!("<invalid>", Character::new().to_string(&offset.at(6))?);
-        assert_eq!("<invalid>", Character::new().to_string(&offset.at(7))?);
-        assert_eq!("<invalid>", Character::new().to_string(&offset.at(8))?);
+        assert_eq!("<invalid>", Character::new().to_string(offset.at(0))?);
+        assert_eq!("<invalid>", Character::new().to_string(offset.at(1))?);
+        assert_eq!(" ",         Character::new().to_string(offset.at(2))?);
+        assert_eq!("A",         Character::new().to_string(offset.at(3))?);
+        assert_eq!("B",         Character::new().to_string(offset.at(4))?);
+        assert_eq!("~",         Character::new().to_string(offset.at(5))?);
+        assert_eq!("<invalid>", Character::new().to_string(offset.at(6))?);
+        assert_eq!("<invalid>", Character::new().to_string(offset.at(7))?);
+        assert_eq!("<invalid>", Character::new().to_string(offset.at(8))?);
 
         Ok(())
     }

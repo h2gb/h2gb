@@ -33,7 +33,7 @@ impl H2TypeTrait for H2Struct {
     }
 
     // Get the static size, if possible
-    fn size(&self, offset: &ResolveOffset) -> SimpleResult<u64> {
+    fn size(&self, offset: ResolveOffset) -> SimpleResult<u64> {
         // Loop through each field
 
         if let Some(t) = self.resolve_partial(offset)?.last() {
@@ -43,15 +43,15 @@ impl H2TypeTrait for H2Struct {
         }
     }
 
-    fn resolve_partial(&self, offset: &ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
+    fn resolve_partial(&self, offset: ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
         let mut start = offset.position();
 
         self.fields.iter().map(|(name, field_type)| {
             let this_offset = offset.at(start);
 
             let resolved = ResolvedType {
-                actual_range: field_type.actual_range(&this_offset)?,
-                aligned_range: field_type.aligned_range(&this_offset)?,
+                actual_range: field_type.actual_range(this_offset)?,
+                aligned_range: field_type.aligned_range(this_offset)?,
                 field_name: Some(name.clone()),
                 field_type: field_type.clone(),
             };
@@ -63,7 +63,7 @@ impl H2TypeTrait for H2Struct {
     }
 
     // Get the user-facing name of the type
-    fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
+    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
         let elements = self.resolve_partial(offset)?.iter().map(|t| {
             Ok(format!("{}: {}", t.field_name.clone().unwrap_or("(unnamed)".to_string()), t.to_string(offset)?))
         }).collect::<SimpleResult<Vec<String>>>()?;
@@ -118,23 +118,23 @@ mod tests {
             ),
         ]);
 
-        assert_eq!(11, t.actual_size(&s_offset)?);
-        assert_eq!(11, t.actual_size(&d_offset)?);
+        assert_eq!(11, t.actual_size(s_offset)?);
+        assert_eq!(11, t.actual_size(d_offset)?);
 
-        let resolved = t.resolve_full(&d_offset)?;
+        let resolved = t.resolve_full(d_offset)?;
 
         assert_eq!(4, resolved.len());
         assert_eq!(0..4, resolved[0].actual_range);
-        assert_eq!("0x00010203", resolved[0].to_string(&d_offset)?);
+        assert_eq!("0x00010203", resolved[0].to_string(d_offset)?);
 
         assert_eq!(4..6, resolved[1].actual_range);
-        assert_eq!("0x0001", resolved[1].to_string(&d_offset)?);
+        assert_eq!("0x0001", resolved[1].to_string(d_offset)?);
 
         assert_eq!(6..7, resolved[2].actual_range);
-        assert_eq!("0o17", resolved[2].to_string(&d_offset)?);
+        assert_eq!("0o17", resolved[2].to_string(d_offset)?);
 
         assert_eq!(7..11, resolved[3].actual_range);
-        assert_eq!("202182159", resolved[3].to_string(&d_offset)?);
+        assert_eq!("202182159", resolved[3].to_string(d_offset)?);
 
         Ok(())
     }
@@ -172,30 +172,30 @@ mod tests {
             ),
         ]);
 
-        assert_eq!(12, t.actual_size(&s_offset)?);
-        assert_eq!(12, t.actual_size(&d_offset)?);
+        assert_eq!(12, t.actual_size(s_offset)?);
+        assert_eq!(12, t.actual_size(d_offset)?);
 
         // let resolved = t.resolve_full(0, None);
         // assert_eq!(5, resolved.len());
 
         // assert_eq!(0..4,         resolved[0].offset);
-        // assert_eq!("0x00010203", resolved[0].to_string(&context)?);
+        // assert_eq!("0x00010203", resolved[0].to_string(context)?);
         // assert_eq!(Some(vec!["field_u32".to_string()]), resolved[0].breadcrumbs);
 
         // assert_eq!(4..5,     resolved[1].offset);
-        // assert_eq!("0x41",   resolved[1].to_string(&context)?);
+        // assert_eq!("0x41",   resolved[1].to_string(context)?);
         // assert_eq!(Some(vec!["struct".to_string(), "A".to_string()]), resolved[1].breadcrumbs);
 
         // assert_eq!(5..6,     resolved[2].offset);
-        // assert_eq!("0x42",   resolved[2].to_string(&context)?);
+        // assert_eq!("0x42",   resolved[2].to_string(context)?);
         // assert_eq!(Some(vec!["struct".to_string(), "B".to_string()]), resolved[2].breadcrumbs);
 
         // assert_eq!(6..8,     resolved[3].offset);
-        // assert_eq!("0x4343", resolved[3].to_string(&context)?);
+        // assert_eq!("0x4343", resolved[3].to_string(context)?);
         // assert_eq!(Some(vec!["struct".to_string(), "C".to_string()]), resolved[3].breadcrumbs);
 
         // assert_eq!(8..12,    resolved[4].offset);
-        // assert_eq!("1",      resolved[4].to_string(&context)?);
+        // assert_eq!("1",      resolved[4].to_string(context)?);
         // assert_eq!(Some(vec!["field_u32_little".to_string()]), resolved[4].breadcrumbs);
 
         Ok(())
@@ -245,16 +245,16 @@ mod tests {
 
     //    assert_eq!(4, resolved.len());
     //    assert_eq!(0..4, resolved[0].offset);
-    //    assert_eq!("0x00010203", resolved[0].to_string(&context)?);
+    //    assert_eq!("0x00010203", resolved[0].to_string(context)?);
 
     //    assert_eq!(4..6, resolved[1].offset);
-    //    assert_eq!("0x0001", resolved[1].to_string(&context)?);
+    //    assert_eq!("0x0001", resolved[1].to_string(context)?);
 
     //    assert_eq!(8..9, resolved[2].offset);
-    //    assert_eq!("0o17", resolved[2].to_string(&context)?);
+    //    assert_eq!("0o17", resolved[2].to_string(context)?);
 
     //    assert_eq!(12..16, resolved[3].offset);
-    //    assert_eq!("202182159", resolved[3].to_string(&context)?);
+    //    assert_eq!("202182159", resolved[3].to_string(context)?);
 
     //    Ok(())
     //}
@@ -298,19 +298,19 @@ mod tests {
     //    assert_eq!(5, resolved.len());
 
     //    assert_eq!(0..4,         resolved[0].offset);
-    //    assert_eq!("0x00010203", resolved[0].to_string(&context)?);
+    //    assert_eq!("0x00010203", resolved[0].to_string(context)?);
 
     //    assert_eq!(8..9,     resolved[1].offset);
-    //    assert_eq!("0x41",   resolved[1].to_string(&context)?);
+    //    assert_eq!("0x41",   resolved[1].to_string(context)?);
 
     //    assert_eq!(10..11,     resolved[2].offset);
-    //    assert_eq!("0x42",   resolved[2].to_string(&context)?);
+    //    assert_eq!("0x42",   resolved[2].to_string(context)?);
 
     //    assert_eq!(12..14,     resolved[3].offset);
-    //    assert_eq!("0x4343", resolved[3].to_string(&context)?);
+    //    assert_eq!("0x4343", resolved[3].to_string(context)?);
 
     //    assert_eq!(16..20,    resolved[4].offset);
-    //    assert_eq!("1",      resolved[4].to_string(&context)?);
+    //    assert_eq!("1",      resolved[4].to_string(context)?);
 
     //    Ok(())
     //}
@@ -358,16 +358,16 @@ mod tests {
     //    //println!("{:#?}", resolved);
     //    assert_eq!(4, resolved.len());
     //    assert_eq!(7..11, resolved[0].offset);
-    //    assert_eq!("0x00010203", resolved[0].to_string(&context)?);
+    //    assert_eq!("0x00010203", resolved[0].to_string(context)?);
 
     //    assert_eq!(11..13, resolved[1].offset);
-    //    assert_eq!("0x0001", resolved[1].to_string(&context)?);
+    //    assert_eq!("0x0001", resolved[1].to_string(context)?);
 
     //    assert_eq!(13..14, resolved[2].offset);
-    //    assert_eq!("0o17", resolved[2].to_string(&context)?);
+    //    assert_eq!("0o17", resolved[2].to_string(context)?);
 
     //    assert_eq!(14..18, resolved[3].offset);
-    //    assert_eq!("202182159", resolved[3].to_string(&context)?);
+    //    assert_eq!("202182159", resolved[3].to_string(context)?);
 
     //    Ok(())
     //}

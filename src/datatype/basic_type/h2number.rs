@@ -30,11 +30,11 @@ impl H2TypeTrait for H2Number {
         true
     }
 
-    fn size(&self, _offset: &ResolveOffset) -> SimpleResult<u64> {
+    fn size(&self, _offset: ResolveOffset) -> SimpleResult<u64> {
         Ok(self.definition.size())
     }
 
-    fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
+    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
         match offset {
             ResolveOffset::Static(_) => Ok("Number".to_string()),
             ResolveOffset::Dynamic(context) => {
@@ -62,16 +62,16 @@ mod tests {
             SizedDisplay::Hex(Default::default()),
         );
 
-        assert_eq!(1, t.actual_size(&s_offset).unwrap());
-        assert_eq!(1, t.actual_size(&d_offset).unwrap());
+        assert_eq!(1, t.actual_size(s_offset).unwrap());
+        assert_eq!(1, t.actual_size(d_offset).unwrap());
 
-        assert_eq!(0, t.related(&s_offset)?.len());
-        assert_eq!(0, t.related(&d_offset)?.len());
+        assert_eq!(0, t.related(s_offset)?.len());
+        assert_eq!(0, t.related(d_offset)?.len());
 
-        assert_eq!("0x00", t.to_string(&d_offset.at(0))?);
-        assert_eq!("0x7f", t.to_string(&d_offset.at(1))?);
-        assert_eq!("0x80", t.to_string(&d_offset.at(2))?);
-        assert_eq!("0xff", t.to_string(&d_offset.at(3))?);
+        assert_eq!("0x00", t.to_string(d_offset.at(0))?);
+        assert_eq!("0x7f", t.to_string(d_offset.at(1))?);
+        assert_eq!("0x80", t.to_string(d_offset.at(2))?);
+        assert_eq!("0xff", t.to_string(d_offset.at(3))?);
 
         Ok(())
     }
@@ -87,16 +87,16 @@ mod tests {
             SizedDisplay::Decimal,
         );
 
-        assert_eq!(2, t.actual_size(&s_offset).unwrap());
-        assert_eq!(2, t.actual_size(&d_offset).unwrap());
+        assert_eq!(2, t.actual_size(s_offset).unwrap());
+        assert_eq!(2, t.actual_size(d_offset).unwrap());
 
-        assert_eq!(0, t.related(&s_offset)?.len());
-        assert_eq!(0, t.related(&d_offset)?.len());
+        assert_eq!(0, t.related(s_offset)?.len());
+        assert_eq!(0, t.related(d_offset)?.len());
 
-        assert_eq!("0",      t.to_string(&d_offset.at(0))?);
-        assert_eq!("32767",  t.to_string(&d_offset.at(2))?);
-        assert_eq!("-32768", t.to_string(&d_offset.at(4))?);
-        assert_eq!("-1",     t.to_string(&d_offset.at(6))?);
+        assert_eq!("0",      t.to_string(d_offset.at(0))?);
+        assert_eq!("32767",  t.to_string(d_offset.at(2))?);
+        assert_eq!("-32768", t.to_string(d_offset.at(4))?);
+        assert_eq!("-1",     t.to_string(d_offset.at(6))?);
 
         Ok(())
     }
@@ -114,21 +114,21 @@ mod tests {
         );
 
         // Starting at 0
-        assert_eq!(2, t.actual_size(&s_offset)?);
-        assert_eq!(8, t.aligned_size(&s_offset)?);
+        assert_eq!(2, t.actual_size(s_offset)?);
+        assert_eq!(8, t.aligned_size(s_offset)?);
 
         // Starting at 7, the value spans two alignment blocks, and therefore
         // the size is double
-        assert_eq!(2, t.actual_size(&s_offset.at(7))?);
-        assert_eq!(16, t.aligned_size(&s_offset.at(7))?);
+        assert_eq!(2, t.actual_size(s_offset.at(7))?);
+        assert_eq!(16, t.aligned_size(s_offset.at(7))?);
 
-        assert_eq!(2, t.actual_size(&d_offset)?);
-        assert_eq!(8, t.aligned_size(&d_offset)?);
+        assert_eq!(2, t.actual_size(d_offset)?);
+        assert_eq!(8, t.aligned_size(d_offset)?);
 
-        assert_eq!("0",      t.to_string(&d_offset.at(0))?);
-        assert_eq!("32767",  t.to_string(&d_offset.at(2))?);
-        assert_eq!("-32768", t.to_string(&d_offset.at(4))?);
-        assert_eq!("-1",     t.to_string(&d_offset.at(6))?);
+        assert_eq!("0",      t.to_string(d_offset.at(0))?);
+        assert_eq!("32767",  t.to_string(d_offset.at(2))?);
+        assert_eq!("-32768", t.to_string(d_offset.at(4))?);
+        assert_eq!("-1",     t.to_string(d_offset.at(6))?);
 
         Ok(())
     }

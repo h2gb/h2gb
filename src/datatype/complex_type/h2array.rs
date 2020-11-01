@@ -29,7 +29,7 @@ impl H2TypeTrait for H2Array {
         self.field_type.is_static()
     }
 
-    fn size(&self, offset: &ResolveOffset) -> SimpleResult<u64> {
+    fn size(&self, offset: ResolveOffset) -> SimpleResult<u64> {
         match self.is_static() {
             // TODO: Alignment might make this weird
             true => Ok(self.length * self.field_type.aligned_size(offset)?),
@@ -37,7 +37,7 @@ impl H2TypeTrait for H2Array {
         }
     }
 
-    fn resolve_partial(&self, offset: &ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
+    fn resolve_partial(&self, offset: ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
         let mut result = vec![];
         let mut start: u64 = offset.position();
 
@@ -46,23 +46,23 @@ impl H2TypeTrait for H2Array {
 
             result.push(ResolvedType {
                 // Note: the end depends on the normal size, not the static one
-                actual_range:  self.field_type.actual_range(&this_offset)?,
-                aligned_range: self.field_type.aligned_range(&this_offset)?,
+                actual_range:  self.field_type.actual_range(this_offset)?,
+                aligned_range: self.field_type.aligned_range(this_offset)?,
                 field_name: Some(i.to_string()),
                 field_type: (*self.field_type).clone(),
             });
 
-            start = start + self.field_type.aligned_size(&this_offset)?
+            start = start + self.field_type.aligned_size(this_offset)?
         };
 
         Ok(result)
     }
 
-    fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
+    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
         // Because the collect() expects a result, this will end and bubble
         // up errors automatically!
         let strings: Vec<String> = self.resolve_partial(offset)?.iter().map(|c| {
-            c.field_type.to_string(&offset.at(c.actual_range.start))
+            c.field_type.to_string(offset.at(c.actual_range.start))
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("[{}]", strings.join(", ")))
@@ -90,25 +90,25 @@ mod tests {
         );
 
         assert_eq!(true, t.is_static());
-        assert_eq!(16, t.actual_size(&s_offset)?);
+        assert_eq!(16, t.actual_size(s_offset)?);
 
-        assert_eq!(4, t.resolve_partial(&s_offset)?.len());
-        assert_eq!(4, t.resolve_partial(&d_offset)?.len());
+        assert_eq!(4, t.resolve_partial(s_offset)?.len());
+        assert_eq!(4, t.resolve_partial(d_offset)?.len());
 
-        let resolved = t.resolve_full(&d_offset)?;
+        let resolved = t.resolve_full(d_offset)?;
         assert_eq!(4, resolved.len());
 
         assert_eq!(0..4, resolved[0].actual_range);
-        assert_eq!("0x41414141", resolved[0].to_string(&d_offset)?);
+        assert_eq!("0x41414141", resolved[0].to_string(d_offset)?);
 
         assert_eq!(4..8, resolved[1].actual_range);
-        assert_eq!("0x42424242", resolved[1].to_string(&d_offset)?);
+        assert_eq!("0x42424242", resolved[1].to_string(d_offset)?);
 
         assert_eq!(8..12, resolved[2].actual_range);
-        assert_eq!("0x43434343", resolved[2].to_string(&d_offset)?);
+        assert_eq!("0x43434343", resolved[2].to_string(d_offset)?);
 
         assert_eq!(12..16, resolved[3].actual_range);
-        assert_eq!("0x44444444", resolved[3].to_string(&d_offset)?);
+        assert_eq!("0x44444444", resolved[3].to_string(d_offset)?);
 
         Ok(())
     }
@@ -126,31 +126,31 @@ mod tests {
             ),
         );
 
-        assert_eq!(12, t.actual_size(&s_offset)?);
-        assert_eq!(12, t.actual_size(&d_offset)?);
+        assert_eq!(12, t.actual_size(s_offset)?);
+        assert_eq!(12, t.actual_size(d_offset)?);
 
         // Should have 4 direct children
-        assert_eq!(4, t.resolve_partial(&s_offset)?.len());
-        assert_eq!(4, t.resolve_partial(&d_offset)?.len());
+        assert_eq!(4, t.resolve_partial(s_offset)?.len());
+        assert_eq!(4, t.resolve_partial(d_offset)?.len());
 
         // And a total length of 12
-        let resolved = t.resolve_full(&d_offset)?;
+        let resolved = t.resolve_full(d_offset)?;
         assert_eq!(12, resolved.len());
 
-        assert_eq!("0",    resolved[0].to_string(&d_offset)?);
-        assert_eq!("0",    resolved[1].to_string(&d_offset)?);
-        assert_eq!("0",    resolved[2].to_string(&d_offset)?);
-        assert_eq!("0",    resolved[3].to_string(&d_offset)?);
+        assert_eq!("0",    resolved[0].to_string(d_offset)?);
+        assert_eq!("0",    resolved[1].to_string(d_offset)?);
+        assert_eq!("0",    resolved[2].to_string(d_offset)?);
+        assert_eq!("0",    resolved[3].to_string(d_offset)?);
 
-        assert_eq!("127",  resolved[4].to_string(&d_offset)?);
-        assert_eq!("127",  resolved[5].to_string(&d_offset)?);
-        assert_eq!("127",  resolved[6].to_string(&d_offset)?);
-        assert_eq!("127",  resolved[7].to_string(&d_offset)?);
+        assert_eq!("127",  resolved[4].to_string(d_offset)?);
+        assert_eq!("127",  resolved[5].to_string(d_offset)?);
+        assert_eq!("127",  resolved[6].to_string(d_offset)?);
+        assert_eq!("127",  resolved[7].to_string(d_offset)?);
 
-        assert_eq!("-128", resolved[8].to_string(&d_offset)?);
-        assert_eq!("-128", resolved[9].to_string(&d_offset)?);
-        assert_eq!("-1",  resolved[10].to_string(&d_offset)?);
-        assert_eq!("-1",  resolved[11].to_string(&d_offset)?);
+        assert_eq!("-128", resolved[8].to_string(d_offset)?);
+        assert_eq!("-128", resolved[9].to_string(d_offset)?);
+        assert_eq!("-1",  resolved[10].to_string(d_offset)?);
+        assert_eq!("-1",  resolved[11].to_string(d_offset)?);
 
         Ok(())
     }
@@ -168,28 +168,28 @@ mod tests {
 
         // Even though it's 4x U8 values, with padding it should be 16
         // (We don't want the array itself to be aligned - hence, `Align::No`)
-        assert_eq!(16, t.actual_size(&s_offset)?);
-        assert_eq!(16, t.actual_size(&d_offset)?);
+        assert_eq!(16, t.actual_size(s_offset)?);
+        assert_eq!(16, t.actual_size(d_offset)?);
 
-        let children = t.resolve_partial(&d_offset)?;
+        let children = t.resolve_partial(d_offset)?;
         assert_eq!(4, children.len());
         assert_eq!(0..1, children[0].actual_range);
-        assert_eq!("0x41", children[0].to_string(&d_offset)?);
+        assert_eq!("0x41", children[0].to_string(d_offset)?);
 
-        let resolved = t.resolve_full(&d_offset)?;
+        let resolved = t.resolve_full(d_offset)?;
         assert_eq!(4, resolved.len());
 
         assert_eq!(0..1,   resolved[0].actual_range);
-        assert_eq!("0x41", resolved[0].to_string(&d_offset)?);
+        assert_eq!("0x41", resolved[0].to_string(d_offset)?);
 
         assert_eq!(4..5,   resolved[1].actual_range);
-        assert_eq!("0x42", resolved[1].to_string(&d_offset)?);
+        assert_eq!("0x42", resolved[1].to_string(d_offset)?);
 
         assert_eq!(8..9,   resolved[2].actual_range);
-        assert_eq!("0x43", resolved[2].to_string(&d_offset)?);
+        assert_eq!("0x43", resolved[2].to_string(d_offset)?);
 
         assert_eq!(12..13, resolved[3].actual_range);
-        assert_eq!("0x44", resolved[3].to_string(&d_offset)?);
+        assert_eq!("0x44", resolved[3].to_string(d_offset)?);
 
         Ok(())
     }
@@ -210,27 +210,27 @@ mod tests {
         );
 
         // Even though it's 4x U8 values, with padding it should be 16
-        assert_eq!(16, t.actual_size(&s_offset)?);
-        assert_eq!(16, t.actual_size(&d_offset)?);
+        assert_eq!(16, t.actual_size(s_offset)?);
+        assert_eq!(16, t.actual_size(d_offset)?);
 
         // Make sure there are 4 direct children
-        assert_eq!(4, t.resolve_partial(&d_offset)?.len());
+        assert_eq!(4, t.resolve_partial(d_offset)?.len());
 
         // Make sure there are 8 total values
-        let resolved = t.resolve_full(&d_offset)?;
+        let resolved = t.resolve_full(d_offset)?;
         assert_eq!(8, resolved.len());
 
         assert_eq!(0..1,   resolved[0].actual_range);
-        assert_eq!("0x41", resolved[0].to_string(&d_offset)?);
+        assert_eq!("0x41", resolved[0].to_string(d_offset)?);
 
         assert_eq!(2..3,   resolved[1].actual_range);
-        assert_eq!("0x42", resolved[1].to_string(&d_offset)?);
+        assert_eq!("0x42", resolved[1].to_string(d_offset)?);
 
         assert_eq!(4..5,   resolved[2].actual_range);
-        assert_eq!("0x43", resolved[2].to_string(&d_offset)?);
+        assert_eq!("0x43", resolved[2].to_string(d_offset)?);
 
         assert_eq!(6..7,   resolved[3].actual_range);
-        assert_eq!("0x44", resolved[3].to_string(&d_offset)?);
+        assert_eq!("0x44", resolved[3].to_string(d_offset)?);
 
         Ok(())
     }
@@ -248,24 +248,24 @@ mod tests {
 
         // Resolve starting at 1, but due to the padding the range will be
         // 0..4
-        let resolved = t.resolve_full(&d_offset.at(1))?;
+        let resolved = t.resolve_full(d_offset.at(1))?;
         assert_eq!(4, resolved.len());
 
         assert_eq!(1..2, resolved[0].actual_range);
         assert_eq!(0..4, resolved[0].aligned_range);
-        assert_eq!("A", resolved[0].to_string(&d_offset)?);
+        assert_eq!("A", resolved[0].to_string(d_offset)?);
 
         assert_eq!(5..6, resolved[1].actual_range);
         assert_eq!(4..8, resolved[1].aligned_range);
-        assert_eq!("B", resolved[1].to_string(&d_offset)?);
+        assert_eq!("B", resolved[1].to_string(d_offset)?);
 
         assert_eq!(9..10, resolved[2].actual_range);
         assert_eq!(8..12, resolved[2].aligned_range);
-        assert_eq!("C", resolved[2].to_string(&d_offset)?);
+        assert_eq!("C", resolved[2].to_string(d_offset)?);
 
         assert_eq!(13..14, resolved[3].actual_range);
         assert_eq!(12..16, resolved[3].aligned_range);
-        assert_eq!("D", resolved[3].to_string(&d_offset)?);
+        assert_eq!("D", resolved[3].to_string(d_offset)?);
 
         Ok(())
     }

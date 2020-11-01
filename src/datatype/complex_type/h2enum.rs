@@ -62,13 +62,13 @@ impl H2Enum {
         }
     }
 
-    pub fn to_string(&self, context: &Context) -> SimpleResult<String> {
+    pub fn to_string(&self, context: Context) -> SimpleResult<String> {
         let mut strings: Vec<String> = vec![];
 
         for r in self.partially_resolve(context.position()) {
             strings.push(format!("{}: {}",
                 r.field_name.unwrap_or("unknown".to_string()),
-                r.field_type.to_string(&context.at(r.offset.start))?
+                r.field_type.to_string(context.at(r.offset.start))?
             ));
         }
 
@@ -138,22 +138,22 @@ mod tests {
 
         let r = e.resolve_full(0, None);
         assert_eq!(0..4, r[0].offset);
-        assert_eq!("0x41424344", r[0].to_string(&Context::new(&data))?);
+        assert_eq!("0x41424344", r[0].to_string(Context::new(&data))?);
 
         assert_eq!(0..2, r[1].offset);
-        assert_eq!("0x4142", r[1].to_string(&Context::new(&data))?);
+        assert_eq!("0x4142", r[1].to_string(Context::new(&data))?);
 
         assert_eq!(0..1, r[2].offset);
-        assert_eq!("0x41", r[2].to_string(&Context::new(&data))?);
+        assert_eq!("0x41", r[2].to_string(Context::new(&data))?);
 
         assert_eq!(0..1, r[3].offset);
-        assert_eq!("0o101", r[3].to_string(&Context::new(&data))?);
+        assert_eq!("0o101", r[3].to_string(Context::new(&data))?);
 
         assert_eq!(0..1, r[4].offset);
-        assert_eq!("65", r[4].to_string(&Context::new(&data))?);
+        assert_eq!("65", r[4].to_string(Context::new(&data))?);
 
         assert_eq!(0..4, r[5].offset);
-        assert_eq!("0x44434241", r[5].to_string(&Context::new(&data))?);
+        assert_eq!("0x44434241", r[5].to_string(Context::new(&data))?);
 
         Ok(())
     }

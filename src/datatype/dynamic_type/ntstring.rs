@@ -40,7 +40,7 @@ impl H2TypeTrait for NTString {
     }
 
     // Includes null-terminator
-    fn size(&self, context: &Context) -> SimpleResult<u64> {
+    fn size(&self, context: Context) -> SimpleResult<u64> {
         let mut size = 0;
 
         loop {
@@ -60,7 +60,7 @@ impl H2TypeTrait for NTString {
         Ok(size + 1)
     }
 
-    fn to_string(&self, context: &Context) -> SimpleResult<String> {
+    fn to_string(&self, context: Context) -> SimpleResult<String> {
         let size = self.size(context)?;
 
         if size == 0 {
@@ -74,7 +74,7 @@ impl H2TypeTrait for NTString {
         }
     }
 
-    fn resolve_partial(&self, context: &Context) -> SimpleResult<Vec<ResolvedType>> {
+    fn resolve_partial(&self, context: Context) -> SimpleResult<Vec<ResolvedType>> {
         let size = self.size(context)?;
         let mut result: Vec<ResolvedType> = Vec::new();
 
@@ -109,13 +109,13 @@ mod tests {
     //     let context = Context::new(&data);
 
     //     let s = NTString::new();
-    //     assert_eq!(5, s.size(&context.at(1))?);
-    //     assert_eq!("\"abcd\"", s.to_string(&context.at(1))?);
+    //     assert_eq!(5, s.size(context.at(1))?);
+    //     assert_eq!("\"abcd\"", s.to_string(context.at(1))?);
 
-    //     let r = s.partially_resolve(&context.at(1))?;
+    //     let r = s.partially_resolve(context.at(1))?;
     //     assert_eq!(2, r.len());
-    //     assert_eq!("[a, b, c, d]", r[0].to_string(&context.at(1))?);
-    //     assert_eq!("0", r[1].to_string(&context.at(1))?);
+    //     assert_eq!("[a, b, c, d]", r[0].to_string(context.at(1))?);
+    //     assert_eq!("0", r[1].to_string(context.at(1))?);
 
     //     Ok(())
     // }
@@ -126,9 +126,9 @@ mod tests {
     //     let context = Context::new(&data);
 
     //     let s = NTString::new();
-    //     assert!(s.size(&context.at(1)).is_err());
-    //     assert!(s.to_string(&context.at(1)).is_err());
-    //     assert!(s.partially_resolve(&context.at(1)).is_err());
+    //     assert!(s.size(context.at(1)).is_err());
+    //     assert!(s.to_string(context.at(1)).is_err());
+    //     assert!(s.partially_resolve(context.at(1)).is_err());
 
     //     Ok(())
     // }
@@ -139,12 +139,12 @@ mod tests {
     //     let context = Context::new(&data);
 
     //     let s = NTString::new();
-    //     assert_eq!(1, s.size(&context)?);
-    //     assert_eq!("\"\"", s.to_string(&context)?);
+    //     assert_eq!(1, s.size(context)?);
+    //     assert_eq!("\"\"", s.to_string(context)?);
 
-    //     let r = s.partially_resolve(&context)?;
+    //     let r = s.partially_resolve(context)?;
     //     assert_eq!(1, r.len());
-    //     assert_eq!("0", r[0].to_string(&context)?);
+    //     assert_eq!("0", r[0].to_string(context)?);
 
     //     Ok(())
     // }

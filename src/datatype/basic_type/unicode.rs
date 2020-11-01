@@ -29,12 +29,12 @@ impl H2TypeTrait for Unicode {
         true
     }
 
-    fn size(&self, _offset: &ResolveOffset) -> SimpleResult<u64> {
+    fn size(&self, _offset: ResolveOffset) -> SimpleResult<u64> {
         // TODO: Maybe I should do this "right"?
         Ok(2)
     }
 
-    fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
+    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
         match offset {
             ResolveOffset::Static(_) => Ok("2-byte Unicode Character".to_string()),
             ResolveOffset::Dynamic(context) => {
@@ -63,9 +63,9 @@ mod tests {
         let data = b"\x00\x41\x03\xce\xd8\x34".to_vec();
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        assert_eq!("A", Unicode::new(Endian::Big).to_string(&d_offset.at(0))?);
-        assert_eq!("ώ", Unicode::new(Endian::Big).to_string(&d_offset.at(2))?);
-        assert!(Unicode::new(Endian::Big).to_string(&d_offset.at(4)).is_err());
+        assert_eq!("A", Unicode::new(Endian::Big).to_string(d_offset.at(0))?);
+        assert_eq!("ώ", Unicode::new(Endian::Big).to_string(d_offset.at(2))?);
+        assert!(Unicode::new(Endian::Big).to_string(d_offset.at(4)).is_err());
 
 
         Ok(())
@@ -76,9 +76,9 @@ mod tests {
         let data = b"\x41\x00\xce\x03\x34\xd8".to_vec();
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        assert_eq!("A", Unicode::new(Endian::Little).to_string(&d_offset.at(0))?);
-        assert_eq!("ώ", Unicode::new(Endian::Little).to_string(&d_offset.at(2))?);
-        assert!(Unicode::new(Endian::Little).to_string(&d_offset.at(4)).is_err());
+        assert_eq!("A", Unicode::new(Endian::Little).to_string(d_offset.at(0))?);
+        assert_eq!("ώ", Unicode::new(Endian::Little).to_string(d_offset.at(2))?);
+        assert!(Unicode::new(Endian::Little).to_string(d_offset.at(4)).is_err());
 
         Ok(())
     }

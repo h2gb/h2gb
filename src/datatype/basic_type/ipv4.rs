@@ -29,11 +29,11 @@ impl H2TypeTrait for IPv4 {
         true
     }
 
-    fn size(&self, _offset: &ResolveOffset) -> SimpleResult<u64> {
+    fn size(&self, _offset: ResolveOffset) -> SimpleResult<u64> {
         Ok(4)
     }
 
-    fn to_string(&self, offset: &ResolveOffset) -> SimpleResult<String> {
+    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
         match offset {
             ResolveOffset::Static(_) => Ok("IPv4 Address".to_string()),
             ResolveOffset::Dynamic(context) => {
@@ -56,7 +56,7 @@ mod tests {
         let data = b"\x7f\x00\x00\x01".to_vec();
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        assert_eq!("127.0.0.1", IPv4::new(Endian::Big).to_string(&d_offset)?);
+        assert_eq!("127.0.0.1", IPv4::new(Endian::Big).to_string(d_offset)?);
 
         Ok(())
     }
@@ -66,7 +66,7 @@ mod tests {
         let data = b"\x01\x02\x02\x04".to_vec();
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        assert_eq!("4.2.2.1", IPv4::new(Endian::Little).to_string(&d_offset)?);
+        assert_eq!("4.2.2.1", IPv4::new(Endian::Little).to_string(d_offset)?);
 
         Ok(())
     }
@@ -76,7 +76,7 @@ mod tests {
         let data = b"\x7f\x00\x00".to_vec();
         let d_offset = ResolveOffset::Dynamic(Context::new(&data));
 
-        assert!(IPv4::new(Endian::Big).to_string(&d_offset).is_err());
+        assert!(IPv4::new(Endian::Big).to_string(d_offset).is_err());
 
         Ok(())
     }
