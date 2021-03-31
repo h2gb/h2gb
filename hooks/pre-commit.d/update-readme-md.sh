@@ -26,7 +26,7 @@ echo -ne "\n# Other Documentation\n\n" >> README.md
 for i in $(find . -type f -name mod.rs); do
   if (head -n1 $i | grep '^\/\/\!' > /dev/null); then
     DIR=$(dirname "$i")
-    cargo readme -i "$i" -o "$DIR/README.md"
+    cargo readme --no-title -i "$i" -o "$DIR/README.md"
     git add "$DIR/README.md"
 
     echo -ne "* [$DIR]($DIR/README.md) - $( head -n1 $i | cut -c5- )\n\n" >> README.md

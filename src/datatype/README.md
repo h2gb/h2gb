@@ -1,5 +1,3 @@
-# libh2gb
-
 A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 
 ## Overview

@@ -1,5 +1,3 @@
-# libh2gb
-
 An object that holds multiple `BumpyVector`s, and can manage linked entries
 
 The purpose of this is to manage pointers and structs in `h2gb`. Sometimes

@@ -1,5 +1,3 @@
-# libh2gb
-
 A simple library for reading differently-sized integers and floats.
 
 While writing h2gb, I needed a way to dynamically read integers from a
