@@ -16,9 +16,6 @@ pub mod multi_vector;
 pub mod sized_number;
 pub mod transformation;
 
-// TODO
-// * README-creator with all the sub-projects
-
 // Actions we need:
 // * load data as buffer
 // * create layer

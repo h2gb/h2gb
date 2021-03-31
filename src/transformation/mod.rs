@@ -786,15 +786,15 @@ impl H2Transformation {
         Self::transform_hex(buffer).is_ok()
     }
 
-    // fn transform_XXX(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    // fn transform_ABC(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
     //     bail!("Not implemented yet!");
     // }
 
-    // fn untransform_XXX(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    // fn untransform_ABC(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
     //     bail!("Not implemented yet!");
     // }
 
-    // fn check_XXX(buffer: &Vec<u8>) -> bool {
+    // fn check_ABC(buffer: &Vec<u8>) -> bool {
     //     bail!("Not implemented yet!");
     // }
 

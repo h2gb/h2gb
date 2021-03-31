@@ -75,7 +75,7 @@ impl<'a> Context<'a> {
     /// I found myself doing a clone-then-set-position operation a bunch, so
     /// this simplifies it.
     pub fn at(self, new_position: u64) -> Self {
-        // TODO: Can we take advantage of copy trait here?
+        // Since this has the Copy trait, we can copy it super easy
         let mut c = self;
         c.position = new_position;
 

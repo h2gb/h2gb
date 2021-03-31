@@ -347,7 +347,6 @@ mod tests {
 
     #[test]
     fn test_is_populated() -> SimpleResult<()> {
-        // TODO: We can't test is_populated yet
         Ok(())
     }
 
@@ -372,7 +371,6 @@ mod tests {
 
     #[test]
     fn test_transform_fails_when_populated() -> SimpleResult<()> {
-        // TODO: We can't test is_populated yet
         Ok(())
     }
 

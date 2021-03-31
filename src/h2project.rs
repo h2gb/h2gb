@@ -108,7 +108,7 @@ impl H2Project {
         Ok(())
     }
 
-    // TODO: In the future, we should check for references to this buffer to
+    // Note: In the future, we should check for references to this buffer to
     // ensure we aren't breaking anything else
     pub fn buffer_can_be_removed(&self, name: &str) -> SimpleResult<()> {
         let buffer = self.get_buffer(name)?;
@@ -135,7 +135,7 @@ impl H2Project {
         let buffer = self.get_buffer(from)?;
 
         // Sanity check
-        // TODO: we'll probably want to allow renaming populated buffers eventually
+        // (We'll probably want to allow renaming populated buffers eventually)
         if buffer.is_populated() {
             bail!("Buffer has data in it");
         }

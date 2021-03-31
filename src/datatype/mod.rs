@@ -194,7 +194,7 @@
 //! // Even though it takes up the extra space, the values don't change
 //! assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset).unwrap());
 //! ```
-//! # TODO
+//! # Things left to do
 //!
 //! Things I want to add:
 //!

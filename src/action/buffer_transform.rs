@@ -166,7 +166,6 @@ mod tests {
 
     #[test]
     fn test_action_fails_when_buffer_is_populated() -> SimpleResult<()> {
-        // TODO: Fill in when I can create layers
         Ok(())
     }
 }
