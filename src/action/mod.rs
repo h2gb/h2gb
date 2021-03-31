@@ -1,7 +1,7 @@
-//! An enum that combines all possible actions.
-//!
-//! Most of the methods here are simply wrappers for the actual action, which
-//! are all defined in their respective modules. For documentation, see them.
+// An enum that combines all possible actions.
+//
+// Most of the methods here are simply wrappers for the actual action, which
+// are all defined in their respective modules. For documentation, see them.
 
 use redo::Command;
 use serde::{Serialize, Deserialize};

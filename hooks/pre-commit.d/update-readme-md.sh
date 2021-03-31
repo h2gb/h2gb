@@ -15,6 +15,23 @@ BASE=$(git rev-parse --show-toplevel)
 
 # Update README.md
 pushd $BASE > /dev/null
-cargo readme > README.md || err 'Failed to run `cargo readme`!'
-git add README.md
+
+# Do the main README.md
+cargo readme -o README.md
+
+# Append other paths to README.md
+echo -ne "\n# Other Documentation\n\n" >> README.md
+
+# Do any subdirectories
+for i in $(find . -type f -name mod.rs); do
+  if (head -n1 $i | grep '^\/\/\!' > /dev/null); then
+    DIR=$(dirname "$i")
+    cargo readme -i "$i" -o "$DIR/README.md"
+    git add "$DIR/README.md"
+
+    echo -ne "* [$DIR]($DIR/README.md) - $( head -n1 $i | cut -c5- )\n\n" >> README.md
+  fi
+done
+
+
 popd > /dev/null

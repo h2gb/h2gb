@@ -1,7 +1,4 @@
-//! [![Crate](https://img.shields.io/crates/v/multi_vector.svg)](https://crates.io/crates/multi_vector)
-//!
 //! An object that holds multiple `BumpyVector`s, and can manage linked entries
-//! within a single vector, or between multiple vectors.
 //!
 //! The purpose of this is to manage pointers and structs in `h2gb`. Sometimes
 //! elements across disparate vectors (whether different layers, buffers, etc -

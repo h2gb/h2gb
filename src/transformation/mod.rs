@@ -1,4 +1,4 @@
-//! H2Transformer is a library for transforming raw data between encodings.
+//! A library for transforming raw data between encodings.
 //!
 //! As part of [h2gb](https://github.com/h2gb), it's common to extract a buffer
 //! from a binary that's encoded in some format - Base64, hex string, etc.

@@ -1,6 +1,4 @@
-//! [![Crate](https://img.shields.io/crates/v/sized_number.svg)](https://crates.io/crates/sized_number)
-//!
-//! A library for reading datatypes from, ultimately, a [`Vec<u8>`].
+//! A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 //!
 //! # Overview
 //!
