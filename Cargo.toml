@@ -10,8 +10,8 @@ homepage = "https://github.com/h2gb/libh2gb"
 repository = "https://github.com/h2gb/libh2gb"
 readme = "README.md"
 
-[lib]
-name = "libh2gb"
+# [lib]
+# name = "libh2gb"
 
 [dependencies]
 # Undo / redo
