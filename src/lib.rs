@@ -13,6 +13,7 @@ pub mod h2entry;
 pub mod datatype;
 pub mod transformation;
 pub mod sized_number;
+pub mod multi_vector;
 
 // TODO
 // * README-creator with all the sub-projects

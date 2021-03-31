@@ -34,7 +34,6 @@ byteorder = "~1.3.4"
 
 # Stuff I wrote
 bumpy_vector = { git = "https://github.com/h2gb/bumpy_vector.git", version = "~0.0.0", features = ["serialize"], branch = "dev"}
-multi_vector = { git = "https://github.com/h2gb/multi_vector.git", version = "~0.0.0", features = ["serialize"], branch = "dev"}
 
 [dev-dependencies]
 pretty_assertions = "~0.6.1"

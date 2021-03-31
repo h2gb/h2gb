@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::{bail, SimpleResult};
@@ -13,8 +12,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 /// Any number of different types can be defined, and the length of the field
 /// will be the length of the longest one. When resolved, the results will have
 /// the same starting address.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Enum {
     /// An array of strings and types (which might be other types)
     variants: Vec<(String, H2Type)>,

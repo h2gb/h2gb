@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
@@ -11,8 +10,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 /// This is defined very similarly to [`crate::datatype::simple::H2Number`], with one
 /// additional field: the `target_type`, which is the type of the value that the
 /// pointer points to.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Pointer {
     definition: SizedDefinition,
     display: SizedDisplay,

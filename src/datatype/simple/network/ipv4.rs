@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
@@ -11,8 +10,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 ///
 /// An IPv4 address is always represented as a 4-byte value. It's always
 /// displayed in dotted-decimal notation.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IPv4 {
     endian: Endian,
 }

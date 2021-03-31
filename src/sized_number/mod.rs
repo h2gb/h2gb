@@ -64,15 +64,13 @@ use simple_error::{SimpleResult, bail};
 use std::fmt::{LowerHex, LowerExp, Octal, Binary, Display};
 use std::mem;
 
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 pub mod context;
 pub use context::{Context, Endian};
 
 /// Configure display options for [`SizedDisplay::Scientific`]
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ScientificOptions {
     /// Print the `e` in the scientific notation will be uppercase (`1E0`
     /// instead of `1e0`).
@@ -88,8 +86,7 @@ impl Default for ScientificOptions {
 }
 
 /// Configure display options for [`SizedDisplay::Hex`]
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct HexOptions {
     /// Print hex characters uppercase - `1A2B` vs `1a2b`.
     pub uppercase: bool,
@@ -112,8 +109,7 @@ impl Default for HexOptions {
 }
 
 /// Configure display options for [`SizedDisplay::Octal`]
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct OctalOptions {
     /// Prefix octal strings with `0o`
     pub prefix: bool,
@@ -132,8 +128,7 @@ impl Default for OctalOptions {
 }
 
 /// Configure display options for [`SizedDisplay::Binary`]
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct BinaryOptions {
     /// Prefix binary strings with `0b`
     pub prefix: bool,
@@ -157,8 +152,7 @@ impl Default for BinaryOptions {
 /// decisions based on the datatype. When displaying a padded hex value, for
 /// example, it's padded to the exact width of the field, no matter what that
 /// is.
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SizedDisplay {
     /// Display in hexadecimal.
     ///
@@ -251,8 +245,7 @@ pub enum SizedDisplay {
 /// memory.
 ///
 /// The options all pretty cleanly map to the equivalent datatypes.
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum SizedDefinition {
     /// Unsigned 8-bit integer
     U8,

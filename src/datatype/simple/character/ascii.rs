@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::{bail, SimpleResult};
@@ -8,8 +7,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 use crate::datatype::simple::character::common;
 
 /// Configuration options for ASCII characters.
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum StrictASCII {
     /// Throw an error and fail if the string isn't strict ASCII.
     Strict,
@@ -23,8 +21,7 @@ pub enum StrictASCII {
 /// ASCII characters are 8-bit characters between `0x00` and `0x7F`. If a
 /// byte is out of range, [`StrictASCII`] determines whether it'll be accepted
 /// or not.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ASCII {
     strict: StrictASCII,
 }

@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
@@ -10,8 +9,7 @@ use crate::datatype::simple::character::common;
 /// Defines a UTF-16 character.
 ///
 /// UTF-16 characters are two or four bytes long.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UTF16 {
     endian: Endian,
 }

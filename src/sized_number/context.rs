@@ -2,7 +2,6 @@ use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use simple_error::{SimpleError, SimpleResult, bail};
 use std::io::{Cursor, Read};
 
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 /// The maximum size of a UTF8 character
@@ -12,8 +11,7 @@ pub const MAX_UTF8_BYTES: usize = 4;
 pub const MAX_UTF16_WORDS: usize = 2;
 
 /// Define the endianness for reading multi-byte integers
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Endian {
     /// Most significant byte is first (eg, `0x1234` -> `12 34`)
     Big,

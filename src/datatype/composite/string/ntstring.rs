@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::{bail, SimpleResult};
@@ -11,8 +10,7 @@ use crate::datatype::composite::H2Array;
 ///
 /// This is a string with a NUL byte at the end (`'\0'`). The character type can
 /// be any type defined in [`crate::datatype::simple::Character`].
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NTString {
     character: Box<H2Type>,
 }

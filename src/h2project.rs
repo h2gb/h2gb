@@ -8,7 +8,7 @@ use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::fmt;
 
-use multi_vector::MultiVector;
+use crate::multi_vector::MultiVector;
 
 use crate::h2buffer::H2Buffer;
 use crate::h2entry::H2Entry;

@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::{bail, SimpleResult};
@@ -12,8 +11,7 @@ use crate::datatype::composite::H2Array;
 /// The length (in characters) is chosen when creating the type. The length in
 /// bytes may be longer if the character type is non-ASCII, however. See
 /// [`crate::datatype::simple::Character`] for a list of possible character types.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2String {
     length: u64,
     character: Box<H2Type>,

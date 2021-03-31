@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
@@ -13,8 +12,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 /// [`sized_number`] package.
 ///
 /// The size a given numeric type is always known in advance.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Number {
     /// The sign, signedness, and endianness of the value.
     definition: SizedDefinition,

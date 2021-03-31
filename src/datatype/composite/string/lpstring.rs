@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::{bail, SimpleResult};
@@ -13,8 +12,7 @@ use crate::datatype::composite::H2Array;
 /// string (in *characters*). The length is any numerical value as defined in
 /// [`crate::datatype::simple::H2Number`] (or other numeric types if we add any), and
 /// the character type is any type defined in [`crate::datatype::simple::Character`].
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
     length: Box<H2Type>,
     character: Box<H2Type>,

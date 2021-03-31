@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::{bail, SimpleResult};
@@ -14,8 +13,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 /// Arrays can be nested, can contain
 /// [`crate::datatype::composite::H2Struct`]s/[`crate::datatype::composite::H2Enum`]s, and can
 /// be as complex or simple as you need.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Array {
     field_type: Box<H2Type>,
     length: u64,

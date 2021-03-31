@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use std::ops::Range;
@@ -11,8 +10,7 @@ use crate::datatype::H2Type;
 /// set in stone and unchanging. That means that getting information from it
 /// is zero-cost, and requests can't fail (since they aren't working on
 /// unexpected data).
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedType {
     pub actual_range: Range<u64>,
     pub aligned_range: Range<u64>,

@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use macaddr::MacAddr8;
@@ -9,8 +8,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 /// Defines a MAC address in EUI-64 format.
 ///
 /// An EUI-64 MAC address is always 8 bytes long.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MacAddress8 {
 }
 

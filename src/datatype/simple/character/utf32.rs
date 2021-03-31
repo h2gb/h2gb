@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
@@ -10,8 +9,7 @@ use crate::datatype::simple::character::common;
 /// Defines a UTF-32 value.
 ///
 /// A UTF-32 value is always 32 bits long.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UTF32 {
     endian: Endian,
 }

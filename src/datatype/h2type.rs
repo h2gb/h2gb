@@ -1,4 +1,3 @@
-#[cfg(feature = "serialize")]
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
@@ -14,8 +13,7 @@ use crate::datatype::composite::string::*;
 /// An enum used to multiplex between the various types.
 ///
 /// Consumers of this library probably won't have to use this directly.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum H2Types {
     // Simple
     H2Number(H2Number),
@@ -60,8 +58,7 @@ pub enum H2Types {
 /// In terms of implementation, this basically passes everything through to
 /// [`H2TypeTrait`]. The biggest reason for having this layer above the trait
 /// is to store an alignment value.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Type {
     pub field: H2Types,
     pub alignment: Alignment,
