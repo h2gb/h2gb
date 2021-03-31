@@ -89,20 +89,6 @@ version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "h2transformer"
-version = "0.0.0"
-source = "git+https://github.com/h2gb/h2transformer.git?branch=dev#ae2929456a07d531c657b692ae3c0261f9cca7fe"
-dependencies = [
- "base32 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "base64 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "hex 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "inflate 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "ron 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.125 (registry+https://github.com/rust-lang/crates.io-index)",
- "simple-error 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -129,8 +115,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "libh2gb"
 version = "0.1.0"
 dependencies = [
+ "base32 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "base64 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bumpy_vector 0.0.5 (git+https://github.com/h2gb/bumpy_vector.git?branch=dev)",
- "h2transformer 0.0.0 (git+https://github.com/h2gb/h2transformer.git?branch=dev)",
+ "hex 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "inflate 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "macaddr 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "multi_vector 0.0.2 (git+https://github.com/h2gb/multi_vector.git?branch=dev)",
  "pretty_assertions 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -366,7 +355,6 @@ dependencies = [
 "checksum ctor 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "5e98e2ad1a782e33928b96fc3948e7c355e5af34ba4de7670fe8bac2a3b2006d"
 "checksum difference 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
 "checksum dtoa 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
-"checksum h2transformer 0.0.0 (git+https://github.com/h2gb/h2transformer.git?branch=dev)" = "<none>"
 "checksum hex 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 "checksum inflate 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "1cdb29978cc5797bd8dcc8e5bf7de604891df2a8dc576973d71a281e916db2ff"
 "checksum itoa 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)" = "dd25036021b0de88a0aff6b850051563c6516d0bf53f8638938edbb9de732736"

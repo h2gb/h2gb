@@ -95,7 +95,7 @@ mod tests {
     use redo::Record;
     use simple_error::SimpleResult;
 
-    use h2transformer::H2Transformation;
+    use crate::transformation::H2Transformation;
 
     use crate::h2project::H2Project;
     use crate::action::Action;

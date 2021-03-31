@@ -23,7 +23,7 @@ use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::ops::Range;
 
-use h2transformer::H2Transformation;
+use crate::transformation::H2Transformation;
 
 use crate::h2layer::H2Layer;
 

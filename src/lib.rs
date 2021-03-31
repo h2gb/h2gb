@@ -8,6 +8,7 @@ mod h2layer;
 mod h2entry;
 
 pub mod datatype;
+pub mod transformation;
 
 // Actions we need:
 // * load data as buffer
