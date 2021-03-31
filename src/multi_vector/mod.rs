@@ -31,7 +31,8 @@
 //! # Example
 //!
 //! ```
-//! use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+//! use libh2gb::bumpy_vector::AutoBumpyEntry;
+//! use libh2gb::multi_vector::MultiVector;
 //! use std::ops::Range;
 //!
 //! struct MyEntryType { data: u32, index: usize, size: usize }
@@ -100,7 +101,8 @@
 //! supports, such as [ron](https://github.com/ron-rs/ron):
 //!
 //! ```
-//! use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+//! use libh2gb::bumpy_vector::AutoBumpyEntry;
+//! use libh2gb::multi_vector::MultiVector;
 //! use serde::{Serialize, Deserialize};
 //! use std::ops::Range;
 //!
@@ -135,9 +137,7 @@
 //! assert_eq!(2, mv.len());
 //! ```
 
-pub use bumpy_vector::AutoBumpyEntry;
-
-use bumpy_vector::{BumpyVector, BumpyEntry};
+use crate::bumpy_vector::{BumpyVector, BumpyEntry, AutoBumpyEntry};
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
@@ -208,7 +208,8 @@ where
     /// # Example
     ///
     /// ```
-    /// use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+    /// use libh2gb::bumpy_vector::AutoBumpyEntry;
+    /// use libh2gb::multi_vector::MultiVector;
     /// use std::ops::Range;
     ///
     /// struct MyEntryType { data: u32, index: usize, size: usize }
@@ -256,7 +257,8 @@ where
     /// # Example
     ///
     /// ```
-    /// use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+    /// use libh2gb::bumpy_vector::AutoBumpyEntry;
+    /// use libh2gb::multi_vector::MultiVector;
     /// use std::ops::Range;
     ///
     /// struct MyEntryType { data: u32, index: usize, size: usize }
@@ -342,7 +344,8 @@ where
     /// # Example
     ///
     /// ```
-    /// use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+    /// use libh2gb::bumpy_vector::AutoBumpyEntry;
+    /// use libh2gb::multi_vector::MultiVector;
     /// use std::ops::Range;
     ///
     /// struct MyEntryType { data: u32, index: usize, size: usize }
@@ -453,7 +456,8 @@ where
     /// # Example
     ///
     /// ```
-    /// use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+    /// use libh2gb::bumpy_vector::AutoBumpyEntry;
+    /// use libh2gb::multi_vector::MultiVector;
     /// use std::ops::Range;
     ///
     /// struct MyEntryType { data: u32, index: usize, size: usize }
@@ -558,7 +562,8 @@ where
     /// # Example
     ///
     /// ```
-    /// use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+    /// use libh2gb::bumpy_vector::AutoBumpyEntry;
+    /// use libh2gb::multi_vector::MultiVector;
     /// use std::ops::Range;
     ///
     /// struct MyEntryType { data: u32, index: usize, size: usize }
@@ -622,7 +627,8 @@ where
     /// # Example
     ///
     /// ```
-    /// use libh2gb::multi_vector::{MultiVector, AutoBumpyEntry};
+    /// use libh2gb::bumpy_vector::AutoBumpyEntry;
+    /// use libh2gb::multi_vector::MultiVector;
     /// use std::ops::Range;
     ///
     /// struct MyEntryType { data: u32, index: usize, size: usize }

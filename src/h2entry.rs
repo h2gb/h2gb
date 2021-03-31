@@ -10,7 +10,7 @@ use std::ops::Range;
 
 //use crate::h2datatype::H2Type;
 
-use crate::multi_vector::AutoBumpyEntry;
+use crate::bumpy_vector::AutoBumpyEntry;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct H2Entry {

@@ -10,10 +10,11 @@ pub mod h2buffer;
 pub mod h2layer;
 pub mod h2entry;
 
+pub mod bumpy_vector;
 pub mod datatype;
-pub mod transformation;
-pub mod sized_number;
 pub mod multi_vector;
+pub mod sized_number;
+pub mod transformation;
 
 // TODO
 // * README-creator with all the sub-projects
