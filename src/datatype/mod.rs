@@ -1,335 +1,214 @@
-use serde::{Serialize, Deserialize};
-use simple_error::{bail, SimpleResult};
-use std::ops::Range;
+//! [![Crate](https://img.shields.io/crates/v/sized_number.svg)](https://crates.io/crates/sized_number)
+//!
+//! A library for reading datatypes from, ultimately, a [`Vec<u8>`].
+//!
+//! # Overview
+//!
+//! `h2datatype` is based on the [`H2Type`] type. An [`H2Type`] represents a
+//! single contiguous chunk of memory with an optional alignment directive.
+//!
+//! An [`H2Type`] can be a simple type or a composite type. While these names
+//! are somewhat arbitrary, the essential difference is that simple types are
+//! fundamental building blocks, and composite types are made up of simple types
+//! (and other composite types).
+//!
+//! An [`H2Type`] is somewhat abstract: it defines what the type is, how to
+//! calculate its size, how to convert it to a string, and so on. To calculate
+//! any of those, an [`Offset`] is required. An [`Offset`] can either be
+//! abstract (a numeric offset value) or concrete (a buffer of bytes in the form
+//! of a [`sized_number::Context`]). Some types require a concrete buffer to do
+//! anything useful (for example, while the length of an IPv4 value doesn't
+//! change, the length of a UTF-8 character is based on the data).
+//!
+//! Pretty much all operations on an [`H2Type`] require an [`Offset`], but
+//! whether can work with a [`Offset::Static`] or [`Offset::Dynamic`] depends on
+//! the implementation.
+//!
+//! ## Resolving
+//!
+//! An [`H2Type`] can also be *resolved*. It's resolved against a particular
+//! [`Offset`], and produces a [`ResolvedType`]. A [`ResolvedType`] has all the
+//! same fields as a [`H2Type`], more or less, but they are now set in stone.
+//! They can be fetched instantly, and have no chance of returning an error or
+//! changing - the field has been resolved.
+//!
+//! ## Simple types
+//!
+//! A simple type, as mentioned above, is defined as a type that's not made up
+//! of other types. The distinction isn't really all that meaningful, it's
+//! simply a logical grouping.
+//!
+//! See the various classes in [`crate::datatype::simple`] for examples!
+//!
+//! ## Composite types
+//!
+//! A composite type is made up of other types. For example, a
+//! [`composite::H2Array`] is a series of the same type, a
+//! [`composite::H2Struct`] is a series of different types (with names), and a
+//! [`composite::H2Enum`] is a choice of overlapping values. These can be fully
+//! recursive - an array can contain a struct which can contain an array and so
+//! on, for as long as you like.
+//!
+//! ### String types
+//!
+//! A string type, which are defined in [`composite::strings`], are a special
+//! composite type. They're really just arrays of a value that can consume a
+//! character type in some way to become a String.
+//!
+//! ## Alignment
+//!
+//! All [`H2Type`] values can be aligned. In the standard case, which is
+//! [`Alignment::Loose`], an aligned value will always have a size that's a
+//! multiple of the alignment value. That means that, for example, a string
+//! that's 4-byte aligned will always take a total of 4, 8, 12, 16, ... bytes of
+//! memory. If it ends off a byte boundary, the extra memory is consumed as part
+//! of range but ultimately ignored.
+//!
+//! An alternative type of alignment is [`Alignment::Strict`], which is similar
+//! to [`Alignment::Loose`], except that the start and end of the aligned value
+//! must both be on an alignment boundary (relative to the start of the buffer).
+//! That means if the alignment value is 4, all types must start on 0, 4, 8, ...
+//! and will be padded to end on 4, 8, 12, ...
+//!
+//! # Examples
+//!
+//! ## Reading a 16-bit decimal value, signed
+//!
+//! ```
+//! use libh2gb::datatype::*;
+//! use libh2gb::datatype::simple::*;
+//! use sized_number::*;
+//!
+//! // This is our buffer
+//! let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
+//!
+//! // Create a dynamic offset (dynamic means it's linked to the actual data)
+//! let offset = Offset::Dynamic(Context::new(&data));
+//!
+//! // Create the abstract type - this is an H2Type
+//! let t = H2Number::new(SizedDefinition::I16(Endian::Big), SizedDisplay::Decimal);
+//!
+//! // It takes up two bytes of memory, including aligned (it's not aligned)
+//! assert_eq!(2, t.actual_size(offset).unwrap());
+//! assert_eq!(2, t.aligned_size(offset).unwrap());
+//!
+//! // Read the values at 0, 2, 4, and 8 bytes into the buffer
+//! assert_eq!("0",      t.to_display(offset.at(0)).unwrap());
+//! assert_eq!("32767",  t.to_display(offset.at(2)).unwrap());
+//! assert_eq!("-32768", t.to_display(offset.at(4)).unwrap());
+//! assert_eq!("-1",     t.to_display(offset.at(6)).unwrap());
+//! ```
+//!
+//! ## Alignment
+//!
+//! ```
+//! use libh2gb::datatype::*;
+//! use libh2gb::datatype::simple::*;
+//! use sized_number::*;
+//!
+//! // This is our buffer - the PP represents padding for alignment
+//! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
+//!
+//! // Create a dynamic offset (dynamic means it's linked to the actual data)
+//! let offset = Offset::Dynamic(Context::new(&data));
+//!
+//! // Create the abstract type - this is an H2Type
+//! let t = H2Number::new_aligned(
+//!   Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
+//!   SizedDisplay::Hex(Default::default())
+//! );
+//!
+//! // It takes up two bytes of memory normally...
+//! assert_eq!(2, t.actual_size(offset).unwrap());
+//!
+//! // ...but 4 bytes when aligned
+//! assert_eq!(4, t.aligned_size(offset).unwrap());
+//!
+//! // Even though it takes up the extra space, the values don't change
+//! assert_eq!("0x0000", t.to_display(offset.at(0)).unwrap());
+//! assert_eq!("0x7fff", t.to_display(offset.at(4)).unwrap());
+//! assert_eq!("0x8000", t.to_display(offset.at(8)).unwrap());
+//! assert_eq!("0xffff", t.to_display(offset.at(12)).unwrap());
+//! ```
+//!
+//! ## Composite types
+//!
+//! ```
+//! use libh2gb::datatype::*;
+//! use libh2gb::datatype::simple::*;
+//! use libh2gb::datatype::composite::*;
+//! use sized_number::*;
+//!
+//! // This is our buffer - the PP represents padding for alignment
+//! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
+//!
+//! // Create a dynamic offset (dynamic means it's linked to the actual data)
+//! let offset = Offset::Dynamic(Context::new(&data));
+//!
+//! // Create an array of 4 elements, each of which is padded to 4 bytes
+//! let t = H2Array::new(4, H2Number::new_aligned(
+//!   Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
+//!   SizedDisplay::Hex(Default::default())
+//! )).unwrap();
+//!
+//! // The array takes up 16 bytes of memory, aligned and not
+//! assert_eq!(16, t.actual_size(offset).unwrap());
+//! assert_eq!(16, t.aligned_size(offset).unwrap());
+//!
+//! // Even though it takes up the extra space, the values don't change
+//! assert_eq!("[ 0x0000, 0x7fff, 0x8000, 0xffff ]", t.to_display(offset.at(0)).unwrap());
+//! ```
+//!
+//! ## Dynamic array
+//!
+//! Unlike in most programming languages, an array can be made up of different-
+//! sized elements, like length-prefixed strings.
+//!
+//! ```
+//! use libh2gb::datatype::*;
+//! use libh2gb::datatype::simple::*;
+//! use libh2gb::datatype::simple::character::*;
+//! use libh2gb::datatype::composite::*;
+//! use libh2gb::datatype::composite::string::*;
+//! use sized_number::*;
+//!
+//! // This is our buffer - three strings with a one-byte length prefix
+//! let data = b"\x02hi\x03bye\x04test".to_vec();
+//!
+//! // Create a dynamic offset (dynamic means it's linked to the actual data)
+//! let offset = Offset::Dynamic(Context::new(&data));
+//!
+//! // Create an array of 3 elements, each of which is an LPString with a one-
+//! // byte length
+//! let t = H2Array::new(3, LPString::new(
+//!   // The length field is an 8-bit unsigned integer
+//!   H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())),
+//!
+//!   // The character type is just simple ascii
+//!   ASCII::new(StrictASCII::Strict),
+//! ).unwrap()).unwrap();
+//!
+//! // The array takes up 12 bytes of memory, all-in
+//! assert_eq!(12, t.actual_size(offset).unwrap());
+//!
+//! // Even though it takes up the extra space, the values don't change
+//! assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset).unwrap());
+//! ```
 
-use sized_number::Context;
+mod alignment;
+pub use alignment::Alignment;
 
-pub mod alignment;
-use alignment::Alignment;
+mod resolved_type;
+pub use resolved_type::ResolvedType;
 
-pub mod basic_type;
-pub mod complex_type;
-// pub mod dynamic_type;
+mod offset;
+pub use offset::Offset;
 
-// Allow us to resolve either statically or dynamically, depending on what's
-// needed. One or the other might throw an error, though.
-#[derive(Debug, Clone, Copy)]
-pub enum ResolveOffset<'a> {
-    Static(u64),
-    Dynamic(Context<'a>),
-}
+mod h2typetrait;
+pub use h2typetrait::H2TypeTrait;
 
-impl<'a> From<u64> for ResolveOffset<'a> {
-    fn from(o: u64) -> ResolveOffset<'a> {
-        ResolveOffset::Static(o)
-    }
-}
+mod h2type;
+pub use h2type::{H2Types, H2Type};
 
-impl<'a> From<Context<'a>> for ResolveOffset<'a> {
-    fn from(o: Context<'a>) -> ResolveOffset<'a> {
-        ResolveOffset::Dynamic(o)
-    }
-}
-
-impl<'a> ResolveOffset<'a> {
-    pub fn position(&self) -> u64 {
-        match self {
-            Self::Static(n) => *n,
-            Self::Dynamic(c) => c.position(),
-        }
-    }
-
-    pub fn at(&self, offset: u64) -> ResolveOffset {
-        match self {
-            Self::Static(_) => Self::Static(offset),
-            Self::Dynamic(c) => Self::Dynamic(c.at(offset)),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum H2Types {
-    // Basic
-    H2Number(basic_type::h2number::H2Number),
-    H2Pointer(basic_type::h2pointer::H2Pointer),
-    Character(basic_type::character::Character),
-    IPv4(basic_type::ipv4::IPv4),
-    IPv6(basic_type::ipv6::IPv6),
-    Unicode(basic_type::unicode::Unicode),
-
-    // Complex
-    H2Array(complex_type::h2array::H2Array),
-    H2Struct(complex_type::h2struct::H2Struct),
-
-    // Dynamic
-    // NTString(dynamic_type::ntstring::NTString),
-}
-
-pub trait H2TypeTrait {
-    // Is the size known ahead of time?
-    fn is_static(&self) -> bool;
-
-    // Get the static size, if possible
-    fn size(&self, offset: ResolveOffset) -> SimpleResult<u64>;
-
-    // Get "child" nodes (array elements, struct body, etc), if possible
-    // Empty vector = a leaf node
-    fn resolve_partial(&self, _offset: ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
-        Ok(vec![])
-    }
-
-    // Get the user-facing name of the type
-    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String>;
-
-    // Get "related" nodes - ie, what a pointer points to
-    fn related(&self, _offset: ResolveOffset) -> SimpleResult<Vec<(u64, H2Type)>> {
-        Ok(vec![])
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ResolvedType {
-    actual_range: Range<u64>,
-    aligned_range: Range<u64>,
-    field_name: Option<String>,
-    field_type: H2Type,
-}
-
-impl ResolvedType {
-    // This is a simpler way to display the type for the right part of the
-    // context
-    pub fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
-        self.field_type.to_string(offset.at(self.actual_range.start))
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct H2Type {
-    field: H2Types,
-    alignment: Alignment,
-}
-
-impl H2Type {
-    pub fn new(alignment: Alignment, field: H2Types) -> Self {
-        Self {
-            field: field,
-            alignment: alignment,
-        }
-    }
-
-    pub fn field_type(&self) -> &dyn H2TypeTrait {
-        match &self.field {
-            // Basic
-            H2Types::H2Number(t)  => t,
-            H2Types::H2Pointer(t) => t,
-            H2Types::Character(t) => t,
-            H2Types::IPv4(t)      => t,
-            H2Types::IPv6(t)      => t,
-            H2Types::Unicode(t)   => t,
-
-            // Complex
-            H2Types::H2Array(t)   => t,
-            H2Types::H2Struct(t)  => t,
-
-            // Dynamic
-            // H2Types::NTString(t)  => t,
-        }
-    }
-
-    // Is the size known ahead of time?
-    fn is_static(&self) -> bool {
-        self.field_type().is_static()
-    }
-
-    /// Size of just the field - no padding
-    fn actual_size(&self, offset: ResolveOffset) -> SimpleResult<u64> {
-        self.field_type().size(offset)
-    }
-
-    /// Range of values this covers, with alignment padding built-in
-    fn actual_range(&self, offset: ResolveOffset) -> SimpleResult<Range<u64>> {
-        // Get the start and end
-        let start = offset.position();
-        let end   = offset.position() + self.actual_size(offset)?;
-
-        // Do the rounding
-        Ok(start..end)
-    }
-
-    /// Range of values this covers, with alignment padding built-in
-    fn aligned_range(&self, offset: ResolveOffset) -> SimpleResult<Range<u64>> {
-        // Get the start and end
-        let start = offset.position();
-        let end   = offset.position() + self.actual_size(offset)?;
-
-        // Do the rounding
-        self.alignment.align(start..end)
-    }
-
-    /// Size including padding either before or after
-    fn aligned_size(&self, offset: ResolveOffset) -> SimpleResult<u64> {
-        let range = self.aligned_range(offset)?;
-
-        Ok(range.end - range.start)
-    }
-
-    fn resolve_partial(&self, offset: ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
-        self.field_type().resolve_partial(offset)
-    }
-
-    // Render as a string
-    fn to_string(&self, offset: ResolveOffset) -> SimpleResult<String> {
-        self.field_type().to_string(offset)
-    }
-
-    // Get "related" nodes - ie, what a pointer points to
-    fn related(&self, offset: ResolveOffset) -> SimpleResult<Vec<(u64, H2Type)>> {
-        self.field_type().related(offset)
-    }
-
-    fn resolve_full(&self, offset: ResolveOffset) -> SimpleResult<Vec<ResolvedType>> {
-        let children = self.resolve_partial(offset)?;
-        let mut result: Vec<ResolvedType> = Vec::new();
-
-        if children.len() == 0 {
-            // No children? Return ourself!
-            result.push(ResolvedType {
-                actual_range: self.actual_range(offset)?,
-                aligned_range: self.aligned_range(offset)?,
-                field_name: None,
-                field_type: self.clone(),
-            });
-        } else {
-            // Children? Gotta get 'em all!
-            for child in children.iter() {
-                result.append(&mut child.field_type.resolve_full(offset.at(child.actual_range.start))?);
-            }
-        }
-
-        Ok(result)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use simple_error::SimpleResult;
-    use sized_number::Context;
-    use basic_type::character::Character;
-
-    #[test]
-    fn test_character() -> SimpleResult<()> {
-        let t = Character::new();
-        let data = b"ABCD".to_vec();
-        let s_offset = ResolveOffset::Static(0);
-        let d_offset = ResolveOffset::Dynamic(Context::new(&data));
-
-        assert_eq!(1, t.actual_size(s_offset)?);
-        assert_eq!(1, t.actual_size(d_offset)?);
-
-        assert_eq!("A", t.to_string(d_offset.at(0))?);
-        assert_eq!("B", t.to_string(d_offset.at(1))?);
-        assert_eq!("C", t.to_string(d_offset.at(2))?);
-        assert_eq!("D", t.to_string(d_offset.at(3))?);
-
-        assert_eq!(0, t.resolve_partial(s_offset)?.len());
-        assert_eq!(0, t.resolve_partial(d_offset)?.len());
-
-        let resolved = t.resolve_full(s_offset)?;
-        assert_eq!(1, resolved.len());
-        assert_eq!(0..1, resolved[0].actual_range);
-        assert_eq!("Character", resolved[0].to_string(s_offset)?);
-
-        let resolved = t.resolve_full(s_offset.at(1))?;
-        assert_eq!(1, resolved.len());
-        assert_eq!(1..2, resolved[0].actual_range);
-        assert_eq!("Character", resolved[0].to_string(s_offset)?);
-
-        let resolved = t.resolve_full(d_offset)?;
-        assert_eq!(1, resolved.len());
-        assert_eq!(0..1, resolved[0].actual_range);
-        assert_eq!("A", resolved[0].to_string(d_offset)?);
-
-        let resolved = t.resolve_full(d_offset.at(1))?;
-        assert_eq!(1, resolved.len());
-        assert_eq!(1..2, resolved[0].actual_range);
-        assert_eq!("B", resolved[0].to_string(d_offset)?);
-
-        Ok(())
-    }
-
-    // #[test]
-    // fn test_align() -> SimpleResult<()> {
-    //     // Align to 4-byte boundaries
-    //     let t = H2Type::from((4, Character::new()));
-    //     let data = b"ABCD".to_vec();
-    //     let context = Context::new(&data);
-
-    //     assert_eq!(1, t.size()?);
-    //     assert_eq!(1, t.size(Context::new(&data).at(0))?);
-    //     assert_eq!("A", t.to_string(Context::new(&data).at(0))?);
-    //     assert_eq!("B", t.to_string(Context::new(&data).at(1))?);
-    //     assert_eq!("C", t.to_string(Context::new(&data).at(2))?);
-    //     assert_eq!("D", t.to_string(Context::new(&data).at(3))?);
-
-    //     assert_eq!(0, t.children_static(0)?.len());
-    //     assert_eq!(0, t.resolve_partial(Context::new(&data).at(0))?.len());
-
-    //     let resolved = t.resolve(Context::new(&data).at(0))?;
-    //     assert_eq!(1, resolved.len());
-    //     assert_eq!(0..1, resolved[0].offset);
-    //     assert_eq!("A", resolved[0].to_string(Context::new(&data))?);
-
-    //     let resolved = t.resolve(Context::new(&data).at(1))?;
-    //     assert_eq!(1, resolved.len());
-    //     assert_eq!(1..2, resolved[0].offset);
-    //     assert_eq!("B", resolved[0].to_string(Context::new(&data))?);
-
-    //     Ok(())
-    // }
-
-    #[test]
-    fn test_padding() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_pointer() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_static_array() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_dynamic_array() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_aligned_array() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_static_struct() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_dynamic_struct() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_enum() -> SimpleResult<()> {
-        Ok(())
-    }
-
-    #[test]
-    fn test_ntstring() -> SimpleResult<()> {
-        Ok(())
-    }
-}
+pub mod simple;
+pub mod composite;

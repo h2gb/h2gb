@@ -6,7 +6,8 @@ mod h2project;
 mod h2buffer;
 mod h2layer;
 mod h2entry;
-mod datatype;
+
+pub mod datatype;
 
 // Actions we need:
 // * load data as buffer
