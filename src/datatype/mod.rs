@@ -77,7 +77,7 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
-//! use sized_number::*;
+//! use libh2gb::sized_number::*;
 //!
 //! // This is our buffer
 //! let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
@@ -104,7 +104,7 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
-//! use sized_number::*;
+//! use libh2gb::sized_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
 //! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -137,7 +137,7 @@
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
 //! use libh2gb::datatype::composite::*;
-//! use sized_number::*;
+//! use libh2gb::sized_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
 //! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -170,7 +170,7 @@
 //! use libh2gb::datatype::simple::character::*;
 //! use libh2gb::datatype::composite::*;
 //! use libh2gb::datatype::composite::string::*;
-//! use sized_number::*;
+//! use libh2gb::sized_number::*;
 //!
 //! // This is our buffer - three strings with a one-byte length prefix
 //! let data = b"\x02hi\x03bye\x04test".to_vec();

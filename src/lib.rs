@@ -1,14 +1,21 @@
-#![feature(range_is_empty)]
 #![allow(dead_code)] // TODO: Disable this
 
-mod action;
-mod h2project;
-mod h2buffer;
-mod h2layer;
-mod h2entry;
+// Enable char::from_u32()
+#![feature(assoc_char_funcs)]
+#![feature(range_is_empty)]
+
+pub mod action;
+pub mod h2project;
+pub mod h2buffer;
+pub mod h2layer;
+pub mod h2entry;
 
 pub mod datatype;
 pub mod transformation;
+pub mod sized_number;
+
+// TODO
+// * README-creator with all the sub-projects
 
 // Actions we need:
 // * load data as buffer
@@ -20,8 +27,8 @@ pub mod transformation;
 // * clone
 // * undo
 // * redo
-// #[cfg(test)]
-// mod tests {
+#[cfg(test)]
+mod tests {
 //     use super::*;
 
 //     use simple_error::SimpleResult;
@@ -71,4 +78,4 @@ pub mod transformation;
 
 //         Ok(())
 //     }
-// }
+}

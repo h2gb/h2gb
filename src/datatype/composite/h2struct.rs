@@ -62,7 +62,7 @@ impl H2TypeTrait for H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
+    use crate::sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
 
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;

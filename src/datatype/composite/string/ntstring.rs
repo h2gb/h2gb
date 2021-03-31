@@ -92,7 +92,7 @@ impl H2TypeTrait for NTString {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use sized_number::{Context, Endian};
+    use crate::sized_number::{Context, Endian};
     use crate::datatype::simple::network::IPv4;
     use crate::datatype::simple::character::{UTF8, ASCII, StrictASCII};
     use crate::datatype::Alignment;
