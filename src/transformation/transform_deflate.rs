@@ -81,3 +81,70 @@ impl TransformerTrait for TransformDeflate {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use crate::transformation::Transformation;
+
+    #[test]
+    fn test_deflate() -> SimpleResult<()> {
+        let t = Transformation::FromDeflatedNoZlibHeader;
+
+        let result = t.transform(&b"\x03\x00\x00\x00\x00\x01".to_vec())?;
+        assert_eq!(0, result.len());
+
+        let result = t.transform(&b"\x63\x00\x00\x00\x01\x00\x01".to_vec())?;
+        assert_eq!(vec![0x00], result);
+
+        let result = t.transform(&b"\x63\x60\x80\x01\x00\x00\x0a\x00\x01".to_vec())?;
+        assert_eq!(vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], result);
+
+        let result = t.transform(&b"\x63\x60\x64\x62\x66\x61\x65\x63\xe7\xe0\x04\x00\x00\xaf\x00\x2e".to_vec())?;
+        assert_eq!(vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09], result);
+
+        // Best compression
+        let result = t.transform(&b"\x73\x74\x72\x76\x01\x00\x02\x98\x01\x0b".to_vec())?;
+        assert_eq!(vec![0x41, 0x42, 0x43, 0x44], result);
+
+        // No compression
+        let result = t.transform(&b"\x01\x04\x00\xfb\xff\x41\x42\x43\x44\x02\x98\x01\x0b".to_vec())?;
+        assert_eq!(vec![0x41, 0x42, 0x43, 0x44], result);
+
+        // Try an intentional error
+        assert!(t.transform(&b"\xFF".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_deflate_zlib() -> SimpleResult<()> {
+        let t = Transformation::FromDeflatedZlibHeader;
+
+        let result = t.transform(&b"\x78\x9c\x03\x00\x00\x00\x00\x01".to_vec())?;
+        assert_eq!(0, result.len());
+
+        let result = t.transform(&b"\x78\x9c\x63\x00\x00\x00\x01\x00\x01".to_vec())?;
+        assert_eq!(vec![0x00], result);
+
+        let result = t.transform(&b"\x78\x9c\x63\x60\x80\x01\x00\x00\x0a\x00\x01".to_vec())?;
+        assert_eq!(vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], result);
+
+        let result = t.transform(&b"\x78\x9c\x63\x60\x64\x62\x66\x61\x65\x63\xe7\xe0\x04\x00\x00\xaf\x00\x2e".to_vec())?;
+        assert_eq!(vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09], result);
+
+        // Best compression
+        let result = t.transform(&b"\x78\x9c\x73\x74\x72\x76\x01\x00\x02\x98\x01\x0b".to_vec())?;
+        assert_eq!(vec![0x41, 0x42, 0x43, 0x44], result);
+
+        // No compression
+        let result = t.transform(&b"\x78\x01\x01\x04\x00\xfb\xff\x41\x42\x43\x44\x02\x98\x01\x0b".to_vec())?;
+        assert_eq!(vec![0x41, 0x42, 0x43, 0x44], result);
+
+        // Try an intentional error
+        assert!(t.transform(&b"\xFF".to_vec()).is_err());
+
+        Ok(())
+    }
+}

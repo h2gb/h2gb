@@ -156,3 +156,197 @@ impl TransformerTrait for TransformBase64 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use crate::transformation::Transformation;
+
+    #[test]
+    fn test_base64_standard() -> SimpleResult<()> {
+        let t = Transformation::FromBase64Standard;
+        assert_eq!(true, t.is_two_way());
+
+        // Short string: "\x00"
+        assert!(t.can_transform(&b"AA==".to_vec()));
+        let result = t.transform(&b"AA==".to_vec())?;
+        assert_eq!(b"\x00".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AA==".to_vec(), original);
+
+        // Longer string: "\x00\x01\x02\x03\x04\x05\x06"
+        assert!(t.can_transform(&b"AAECAwQFBg==".to_vec()));
+        let result = t.transform(&b"AAECAwQFBg==".to_vec())?;
+        assert_eq!(b"\x00\x01\x02\x03\x04\x05\x06".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AAECAwQFBg==".to_vec(), original);
+
+        // Weird string: "\x69\xaf\xbe\xff\x3f"
+        assert!(t.can_transform(&b"aa++/z8=".to_vec()));
+        let result = t.transform(&b"aa++/z8=".to_vec())?;
+        assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"aa++/z8=".to_vec(), original);
+
+        // Do padding wrong
+        assert!(!t.can_transform(&b"AA".to_vec()));
+        assert!(!t.can_transform(&b"AA=".to_vec()));
+        assert!(!t.can_transform(&b"AA===".to_vec()));
+        assert!(!t.can_transform(&b"AA====".to_vec()));
+
+        assert!(t.transform(&b"AA".to_vec()).is_err());
+        assert!(t.transform(&b"AA=".to_vec()).is_err());
+        assert!(t.transform(&b"AA===".to_vec()).is_err());
+        assert!(t.transform(&b"AA====".to_vec()).is_err());
+
+        // Wrong characters
+        assert!(t.transform(&b"aa--_z8=".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base64_standard_no_padding() -> SimpleResult<()> {
+        let t = Transformation::FromBase64NoPadding;
+        assert_eq!(true, t.is_two_way());
+
+        // Short string: "\x00"
+        assert!(t.can_transform(&b"AA".to_vec()));
+        let result = t.transform(&b"AA".to_vec())?;
+        assert_eq!(b"\x00".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AA".to_vec(), original);
+
+        // Longer string: "\x00\x01\x02\x03\x04\x05\x06"
+        assert!(t.can_transform(&b"AAECAwQFBg".to_vec()));
+        let result = t.transform(&b"AAECAwQFBg".to_vec())?;
+        assert_eq!(b"\x00\x01\x02\x03\x04\x05\x06".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AAECAwQFBg".to_vec(), original);
+
+        // Weird string: "\x69\xaf\xbe\xff\x3f"
+        let result = t.transform(&b"aa++/z8".to_vec())?;
+        assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"aa++/z8".to_vec(), original);
+
+        // Do padding wrong
+        assert!(t.transform(&b"AA=".to_vec()).is_err());
+        assert!(t.transform(&b"AA==".to_vec()).is_err());
+        assert!(t.transform(&b"AA===".to_vec()).is_err());
+        assert!(t.transform(&b"AA====".to_vec()).is_err());
+
+        // Wrong characters
+        assert!(t.transform(&b"aa--_z8".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base64_permissive() -> SimpleResult<()> {
+        let t = Transformation::FromBase64Permissive;
+        assert_eq!(false, t.is_two_way());
+
+        // Short string: "\x00" with various padding
+        assert!(t.can_transform(&b"AA".to_vec()));
+        assert!(t.can_transform(&b"AA=".to_vec()));
+        assert!(t.can_transform(&b"AA==".to_vec()));
+        assert_eq!(b"\x00".to_vec(), t.transform(&b"AA".to_vec())?);
+        assert_eq!(b"\x00".to_vec(), t.transform(&b"AA=".to_vec())?);
+        assert_eq!(b"\x00".to_vec(), t.transform(&b"AA==".to_vec())?);
+
+        // Add a bunch of control characters
+        assert_eq!(b"\x00\x00\x00\x00".to_vec(), t.transform(&b"A A\nAAA\n    \t\rA=\n=".to_vec())?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base64_url() -> SimpleResult<()> {
+        let t = Transformation::FromBase64URL;
+        assert_eq!(true, t.is_two_way());
+
+        // Short string: "\x00"
+        let result = t.transform(&b"AA==".to_vec())?;
+        assert_eq!(b"\x00".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AA==".to_vec(), original);
+
+        // Longer string: "\x00\x01\x02\x03\x04\x05\x06"
+        let result = t.transform(&b"AAECAwQFBg==".to_vec())?;
+        assert_eq!(b"\x00\x01\x02\x03\x04\x05\x06".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AAECAwQFBg==".to_vec(), original);
+
+        // Weird string: "\x69\xaf\xbe\xff\x3f"
+        let result = t.transform(&b"aa--_z8=".to_vec())?;
+        assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert!(t.can_transform(&b"aa--_z8=".to_vec()));
+        assert_eq!(b"aa--_z8=".to_vec(), original);
+
+        // Do padding wrong
+        assert!(t.transform(&b"AA".to_vec()).is_err());
+        assert!(t.transform(&b"AA=".to_vec()).is_err());
+        assert!(t.transform(&b"AA===".to_vec()).is_err());
+        assert!(t.transform(&b"AA====".to_vec()).is_err());
+
+        // Wrong characters
+        assert!(!t.can_transform(&b"aa++/z8=".to_vec()));
+        assert!(t.transform(&b"aa++/z8=".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base64_standard_url_no_padding() -> SimpleResult<()> {
+        let t = Transformation::FromBase64URLNoPadding;
+        assert_eq!(true, t.is_two_way());
+
+        // Short string: "\x00"
+        let result = t.transform(&b"AA".to_vec())?;
+        assert_eq!(b"\x00".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AA".to_vec(), original);
+
+        // Longer string: "\x00\x01\x02\x03\x04\x05\x06"
+        let result = t.transform(&b"AAECAwQFBg".to_vec())?;
+        assert_eq!(b"\x00\x01\x02\x03\x04\x05\x06".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"AAECAwQFBg".to_vec(), original);
+
+        // Weird string: "\x69\xaf\xbe\xff\x3f"
+        let result = t.transform(&b"aa--_z8".to_vec())?;
+        assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"aa--_z8".to_vec(), original);
+
+        // Do padding wrong
+        assert!(t.transform(&b"AA=".to_vec()).is_err());
+        assert!(t.transform(&b"AA==".to_vec()).is_err());
+        assert!(t.transform(&b"AA===".to_vec()).is_err());
+        assert!(t.transform(&b"AA====".to_vec()).is_err());
+
+        // Wrong characters
+        assert!(t.transform(&b"aa++/z8".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base64_url_permissive() -> SimpleResult<()> {
+        let t = Transformation::FromBase64URLPermissive;
+        assert_eq!(false, t.is_two_way());
+
+        // Short string: "\x00" with various padding
+        assert_eq!(b"\x00".to_vec(), t.transform(&b"AA".to_vec())?);
+        assert_eq!(b"\x00".to_vec(), t.transform(&b"AA=".to_vec())?);
+        assert_eq!(b"\x00".to_vec(), t.transform(&b"AA==".to_vec())?);
+
+        // Add a bunch of control characters
+        assert_eq!(b"\x00\x00\x00\x00".to_vec(), t.transform(&b"A A\nAAA\n    \t\rA=\n=".to_vec())?);
+
+        Ok(())
+    }
+}

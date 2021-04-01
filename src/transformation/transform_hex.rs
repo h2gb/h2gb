@@ -33,5 +33,38 @@ impl TransformerTrait for TransformHex {
     fn check(&self, buffer: &Vec<u8>) -> bool {
         self.transform(buffer).is_ok()
     }
+}
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use crate::transformation::Transformation;
+
+    #[test]
+    fn test_hex() -> SimpleResult<()> {
+        let t = Transformation::FromHex;
+
+        assert!(t.is_two_way());
+        assert!(t.can_transform(&b"00".to_vec()));
+        assert!(t.can_transform(&b"0001".to_vec()));
+        assert!(t.can_transform(&b"000102feff".to_vec()));
+        assert!(!t.can_transform(&b"0".to_vec()));
+        assert!(!t.can_transform(&b"001".to_vec()));
+        assert!(!t.can_transform(&b"00102FEff".to_vec()));
+        assert!(!t.can_transform(&b"fg".to_vec()));
+        assert!(!t.can_transform(&b"+=".to_vec()));
+
+        assert_eq!(vec![0x00], t.transform(&b"00".to_vec())?);
+        assert_eq!(vec![0x00, 0x01], t.transform(&b"0001".to_vec())?);
+        assert_eq!(vec![0x00, 0x01, 0x02, 0xfe, 0xff], t.transform(&b"000102fEFf".to_vec())?);
+
+        assert_eq!(b"00".to_vec(), t.untransform(&vec![0x00])?);
+        assert_eq!(b"0001".to_vec(), t.untransform(&vec![0x00, 0x01])?);
+        assert_eq!(b"000102feff".to_vec(), t.untransform(&vec![0x00, 0x01, 0x02, 0xfe, 0xff])?);
+
+        assert!(t.transform(&b"abababag".to_vec()).is_err());
+
+        Ok(())
+    }
 }

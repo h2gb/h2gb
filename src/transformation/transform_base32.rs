@@ -162,3 +162,220 @@ impl TransformerTrait for TransformBase32 {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use crate::transformation::Transformation;
+
+    #[test]
+    fn test_base32_standard() -> SimpleResult<()> {
+        let t = Transformation::FromBase32Standard;
+        assert_eq!(true, t.is_two_way());
+
+        // Short string: "\x00"
+        let t = Transformation::FromBase32Standard;
+        let result = t.transform(&b"IE======".to_vec())?;
+        assert_eq!(b"A".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"IE======".to_vec(), original);
+
+        // Longer string: "ABCDEF"
+        let t = Transformation::FromBase32Standard;
+        let result = t.transform(&b"IFBEGRCFIY======".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"IFBEGRCFIY======".to_vec(), original);
+
+        // It's okay to be case insensitive
+        let t = Transformation::FromBase32Standard;
+        let result = t.transform(&b"ifbegrcfiy======".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"IFBEGRCFIY======".to_vec(), original);
+
+        // Do padding wrong
+        let t = Transformation::FromBase32Standard;
+        assert!(t.transform(&b"IE".to_vec()).is_err());
+        assert!(t.transform(&b"IE=".to_vec()).is_err());
+        assert!(t.transform(&b"IE==".to_vec()).is_err());
+        assert!(t.transform(&b"IE===".to_vec()).is_err());
+        assert!(t.transform(&b"IE====".to_vec()).is_err());
+        assert!(t.transform(&b"IE=====".to_vec()).is_err());
+        assert!(t.transform(&b"IE=======".to_vec()).is_err());
+        assert!(t.transform(&b"IE========".to_vec()).is_err());
+
+        // Wrong characters
+        let t = Transformation::FromBase32Standard;
+        assert!(t.transform(&b"I.======".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base32_no_padding() -> SimpleResult<()> {
+        let t = Transformation::FromBase32NoPadding;
+        assert_eq!(true, t.is_two_way());
+
+        // Short string: "\x00"
+        let t = Transformation::FromBase32NoPadding;
+        let result = t.transform(&b"IE".to_vec())?;
+        assert_eq!(b"A".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"IE".to_vec(), original);
+
+        // Longer string: "ABCDEF"
+        let t = Transformation::FromBase32NoPadding;
+        let result = t.transform(&b"IFBEGRCFIY".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"IFBEGRCFIY".to_vec(), original);
+
+        // It's okay to be case insensitive
+        let t = Transformation::FromBase32NoPadding;
+        let result = t.transform(&b"ifbegrcfiy".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"IFBEGRCFIY".to_vec(), original);
+
+        // Do padding wrong
+        let t = Transformation::FromBase32NoPadding;
+        assert!(t.transform(&b"IE=".to_vec()).is_err());
+        assert!(t.transform(&b"IE==".to_vec()).is_err());
+        assert!(t.transform(&b"IE===".to_vec()).is_err());
+        assert!(t.transform(&b"IE====".to_vec()).is_err());
+        assert!(t.transform(&b"IE=====".to_vec()).is_err());
+        assert!(t.transform(&b"IE======".to_vec()).is_err());
+        assert!(t.transform(&b"IE=======".to_vec()).is_err());
+        assert!(t.transform(&b"IE========".to_vec()).is_err());
+
+        // Wrong characters
+        let t = Transformation::FromBase32NoPadding;
+        assert!(t.transform(&b"A.".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base32_crockford() -> SimpleResult<()> {
+        let t = Transformation::FromBase32Crockford;
+        assert_eq!(true, t.is_two_way());
+
+        // Short string: "\x00"
+        let t = Transformation::FromBase32Crockford;
+        let result = t.transform(&b"84".to_vec())?;
+        assert_eq!(b"A".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"84".to_vec(), original);
+
+        // Longer string: "ABCDEF"
+        let t = Transformation::FromBase32Crockford;
+        let result = t.transform(&b"85146H258R".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"85146H258R".to_vec(), original);
+
+        // It's okay to be case insensitive
+        let t = Transformation::FromBase32Crockford;
+        let result = t.transform(&b"85146h258r".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+        let original = t.untransform(&result)?;
+        assert_eq!(b"85146H258R".to_vec(), original);
+
+        // Do padding wrong
+        let t = Transformation::FromBase32Crockford;
+        assert!(t.transform(&b"84=".to_vec()).is_err());
+        assert!(t.transform(&b"84==".to_vec()).is_err());
+        assert!(t.transform(&b"84===".to_vec()).is_err());
+        assert!(t.transform(&b"84====".to_vec()).is_err());
+        assert!(t.transform(&b"84=====".to_vec()).is_err());
+        assert!(t.transform(&b"84======".to_vec()).is_err());
+        assert!(t.transform(&b"84=======".to_vec()).is_err());
+        assert!(t.transform(&b"84========".to_vec()).is_err());
+
+        // Wrong characters
+        let t = Transformation::FromBase32Crockford;
+        assert!(t.transform(&b"A.".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base32_permissive() -> SimpleResult<()> {
+        let t = Transformation::FromBase32Permissive;
+        assert_eq!(false, t.is_two_way());
+
+        // Short string: "\x00"
+        let t = Transformation::FromBase32Permissive;
+        let result = t.transform(&b"IE======".to_vec())?;
+        assert_eq!(b"A".to_vec(), result);
+
+        // Longer string: "ABCDEF"
+        let t = Transformation::FromBase32Permissive;
+        let result = t.transform(&b"IFBEGRCFIY======".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+
+        // It's okay to be case insensitive
+        let t = Transformation::FromBase32Permissive;
+        let result = t.transform(&b"ifbegrcfiy======".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+
+        // Do padding wrong
+        let t = Transformation::FromBase32Permissive;
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE=".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE==".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE===".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE====".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE=====".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE=============".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"I=============E".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"IE=============".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"I.@#$...E...======".to_vec())?);
+
+        // We can still error with bad characters
+        assert!(t.transform(&b"1234567890".to_vec()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_base32_crockford_permissive() -> SimpleResult<()> {
+        let t = Transformation::FromBase32CrockfordPermissive;
+        assert_eq!(false, t.is_two_way());
+
+        // Short string: "\x00"
+        let t = Transformation::FromBase32CrockfordPermissive;
+        let result = t.transform(&b"84======".to_vec())?;
+        assert_eq!(b"A".to_vec(), result);
+
+        // Longer string: "ABCDEF"
+        let t = Transformation::FromBase32CrockfordPermissive;
+        let result = t.transform(&b"85146H258R======".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+
+        // It's okay to be case insensitive
+        let t = Transformation::FromBase32CrockfordPermissive;
+        let result = t.transform(&b"85146h258r======".to_vec())?;
+        assert_eq!(b"ABCDEF".to_vec(), result);
+
+        // Do padding wrong
+        let t = Transformation::FromBase32CrockfordPermissive;
+        assert_eq!(b"A".to_vec(), t.transform(&b"84".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"84=".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"84==".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"84===".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"84====".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"84=====".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"84=============".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"8==---========4".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"84=============".to_vec())?);
+        assert_eq!(b"A".to_vec(), t.transform(&b"8.@#$...4...======".to_vec())?);
+
+        // We can still error with bad characters
+        assert!(t.transform(&b"no u".to_vec()).is_err());
+
+        Ok(())
+    }
+}
