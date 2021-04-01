@@ -50,6 +50,18 @@ use block_modes::block_padding::Pkcs7;
 
 use serde::{Serialize, Deserialize};
 
+mod transform_null;
+use transform_null::TransformNull;
+
+mod transform_base64;
+use transform_base64::TransformBase64;
+
+pub trait TransformerTrait {
+    fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
+    fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
+    fn check(&self, buffer: &Vec<u8>) -> bool;
+}
+
 /// When performing an XorByConstant transformation, this represents the size
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum XorSize {
@@ -562,18 +574,6 @@ const TRANSFORMATIONS_THAT_CAN_BE_DETECTED: [H2Transformation; 10] = [
 ];
 
 impl H2Transformation {
-    fn transform_null(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Ok(buffer.clone())
-    }
-
-    fn untransform_null(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Ok(buffer.clone())
-    }
-
-    fn check_null(_buffer: &Vec<u8>) -> bool {
-        true
-    }
-
     fn transform_xor(buffer: &Vec<u8>, xs: XorSize) -> SimpleResult<Vec<u8>> {
         if !Self::check_xor(buffer, xs) {
             bail!("Xor failed: Xor isn't a multiple of the buffer size");
@@ -656,54 +656,6 @@ impl H2Transformation {
                 (buffer.len() % 8) == 0
             },
         }
-    }
-
-    fn transform_base64(buffer: &Vec<u8>, config: base64::Config) -> SimpleResult<Vec<u8>> {
-        let original_length = buffer.len();
-
-        // Decode
-        let out = match base64::decode_config(buffer, config) {
-            Ok(r) => r,
-            Err(e) => bail!("Couldn't decode base64: {}", e),
-        };
-
-        // Ensure it encodes to the same length - we can't handle length changes
-        if base64::encode_config(&out, config).len() != original_length {
-            bail!("Base64 didn't decode correctly (the length changed with decode->encode, check padding)");
-        }
-
-        Ok(out)
-    }
-
-    fn untransform_base64(buffer: &Vec<u8>, config: base64::Config) -> SimpleResult<Vec<u8>> {
-        Ok(base64::encode_config(buffer, config).into_bytes())
-    }
-
-    fn check_base64(buffer: &Vec<u8>, config: base64::Config) -> bool {
-        // The only reasonable way to check is by just doing it (since the
-        // config is opaque to us)
-        Self::transform_base64(buffer, config).is_ok()
-    }
-
-    fn transform_base64_permissive(buffer: &Vec<u8>, config: base64::Config) -> SimpleResult<Vec<u8>> {
-        // Filter out any control characters and spaces
-        let buffer: Vec<u8> = buffer.clone().into_iter().filter(|b| {
-            *b > 0x20 && *b < 0x80
-        }).collect();
-
-        // Decode
-        let out = match base64::decode_config(buffer, config) {
-            Ok(r) => r,
-            Err(e) => bail!("Couldn't decode base64: {}", e),
-        };
-
-        Ok(out)
-    }
-
-    fn check_base64_permissive(buffer: &Vec<u8>, config: base64::Config) -> bool {
-        // The only reasonable way to check is by just doing it (since the
-        // config is opaque to us)
-        Self::transform_base64_permissive(buffer, config).is_ok()
     }
 
     fn transform_base32(buffer: &Vec<u8>, alphabet: base32::Alphabet) -> SimpleResult<Vec<u8>> {
@@ -871,6 +823,19 @@ impl H2Transformation {
     //     bail!("Not implemented yet!");
     // }
 
+    fn get_transformer(&self) -> SimpleResult<Box<dyn TransformerTrait>> {
+        match self {
+            Self::Null                    => Ok(Box::new(TransformNull::new())),
+            Self::FromBase64              => Ok(Box::new(TransformBase64::new_standard())),
+            Self::FromBase64NoPadding     => Ok(Box::new(TransformBase64::new_no_padding())),
+            Self::FromBase64Permissive    => Ok(Box::new(TransformBase64::new_permissive())),
+            Self::FromBase64URL           => Ok(Box::new(TransformBase64::new_url())),
+            Self::FromBase64URLNoPadding  => Ok(Box::new(TransformBase64::new_url_no_padding())),
+            Self::FromBase64URLPermissive => Ok(Box::new(TransformBase64::new_url_permissive())),
+            _ => bail!("Uh oh!"),
+        }
+    }
+
     /// Transform a buffer into another buffer, without changing the original.
     pub fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         // We can never handle 0-length buffers
@@ -878,32 +843,29 @@ impl H2Transformation {
             bail!("Cannot transform 0-length buffer");
         }
 
-        match self {
-            Self::Null                          => Self::transform_null(buffer),
-            Self::XorByConstant(xs)             => Self::transform_xor(buffer, *xs),
+        match self.get_transformer() {
+            Ok(t) => t.transform(buffer),
+            Err(_) => {
+                match self {
+                    Self::XorByConstant(xs)             => Self::transform_xor(buffer, *xs),
 
-            Self::FromBase64                    => Self::transform_base64(buffer, base64::STANDARD),
-            Self::FromBase64NoPadding           => Self::transform_base64(buffer, base64::STANDARD_NO_PAD),
-            Self::FromBase64Permissive          => Self::transform_base64_permissive(buffer, base64::STANDARD_NO_PAD),
+                    Self::FromBase32                    => Self::transform_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
+                    Self::FromBase32NoPadding           => Self::transform_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
+                    Self::FromBase32Crockford           => Self::transform_base32(buffer, base32::Alphabet::Crockford),
 
-            Self::FromBase64URL                 => Self::transform_base64(buffer, base64::URL_SAFE),
-            Self::FromBase64URLNoPadding        => Self::transform_base64(buffer, base64::URL_SAFE_NO_PAD),
-            Self::FromBase64URLPermissive       => Self::transform_base64_permissive(buffer, base64::URL_SAFE_NO_PAD),
+                    Self::FromBase32Permissive          => Self::transform_base32_permissive(buffer, base32::Alphabet::RFC4648 { padding: false }),
+                    Self::FromBase32CrockfordPermissive => Self::transform_base32_permissive(buffer, base32::Alphabet::Crockford),
 
-            Self::FromBase32                    => Self::transform_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
-            Self::FromBase32NoPadding           => Self::transform_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
-            Self::FromBase32Crockford           => Self::transform_base32(buffer, base32::Alphabet::Crockford),
+                    Self::FromDeflated                  => Self::transform_deflated(buffer),
+                    Self::FromDeflatedZlib              => Self::transform_deflated_zlib(buffer),
 
-            Self::FromBase32Permissive          => Self::transform_base32_permissive(buffer, base32::Alphabet::RFC4648 { padding: false }),
-            Self::FromBase32CrockfordPermissive => Self::transform_base32_permissive(buffer, base32::Alphabet::Crockford),
+                    Self::FromHex                       => Self::transform_hex(buffer),
 
-            Self::FromDeflated                  => Self::transform_deflated(buffer),
-            Self::FromDeflatedZlib              => Self::transform_deflated_zlib(buffer),
+                    Self::FromAES(settings)             => Self::transform_aes(buffer, *settings),
 
-            Self::FromHex                       => Self::transform_hex(buffer),
-
-            Self::FromAES(settings)             => Self::transform_aes(buffer, *settings),
-            //Self::From                          => Self::transform_(buffer),
+                    _ => bail!("Oops! Not implemented"),
+                }
+            }
         }
     }
 
@@ -916,33 +878,29 @@ impl H2Transformation {
             bail!("Cannot untransform 0-length buffer");
         }
 
-        match self {
-            Self::Null                          => Self::untransform_null(buffer),
-            Self::XorByConstant(xs)             => Self::untransform_xor(buffer, *xs),
+        match self.get_transformer() {
+            Ok(t) => t.untransform(buffer),
+            Err(_) => {
+                match self {
+                    Self::XorByConstant(xs)             => Self::untransform_xor(buffer, *xs),
 
-            Self::FromBase64                    => Self::untransform_base64(buffer, base64::STANDARD),
-            Self::FromBase64NoPadding           => Self::untransform_base64(buffer, base64::STANDARD_NO_PAD),
-            Self::FromBase64Permissive          => bail!("Base64Permissive is one-way"),
+                    Self::FromBase32                    => Self::untransform_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
+                    Self::FromBase32NoPadding           => Self::untransform_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
+                    Self::FromBase32Crockford           => Self::untransform_base32(buffer, base32::Alphabet::Crockford),
 
-            Self::FromBase64URL                 => Self::untransform_base64(buffer, base64::URL_SAFE),
-            Self::FromBase64URLNoPadding        => Self::untransform_base64(buffer, base64::URL_SAFE_NO_PAD),
-            Self::FromBase64URLPermissive       => bail!("Base64URLPermissive is one-way"),
+                    Self::FromBase32Permissive          => bail!("Base32Permissive is one-way"),
+                    Self::FromBase32CrockfordPermissive => bail!("Base32CrockfordPermissive is one-way"),
 
-            Self::FromBase32                    => Self::untransform_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
-            Self::FromBase32NoPadding           => Self::untransform_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
-            Self::FromBase32Crockford           => Self::untransform_base32(buffer, base32::Alphabet::Crockford),
+                    Self::FromDeflated                  => bail!("Deflated is one-way"),
+                    Self::FromDeflatedZlib              => bail!("DeflatedZlib is one-way"),
 
-            Self::FromBase32Permissive          => bail!("Base32Permissive is one-way"),
-            Self::FromBase32CrockfordPermissive => bail!("Base32CrockfordPermissive is one-way"),
+                    Self::FromHex                       => Self::untransform_hex(buffer),
 
-            Self::FromDeflated                  => bail!("Deflated is one-way"),
-            Self::FromDeflatedZlib              => bail!("DeflatedZlib is one-way"),
+                    Self::FromAES(settings)             => Self::untransform_aes(buffer, *settings),
 
-            Self::FromHex                       => Self::untransform_hex(buffer),
-
-            Self::FromAES(settings)             => Self::untransform_aes(buffer, *settings),
-
-            //Self::From                          => Self::untransform_(buffer),
+                    _ => bail!("Oops! Not implemented"),
+                }
+            }
         }
     }
 
@@ -957,32 +915,30 @@ impl H2Transformation {
             return false;
         }
 
-        match self {
-            Self::Null                          => Self::check_null(buffer),
-            Self::XorByConstant(xs)             => Self::check_xor(buffer, *xs),
+        match self.get_transformer() {
+            Ok(t) => t.check(buffer),
+            Err(_) => {
+                match self {
+                    Self::XorByConstant(xs)             => Self::check_xor(buffer, *xs),
 
-            Self::FromBase64                    => Self::check_base64(buffer, base64::STANDARD),
-            Self::FromBase64NoPadding           => Self::check_base64(buffer, base64::STANDARD_NO_PAD),
-            Self::FromBase64Permissive          => Self::check_base64_permissive(buffer, base64::STANDARD_NO_PAD),
+                    Self::FromBase32                    => Self::check_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
+                    Self::FromBase32NoPadding           => Self::check_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
+                    Self::FromBase32Crockford           => Self::check_base32(buffer, base32::Alphabet::Crockford),
 
-            Self::FromBase64URL                 => Self::check_base64(buffer, base64::URL_SAFE),
-            Self::FromBase64URLNoPadding        => Self::check_base64(buffer, base64::URL_SAFE_NO_PAD),
-            Self::FromBase64URLPermissive       => Self::check_base64_permissive(buffer, base64::URL_SAFE_NO_PAD),
+                    Self::FromBase32Permissive          => Self::check_base32_permissive(buffer, base32::Alphabet::RFC4648 { padding: false }),
+                    Self::FromBase32CrockfordPermissive => Self::check_base32_permissive(buffer, base32::Alphabet::Crockford),
 
-            Self::FromBase32                    => Self::check_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
-            Self::FromBase32NoPadding           => Self::check_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
-            Self::FromBase32Crockford           => Self::check_base32(buffer, base32::Alphabet::Crockford),
+                    Self::FromDeflated                  => Self::check_deflated(buffer),
+                    Self::FromDeflatedZlib              => Self::check_deflated_zlib(buffer),
 
-            Self::FromBase32Permissive          => Self::check_base32_permissive(buffer, base32::Alphabet::RFC4648 { padding: false }),
-            Self::FromBase32CrockfordPermissive => Self::check_base32_permissive(buffer, base32::Alphabet::Crockford),
+                    Self::FromHex                       => Self::check_hex(buffer),
 
-            Self::FromDeflated                  => Self::check_deflated(buffer),
-            Self::FromDeflatedZlib              => Self::check_deflated_zlib(buffer),
+                    Self::FromAES(settings)             => Self::check_aes(buffer, *settings),
+                    //Self::From                          => Self::check_(buffer),
 
-            Self::FromHex                       => Self::check_hex(buffer),
-
-            Self::FromAES(settings)             => Self::check_aes(buffer, *settings),
-            //Self::From                          => Self::check_(buffer),
+                    _ => false // TODO: Kill this
+                }
+            }
         }
     }
 
