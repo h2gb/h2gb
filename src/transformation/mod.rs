@@ -44,6 +44,10 @@ use base64;
 use base32;
 use inflate;
 
+use aes::{Aes128, Aes192, Aes256};
+use block_modes::{BlockMode, Cbc};
+use block_modes::block_padding::Pkcs7;
+
 use serde::{Serialize, Deserialize};
 
 /// When performing an XorByConstant transformation, this represents the size
@@ -60,6 +64,19 @@ pub enum XorSize {
 
     /// Eight bytes / 64 bits - eg, `0x123456789abcdef0`
     SixtyFourBit(u64),
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+pub enum AESKey {
+    Bits128([u8; 16]),
+    Bits192([u8; 24]),
+    Bits256([u8; 32]),
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+pub struct AESSettings {
+    key: AESKey,
+    iv: Option<[u8; 16]>,
 }
 
 /// Which transformation to perform.
@@ -519,6 +536,8 @@ pub enum H2Transformation {
     /// Must be a hex string with an even length, made up of the digits 0-9
     /// and a-f.
     FromHex,
+
+    FromAES(AESSettings),
 }
 
 /// A list of transformations that can automatically be detected.
@@ -786,6 +805,60 @@ impl H2Transformation {
         Self::transform_hex(buffer).is_ok()
     }
 
+    fn transform_aes(buffer: &Vec<u8>, settings: AESSettings) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = settings.iv.unwrap_or([0;16]);
+
+        // Pick the implementation based on the key
+        let out = match settings.key {
+            AESKey::Bits128(k) => {
+                match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            AESKey::Bits192(k) => {
+                match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            AESKey::Bits256(k) => {
+                match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+        };
+
+        Ok(out.to_vec())
+    }
+
+    fn untransform_aes(buffer: &Vec<u8>, settings: AESSettings) -> SimpleResult<Vec<u8>> {
+        bail!("Not implemented yet!");
+    }
+
+    fn check_aes(buffer: &Vec<u8>, settings: AESSettings) -> bool {
+       true
+    }
+
     // fn transform_ABC(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
     //     bail!("Not implemented yet!");
     // }
@@ -829,6 +902,7 @@ impl H2Transformation {
 
             Self::FromHex                       => Self::transform_hex(buffer),
 
+            Self::FromAES(settings)             => Self::transform_aes(buffer, *settings),
             //Self::From                          => Self::transform_(buffer),
         }
     }
@@ -865,6 +939,8 @@ impl H2Transformation {
             Self::FromDeflatedZlib              => bail!("DeflatedZlib is one-way"),
 
             Self::FromHex                       => Self::untransform_hex(buffer),
+
+            Self::FromAES(settings)             => Self::untransform_aes(buffer, *settings),
 
             //Self::From                          => Self::untransform_(buffer),
         }
@@ -905,6 +981,7 @@ impl H2Transformation {
 
             Self::FromHex                       => Self::check_hex(buffer),
 
+            Self::FromAES(settings)             => Self::check_aes(buffer, *settings),
             //Self::From                          => Self::check_(buffer),
         }
     }
@@ -925,6 +1002,7 @@ impl H2Transformation {
             Self::FromBase32NoPadding           => true,
             Self::FromBase32Crockford           => true,
             Self::FromHex                       => true,
+            Self::FromAES(_)                    => true,
 
             Self::FromBase64Permissive          => false,
             Self::FromBase64URLPermissive       => false,
@@ -1632,6 +1710,32 @@ mod tests {
         assert_eq!(b(b"000102feff"), t.untransform(&vec![0x00, 0x01, 0x02, 0xfe, 0xff])?);
 
         assert!(t.transform(&b(b"abababag")).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_aes() -> SimpleResult<()> {
+        let settings = AESSettings {
+            key: AESKey::Bits128(*b"AAAAAAAAAAAAAAAA"),
+            iv: None,
+        };
+
+        let t = H2Transformation::FromAES(settings);
+        let result = t.transform(&b"\x6c\x97\x52\xb3\x06\xde\xc3\xaa\x5d\x4d\x0e\xe7\x98\xcc\xd9\xb0".to_vec())?;
+        assert_eq!(b"Hello world!".to_vec(), result);
+
+
+        let settings = AESSettings {
+            key: AESKey::Bits192(*b"AAAAAAAAAAAAAAAAAAAAAAAA"),
+            iv: None,
+        };
+
+        let t = H2Transformation::FromAES(settings);
+        let result = t.transform(&b"\xc8\xcc\x26\xe8\x1a\x48\x8e\xb0\x1e\xac\xb1\xc5\x7c\x07\xe3\x30\xa7\xda\x88\x27\xbf\xcc\x1e\xab\xcc\x53\xd5\x0a\x21\x55\x93\x79".to_vec())?;
+        assert_eq!(b"Hello world! This is a test".to_vec(), result);
+
+
 
         Ok(())
     }
