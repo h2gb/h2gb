@@ -20,11 +20,11 @@ pub enum XorSettings {
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct TransformXor {
+pub struct TransformXorByConstant {
     settings: XorSettings,
 }
 
-impl TransformXor {
+impl TransformXorByConstant {
     pub fn new(settings: XorSettings) -> Self {
         Self {
             settings: settings,
@@ -32,7 +32,7 @@ impl TransformXor {
     }
 }
 
-impl TransformerTrait for TransformXor {
+impl TransformerTrait for TransformXorByConstant {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         if !self.check(buffer) {
             bail!("Xor failed: Xor isn't a multiple of the buffer size");

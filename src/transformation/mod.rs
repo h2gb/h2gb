@@ -55,8 +55,8 @@ use transform_null::TransformNull;
 mod transform_base64;
 use transform_base64::TransformBase64;
 
-mod transform_xor;
-use transform_xor::{TransformXor, XorSettings};
+mod transform_xor_by_constant;
+use transform_xor_by_constant::{TransformXorByConstant, XorSettings};
 
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
@@ -728,7 +728,7 @@ impl H2Transformation {
     fn get_transformer(&self) -> SimpleResult<Box<dyn TransformerTrait>> {
         match self {
             Self::Null                    => Ok(Box::new(TransformNull::new())),
-            Self::XorByConstant(c)        => Ok(Box::new(TransformXor::new(*c))),
+            Self::XorByConstant(c)        => Ok(Box::new(TransformXorByConstant::new(*c))),
             Self::FromBase64              => Ok(Box::new(TransformBase64::new_standard())),
             Self::FromBase64NoPadding     => Ok(Box::new(TransformBase64::new_no_padding())),
             Self::FromBase64Permissive    => Ok(Box::new(TransformBase64::new_permissive())),
