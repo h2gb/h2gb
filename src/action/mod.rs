@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};
 use std::ops::Range;
 
-use crate::transformation::H2Transformation;
+use crate::transformation::Transformation;
 use crate::h2project::H2Project;
 
 // Still needed:
@@ -117,7 +117,7 @@ impl Action {
         )
     }
 
-    pub fn buffer_transform(name: &str, transformation: H2Transformation) -> Self {
+    pub fn buffer_transform(name: &str, transformation: Transformation) -> Self {
         Self::BufferTransform(
             ActionBufferTransform::new(
                 ActionBufferTransformForward {

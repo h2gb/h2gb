@@ -95,7 +95,7 @@ mod tests {
     use redo::Record;
     use simple_error::SimpleResult;
 
-    use crate::transformation::H2Transformation;
+    use crate::transformation::Transformation;
 
     use crate::h2project::H2Project;
     use crate::action::Action;
@@ -152,7 +152,7 @@ mod tests {
         record.apply(Action::buffer_create_from_bytes("buffer", b"4a4B4c4D4e".to_vec(), 0x80000000))?;
 
         // Transform it
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
+        record.apply(Action::buffer_transform("buffer", Transformation::FromHex))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Delete

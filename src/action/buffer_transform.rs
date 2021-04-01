@@ -1,4 +1,4 @@
-//! Transform a buffer using transformations from the H2Transformation project.
+//! Transform a buffer using transformations from the Transformation project.
 //!
 //! These act on the raw data, and can change the length in either direction.
 //! Thus, these cannot be applied to a buffer once populated with layers or
@@ -11,14 +11,14 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::transformation::H2Transformation;
+use crate::transformation::Transformation;
 
 use crate::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferTransformForward {
     pub name: String,
-    pub transformation: H2Transformation,
+    pub transformation: Transformation,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,8 +42,8 @@ impl ActionBufferTransform {
     }
 }
 
-impl From<(&str, H2Transformation)> for ActionBufferTransform {
-    fn from(o: (&str, H2Transformation)) -> Self {
+impl From<(&str, Transformation)> for ActionBufferTransform {
+    fn from(o: (&str, Transformation)) -> Self {
         ActionBufferTransform {
             forward: Some(ActionBufferTransformForward {
                 name: o.0.to_string(),
@@ -108,7 +108,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
     use crate::action::Action;
-    use crate::transformation::H2Transformation;
+    use crate::transformation::Transformation;
 
     #[test]
     fn test_action() -> SimpleResult<()> {
@@ -123,10 +123,10 @@ mod tests {
         assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Undo the base64
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromBase64Standard))?;
+        record.apply(Action::buffer_transform("buffer", Transformation::FromBase64Standard))?;
         assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
 
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
+        record.apply(Action::buffer_transform("buffer", Transformation::FromHex))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Undo both
@@ -156,7 +156,7 @@ mod tests {
         record.apply(Action::buffer_create_from_bytes("buffer", b"abcxyz".to_vec(), 0x80000000))?;
 
         // Try to unhex
-        assert!(record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex)).is_err());
+        assert!(record.apply(Action::buffer_transform("buffer", Transformation::FromHex)).is_err());
 
         // Make sure nothing changed
         assert_eq!(b"abcxyz".to_vec(), record.target().get_buffer("buffer")?.data);

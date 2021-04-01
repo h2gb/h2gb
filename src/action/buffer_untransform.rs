@@ -14,7 +14,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::transformation::H2Transformation;
+use crate::transformation::Transformation;
 use crate::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,7 +26,7 @@ pub struct ActionBufferUntransformForward {
 struct ActionBufferUntransformBackward {
     name: String,
     original_data: Vec<u8>,
-    transformation: H2Transformation,
+    transformation: Transformation,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -109,7 +109,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
     use crate::action::Action;
-    use crate::transformation::H2Transformation;
+    use crate::transformation::Transformation;
 
     #[test]
     fn test_action() -> SimpleResult<()> {
@@ -123,8 +123,8 @@ mod tests {
         record.apply(Action::buffer_create_from_bytes("buffer", b"NGE0QjRjNEQ0ZQ==".to_vec(), 0x80000000))?;
 
         // Do a couple transformations, verify they worked right
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromBase64Standard))?;
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
+        record.apply(Action::buffer_transform("buffer", Transformation::FromBase64Standard))?;
+        record.apply(Action::buffer_transform("buffer", Transformation::FromHex))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Untransform one layer, which will encode back to hex - note that the
@@ -173,7 +173,7 @@ mod tests {
         record.apply(Action::buffer_create_from_bytes("buffer", b"4a4b4c4d4e".to_vec(), 0x80000000))?;
 
         // Do a transformation
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
+        record.apply(Action::buffer_transform("buffer", Transformation::FromHex))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Untransform successfully, then try again with an empty stack

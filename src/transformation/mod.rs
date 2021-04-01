@@ -9,7 +9,7 @@
 //! identical - like the case of Base32 and hex strings). If proper undo/redo
 //! is needed, this won't fit the bill.
 //!
-//! Check out the definition of the `H2Transformation` enum for full details on
+//! Check out the definition of the `Transformation` enum for full details on
 //! everything it can do!
 //!
 //! # Usage
@@ -19,19 +19,19 @@
 //!
 //!
 //! ```
-//! use libh2gb::transformation::H2Transformation;
+//! use libh2gb::transformation::Transformation;
 //!
 //! // Input (note that some are uppercase and some are lower - that's allowed)
 //! let i: Vec<u8> = b"48656c6C6F2c20776f726c64".to_vec();
 //!
 //! // Output
-//! let o = H2Transformation::FromHex.transform(&i).unwrap();
+//! let o = Transformation::FromHex.transform(&i).unwrap();
 //!
 //! // It's "Hello, world"
 //! assert_eq!(b"Hello, world".to_vec(), o);
 //!
 //! // Transform back to the original
-//! let i = H2Transformation::FromHex.untransform(&o).unwrap();
+//! let i = Transformation::FromHex.untransform(&o).unwrap();
 //!
 //! // Get the original back - note that it's the same length, but the case has
 //! // been normalized
@@ -39,10 +39,6 @@
 //! ```
 
 use simple_error::{SimpleResult, bail};
-
-use aes::{Aes128, Aes192, Aes256};
-use block_modes::{BlockMode, Cbc};
-use block_modes::block_padding::Pkcs7;
 
 use serde::{Serialize, Deserialize};
 
@@ -68,41 +64,32 @@ pub use transform_deflate::DeflateSettings;
 mod transform_hex;
 use transform_hex::TransformHex;
 
+mod transform_aes;
+use transform_aes::TransformAES;
+pub use transform_aes::AESSettings;
+
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
     fn check(&self, buffer: &Vec<u8>) -> bool;
 }
 
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub enum AESKey {
-    Bits128([u8; 16]),
-    Bits192([u8; 24]),
-    Bits256([u8; 32]),
-}
-
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct AESSettings {
-    key: AESKey,
-    iv: Option<[u8; 16]>,
-}
-
 /// Which transformation to perform.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub enum H2Transformation {
+pub enum Transformation {
     /// No transformation - simply returns the same value. Mostly here for
     /// testing.
     ///
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "abcdef"
     /// let i: Vec<u8> = b"abcdef".to_vec();
     ///
     /// // Output: "abcdef"
-    /// let o = H2Transformation::Null.transform(&i);
+    /// let o = Transformation::Null.transform(&i);
     /// assert_eq!(Ok(b"abcdef".to_vec()), o);
     /// ```
     ///
@@ -119,26 +106,26 @@ pub enum H2Transformation {
     /// ## Eight bit
     ///
     /// ```
-    /// use libh2gb::transformation::{H2Transformation, XorSettings};
+    /// use libh2gb::transformation::{Transformation, XorSettings};
     ///
     /// // Input: "\x00\x01\x02\x03", XorSettings::EightBit(0xFF)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
     ///
     /// // Output: "\xff\xfe\xfd\xfc"
-    /// let o = H2Transformation::XorByConstant(XorSettings::EightBit(0xFF)).transform(&i);
+    /// let o = Transformation::XorByConstant(XorSettings::EightBit(0xFF)).transform(&i);
     /// assert_eq!(Ok(b"\xff\xfe\xfd\xfc".to_vec()), o);
     /// ```
     ///
     /// ## Sixteen bit
     ///
     /// ```
-    /// use libh2gb::transformation::{H2Transformation, XorSettings};
+    /// use libh2gb::transformation::{Transformation, XorSettings};
     ///
     /// // Input: "\x00\x01\x02\x03", XorSettings::SixteenBit(0xFF00)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
 
     /// // Output: "\xFF\x01\xFD\x03"
-    /// let o = H2Transformation::XorByConstant(XorSettings::SixteenBit(0xFF00)).transform(&i);
+    /// let o = Transformation::XorByConstant(XorSettings::SixteenBit(0xFF00)).transform(&i);
     /// assert_eq!(Ok(b"\xff\x01\xfd\x03".to_vec()), o);
     /// ```
     ///
@@ -147,12 +134,12 @@ pub enum H2Transformation {
     /// The size of the input buffer must be a multiple of the XOR bit size.
     ///
     /// ```
-    /// use libh2gb::transformation::{H2Transformation, XorSettings};
+    /// use libh2gb::transformation::{Transformation, XorSettings};
     ///
     /// let i: Vec<u8> = b"\x00".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::XorByConstant(XorSettings::SixteenBit(0xFF00)).transform(&i).is_err());
+    /// assert!(Transformation::XorByConstant(XorSettings::SixteenBit(0xFF00)).transform(&i).is_err());
     /// ```
     XorByConstant(XorSettings),
 
@@ -164,13 +151,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "AQIDBA=="
     /// let i: Vec<u8> = b"AQIDBA==".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = H2Transformation::FromBase64Standard.transform(&i).unwrap();
+    /// let o = Transformation::FromBase64Standard.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
@@ -180,12 +167,12 @@ pub enum H2Transformation {
     /// Must be valid Base64 with correct padding and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase64Standard.transform(&i).is_err());
+    /// assert!(Transformation::FromBase64Standard.transform(&i).is_err());
     /// ```
     FromBase64Standard,
 
@@ -194,13 +181,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "AQIDBA"
     /// let i: Vec<u8> = b"AQIDBA".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = H2Transformation::FromBase64NoPadding.transform(&i).unwrap();
+    /// let o = Transformation::FromBase64NoPadding.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
@@ -210,12 +197,12 @@ pub enum H2Transformation {
     /// Must be valid Base64 with NO padding whatsoever, and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase64NoPadding.transform(&i).is_err());
+    /// assert!(Transformation::FromBase64NoPadding.transform(&i).is_err());
     /// ```
     FromBase64NoPadding,
 
@@ -227,13 +214,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "AQIDBA="
     /// let i: Vec<u8> = b"AQIDBA=".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = H2Transformation::FromBase64Permissive.transform(&i).unwrap();
+    /// let o = Transformation::FromBase64Permissive.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
@@ -243,12 +230,12 @@ pub enum H2Transformation {
     /// Must be valid enough Base64.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase64Permissive.transform(&i).is_err());
+    /// assert!(Transformation::FromBase64Permissive.transform(&i).is_err());
     /// ```
     FromBase64Permissive,
 
@@ -258,13 +245,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "aa--_z8="
     /// let i: Vec<u8> = b"aa--_z8=".to_vec();
     ///
     /// // Output: "\x69\xaf\xbe\xff\x3f"
-    /// let o = H2Transformation::FromBase64URL.transform(&i).unwrap();
+    /// let o = Transformation::FromBase64URL.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), o);
     /// ```
@@ -274,12 +261,12 @@ pub enum H2Transformation {
     /// Must be valid Base64 with correct padding and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase64URL.transform(&i).is_err());
+    /// assert!(Transformation::FromBase64URL.transform(&i).is_err());
     /// ```
     FromBase64URL,
 
@@ -288,13 +275,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "aa--_z8"
     /// let i: Vec<u8> = b"aa--_z8".to_vec();
     ///
     /// // Output: "\x69\xaf\xbe\xff\x3f"
-    /// let o = H2Transformation::FromBase64URLNoPadding.transform(&i).unwrap();
+    /// let o = Transformation::FromBase64URLNoPadding.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), o);
     /// ```
@@ -304,12 +291,12 @@ pub enum H2Transformation {
     /// Must be valid Base64 with NO padding whatsoever, and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase64URLNoPadding.transform(&i).is_err());
+    /// assert!(Transformation::FromBase64URLNoPadding.transform(&i).is_err());
     /// ```
     FromBase64URLNoPadding,
 
@@ -321,13 +308,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "aa--_z8"
     /// let i: Vec<u8> = b"aa--_z8".to_vec();
     ///
     /// // Output: "\x69\xaf\xbe\xff\x3f"
-    /// let o = H2Transformation::FromBase64URLPermissive.transform(&i).unwrap();
+    /// let o = Transformation::FromBase64URLPermissive.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), o);
     /// ```
@@ -337,12 +324,12 @@ pub enum H2Transformation {
     /// Must be valid enough Base64.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase64URLPermissive.transform(&i).is_err());
+    /// assert!(Transformation::FromBase64URLPermissive.transform(&i).is_err());
     /// ```
     FromBase64URLPermissive,
 
@@ -354,13 +341,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "AEBAGBA="
     /// let i: Vec<u8> = b"AEBAGBA=".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = H2Transformation::FromBase32Standard.transform(&i).unwrap();
+    /// let o = Transformation::FromBase32Standard.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
@@ -370,12 +357,12 @@ pub enum H2Transformation {
     /// Must be valid Base32 with correct padding and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base32~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase32Standard.transform(&i).is_err());
+    /// assert!(Transformation::FromBase32Standard.transform(&i).is_err());
     /// ```
     FromBase32Standard,
 
@@ -384,13 +371,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "AEBAGBA"
     /// let i: Vec<u8> = b"AEBAGBA".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = H2Transformation::FromBase32NoPadding.transform(&i).unwrap();
+    /// let o = Transformation::FromBase32NoPadding.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
@@ -400,12 +387,12 @@ pub enum H2Transformation {
     /// Must be valid Base32 with no padding and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base32~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase32NoPadding.transform(&i).is_err());
+    /// assert!(Transformation::FromBase32NoPadding.transform(&i).is_err());
     /// ```
     FromBase32NoPadding,
 
@@ -416,13 +403,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "91JPRV3F"
     /// let i: Vec<u8> = b"91JPRV3F".to_vec();
     ///
     /// // Output: "Hello"
-    /// let o = H2Transformation::FromBase32Crockford.transform(&i).unwrap();
+    /// let o = Transformation::FromBase32Crockford.transform(&i).unwrap();
     ///
     /// assert_eq!(b"Hello".to_vec(), o);
     /// ```
@@ -432,12 +419,12 @@ pub enum H2Transformation {
     /// Must be valid Base32 Crockford with no padding and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base32~".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase32Crockford.transform(&i).is_err());
+    /// assert!(Transformation::FromBase32Crockford.transform(&i).is_err());
     /// ```
     FromBase32Crockford,
 
@@ -449,13 +436,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "AEBAGBA="
     /// let i: Vec<u8> = b"AEBAGBA=".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = H2Transformation::FromBase32Standard.transform(&i).unwrap();
+    /// let o = Transformation::FromBase32Standard.transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
@@ -465,12 +452,12 @@ pub enum H2Transformation {
     /// Must be close enough to Base32 and decode to full bytes.
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"Not valid base32~0123456789".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase32Permissive.transform(&i).is_err());
+    /// assert!(Transformation::FromBase32Permissive.transform(&i).is_err());
     /// ```
     FromBase32Permissive,
 
@@ -483,13 +470,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "91JPRV3F=="
     /// let i: Vec<u8> = b"91JPRV3F==".to_vec();
     ///
     /// // Output: "Hello"
-    /// let o = H2Transformation::FromBase32CrockfordPermissive.transform(&i).unwrap();
+    /// let o = Transformation::FromBase32CrockfordPermissive.transform(&i).unwrap();
     ///
     /// assert_eq!(b"Hello".to_vec(), o);
     /// ```
@@ -500,12 +487,12 @@ pub enum H2Transformation {
     /// letter 'u', for example, is not allowed)
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// let i: Vec<u8> = b"uuuuu".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::FromBase32CrockfordPermissive.transform(&i).is_err());
+    /// assert!(Transformation::FromBase32CrockfordPermissive.transform(&i).is_err());
     /// ```
     FromBase32CrockfordPermissive,
 
@@ -537,13 +524,13 @@ pub enum H2Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::H2Transformation;
+    /// use libh2gb::transformation::Transformation;
     ///
     /// // Input: "41424344"
     /// let i: Vec<u8> = b"41424344".to_vec();
     ///
     /// // Output: "ABCD"
-    /// let o = H2Transformation::FromHex.transform(&i).unwrap();
+    /// let o = Transformation::FromHex.transform(&i).unwrap();
     ///
     /// assert_eq!(b"ABCD".to_vec(), o);
     /// ```
@@ -563,116 +550,50 @@ pub enum H2Transformation {
 /// are overly broad (such as `FromBase32Permissive`), overly useless (such as
 /// `Null`), or require configuration (such as `FromHex`). We skip those and
 /// only look at potentially interesting transformations.
-const TRANSFORMATIONS_THAT_CAN_BE_DETECTED: [H2Transformation; 10] = [
-    H2Transformation::FromBase64Standard,
-    H2Transformation::FromBase64NoPadding,
-    H2Transformation::FromBase64URL,
-    H2Transformation::FromBase64URLNoPadding,
+const TRANSFORMATIONS_THAT_CAN_BE_DETECTED: [Transformation; 10] = [
+    Transformation::FromBase64Standard,
+    Transformation::FromBase64NoPadding,
+    Transformation::FromBase64URL,
+    Transformation::FromBase64URLNoPadding,
 
-    H2Transformation::FromBase32Standard,
-    H2Transformation::FromBase32NoPadding,
-    H2Transformation::FromBase32Crockford,
+    Transformation::FromBase32Standard,
+    Transformation::FromBase32NoPadding,
+    Transformation::FromBase32Crockford,
 
-    H2Transformation::FromDeflatedNoZlibHeader,
-    H2Transformation::FromDeflatedZlibHeader,
+    Transformation::FromDeflatedNoZlibHeader,
+    Transformation::FromDeflatedZlibHeader,
 
-    H2Transformation::FromHex,
+    Transformation::FromHex,
 ];
 
-impl H2Transformation {
-    fn transform_aes(buffer: &Vec<u8>, settings: AESSettings) -> SimpleResult<Vec<u8>> {
-        // Get the iv, or a default blank one
-        let iv = settings.iv.unwrap_or([0;16]);
-
-        // Pick the implementation based on the key
-        let out = match settings.key {
-            AESKey::Bits128(k) => {
-                match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec(&buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    }
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-
-            AESKey::Bits192(k) => {
-                match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec(&buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    }
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-
-            AESKey::Bits256(k) => {
-                match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec(&buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    }
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-        };
-
-        Ok(out.to_vec())
-    }
-
-    fn untransform_aes(_buffer: &Vec<u8>, _settings: AESSettings) -> SimpleResult<Vec<u8>> {
-        bail!("Not implemented yet!");
-    }
-
-    fn check_aes(_buffer: &Vec<u8>, _settings: AESSettings) -> bool {
-       true
-    }
-
-    // fn transform_ABC(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-    //     bail!("Not implemented yet!");
-    // }
-
-    // fn untransform_ABC(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-    //     bail!("Not implemented yet!");
-    // }
-
-    // fn check_ABC(buffer: &Vec<u8>) -> bool {
-    //     bail!("Not implemented yet!");
-    // }
-
-    fn get_transformer(&self) -> SimpleResult<Box<dyn TransformerTrait>> {
+impl Transformation {
+    fn get_transformer(&self) -> Box<dyn TransformerTrait> {
         match self {
-            Self::Null                          => Ok(Box::new(TransformNull::new())),
-            Self::XorByConstant(c)              => Ok(Box::new(TransformXorByConstant::new(*c))),
+            Self::Null                          => Box::new(TransformNull::new()),
+            Self::XorByConstant(c)              => Box::new(TransformXorByConstant::new(*c)),
 
-            Self::FromBase64(s)                 => Ok(Box::new(TransformBase64::new(*s))),
-            Self::FromBase64Standard            => Ok(Box::new(TransformBase64::new(Base64Settings::standard()))),
-            Self::FromBase64NoPadding           => Ok(Box::new(TransformBase64::new(Base64Settings::no_padding()))),
-            Self::FromBase64Permissive          => Ok(Box::new(TransformBase64::new(Base64Settings::permissive()))),
-            Self::FromBase64URL                 => Ok(Box::new(TransformBase64::new(Base64Settings::url()))),
-            Self::FromBase64URLNoPadding        => Ok(Box::new(TransformBase64::new(Base64Settings::url_no_padding()))),
-            Self::FromBase64URLPermissive       => Ok(Box::new(TransformBase64::new(Base64Settings::url_permissive()))),
+            Self::FromBase64(s)                 => Box::new(TransformBase64::new(*s)),
+            Self::FromBase64Standard            => Box::new(TransformBase64::new(Base64Settings::standard())),
+            Self::FromBase64NoPadding           => Box::new(TransformBase64::new(Base64Settings::no_padding())),
+            Self::FromBase64Permissive          => Box::new(TransformBase64::new(Base64Settings::permissive())),
+            Self::FromBase64URL                 => Box::new(TransformBase64::new(Base64Settings::url())),
+            Self::FromBase64URLNoPadding        => Box::new(TransformBase64::new(Base64Settings::url_no_padding())),
+            Self::FromBase64URLPermissive       => Box::new(TransformBase64::new(Base64Settings::url_permissive())),
 
-            Self::FromBase32(s)                 => Ok(Box::new(TransformBase32::new(*s))),
-            Self::FromBase32Standard            => Ok(Box::new(TransformBase32::new(Base32Settings::standard()))),
-            Self::FromBase32NoPadding           => Ok(Box::new(TransformBase32::new(Base32Settings::no_padding()))),
-            Self::FromBase32Crockford           => Ok(Box::new(TransformBase32::new(Base32Settings::crockford()))),
-            Self::FromBase32Permissive          => Ok(Box::new(TransformBase32::new(Base32Settings::permissive()))),
-            Self::FromBase32CrockfordPermissive => Ok(Box::new(TransformBase32::new(Base32Settings::crockford_permissive()))),
+            Self::FromBase32(s)                 => Box::new(TransformBase32::new(*s)),
+            Self::FromBase32Standard            => Box::new(TransformBase32::new(Base32Settings::standard())),
+            Self::FromBase32NoPadding           => Box::new(TransformBase32::new(Base32Settings::no_padding())),
+            Self::FromBase32Crockford           => Box::new(TransformBase32::new(Base32Settings::crockford())),
+            Self::FromBase32Permissive          => Box::new(TransformBase32::new(Base32Settings::permissive())),
+            Self::FromBase32CrockfordPermissive => Box::new(TransformBase32::new(Base32Settings::crockford_permissive())),
 
-            Self::FromDeflated(s)               => Ok(Box::new(TransformDeflate::new(*s))),
-            Self::FromDeflatedNoZlibHeader      => Ok(Box::new(TransformDeflate::new(DeflateSettings::no_zlib_header()))),
-            Self::FromDeflatedZlibHeader        => Ok(Box::new(TransformDeflate::new(DeflateSettings::zlib_header()))),
+            Self::FromDeflated(s)               => Box::new(TransformDeflate::new(*s)),
+            Self::FromDeflatedNoZlibHeader      => Box::new(TransformDeflate::new(DeflateSettings::no_zlib_header())),
+            Self::FromDeflatedZlibHeader        => Box::new(TransformDeflate::new(DeflateSettings::zlib_header())),
 
-            Self::FromHex                       => Ok(Box::new(TransformHex::new())),
+            Self::FromHex                       => Box::new(TransformHex::new()),
 
-            _ => bail!("Uh oh!"),
+            Self::FromAES(s)                    => Box::new(TransformAES::new(*s)),
         }
     }
 
@@ -683,16 +604,7 @@ impl H2Transformation {
             bail!("Cannot transform 0-length buffer");
         }
 
-        match self.get_transformer() {
-            Ok(t) => t.transform(buffer),
-            Err(_) => {
-                match self {
-                    Self::FromAES(settings)             => Self::transform_aes(buffer, *settings),
-
-                    _ => bail!("Oops! Not implemented"),
-                }
-            }
-        }
+        self.get_transformer().transform(buffer)
     }
 
     /// Transform a buffer backwards, if possible. The length of the result will
@@ -704,16 +616,7 @@ impl H2Transformation {
             bail!("Cannot untransform 0-length buffer");
         }
 
-        match self.get_transformer() {
-            Ok(t) => t.untransform(buffer),
-            Err(_) => {
-                match self {
-                    Self::FromAES(settings)             => Self::untransform_aes(buffer, *settings),
-
-                    _ => bail!("Oops! Not implemented"),
-                }
-            }
-        }
+        self.get_transformer().untransform(buffer)
     }
 
     /// Check whether a buffer can be transformed by this variant.
@@ -727,17 +630,7 @@ impl H2Transformation {
             return false;
         }
 
-        match self.get_transformer() {
-            Ok(t) => t.check(buffer),
-            Err(_) => {
-                match self {
-                    Self::FromAES(settings)             => Self::check_aes(buffer, *settings),
-                    //Self::From                          => Self::check_(buffer),
-
-                    _ => false // TODO: Kill this
-                }
-            }
-        }
+        self.get_transformer().check(buffer)
     }
 
     /// Determines if the transformation can be undone.
@@ -779,7 +672,7 @@ impl H2Transformation {
     ///
     /// This is VERY expensive, as it attempts to transform using every
     /// potential variant.
-    pub fn detect(buffer: &Vec<u8>) -> Vec<&H2Transformation> {
+    pub fn detect(buffer: &Vec<u8>) -> Vec<&Transformation> {
         TRANSFORMATIONS_THAT_CAN_BE_DETECTED.iter().filter(|t| {
             t.can_transform(buffer)
         }).collect()
@@ -793,7 +686,7 @@ mod tests {
 
     #[test]
     fn test_null() -> SimpleResult<()> {
-        assert_eq!(true, H2Transformation::Null.is_two_way());
+        assert_eq!(true, Transformation::Null.is_two_way());
 
         let tests: Vec<(Vec<u8>, SimpleResult<Vec<u8>>)> = vec![
             (vec![1],             Ok(vec![1])),
@@ -802,12 +695,12 @@ mod tests {
         ];
 
         for (test, expected) in tests {
-            assert!(H2Transformation::Null.can_transform(&test));
+            assert!(Transformation::Null.can_transform(&test));
 
-            let result = H2Transformation::Null.transform(&test);
+            let result = Transformation::Null.transform(&test);
             assert_eq!(expected, result);
 
-            let result = H2Transformation::Null.untransform(&result?);
+            let result = Transformation::Null.untransform(&result?);
             assert_eq!(Ok(test), result);
         }
 
@@ -816,7 +709,7 @@ mod tests {
 
     #[test]
     fn test_xor8() -> SimpleResult<()> {
-        assert_eq!(true, H2Transformation::XorByConstant(XorSettings::EightBit(0)).is_two_way());
+        assert_eq!(true, Transformation::XorByConstant(XorSettings::EightBit(0)).is_two_way());
 
         let tests: Vec<(u8, Vec<u8>, SimpleResult<Vec<u8>>)> = vec![
             (0, vec![1],             Ok(vec![1])),
@@ -833,12 +726,12 @@ mod tests {
         ];
 
         for (c, test, expected) in tests {
-            assert!(H2Transformation::XorByConstant(XorSettings::EightBit(c)).can_transform(&test));
+            assert!(Transformation::XorByConstant(XorSettings::EightBit(c)).can_transform(&test));
 
-            let result = H2Transformation::XorByConstant(XorSettings::EightBit(c)).transform(&test);
+            let result = Transformation::XorByConstant(XorSettings::EightBit(c)).transform(&test);
             assert_eq!(expected, result);
 
-            let result = H2Transformation::XorByConstant(XorSettings::EightBit(c)).untransform(&result?);
+            let result = Transformation::XorByConstant(XorSettings::EightBit(c)).untransform(&result?);
             assert_eq!(Ok(test), result);
         }
 
@@ -847,7 +740,7 @@ mod tests {
 
     #[test]
     fn test_xor16() -> SimpleResult<()> {
-        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
+        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
 
         // It can transform even-length vectors
         assert!(t.can_transform(&vec![0x11, 0x22]));
@@ -858,14 +751,14 @@ mod tests {
         assert!(!t.can_transform(&vec![0x11, 0x22, 0x33]));
 
         // Simplest examples
-        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
+        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
         assert_eq!(vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66])?);
 
-        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0xFFFF));
+        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0xFFFF));
         assert_eq!(vec![0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66])?);
 
         // More complex examples
-        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0x1234));
+        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0x1234));
 
         // First byte: 0x11 & 0x12 = 0x03
         // Second byte: 0x22 & 0x34 = 0x16
@@ -883,7 +776,7 @@ mod tests {
 
     #[test]
     fn test_xor32() -> SimpleResult<()> {
-        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
+        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
 
         // It can transform multiple-of-4 vectors
         assert!(t.can_transform(&vec![0x11, 0x22, 0x33, 0x44]));
@@ -896,14 +789,14 @@ mod tests {
         assert!(!t.can_transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55]));
 
         // Simplest examples
-        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
+        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
         assert_eq!(vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88])?);
 
-        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0xFFFFFFFF));
+        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0xFFFFFFFF));
         assert_eq!(vec![0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88])?);
 
         // More complex examples
-        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x12345678));
+        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x12345678));
 
         // First byte:  0x11 & 0x12 = 0x03
         // Second byte: 0x22 & 0x34 = 0x16
@@ -924,7 +817,7 @@ mod tests {
 
     #[test]
     fn test_xor64() -> SimpleResult<()> {
-        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
+        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
 
         // It can transform multiple-of-8 vectors
         assert!(t.can_transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77]));
@@ -941,20 +834,20 @@ mod tests {
         assert!(!t.can_transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88]));
 
         // Simplest examples
-        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
+        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
         assert_eq!(
             vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff],
             t.transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff])?
         );
 
-        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0xFFFFFFFFFFFFFFFF));
+        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0xFFFFFFFFFFFFFFFF));
         assert_eq!(
             vec![0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00],
             t.transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff])?
         );
 
         // // More complex examples
-        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0123456789abcdef));
+        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0123456789abcdef));
 
         // First byte:   0x00 & 0x01 = 0x01
         // Second byte:  0x11 & 0x23 = 0x32
@@ -992,7 +885,7 @@ mod tests {
 
     #[test]
     fn test_base64_standard() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase64Standard;
+        let t = Transformation::FromBase64Standard;
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -1035,7 +928,7 @@ mod tests {
 
     #[test]
     fn test_base64_standard_no_padding() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase64NoPadding;
+        let t = Transformation::FromBase64NoPadding;
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -1072,7 +965,7 @@ mod tests {
 
     #[test]
     fn test_base64_permissive() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase64Permissive;
+        let t = Transformation::FromBase64Permissive;
         assert_eq!(false, t.is_two_way());
 
         // Short string: "\x00" with various padding
@@ -1091,7 +984,7 @@ mod tests {
 
     #[test]
     fn test_base64_url() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase64URL;
+        let t = Transformation::FromBase64URL;
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -1128,7 +1021,7 @@ mod tests {
 
     #[test]
     fn test_base64_standard_url_no_padding() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase64URLNoPadding;
+        let t = Transformation::FromBase64URLNoPadding;
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -1163,7 +1056,7 @@ mod tests {
 
     #[test]
     fn test_base64_url_permissive() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase64URLPermissive;
+        let t = Transformation::FromBase64URLPermissive;
         assert_eq!(false, t.is_two_way());
 
         // Short string: "\x00" with various padding
@@ -1179,32 +1072,32 @@ mod tests {
 
     #[test]
     fn test_base32_standard() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase32Standard;
+        let t = Transformation::FromBase32Standard;
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
-        let t = H2Transformation::FromBase32Standard;
+        let t = Transformation::FromBase32Standard;
         let result = t.transform(&b(b"IE======"))?;
         assert_eq!(b(b"A"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"IE======"), original);
 
         // Longer string: "ABCDEF"
-        let t = H2Transformation::FromBase32Standard;
+        let t = Transformation::FromBase32Standard;
         let result = t.transform(&b(b"IFBEGRCFIY======"))?;
         assert_eq!(b(b"ABCDEF"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"IFBEGRCFIY======"), original);
 
         // It's okay to be case insensitive
-        let t = H2Transformation::FromBase32Standard;
+        let t = Transformation::FromBase32Standard;
         let result = t.transform(&b(b"ifbegrcfiy======"))?;
         assert_eq!(b(b"ABCDEF"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"IFBEGRCFIY======"), original);
 
         // Do padding wrong
-        let t = H2Transformation::FromBase32Standard;
+        let t = Transformation::FromBase32Standard;
         assert!(t.transform(&b(b"IE")).is_err());
         assert!(t.transform(&b(b"IE=")).is_err());
         assert!(t.transform(&b(b"IE==")).is_err());
@@ -1215,7 +1108,7 @@ mod tests {
         assert!(t.transform(&b(b"IE========")).is_err());
 
         // Wrong characters
-        let t = H2Transformation::FromBase32Standard;
+        let t = Transformation::FromBase32Standard;
         assert!(t.transform(&b(b"I.======")).is_err());
 
         Ok(())
@@ -1223,32 +1116,32 @@ mod tests {
 
     #[test]
     fn test_base32_no_padding() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase32NoPadding;
+        let t = Transformation::FromBase32NoPadding;
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
-        let t = H2Transformation::FromBase32NoPadding;
+        let t = Transformation::FromBase32NoPadding;
         let result = t.transform(&b(b"IE"))?;
         assert_eq!(b(b"A"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"IE"), original);
 
         // Longer string: "ABCDEF"
-        let t = H2Transformation::FromBase32NoPadding;
+        let t = Transformation::FromBase32NoPadding;
         let result = t.transform(&b(b"IFBEGRCFIY"))?;
         assert_eq!(b(b"ABCDEF"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"IFBEGRCFIY"), original);
 
         // It's okay to be case insensitive
-        let t = H2Transformation::FromBase32NoPadding;
+        let t = Transformation::FromBase32NoPadding;
         let result = t.transform(&b(b"ifbegrcfiy"))?;
         assert_eq!(b(b"ABCDEF"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"IFBEGRCFIY"), original);
 
         // Do padding wrong
-        let t = H2Transformation::FromBase32NoPadding;
+        let t = Transformation::FromBase32NoPadding;
         assert!(t.transform(&b(b"IE=")).is_err());
         assert!(t.transform(&b(b"IE==")).is_err());
         assert!(t.transform(&b(b"IE===")).is_err());
@@ -1259,7 +1152,7 @@ mod tests {
         assert!(t.transform(&b(b"IE========")).is_err());
 
         // Wrong characters
-        let t = H2Transformation::FromBase32NoPadding;
+        let t = Transformation::FromBase32NoPadding;
         assert!(t.transform(&b(b"A.")).is_err());
 
         Ok(())
@@ -1267,32 +1160,32 @@ mod tests {
 
     #[test]
     fn test_base32_crockford() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase32Crockford;
+        let t = Transformation::FromBase32Crockford;
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
-        let t = H2Transformation::FromBase32Crockford;
+        let t = Transformation::FromBase32Crockford;
         let result = t.transform(&b(b"84"))?;
         assert_eq!(b(b"A"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"84"), original);
 
         // Longer string: "ABCDEF"
-        let t = H2Transformation::FromBase32Crockford;
+        let t = Transformation::FromBase32Crockford;
         let result = t.transform(&b(b"85146H258R"))?;
         assert_eq!(b(b"ABCDEF"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"85146H258R"), original);
 
         // It's okay to be case insensitive
-        let t = H2Transformation::FromBase32Crockford;
+        let t = Transformation::FromBase32Crockford;
         let result = t.transform(&b(b"85146h258r"))?;
         assert_eq!(b(b"ABCDEF"), result);
         let original = t.untransform(&result)?;
         assert_eq!(b(b"85146H258R"), original);
 
         // Do padding wrong
-        let t = H2Transformation::FromBase32Crockford;
+        let t = Transformation::FromBase32Crockford;
         assert!(t.transform(&b(b"84=")).is_err());
         assert!(t.transform(&b(b"84==")).is_err());
         assert!(t.transform(&b(b"84===")).is_err());
@@ -1303,7 +1196,7 @@ mod tests {
         assert!(t.transform(&b(b"84========")).is_err());
 
         // Wrong characters
-        let t = H2Transformation::FromBase32Crockford;
+        let t = Transformation::FromBase32Crockford;
         assert!(t.transform(&b(b"A.")).is_err());
 
         Ok(())
@@ -1311,26 +1204,26 @@ mod tests {
 
     #[test]
     fn test_base32_permissive() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase32Permissive;
+        let t = Transformation::FromBase32Permissive;
         assert_eq!(false, t.is_two_way());
 
         // Short string: "\x00"
-        let t = H2Transformation::FromBase32Permissive;
+        let t = Transformation::FromBase32Permissive;
         let result = t.transform(&b(b"IE======"))?;
         assert_eq!(b(b"A"), result);
 
         // Longer string: "ABCDEF"
-        let t = H2Transformation::FromBase32Permissive;
+        let t = Transformation::FromBase32Permissive;
         let result = t.transform(&b(b"IFBEGRCFIY======"))?;
         assert_eq!(b(b"ABCDEF"), result);
 
         // It's okay to be case insensitive
-        let t = H2Transformation::FromBase32Permissive;
+        let t = Transformation::FromBase32Permissive;
         let result = t.transform(&b(b"ifbegrcfiy======"))?;
         assert_eq!(b(b"ABCDEF"), result);
 
         // Do padding wrong
-        let t = H2Transformation::FromBase32Permissive;
+        let t = Transformation::FromBase32Permissive;
         assert_eq!(b(b"A"), t.transform(&b(b"IE"))?);
         assert_eq!(b(b"A"), t.transform(&b(b"IE="))?);
         assert_eq!(b(b"A"), t.transform(&b(b"IE=="))?);
@@ -1350,26 +1243,26 @@ mod tests {
 
     #[test]
     fn test_base32_crockford_permissive() -> SimpleResult<()> {
-        let t = H2Transformation::FromBase32CrockfordPermissive;
+        let t = Transformation::FromBase32CrockfordPermissive;
         assert_eq!(false, t.is_two_way());
 
         // Short string: "\x00"
-        let t = H2Transformation::FromBase32CrockfordPermissive;
+        let t = Transformation::FromBase32CrockfordPermissive;
         let result = t.transform(&b(b"84======"))?;
         assert_eq!(b(b"A"), result);
 
         // Longer string: "ABCDEF"
-        let t = H2Transformation::FromBase32CrockfordPermissive;
+        let t = Transformation::FromBase32CrockfordPermissive;
         let result = t.transform(&b(b"85146H258R======"))?;
         assert_eq!(b(b"ABCDEF"), result);
 
         // It's okay to be case insensitive
-        let t = H2Transformation::FromBase32CrockfordPermissive;
+        let t = Transformation::FromBase32CrockfordPermissive;
         let result = t.transform(&b(b"85146h258r======"))?;
         assert_eq!(b(b"ABCDEF"), result);
 
         // Do padding wrong
-        let t = H2Transformation::FromBase32CrockfordPermissive;
+        let t = Transformation::FromBase32CrockfordPermissive;
         assert_eq!(b(b"A"), t.transform(&b(b"84"))?);
         assert_eq!(b(b"A"), t.transform(&b(b"84="))?);
         assert_eq!(b(b"A"), t.transform(&b(b"84=="))?);
@@ -1389,7 +1282,7 @@ mod tests {
 
     #[test]
     fn test_deflate() -> SimpleResult<()> {
-        let t = H2Transformation::FromDeflatedNoZlibHeader;
+        let t = Transformation::FromDeflatedNoZlibHeader;
 
         let result = t.transform(&b(b"\x03\x00\x00\x00\x00\x01"))?;
         assert_eq!(0, result.len());
@@ -1419,7 +1312,7 @@ mod tests {
 
     #[test]
     fn test_deflate_zlib() -> SimpleResult<()> {
-        let t = H2Transformation::FromDeflatedZlibHeader;
+        let t = Transformation::FromDeflatedZlibHeader;
 
         let result = t.transform(&b(b"\x78\x9c\x03\x00\x00\x00\x00\x01"))?;
         assert_eq!(0, result.len());
@@ -1449,7 +1342,7 @@ mod tests {
 
     #[test]
     fn test_hex() -> SimpleResult<()> {
-        let t = H2Transformation::FromHex;
+        let t = Transformation::FromHex;
 
         assert!(t.is_two_way());
         assert!(t.can_transform(&b(b"00")));
@@ -1475,32 +1368,6 @@ mod tests {
     }
 
     #[test]
-    fn test_aes() -> SimpleResult<()> {
-        let settings = AESSettings {
-            key: AESKey::Bits128(*b"AAAAAAAAAAAAAAAA"),
-            iv: None,
-        };
-
-        let t = H2Transformation::FromAES(settings);
-        let result = t.transform(&b"\x6c\x97\x52\xb3\x06\xde\xc3\xaa\x5d\x4d\x0e\xe7\x98\xcc\xd9\xb0".to_vec())?;
-        assert_eq!(b"Hello world!".to_vec(), result);
-
-
-        let settings = AESSettings {
-            key: AESKey::Bits192(*b"AAAAAAAAAAAAAAAAAAAAAAAA"),
-            iv: None,
-        };
-
-        let t = H2Transformation::FromAES(settings);
-        let result = t.transform(&b"\xc8\xcc\x26\xe8\x1a\x48\x8e\xb0\x1e\xac\xb1\xc5\x7c\x07\xe3\x30\xa7\xda\x88\x27\xbf\xcc\x1e\xab\xcc\x53\xd5\x0a\x21\x55\x93\x79".to_vec())?;
-        assert_eq!(b"Hello world! This is a test".to_vec(), result);
-
-
-
-        Ok(())
-    }
-
-    #[test]
     fn test_detect() -> SimpleResult<()> {
         let tests: Vec<_> = vec![
             (
@@ -1514,11 +1381,11 @@ mod tests {
                 "Testcase: 'AA'",
                 b(b"AA"),
                 vec![
-                    &H2Transformation::FromBase64NoPadding,
-                    &H2Transformation::FromBase64URLNoPadding,
-                    &H2Transformation::FromHex,
-                    &H2Transformation::FromBase32NoPadding,
-                    &H2Transformation::FromBase32Crockford,
+                    &Transformation::FromBase64NoPadding,
+                    &Transformation::FromBase64URLNoPadding,
+                    &Transformation::FromHex,
+                    &Transformation::FromBase32NoPadding,
+                    &Transformation::FromBase32Crockford,
                 ],
             ),
 
@@ -1526,8 +1393,8 @@ mod tests {
                 "Testcase: 'AA=='",
                 b(b"AA=="),
                 vec![
-                    &H2Transformation::FromBase64Standard,
-                    &H2Transformation::FromBase64URL,
+                    &Transformation::FromBase64Standard,
+                    &Transformation::FromBase64URL,
                 ],
             ),
 
@@ -1535,7 +1402,7 @@ mod tests {
                 "Testcase: '/+AAAA=='",
                 b(b"/+AAAA=="),
                 vec![
-                    &H2Transformation::FromBase64Standard,
+                    &Transformation::FromBase64Standard,
                 ],
             ),
 
@@ -1543,8 +1410,8 @@ mod tests {
                 "Testcase: '-_AAAA=='",
                 b(b"-_AAAA=="),
                 vec![
-                    &H2Transformation::FromBase64URL,
-                    &H2Transformation::FromDeflatedNoZlibHeader,
+                    &Transformation::FromBase64URL,
+                    &Transformation::FromDeflatedNoZlibHeader,
                 ],
             ),
 
@@ -1552,7 +1419,7 @@ mod tests {
                 "Testcase: Simple deflated",
                 b(b"\x03\x00\x00\x00\x00\x01"),
                 vec![
-                    &H2Transformation::FromDeflatedNoZlibHeader,
+                    &Transformation::FromDeflatedNoZlibHeader,
                 ]
             ),
 
@@ -1560,7 +1427,7 @@ mod tests {
                 "Testcase: Zlib deflated",
                 b(b"\x78\x9c\x03\x00\x00\x00\x00\x01"),
                 vec![
-                    &H2Transformation::FromDeflatedZlibHeader,
+                    &Transformation::FromDeflatedZlibHeader,
                 ]
             ),
 
@@ -1568,7 +1435,7 @@ mod tests {
                 "Testcase: Base32",
                 b(b"ORSXG5BRGIZSA2DFNRWG6==="),
                 vec![
-                    &H2Transformation::FromBase32Standard,
+                    &Transformation::FromBase32Standard,
                 ]
             ),
 
@@ -1576,8 +1443,8 @@ mod tests {
                 "Testcase: Base32 no padding",
                 b(b"ORSXG5BRGIZSA2DFNRWG6"),
                 vec![
-                    &H2Transformation::FromBase32NoPadding,
-                    &H2Transformation::FromBase32Crockford,
+                    &Transformation::FromBase32NoPadding,
+                    &Transformation::FromBase32Crockford,
                 ]
             ),
 
@@ -1585,14 +1452,14 @@ mod tests {
                 "Testcase: Base32 crockford",
                 b(b"EHJQ6X1H68SJ0T35DHP6Y"),
                 vec![
-                    &H2Transformation::FromBase32Crockford,
+                    &Transformation::FromBase32Crockford,
                 ]
             ),
         ];
 
         // Do this in a loop since we have to sort both vectors
         for (desc, s, r) in tests {
-            let mut t = H2Transformation::detect(&s);
+            let mut t = Transformation::detect(&s);
             t.sort();
 
             let mut r = r.clone();
