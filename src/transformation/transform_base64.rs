@@ -5,64 +5,61 @@ use serde::{Serialize, Deserialize};
 use crate::transformation::TransformerTrait;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct TransformBase64 {
+pub struct Base64Settings {
     no_padding: bool,
     permissive: bool,
-    url: bool
+    url: bool,
 }
 
-impl TransformBase64 {
-    pub fn new(no_padding: bool, permissive: bool, url: bool) -> Self {
-        TransformBase64 {
-            no_padding: no_padding,
-            permissive: permissive,
-            url: url,
-        }
-    }
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+pub struct TransformBase64 {
+    settings: Base64Settings,
+}
 
-    pub fn new_standard() -> Self {
-        TransformBase64 {
+impl Base64Settings {
+    pub fn standard() -> Self {
+        Base64Settings {
             no_padding: false,
             permissive: false,
             url: false,
         }
     }
 
-    pub fn new_no_padding() -> Self {
-        TransformBase64 {
+    pub fn no_padding() -> Self {
+        Base64Settings {
             no_padding: true,
             permissive: false,
             url: false,
         }
     }
 
-    pub fn new_permissive() -> Self {
-        TransformBase64 {
-            no_padding: true,
+    pub fn permissive() -> Self {
+        Base64Settings {
+            no_padding: false,
             permissive: true,
             url: false,
         }
     }
 
-    pub fn new_url() -> Self {
-        TransformBase64 {
+    pub fn url() -> Self {
+        Base64Settings {
             no_padding: false,
             permissive: false,
             url: true,
         }
     }
 
-    pub fn new_url_no_padding() -> Self {
-        TransformBase64 {
+    pub fn url_no_padding() -> Self {
+        Base64Settings {
             no_padding: true,
             permissive: false,
             url: true,
         }
     }
 
-    pub fn new_url_permissive() -> Self {
-        TransformBase64 {
-            no_padding: true,
+    pub fn url_permissive() -> Self {
+        Base64Settings {
+            no_padding: false,
             permissive: true,
             url: true,
         }
@@ -76,18 +73,26 @@ impl TransformBase64 {
             (true,  true)  => base64::URL_SAFE_NO_PAD,
         }
     }
+}
+
+impl TransformBase64 {
+    pub fn new(settings: Base64Settings) -> Self {
+        TransformBase64 {
+            settings: settings,
+        }
+    }
 
     fn transform_standard(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         let original_length = buffer.len();
 
         // Decode
-        let out = match base64::decode_config(buffer, self.get_config()) {
+        let out = match base64::decode_config(buffer, self.settings.get_config()) {
             Ok(r) => r,
             Err(e) => bail!("Couldn't decode base64: {}", e),
         };
 
         // Ensure it encodes to the same length - we can't handle length changes
-        if base64::encode_config(&out, self.get_config()).len() != original_length {
+        if base64::encode_config(&out, self.settings.get_config()).len() != original_length {
             bail!("Base64 didn't decode correctly (the length changed with decode->encode, check padding)");
         }
 
@@ -95,7 +100,7 @@ impl TransformBase64 {
     }
 
     fn untransform_standard(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Ok(base64::encode_config(buffer, self.get_config()).into_bytes())
+        Ok(base64::encode_config(buffer, self.settings.get_config()).into_bytes())
     }
 
     fn check_standard(&self, buffer: &Vec<u8>) -> bool {
@@ -111,7 +116,7 @@ impl TransformBase64 {
         }).collect();
 
         // Decode
-        let out = match base64::decode_config(buffer, self.get_config()) {
+        let out = match base64::decode_config(buffer, self.settings.get_config()) {
             Ok(r) => r,
             Err(e) => bail!("Couldn't decode base64: {}", e),
         };
@@ -119,7 +124,7 @@ impl TransformBase64 {
         Ok(out)
     }
 
-    fn untransform_permissive(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    fn untransform_permissive(&self, _buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         bail!("Cannot untransform base64_permissive");
     }
 
@@ -131,21 +136,21 @@ impl TransformBase64 {
 
 impl TransformerTrait for TransformBase64 {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.permissive {
+        match self.settings.permissive {
             false => self.transform_standard(buffer),
             true  => self.transform_permissive(buffer),
         }
     }
 
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.permissive {
+        match self.settings.permissive {
             false => self.untransform_standard(buffer),
             true  => self.untransform_permissive(buffer),
         }
     }
 
     fn check(&self, buffer: &Vec<u8>) -> bool {
-        match self.permissive {
+        match self.settings.permissive {
             false => self.check_standard(buffer),
             true  => self.check_permissive(buffer),
         }

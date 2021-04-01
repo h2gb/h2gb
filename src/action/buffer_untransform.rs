@@ -123,7 +123,7 @@ mod tests {
         record.apply(Action::buffer_create_from_bytes("buffer", b"NGE0QjRjNEQ0ZQ==".to_vec(), 0x80000000))?;
 
         // Do a couple transformations, verify they worked right
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromBase64))?;
+        record.apply(Action::buffer_transform("buffer", H2Transformation::FromBase64Standard))?;
         record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 

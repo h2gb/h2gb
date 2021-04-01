@@ -123,7 +123,7 @@ mod tests {
         assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Undo the base64
-        record.apply(Action::buffer_transform("buffer", H2Transformation::FromBase64))?;
+        record.apply(Action::buffer_transform("buffer", H2Transformation::FromBase64Standard))?;
         assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
 
         record.apply(Action::buffer_transform("buffer", H2Transformation::FromHex))?;
