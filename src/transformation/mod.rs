@@ -40,7 +40,6 @@
 
 use simple_error::{SimpleResult, bail};
 
-use base64;
 use base32;
 use inflate;
 
@@ -56,26 +55,13 @@ use transform_null::TransformNull;
 mod transform_base64;
 use transform_base64::TransformBase64;
 
+mod transform_xor;
+use transform_xor::{TransformXor, XorSettings};
+
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
     fn check(&self, buffer: &Vec<u8>) -> bool;
-}
-
-/// When performing an XorByConstant transformation, this represents the size
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub enum XorSize {
-    /// One byte / 8 bits - eg, `0x12`
-    EightBit(u8),
-
-    /// Two bytes / 16 bits - eg, `0x1234`
-    SixteenBit(u16),
-
-    /// Four bytes / 32 bits - eg, `0x12345678`
-    ThirtyTwoBit(u32),
-
-    /// Eight bytes / 64 bits - eg, `0x123456789abcdef0`
-    SixtyFourBit(u64),
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
@@ -123,26 +109,26 @@ pub enum H2Transformation {
     /// ## Eight bit
     ///
     /// ```
-    /// use libh2gb::transformation::{H2Transformation, XorSize};
+    /// use libh2gb::transformation::{H2Transformation, XorSettings};
     ///
-    /// // Input: "\x00\x01\x02\x03", XorSize::EightBit(0xFF)
+    /// // Input: "\x00\x01\x02\x03", XorSettings::EightBit(0xFF)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
     ///
     /// // Output: "\xff\xfe\xfd\xfc"
-    /// let o = H2Transformation::XorByConstant(XorSize::EightBit(0xFF)).transform(&i);
+    /// let o = H2Transformation::XorByConstant(XorSettings::EightBit(0xFF)).transform(&i);
     /// assert_eq!(Ok(b"\xff\xfe\xfd\xfc".to_vec()), o);
     /// ```
     ///
     /// ## Sixteen bit
     ///
     /// ```
-    /// use libh2gb::transformation::{H2Transformation, XorSize};
+    /// use libh2gb::transformation::{H2Transformation, XorSettings};
     ///
-    /// // Input: "\x00\x01\x02\x03", XorSize::SixteenBit(0xFF00)
+    /// // Input: "\x00\x01\x02\x03", XorSettings::SixteenBit(0xFF00)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
 
     /// // Output: "\xFF\x01\xFD\x03"
-    /// let o = H2Transformation::XorByConstant(XorSize::SixteenBit(0xFF00)).transform(&i);
+    /// let o = H2Transformation::XorByConstant(XorSettings::SixteenBit(0xFF00)).transform(&i);
     /// assert_eq!(Ok(b"\xff\x01\xfd\x03".to_vec()), o);
     /// ```
     ///
@@ -151,14 +137,14 @@ pub enum H2Transformation {
     /// The size of the input buffer must be a multiple of the XOR bit size.
     ///
     /// ```
-    /// use libh2gb::transformation::{H2Transformation, XorSize};
+    /// use libh2gb::transformation::{H2Transformation, XorSettings};
     ///
     /// let i: Vec<u8> = b"\x00".to_vec();
     ///
     /// // Error
-    /// assert!(H2Transformation::XorByConstant(XorSize::SixteenBit(0xFF00)).transform(&i).is_err());
+    /// assert!(H2Transformation::XorByConstant(XorSettings::SixteenBit(0xFF00)).transform(&i).is_err());
     /// ```
-    XorByConstant(XorSize),
+    XorByConstant(XorSettings),
 
     /// Convert from standard Base64 with padding.
     ///
@@ -574,90 +560,6 @@ const TRANSFORMATIONS_THAT_CAN_BE_DETECTED: [H2Transformation; 10] = [
 ];
 
 impl H2Transformation {
-    fn transform_xor(buffer: &Vec<u8>, xs: XorSize) -> SimpleResult<Vec<u8>> {
-        if !Self::check_xor(buffer, xs) {
-            bail!("Xor failed: Xor isn't a multiple of the buffer size");
-        }
-
-        // Clone the buffer so we can edit in place
-        let mut buffer = buffer.clone();
-
-        match xs {
-            XorSize::EightBit(c) => {
-                // Transform in-place, since we can
-                for n in &mut buffer {
-                    *n = *n ^ c;
-                }
-            },
-            XorSize::SixteenBit(c) => {
-                let xorer: Vec<u8> = vec![
-                    ((c >> 8) & 0x00FF) as u8,
-                    ((c >> 0) & 0x00FF) as u8,
-                ];
-
-                let mut xor_position: usize = 0;
-                for n in &mut buffer {
-                    *n = *n ^ (xorer[xor_position]);
-                    xor_position = (xor_position + 1) % 2;
-                }
-            },
-            XorSize::ThirtyTwoBit(c) => {
-                let xorer: Vec<u8> = vec![
-                    ((c >> 24) & 0x00FF) as u8,
-                    ((c >> 16) & 0x00FF) as u8,
-                    ((c >> 8)  & 0x00FF) as u8,
-                    ((c >> 0)  & 0x00FF) as u8,
-                ];
-
-                let mut xor_position: usize = 0;
-                for n in &mut buffer {
-                    *n = *n ^ (xorer[xor_position]);
-                    xor_position = (xor_position + 1) % 4;
-                }
-            },
-            XorSize::SixtyFourBit(c) => {
-                let xorer: Vec<u8> = vec![
-                    ((c >> 56) & 0x00FF) as u8,
-                    ((c >> 48) & 0x00FF) as u8,
-                    ((c >> 40) & 0x00FF) as u8,
-                    ((c >> 32) & 0x00FF) as u8,
-                    ((c >> 24) & 0x00FF) as u8,
-                    ((c >> 16) & 0x00FF) as u8,
-                    ((c >> 8)  & 0x00FF) as u8,
-                    ((c >> 0)  & 0x00FF) as u8,
-                ];
-
-                let mut xor_position: usize = 0;
-                for n in &mut buffer {
-                    *n = *n ^ (xorer[xor_position]);
-                    xor_position = (xor_position + 1) % 8;
-                }
-            },
-        };
-
-        Ok(buffer)
-    }
-
-    fn untransform_xor(buffer: &Vec<u8>, xs: XorSize) -> SimpleResult<Vec<u8>> {
-        // Untransform is identical to transform
-        Self::transform_xor(buffer, xs)
-    }
-
-    fn check_xor(buffer: &Vec<u8>, xs: XorSize) -> bool {
-        match xs {
-            XorSize::EightBit(_)     => true,
-            XorSize::SixteenBit(_)   => {
-                (buffer.len() % 2) == 0
-            },
-            XorSize::ThirtyTwoBit(_) => {
-                (buffer.len() % 4) == 0
-            },
-            XorSize::SixtyFourBit(_) => {
-                (buffer.len() % 8) == 0
-            },
-        }
-    }
-
     fn transform_base32(buffer: &Vec<u8>, alphabet: base32::Alphabet) -> SimpleResult<Vec<u8>> {
         let original_length = buffer.len();
 
@@ -826,6 +728,7 @@ impl H2Transformation {
     fn get_transformer(&self) -> SimpleResult<Box<dyn TransformerTrait>> {
         match self {
             Self::Null                    => Ok(Box::new(TransformNull::new())),
+            Self::XorByConstant(c)        => Ok(Box::new(TransformXor::new(*c))),
             Self::FromBase64              => Ok(Box::new(TransformBase64::new_standard())),
             Self::FromBase64NoPadding     => Ok(Box::new(TransformBase64::new_no_padding())),
             Self::FromBase64Permissive    => Ok(Box::new(TransformBase64::new_permissive())),
@@ -847,8 +750,6 @@ impl H2Transformation {
             Ok(t) => t.transform(buffer),
             Err(_) => {
                 match self {
-                    Self::XorByConstant(xs)             => Self::transform_xor(buffer, *xs),
-
                     Self::FromBase32                    => Self::transform_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
                     Self::FromBase32NoPadding           => Self::transform_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
                     Self::FromBase32Crockford           => Self::transform_base32(buffer, base32::Alphabet::Crockford),
@@ -882,8 +783,6 @@ impl H2Transformation {
             Ok(t) => t.untransform(buffer),
             Err(_) => {
                 match self {
-                    Self::XorByConstant(xs)             => Self::untransform_xor(buffer, *xs),
-
                     Self::FromBase32                    => Self::untransform_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
                     Self::FromBase32NoPadding           => Self::untransform_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
                     Self::FromBase32Crockford           => Self::untransform_base32(buffer, base32::Alphabet::Crockford),
@@ -919,8 +818,6 @@ impl H2Transformation {
             Ok(t) => t.check(buffer),
             Err(_) => {
                 match self {
-                    Self::XorByConstant(xs)             => Self::check_xor(buffer, *xs),
-
                     Self::FromBase32                    => Self::check_base32(buffer, base32::Alphabet::RFC4648 { padding: true }),
                     Self::FromBase32NoPadding           => Self::check_base32(buffer, base32::Alphabet::RFC4648 { padding: false }),
                     Self::FromBase32Crockford           => Self::check_base32(buffer, base32::Alphabet::Crockford),
@@ -1012,7 +909,7 @@ mod tests {
 
     #[test]
     fn test_xor8() -> SimpleResult<()> {
-        assert_eq!(true, H2Transformation::XorByConstant(XorSize::EightBit(0)).is_two_way());
+        assert_eq!(true, H2Transformation::XorByConstant(XorSettings::EightBit(0)).is_two_way());
 
         let tests: Vec<(u8, Vec<u8>, SimpleResult<Vec<u8>>)> = vec![
             (0, vec![1],             Ok(vec![1])),
@@ -1029,12 +926,12 @@ mod tests {
         ];
 
         for (c, test, expected) in tests {
-            assert!(H2Transformation::XorByConstant(XorSize::EightBit(c)).can_transform(&test));
+            assert!(H2Transformation::XorByConstant(XorSettings::EightBit(c)).can_transform(&test));
 
-            let result = H2Transformation::XorByConstant(XorSize::EightBit(c)).transform(&test);
+            let result = H2Transformation::XorByConstant(XorSettings::EightBit(c)).transform(&test);
             assert_eq!(expected, result);
 
-            let result = H2Transformation::XorByConstant(XorSize::EightBit(c)).untransform(&result?);
+            let result = H2Transformation::XorByConstant(XorSettings::EightBit(c)).untransform(&result?);
             assert_eq!(Ok(test), result);
         }
 
@@ -1043,7 +940,7 @@ mod tests {
 
     #[test]
     fn test_xor16() -> SimpleResult<()> {
-        let t = H2Transformation::XorByConstant(XorSize::SixteenBit(0x0000));
+        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
 
         // It can transform even-length vectors
         assert!(t.can_transform(&vec![0x11, 0x22]));
@@ -1054,14 +951,14 @@ mod tests {
         assert!(!t.can_transform(&vec![0x11, 0x22, 0x33]));
 
         // Simplest examples
-        let t = H2Transformation::XorByConstant(XorSize::SixteenBit(0x0000));
+        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
         assert_eq!(vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66])?);
 
-        let t = H2Transformation::XorByConstant(XorSize::SixteenBit(0xFFFF));
+        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0xFFFF));
         assert_eq!(vec![0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66])?);
 
         // More complex examples
-        let t = H2Transformation::XorByConstant(XorSize::SixteenBit(0x1234));
+        let t = H2Transformation::XorByConstant(XorSettings::SixteenBit(0x1234));
 
         // First byte: 0x11 & 0x12 = 0x03
         // Second byte: 0x22 & 0x34 = 0x16
@@ -1079,7 +976,7 @@ mod tests {
 
     #[test]
     fn test_xor32() -> SimpleResult<()> {
-        let t = H2Transformation::XorByConstant(XorSize::ThirtyTwoBit(0x00000000));
+        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
 
         // It can transform multiple-of-4 vectors
         assert!(t.can_transform(&vec![0x11, 0x22, 0x33, 0x44]));
@@ -1092,14 +989,14 @@ mod tests {
         assert!(!t.can_transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55]));
 
         // Simplest examples
-        let t = H2Transformation::XorByConstant(XorSize::ThirtyTwoBit(0x00000000));
+        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
         assert_eq!(vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88])?);
 
-        let t = H2Transformation::XorByConstant(XorSize::ThirtyTwoBit(0xFFFFFFFF));
+        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0xFFFFFFFF));
         assert_eq!(vec![0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88])?);
 
         // More complex examples
-        let t = H2Transformation::XorByConstant(XorSize::ThirtyTwoBit(0x12345678));
+        let t = H2Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x12345678));
 
         // First byte:  0x11 & 0x12 = 0x03
         // Second byte: 0x22 & 0x34 = 0x16
@@ -1120,7 +1017,7 @@ mod tests {
 
     #[test]
     fn test_xor64() -> SimpleResult<()> {
-        let t = H2Transformation::XorByConstant(XorSize::SixtyFourBit(0x0000000000000000));
+        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
 
         // It can transform multiple-of-8 vectors
         assert!(t.can_transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77]));
@@ -1137,20 +1034,20 @@ mod tests {
         assert!(!t.can_transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88]));
 
         // Simplest examples
-        let t = H2Transformation::XorByConstant(XorSize::SixtyFourBit(0x0000000000000000));
+        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
         assert_eq!(
             vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff],
             t.transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff])?
         );
 
-        let t = H2Transformation::XorByConstant(XorSize::SixtyFourBit(0xFFFFFFFFFFFFFFFF));
+        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0xFFFFFFFFFFFFFFFF));
         assert_eq!(
             vec![0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00],
             t.transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff])?
         );
 
         // // More complex examples
-        let t = H2Transformation::XorByConstant(XorSize::SixtyFourBit(0x0123456789abcdef));
+        let t = H2Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0123456789abcdef));
 
         // First byte:   0x00 & 0x01 = 0x01
         // Second byte:  0x11 & 0x23 = 0x32
