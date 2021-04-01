@@ -40,8 +40,6 @@
 
 use simple_error::{SimpleResult, bail};
 
-use inflate;
-
 use aes::{Aes128, Aes192, Aes256};
 use block_modes::{BlockMode, Cbc};
 use block_modes::block_padding::Pkcs7;
@@ -62,6 +60,13 @@ pub use transform_base32::Base32Settings;
 mod transform_xor_by_constant;
 use transform_xor_by_constant::TransformXorByConstant;
 pub use transform_xor_by_constant::XorSettings;
+
+mod transform_deflate;
+use transform_deflate::TransformDeflate;
+pub use transform_deflate::DeflateSettings;
+
+mod transform_hex;
+use transform_hex::TransformHex;
 
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
@@ -504,6 +509,9 @@ pub enum H2Transformation {
     /// ```
     FromBase32CrockfordPermissive,
 
+    /// Generic from deflated
+    FromDeflated(DeflateSettings),
+
     /// Convert from Zlib "Deflated" format with no header. Uses the
     /// [inflate](https://github.com/image-rs/inflate) library.
     ///
@@ -512,7 +520,7 @@ pub enum H2Transformation {
     /// # Restrictions / errors
     ///
     /// Must be valid deflated data.
-    FromDeflated,
+    FromDeflatedNoZlibHeader,
 
     /// Convert from Zlib "Deflated" format with a header. Uses the
     /// [inflate](https://github.com/image-rs/inflate) library.
@@ -522,7 +530,7 @@ pub enum H2Transformation {
     /// # Restrictions / errors
     ///
     /// Must be valid deflated data with a valid checksum.
-    FromDeflatedZlib,
+    FromDeflatedZlibHeader,
 
     /// Convert from a hex string. Case is ignored.
     ///
@@ -565,58 +573,13 @@ const TRANSFORMATIONS_THAT_CAN_BE_DETECTED: [H2Transformation; 10] = [
     H2Transformation::FromBase32NoPadding,
     H2Transformation::FromBase32Crockford,
 
-    H2Transformation::FromDeflated,
-    H2Transformation::FromDeflatedZlib,
+    H2Transformation::FromDeflatedNoZlibHeader,
+    H2Transformation::FromDeflatedZlibHeader,
 
     H2Transformation::FromHex,
 ];
 
 impl H2Transformation {
-    fn transform_deflated(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match inflate::inflate_bytes(buffer) {
-            Ok(b) => Ok(b),
-            Err(e) => bail!("Couldn't inflate: {}", e),
-        }
-    }
-
-    fn check_deflated(buffer: &Vec<u8>) -> bool {
-        // Extra short strings kinda sorta decode, but a zero-length string is
-        // a minimum 6 characters so just enforce that
-        buffer.len() > 5 && Self::transform_deflated(buffer).is_ok()
-    }
-
-    fn transform_deflated_zlib(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match inflate::inflate_bytes_zlib(buffer) {
-            Ok(b) => Ok(b),
-            Err(e) => bail!("Couldn't inflate: {}", e),
-        }
-    }
-
-    fn check_deflated_zlib(buffer: &Vec<u8>) -> bool {
-        // The only reasonable way to check is by just doing it
-        Self::transform_deflated_zlib(buffer).is_ok()
-    }
-
-    fn transform_hex(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        let s = match std::str::from_utf8(buffer) {
-            Ok(s) => s,
-            Err(e) => bail!("Couldn't convert the buffer into a string: {}", e),
-        };
-
-        match hex::decode(s) {
-            Ok(s) => Ok(s),
-            Err(e) => bail!("Couldn't decode hex: {}", e),
-        }
-    }
-
-    fn untransform_hex(buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Ok(hex::encode(buffer).into_bytes())
-    }
-
-    fn check_hex(buffer: &Vec<u8>) -> bool {
-        Self::transform_hex(buffer).is_ok()
-    }
-
     fn transform_aes(buffer: &Vec<u8>, settings: AESSettings) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = settings.iv.unwrap_or([0;16]);
@@ -703,6 +666,12 @@ impl H2Transformation {
             Self::FromBase32Permissive          => Ok(Box::new(TransformBase32::new(Base32Settings::permissive()))),
             Self::FromBase32CrockfordPermissive => Ok(Box::new(TransformBase32::new(Base32Settings::crockford_permissive()))),
 
+            Self::FromDeflated(s)               => Ok(Box::new(TransformDeflate::new(*s))),
+            Self::FromDeflatedNoZlibHeader      => Ok(Box::new(TransformDeflate::new(DeflateSettings::no_zlib_header()))),
+            Self::FromDeflatedZlibHeader        => Ok(Box::new(TransformDeflate::new(DeflateSettings::zlib_header()))),
+
+            Self::FromHex                       => Ok(Box::new(TransformHex::new())),
+
             _ => bail!("Uh oh!"),
         }
     }
@@ -718,11 +687,6 @@ impl H2Transformation {
             Ok(t) => t.transform(buffer),
             Err(_) => {
                 match self {
-                    Self::FromDeflated                  => Self::transform_deflated(buffer),
-                    Self::FromDeflatedZlib              => Self::transform_deflated_zlib(buffer),
-
-                    Self::FromHex                       => Self::transform_hex(buffer),
-
                     Self::FromAES(settings)             => Self::transform_aes(buffer, *settings),
 
                     _ => bail!("Oops! Not implemented"),
@@ -744,11 +708,6 @@ impl H2Transformation {
             Ok(t) => t.untransform(buffer),
             Err(_) => {
                 match self {
-                    Self::FromDeflated                  => bail!("Deflated is one-way"),
-                    Self::FromDeflatedZlib              => bail!("DeflatedZlib is one-way"),
-
-                    Self::FromHex                       => Self::untransform_hex(buffer),
-
                     Self::FromAES(settings)             => Self::untransform_aes(buffer, *settings),
 
                     _ => bail!("Oops! Not implemented"),
@@ -772,11 +731,6 @@ impl H2Transformation {
             Ok(t) => t.check(buffer),
             Err(_) => {
                 match self {
-                    Self::FromDeflated                  => Self::check_deflated(buffer),
-                    Self::FromDeflatedZlib              => Self::check_deflated_zlib(buffer),
-
-                    Self::FromHex                       => Self::check_hex(buffer),
-
                     Self::FromAES(settings)             => Self::check_aes(buffer, *settings),
                     //Self::From                          => Self::check_(buffer),
 
@@ -810,8 +764,9 @@ impl H2Transformation {
             Self::FromBase64URLPermissive       => false,
             Self::FromBase32Permissive          => false,
             Self::FromBase32CrockfordPermissive => false,
-            Self::FromDeflated                  => false,
-            Self::FromDeflatedZlib              => false,
+            Self::FromDeflated(_)               => false,
+            Self::FromDeflatedNoZlibHeader      => false,
+            Self::FromDeflatedZlibHeader        => false,
 
             // Can't know for sure, for generic types
             Self::FromBase64(_)                 => false,
@@ -1434,7 +1389,7 @@ mod tests {
 
     #[test]
     fn test_deflate() -> SimpleResult<()> {
-        let t = H2Transformation::FromDeflated;
+        let t = H2Transformation::FromDeflatedNoZlibHeader;
 
         let result = t.transform(&b(b"\x03\x00\x00\x00\x00\x01"))?;
         assert_eq!(0, result.len());
@@ -1464,7 +1419,7 @@ mod tests {
 
     #[test]
     fn test_deflate_zlib() -> SimpleResult<()> {
-        let t = H2Transformation::FromDeflatedZlib;
+        let t = H2Transformation::FromDeflatedZlibHeader;
 
         let result = t.transform(&b(b"\x78\x9c\x03\x00\x00\x00\x00\x01"))?;
         assert_eq!(0, result.len());
@@ -1589,7 +1544,7 @@ mod tests {
                 b(b"-_AAAA=="),
                 vec![
                     &H2Transformation::FromBase64URL,
-                    &H2Transformation::FromDeflated,
+                    &H2Transformation::FromDeflatedNoZlibHeader,
                 ],
             ),
 
@@ -1597,7 +1552,7 @@ mod tests {
                 "Testcase: Simple deflated",
                 b(b"\x03\x00\x00\x00\x00\x01"),
                 vec![
-                    &H2Transformation::FromDeflated,
+                    &H2Transformation::FromDeflatedNoZlibHeader,
                 ]
             ),
 
@@ -1605,7 +1560,7 @@ mod tests {
                 "Testcase: Zlib deflated",
                 b(b"\x78\x9c\x03\x00\x00\x00\x00\x01"),
                 vec![
-                    &H2Transformation::FromDeflatedZlib,
+                    &H2Transformation::FromDeflatedZlibHeader,
                 ]
             ),
 
