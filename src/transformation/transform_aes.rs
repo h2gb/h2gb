@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 use crate::transformation::TransformerTrait;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub enum AESKey {
+enum AESKey {
     Bits128([u8; 16]),
     Bits192([u8; 24]),
     Bits256([u8; 32]),
