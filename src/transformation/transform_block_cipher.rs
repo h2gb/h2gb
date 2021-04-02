@@ -64,7 +64,7 @@ impl BlockCipherSettings {
 
                 KeyOrIV::new(iv)?
             }
-            None     => KeyOrIV::new(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec())?,
+            None => KeyOrIV::new(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec())?,
         };
 
         Ok(BlockCipherSettings {
@@ -73,22 +73,8 @@ impl BlockCipherSettings {
             iv: iv,
         })
     }
-}
 
-pub struct TransformBlockCipher {
-    settings: BlockCipherSettings,
-}
-
-impl TransformBlockCipher {
-    pub fn new(settings: BlockCipherSettings) -> Self {
-        TransformBlockCipher {
-            settings: settings,
-        }
-    }
-}
-
-impl TransformerTrait for TransformBlockCipher {
-    fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    fn transform_aes_cbc(&self, buffer: &Bec<u8>) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = match self.settings.iv {
             KeyOrIV::Bits128(iv) => iv,
@@ -135,6 +121,26 @@ impl TransformerTrait for TransformBlockCipher {
         };
 
         Ok(out.to_vec())
+    }
+}
+
+pub struct TransformBlockCipher {
+    settings: BlockCipherSettings,
+}
+
+impl TransformBlockCipher {
+    pub fn new(settings: BlockCipherSettings) -> Self {
+        TransformBlockCipher {
+            settings: settings,
+        }
+    }
+}
+
+impl TransformerTrait for TransformBlockCipher {
+    fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        match self.settings.cipher {
+            CipherType::AES_CBC => self.transform_aes_cbc(buffer),
+        }
     }
 
     fn untransform(&self, _buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
