@@ -7,14 +7,9 @@ use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
 
-#[allow(non_camel_case_types)]
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-enum CipherType {
-    AES_CBC,
-}
-
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 enum KeyOrIV {
+    Bits64([u8; 8]),
     Bits128([u8; 16]),
     Bits192([u8; 24]),
     Bits256([u8; 32]),
@@ -23,6 +18,11 @@ enum KeyOrIV {
 impl KeyOrIV {
     fn new(key: Vec<u8>) -> SimpleResult<Self> {
         Ok(match key.len() {
+            8 => {
+                let mut a = [0; 8];
+                a.copy_from_slice(&key);
+                KeyOrIV::Bits64(a)
+            }
             16 => {
                 let mut a = [0; 16];
                 a.copy_from_slice(&key);
@@ -43,32 +43,183 @@ impl KeyOrIV {
     }
 }
 
+#[allow(non_camel_case_types)]
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+pub enum CipherType {
+    // AES (128, 192, or 256-bit) with Electronic Codebook chaining
+    //AES_ECB,
+
+    // AES (128, 192, or 256-bit) with Cipher Block Chaining
+    AES_CBC,
+}
+
+impl CipherType {
+    fn validate_aes_cbc(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
+        // Key is 128, 192, or 256
+        match key {
+            KeyOrIV::Bits128(_) => (),
+            KeyOrIV::Bits192(_) => (),
+            KeyOrIV::Bits256(_) => (),
+            _ => bail!("Invalid key length for AES_CBC"),
+        };
+
+        // IV is optional, 128 bits
+        match iv {
+            Some(iv) => {
+                match iv {
+                    KeyOrIV::Bits128(_) => (),
+                    _ => bail!("Invalid IV length for AES_CBC"),
+                }
+            },
+            None => (),
+        };
+
+        Ok(())
+    }
+
+    fn decrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = match iv {
+            Some(iv) => {
+                match iv {
+                    KeyOrIV::Bits128(iv) => iv,
+                    _ => bail!("Invalid IV length"),
+                }
+            },
+            None => [0; 16],
+        };
+
+        // Pick the implementation based on the key
+        let out = match key {
+            KeyOrIV::Bits128(k) => {
+                match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits192(k) => {
+                match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits256(k) => {
+                match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            _ => {
+                bail!("Invalid key size for AES-CBC");
+            },
+        };
+
+        Ok(out.to_vec())
+    }
+
+    fn encrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = match iv {
+            Some(iv) => {
+                match iv {
+                    KeyOrIV::Bits128(iv) => iv,
+                    _ => bail!("Invalid IV length"),
+                }
+            },
+            None => [0; 16],
+        };
+
+        // Pick the implementation based on the key
+        let out = match key {
+            KeyOrIV::Bits128(k) => {
+                match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits192(k) => {
+                match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits256(k) => {
+                match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            _ => {
+                bail!("Invalid key size for AES-CBC");
+            },
+        };
+
+        Ok(out.to_vec())
+    }
+
+    fn validate_settings(self, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
+        match self {
+            Self::AES_CBC => Self::validate_aes_cbc(key, iv),
+        }
+    }
+
+    fn decrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
+        match self {
+            Self::AES_CBC => Self::decrypt_aes_cbc(buffer, key, iv),
+        }
+    }
+
+    fn encrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
+        match self {
+            Self::AES_CBC => Self::encrypt_aes_cbc(buffer, key, iv),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct BlockCipherSettings {
     cipher: CipherType,
     key: KeyOrIV,
-    iv: KeyOrIV,
+    iv: Option<KeyOrIV>,
 }
 
 impl BlockCipherSettings {
-    pub fn new(key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
+    pub fn new(cipher: CipherType, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
         // Validate and store the key
         let key = KeyOrIV::new(key)?;
 
         // Validate and store the IV (or a blank one)
         let iv = match iv {
-            Some(iv) => {
-                if iv.len() != 16 {
-                    bail!("Invalid IV length ({} bytes / {} bits) - AES requires a 16-byte / 128-bit IV", iv.len(), iv.len());
-                }
-
-                KeyOrIV::new(iv)?
-            }
-            None => KeyOrIV::new(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec())?,
+            Some(iv) => Some(KeyOrIV::new(iv)?),
+            None => None,
         };
 
+        // Sanity check
+        cipher.validate_settings(key, iv)?;
+
         Ok(BlockCipherSettings {
-            cipher: CipherType::AES_CBC,
+            cipher: cipher,
             key: key,
             iv: iv,
         })
@@ -85,108 +236,19 @@ impl TransformBlockCipher {
             settings: settings,
         }
     }
-
-    fn transform_aes_cbc(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        // Get the iv, or a default blank one
-        let iv = match self.settings.iv {
-            KeyOrIV::Bits128(iv) => iv,
-            _ => bail!("Invalid IV length"),
-        };
-
-        // Pick the implementation based on the key
-        let out = match self.settings.key {
-            KeyOrIV::Bits128(k) => {
-                match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec(&buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    }
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec(&buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    }
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec(&buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    }
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-        };
-
-        Ok(out.to_vec())
-    }
-
-    fn untransform_aes_cbc(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        // Get the iv, or a default blank one
-        let iv = match self.settings.iv {
-            KeyOrIV::Bits128(iv) => iv,
-            _ => bail!("Invalid IV length"),
-        };
-
-        // Pick the implementation based on the key
-        let out = match self.settings.key {
-            KeyOrIV::Bits128(k) => {
-                match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => c.encrypt_vec(&buffer),
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => c.encrypt_vec(&buffer),
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
-                    Ok(c) => c.encrypt_vec(&buffer),
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-        };
-
-        Ok(out.to_vec())
-    }
 }
 
 impl TransformerTrait for TransformBlockCipher {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.settings.cipher {
-            CipherType::AES_CBC => self.transform_aes_cbc(buffer),
-        }
+        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv)
     }
 
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.settings.cipher {
-            CipherType::AES_CBC => self.untransform_aes_cbc(buffer),
-        }
+        self.settings.cipher.encrypt(buffer, self.settings.key, self.settings.iv)
     }
 
     fn check(&self, buffer: &Vec<u8>) -> bool {
-        match self.settings.cipher {
-            CipherType::AES_CBC => self.transform_aes_cbc(buffer).is_ok(),
-        }
+        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv).is_ok()
     }
 }
 
@@ -252,6 +314,7 @@ mod tests {
 
         for (plaintext, key, iv, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+                CipherType::AES_CBC,
                 key,
                 iv,
             )?);
