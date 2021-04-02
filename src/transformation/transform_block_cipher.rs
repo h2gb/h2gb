@@ -73,8 +73,20 @@ impl BlockCipherSettings {
             iv: iv,
         })
     }
+}
 
-    fn transform_aes_cbc(&self, buffer: &Bec<u8>) -> SimpleResult<Vec<u8>> {
+pub struct TransformBlockCipher {
+    settings: BlockCipherSettings,
+}
+
+impl TransformBlockCipher {
+    pub fn new(settings: BlockCipherSettings) -> Self {
+        TransformBlockCipher {
+            settings: settings,
+        }
+    }
+
+    fn transform_aes_cbc(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = match self.settings.iv {
             KeyOrIV::Bits128(iv) => iv,
@@ -122,17 +134,39 @@ impl BlockCipherSettings {
 
         Ok(out.to_vec())
     }
-}
 
-pub struct TransformBlockCipher {
-    settings: BlockCipherSettings,
-}
+    fn untransform_aes_cbc(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = match self.settings.iv {
+            KeyOrIV::Bits128(iv) => iv,
+            _ => bail!("Invalid IV length"),
+        };
 
-impl TransformBlockCipher {
-    pub fn new(settings: BlockCipherSettings) -> Self {
-        TransformBlockCipher {
-            settings: settings,
-        }
+        // Pick the implementation based on the key
+        let out = match self.settings.key {
+            KeyOrIV::Bits128(k) => {
+                match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits192(k) => {
+                match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits256(k) => {
+                match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+        };
+
+        Ok(out.to_vec())
     }
 }
 
@@ -143,12 +177,16 @@ impl TransformerTrait for TransformBlockCipher {
         }
     }
 
-    fn untransform(&self, _buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        bail!("Not implemented yet!");
+    fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        match self.settings.cipher {
+            CipherType::AES_CBC => self.untransform_aes_cbc(buffer),
+        }
     }
 
-    fn check(&self, _buffer: &Vec<u8>) -> bool {
-       true
+    fn check(&self, buffer: &Vec<u8>) -> bool {
+        match self.settings.cipher {
+            CipherType::AES_CBC => self.transform_aes_cbc(buffer).is_ok(),
+        }
     }
 }
 
@@ -213,11 +251,16 @@ mod tests {
         ];
 
         for (plaintext, key, iv, ciphertext) in tests {
-            let result = Transformation::FromBlockCipher(BlockCipherSettings::new(
+            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
                 key,
                 iv,
-            )?).transform(&ciphertext)?;
+            )?);
+
+            let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result);
+
+            let result = transformation.untransform(&result)?;
+            assert_eq!(ciphertext, result);
         }
 
         Ok(())
