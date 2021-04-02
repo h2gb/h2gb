@@ -1,6 +1,6 @@
 use aes::{Aes128, Aes192, Aes256};
-use block_modes::{BlockMode, Cbc, Ecb};
-use block_modes::block_padding::Pkcs7;
+use block_modes::{BlockMode, Ecb, Cbc, Cfb, Cfb8, Ofb, Pcbc};
+use block_modes::block_padding::{NoPadding, Pkcs7};
 
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
@@ -13,6 +13,20 @@ enum KeyOrIV {
     Bits128([u8; 16]),
     Bits192([u8; 24]),
     Bits256([u8; 32]),
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+enum Padding {
+    /// Don't pad
+    NoPadding,
+
+    /// Pad with bytes that are each the number of bytes
+    Pkcs7,
+
+    // Other things we *can* do if we want?
+    // AnsiX923	Pad block with zeros except the last byte which will be set to the number bytes.
+    // Iso7816	Pad block with byte sequence \x80 00...00 00.
+    // ZeroPadding	Pad block with zeros.
 }
 
 impl KeyOrIV {
@@ -51,9 +65,20 @@ pub enum CipherType {
 
     // AES (128, 192, or 256-bit) with Cipher Block Chaining
     AES_CBC,
+
+    // AES (128, 192, or 256-bit) with Cipher Feedback Chaining
+    AES_CFB,
 }
 
 impl CipherType {
+    fn aes_check_length(length: usize) -> SimpleResult<()> {
+        if length % 16 != 0 {
+            bail!("AES length must be a multiple of 16 bytes");
+        }
+
+        Ok(())
+    }
+
     fn validate_aes_ecb(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
         // Key is 128, 192, or 256
         match key {
@@ -94,7 +119,32 @@ impl CipherType {
         Ok(())
     }
 
+    fn validate_aes_cfb(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
+        // Key is 128, 192, or 256
+        match key {
+            KeyOrIV::Bits128(_) => (),
+            KeyOrIV::Bits192(_) => (),
+            KeyOrIV::Bits256(_) => (),
+            _ => bail!("Invalid key length for AES_CFB"),
+        };
+
+        // IV is optional, 128 bits
+        match iv {
+            Some(iv) => {
+                match iv {
+                    KeyOrIV::Bits128(_) => (),
+                    _ => bail!("Invalid IV length for AES_CFB"),
+                }
+            },
+            None => (),
+        };
+
+        Ok(())
+    }
+
     fn decrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV) -> SimpleResult<Vec<u8>> {
+        Self::aes_check_length(buffer.len())?;
+
         // Pick the implementation based on the key
         let out = match key {
             KeyOrIV::Bits128(k) => {
@@ -142,6 +192,8 @@ impl CipherType {
     }
 
     fn decrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
+        Self::aes_check_length(buffer.len())?;
+
         // Get the iv, or a default blank one
         let iv = match iv {
             Some(iv) => {
@@ -193,6 +245,66 @@ impl CipherType {
 
             _ => {
                 bail!("Invalid key size for AES-CBC");
+            },
+        };
+
+        Ok(out.to_vec())
+    }
+
+    fn decrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
+        Self::aes_check_length(buffer.len())?;
+
+        // Get the iv, or a default blank one
+        let iv = match iv {
+            Some(iv) => {
+                match iv {
+                    KeyOrIV::Bits128(iv) => iv,
+                    _ => bail!("Invalid IV length"),
+                }
+            },
+            None => [0; 16],
+        };
+
+        // Pick the implementation based on the key
+        let out = match key {
+            KeyOrIV::Bits128(k) => {
+                match Cfb::<Aes128, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits192(k) => {
+                match Cfb::<Aes192, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits256(k) => {
+                match Cfb::<Aes256, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            _ => {
+                bail!("Invalid key size for AES-CFB");
             },
         };
 
@@ -274,10 +386,54 @@ impl CipherType {
         Ok(out.to_vec())
     }
 
+    fn encrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = match iv {
+            Some(iv) => {
+                match iv {
+                    KeyOrIV::Bits128(iv) => iv,
+                    _ => bail!("Invalid IV length"),
+                }
+            },
+            None => [0; 16],
+        };
+
+        // Pick the implementation based on the key
+        let out = match key {
+            KeyOrIV::Bits128(k) => {
+                match Cfb::<Aes128, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits192(k) => {
+                match Cfb::<Aes192, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits256(k) => {
+                match Cfb::<Aes256, Pkcs7>::new_var(&k, &iv) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            _ => {
+                bail!("Invalid key size for AES-CFB");
+            },
+        };
+
+        Ok(out.to_vec())
+    }
+
     fn validate_settings(self, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
         match self {
             Self::AES_ECB => Self::validate_aes_ecb(key, iv),
             Self::AES_CBC => Self::validate_aes_cbc(key, iv),
+            Self::AES_CFB => Self::validate_aes_cfb(key, iv),
         }
     }
 
@@ -285,6 +441,7 @@ impl CipherType {
         match self {
             Self::AES_ECB => Self::decrypt_aes_ecb(buffer, key),
             Self::AES_CBC => Self::decrypt_aes_cbc(buffer, key, iv),
+            Self::AES_CFB => Self::decrypt_aes_cfb(buffer, key, iv),
         }
     }
 
@@ -292,6 +449,7 @@ impl CipherType {
         match self {
             Self::AES_ECB => Self::encrypt_aes_ecb(buffer, key),
             Self::AES_CBC => Self::encrypt_aes_cbc(buffer, key, iv),
+            Self::AES_CFB => Self::encrypt_aes_cfb(buffer, key, iv),
         }
     }
 }
@@ -479,10 +637,55 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_aes_ecb() -> SimpleResult<()> {
-    //     bail!("Not implemented");
-    // }
+    #[test]
+    fn test_aes_cfb() -> SimpleResult<()> {
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, Vec<u8>)> = vec![
+            (
+                b"Test for AES-128 with CFB padding and a couple blocks".to_vec(),            // Plaintext
+                b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
+                Some(b"BBBBBBBBBBBBBBBB".to_vec()),
+                b"\x65\x86\x49\x1a\x72\x36\xff\xe8\x5e\x10\xc9\xb4\x40\x1d\xad\x41\
+                  \xd0\x55\x2f\x5c\xa9\x5b\xcb\xcf\x8b\x6e\xc8\x09\x73\xa7\x03\x3d\
+                  \xb0\x10\x8c\x66\xa3\x18\xda\x1d\x46\x55\xb9\x61\xfa\xb2\xc9\x2e\
+                  \x74\x60\xcf\x59\x2e\xd4\x28\x99\x38\xc3\x01\x1f\xf4\x95\x9a\x51".to_vec()
+            ),
+
+            (
+                b"AES-192 + CFB!".to_vec(),                                                   // Plaintext
+                b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
+                None,                                                                         // IV
+                // Ciphertext
+                b"\x4e\x7c\x30\x7f\x6e\x64\xb0\x01\x11\x59\xaf\x39\xb2\xc6\x8f\xfe".to_vec(),
+            ),
+
+            (
+                b"Final test for AES-256 with a longer plaintext".to_vec(),                   // Plaintext
+                b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
+                Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
+                // Ciphertext
+                b"\x89\x80\x0e\xd3\x0f\x53\x26\x36\xac\x10\xc7\x0c\x3e\x9d\x62\xc9\
+                  \xf2\x34\xde\x6f\xf4\x6c\xcb\x68\xbb\xaa\x13\x8d\x89\xe8\x76\xb5\
+                  \xf0\xc2\x4c\x41\x3f\xa6\x2e\xfc\x8c\xe4\x5d\x2f\x1a\x9f\xc7\x8d".to_vec(),
+            ),
+        ];
+
+        for (plaintext, key, iv, ciphertext) in tests {
+            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+                CipherType::AES_CFB,
+                key,
+                iv,
+            )?);
+
+            let result = transformation.transform(&ciphertext)?;
+            assert_eq!(plaintext, result);
+
+            let result = transformation.untransform(&result)?;
+            assert_eq!(ciphertext, result);
+        }
+
+        Ok(())
+    }
+
     // #[test]
     // fn test_aes_errors() -> SimpleResult<()> {
     //     bail!("Not implemented");
