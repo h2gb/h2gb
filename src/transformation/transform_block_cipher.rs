@@ -7,79 +7,97 @@ use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
 
+#[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-enum AESKey {
+enum CipherType {
+    AES_CBC,
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+enum KeyOrIV {
     Bits128([u8; 16]),
     Bits192([u8; 24]),
     Bits256([u8; 32]),
 }
 
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct AESSettings {
-    key: AESKey,
-    iv: Option<[u8; 16]>,
-}
-
-impl AESSettings {
-    pub fn new(key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
-        // Check the iv
-        let mut actual_iv: Option<[u8; 16]> = None;
-        if let Some(v) = iv {
-            if v.len() != 16 {
-                bail!("Invalid IV: must be 16 bytes / 128 bits long");
-            }
-
-            let mut a = [0; 16];
-            a.copy_from_slice(&v);
-            actual_iv = Some(a);
-        }
-
-        let key: AESKey = match key.len() {
+impl KeyOrIV {
+    fn new(key: Vec<u8>) -> SimpleResult<Self> {
+        Ok(match key.len() {
             16 => {
                 let mut a = [0; 16];
                 a.copy_from_slice(&key);
-                AESKey::Bits128(a)
+                KeyOrIV::Bits128(a)
             }
             24 => {
                 let mut a = [0; 24];
                 a.copy_from_slice(&key);
-                AESKey::Bits192(a)
+                KeyOrIV::Bits192(a)
             }
             32 => {
                 let mut a = [0; 32];
                 a.copy_from_slice(&key);
-                AESKey::Bits256(a)
+                KeyOrIV::Bits256(a)
             }
-            _  => bail!("Invalid AES key length: {} bytes / {} bits", key.len(), key.len() * 8),
-        };
-
-        Ok(AESSettings {
-            key: key,
-            iv: actual_iv,
+            _  => bail!("Invalid BlockCipher key or iv length: {} bytes / {} bits", key.len(), key.len() * 8),
         })
     }
 }
 
-pub struct TransformAES {
-    settings: AESSettings,
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+pub struct BlockCipherSettings {
+    cipher: CipherType,
+    key: KeyOrIV,
+    iv: KeyOrIV,
 }
 
-impl TransformAES {
-    pub fn new(settings: AESSettings) -> Self {
-        TransformAES {
+impl BlockCipherSettings {
+    pub fn new(key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
+        // Validate and store the key
+        let key = KeyOrIV::new(key)?;
+
+        // Validate and store the IV (or a blank one)
+        let iv = match iv {
+            Some(iv) => {
+                if iv.len() != 16 {
+                    bail!("Invalid IV length ({} bytes / {} bits) - AES requires a 16-byte / 128-bit IV", iv.len(), iv.len());
+                }
+
+                KeyOrIV::new(iv)?
+            }
+            None     => KeyOrIV::new(b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec())?,
+        };
+
+        Ok(BlockCipherSettings {
+            cipher: CipherType::AES_CBC,
+            key: key,
+            iv: iv,
+        })
+    }
+}
+
+pub struct TransformBlockCipher {
+    settings: BlockCipherSettings,
+}
+
+impl TransformBlockCipher {
+    pub fn new(settings: BlockCipherSettings) -> Self {
+        TransformBlockCipher {
             settings: settings,
         }
     }
 }
 
-impl TransformerTrait for TransformAES {
+impl TransformerTrait for TransformBlockCipher {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
-        let iv = self.settings.iv.unwrap_or([0;16]);
+        let iv = match self.settings.iv {
+            KeyOrIV::Bits128(iv) => iv,
+            _ => bail!("Invalid IV length"),
+        };
 
         // Pick the implementation based on the key
         let out = match self.settings.key {
-            AESKey::Bits128(k) => {
+            KeyOrIV::Bits128(k) => {
                 match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
                     Ok(c) => {
                         match c.decrypt_vec(&buffer) {
@@ -91,7 +109,7 @@ impl TransformerTrait for TransformAES {
                 }
             },
 
-            AESKey::Bits192(k) => {
+            KeyOrIV::Bits192(k) => {
                 match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
                     Ok(c) => {
                         match c.decrypt_vec(&buffer) {
@@ -103,7 +121,7 @@ impl TransformerTrait for TransformAES {
                 }
             },
 
-            AESKey::Bits256(k) => {
+            KeyOrIV::Bits256(k) => {
                 match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
                     Ok(c) => {
                         match c.decrypt_vec(&buffer) {
@@ -189,7 +207,7 @@ mod tests {
         ];
 
         for (plaintext, key, iv, ciphertext) in tests {
-            let result = Transformation::FromAES(AESSettings::new(
+            let result = Transformation::FromBlockCipher(BlockCipherSettings::new(
                 key,
                 iv,
             )?).transform(&ciphertext)?;

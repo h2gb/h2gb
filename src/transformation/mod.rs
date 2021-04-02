@@ -64,9 +64,9 @@ pub use transform_deflate::DeflateSettings;
 mod transform_hex;
 use transform_hex::TransformHex;
 
-mod transform_aes;
-use transform_aes::TransformAES;
-pub use transform_aes::AESSettings;
+mod transform_block_cipher;
+use transform_block_cipher::TransformBlockCipher;
+pub use transform_block_cipher::BlockCipherSettings;
 
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
@@ -541,7 +541,7 @@ pub enum Transformation {
     /// and a-f.
     FromHex,
 
-    FromAES(AESSettings),
+    FromBlockCipher(BlockCipherSettings),
 }
 
 /// A list of transformations that can automatically be detected.
@@ -593,7 +593,7 @@ impl Transformation {
 
             Self::FromHex                       => Box::new(TransformHex::new()),
 
-            Self::FromAES(s)                    => Box::new(TransformAES::new(*s)),
+            Self::FromBlockCipher(s)                    => Box::new(TransformBlockCipher::new(*s)),
         }
     }
 
@@ -651,7 +651,7 @@ impl Transformation {
             Self::FromBase32NoPadding           => true,
             Self::FromBase32Crockford           => true,
             Self::FromHex                       => true,
-            Self::FromAES(_)                    => true,
+            Self::FromBlockCipher(_)                    => true,
 
             Self::FromBase64Permissive          => false,
             Self::FromBase64URLPermissive       => false,
