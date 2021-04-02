@@ -1,5 +1,5 @@
 use aes::{Aes128, Aes192, Aes256};
-use block_modes::{BlockMode, Cbc};
+use block_modes::{BlockMode, Cbc, Ecb};
 use block_modes::block_padding::Pkcs7;
 
 use simple_error::{SimpleResult, bail};
@@ -47,13 +47,30 @@ impl KeyOrIV {
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum CipherType {
     // AES (128, 192, or 256-bit) with Electronic Codebook chaining
-    //AES_ECB,
+    AES_ECB,
 
     // AES (128, 192, or 256-bit) with Cipher Block Chaining
     AES_CBC,
 }
 
 impl CipherType {
+    fn validate_aes_ecb(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
+        // Key is 128, 192, or 256
+        match key {
+            KeyOrIV::Bits128(_) => (),
+            KeyOrIV::Bits192(_) => (),
+            KeyOrIV::Bits256(_) => (),
+            _ => bail!("Invalid key length for AES-ECB"),
+        };
+
+        // IV is not allowed
+        if iv.is_some() {
+            bail!("AES-ECB cannot have an IV");
+        }
+
+        Ok(())
+    }
+
     fn validate_aes_cbc(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
         // Key is 128, 192, or 256
         match key {
@@ -75,6 +92,53 @@ impl CipherType {
         };
 
         Ok(())
+    }
+
+    fn decrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV) -> SimpleResult<Vec<u8>> {
+        // Pick the implementation based on the key
+        let out = match key {
+            KeyOrIV::Bits128(k) => {
+                match Ecb::<Aes128, Pkcs7>::new_var(&k, Default::default()) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits192(k) => {
+                match Ecb::<Aes192, Pkcs7>::new_var(&k, Default::default()) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits256(k) => {
+                match Ecb::<Aes256, Pkcs7>::new_var(&k, Default::default()) {
+                    Ok(c) => {
+                        match c.decrypt_vec(&buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    }
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            _ => {
+                bail!("Invalid key size for AES-ECB");
+            },
+        };
+
+        Ok(out.to_vec())
     }
 
     fn decrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
@@ -135,6 +199,38 @@ impl CipherType {
         Ok(out.to_vec())
     }
 
+    fn encrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV) -> SimpleResult<Vec<u8>> {
+        // Pick the implementation based on the key
+        let out = match key {
+            KeyOrIV::Bits128(k) => {
+                match Ecb::<Aes128, Pkcs7>::new_var(&k, Default::default()) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits192(k) => {
+                match Ecb::<Aes192, Pkcs7>::new_var(&k, Default::default()) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            KeyOrIV::Bits256(k) => {
+                match Ecb::<Aes256, Pkcs7>::new_var(&k, Default::default()) {
+                    Ok(c) => c.encrypt_vec(&buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+
+            _ => {
+                bail!("Invalid key size for AES-ECB");
+            },
+        };
+
+        Ok(out.to_vec())
+    }
+
     fn encrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = match iv {
@@ -180,18 +276,21 @@ impl CipherType {
 
     fn validate_settings(self, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
         match self {
+            Self::AES_ECB => Self::validate_aes_ecb(key, iv),
             Self::AES_CBC => Self::validate_aes_cbc(key, iv),
         }
     }
 
     fn decrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
         match self {
+            Self::AES_ECB => Self::decrypt_aes_ecb(buffer, key),
             Self::AES_CBC => Self::decrypt_aes_cbc(buffer, key, iv),
         }
     }
 
     fn encrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<Vec<u8>> {
         match self {
+            Self::AES_ECB => Self::encrypt_aes_ecb(buffer, key),
             Self::AES_CBC => Self::encrypt_aes_cbc(buffer, key, iv),
         }
     }
@@ -260,7 +359,58 @@ mod tests {
     use crate::transformation::Transformation;
 
     #[test]
-    fn test_aes() -> SimpleResult<()> {
+    fn test_aes_ecb() -> SimpleResult<()> {
+        let tests: Vec<(Vec<u8>, Vec<u8>, Vec<u8>)> = vec![
+            (
+                b"Test for AES-128 with ECB padding and a couple blocks".to_vec(),            // Plaintext
+                b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
+                // Ciphertext
+                b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
+                  \xdc\x7e\x2f\x80\xcc\x6d\x67\xd9\xaa\xea\xda\x4f\xf3\xe6\x54\x52\
+                  \x13\x3e\xdd\x7b\x52\x5b\x60\x5a\x1d\xe7\x3b\x1a\xd9\x6b\xb3\x45\
+                  \x3e\x81\xd7\xbf\x1f\xc6\xdb\x7b\x12\xfd\xf3\x13\xf7\xe0\xba\xc4".to_vec(),
+            ),
+
+            (
+                b"Test for AES-192 with EBC chaining!".to_vec(),                               // Plaintext
+                b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                          // Key
+                // Ciphertext
+                b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
+                  \x26\x91\x98\x01\x45\x06\xf5\x95\x99\xb2\x9e\x3c\x13\xb5\xee\xb5\
+                  \xff\x91\x0a\xf6\x5e\xe4\x9e\x35\x30\x21\x07\x06\x43\xc8\x45\x3d".to_vec(),
+            ),
+
+            (
+                b"Final test for AES-256 ECB with a much longer plaintext and many blocks".to_vec(), // Plaintext
+                b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
+                // Ciphertext
+                b"\xed\x79\xa2\x28\x21\x55\x65\xc9\x50\xbc\x93\xc8\xa3\xed\x6a\xc4\
+                  \x10\x48\xc6\x47\xac\x30\xf0\x55\x96\xd1\xd6\xfc\x51\x5b\x6b\x04\
+                  \x25\x6c\x1a\xa6\x22\x46\x32\x0f\x1c\xea\x8d\x1d\xbf\x0a\xcd\x0a\
+                  \xa3\xda\xa8\x47\xaf\x27\xf6\x71\x85\x5d\x1f\xe9\x14\xb4\x4d\x6d\
+                  \x50\x29\x40\xd2\x73\xfb\xd7\xa8\x61\xdd\xfb\x88\x6b\xa0\xa8\x07".to_vec(),
+            ),
+        ];
+
+        for (plaintext, key, ciphertext) in tests {
+            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+                CipherType::AES_ECB,
+                key,
+                None,
+            )?);
+
+            let result = transformation.transform(&ciphertext)?;
+            assert_eq!(plaintext, result);
+
+            let result = transformation.untransform(&result)?;
+            assert_eq!(ciphertext, result);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_aes_cbc() -> SimpleResult<()> {
         let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, Vec<u8>)> = vec![
             (
                 b"Test for AES-128 with CBC padding and a couple blocks".to_vec(),            // Plaintext
