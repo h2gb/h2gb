@@ -9,7 +9,7 @@ use serde::{Serialize, Deserialize};
 use crate::transformation::TransformerTrait;
 
 macro_rules! decrypt {
-    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
+    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:expr) => {
         match $padding {
             CipherPadding::NoPadding => {
                 match $mode::<$algorithm, NoPadding>::new_var($key, $iv) {
@@ -38,7 +38,7 @@ macro_rules! decrypt {
 }
 
 macro_rules! encrypt {
-    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
+    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:expr) => {
         match $padding {
             CipherPadding::NoPadding => {
                 match $mode::<$algorithm, NoPadding>::new_var($key, $iv) {
@@ -119,174 +119,6 @@ pub enum CipherType {
 }
 
 impl CipherType {
-    fn aes_check_length(length: usize) -> SimpleResult<()> {
-        if length % 16 != 0 {
-            bail!("AES length must be a multiple of 16 bytes");
-        }
-
-        Ok(())
-    }
-
-    fn validate_aes_ecb(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
-        // Key is 128, 192, or 256
-        match key {
-            KeyOrIV::Bits128(_) => (),
-            KeyOrIV::Bits192(_) => (),
-            KeyOrIV::Bits256(_) => (),
-            _ => bail!("Invalid key length for AES-ECB"),
-        };
-
-        // IV is not allowed
-        if iv.is_some() {
-            bail!("AES-ECB cannot have an IV");
-        }
-
-        Ok(())
-    }
-
-    fn validate_aes_cbc(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
-        // Key is 128, 192, or 256
-        match key {
-            KeyOrIV::Bits128(_) => (),
-            KeyOrIV::Bits192(_) => (),
-            KeyOrIV::Bits256(_) => (),
-            _ => bail!("Invalid key length for AES_CBC"),
-        };
-
-        // IV is optional, 128 bits
-        if let Some(iv) = iv {
-            // Make sure it's the right length
-            iv.get128()?;
-        }
-
-        Ok(())
-    }
-
-    fn validate_aes_cfb(key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
-        // Key is 128, 192, or 256
-        match key {
-            KeyOrIV::Bits128(_) => (),
-            KeyOrIV::Bits192(_) => (),
-            KeyOrIV::Bits256(_) => (),
-            _ => bail!("Invalid key length for AES_CFB"),
-        };
-
-        // IV is optional, 128 bits
-        if let Some(iv) = iv {
-            // Make sure it's the right length
-            iv.get128()?;
-        }
-
-        Ok(())
-    }
-
-    fn decrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        Self::aes_check_length(buffer.len())?;
-
-        Ok(match key {
-            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, padding),
-            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes192, padding),
-            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes256, padding),
-            _ => bail!("Invalid key size for AES-ECB"),
-        }.to_vec())
-    }
-
-    fn decrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        Self::aes_check_length(buffer.len())?;
-
-        // Get the iv, or a default blank one
-        let iv = match iv {
-            Some(iv) => iv.get128()?,
-            None     => [0; 16],
-        };
-
-        Ok(match key {
-            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, padding),
-            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, padding),
-            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, padding),
-            _ => bail!("Invalid key size for AES-CBC"),
-        }.to_vec())
-    }
-
-    fn decrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        Self::aes_check_length(buffer.len())?;
-
-        // Get the iv, or a default blank one
-        let iv = match iv {
-            Some(iv) => iv.get128()?,
-            None     => [0; 16],
-        };
-
-        Ok(match key {
-            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, padding),
-            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, padding),
-            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, padding),
-            _ => bail!("Invalid key size for AES-CFB"),
-        }.to_vec())
-    }
-
-    fn encrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        Ok(match key {
-            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, padding),
-            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes192, padding),
-            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes256, padding),
-            _ => bail!("Invalid key size for AES-ECB"),
-        }.to_vec())
-    }
-
-    fn encrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        // Get the iv, or a default blank one
-        let iv = match iv {
-            Some(iv) => iv.get128()?,
-            None     => [0; 16],
-        };
-
-        Ok(match key {
-            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, padding),
-            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, padding),
-            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, padding),
-            _ => bail!("Invalid key size for AES-CBC"),
-        }.to_vec())
-    }
-
-    fn encrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        // Get the iv, or a default blank one
-        let iv = match iv {
-            Some(iv) => iv.get128()?,
-            None     => [0; 16],
-        };
-
-        Ok(match key {
-            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, padding),
-            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, padding),
-            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, padding),
-            _ => bail!("Invalid key size for AES-CBC"),
-        }.to_vec())
-    }
-
-    fn validate_settings(self, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
-        match self {
-            Self::AES_ECB => Self::validate_aes_ecb(key, iv),
-            Self::AES_CBC => Self::validate_aes_cbc(key, iv),
-            Self::AES_CFB => Self::validate_aes_cfb(key, iv),
-        }
-    }
-
-    fn decrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        match self {
-            Self::AES_ECB => Self::decrypt_aes_ecb(buffer, key, padding),
-            Self::AES_CBC => Self::decrypt_aes_cbc(buffer, key, iv, padding),
-            Self::AES_CFB => Self::decrypt_aes_cfb(buffer, key, iv, padding),
-        }
-    }
-
-    fn encrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
-        match self {
-            Self::AES_ECB => Self::encrypt_aes_ecb(buffer, key, padding),
-            Self::AES_CBC => Self::encrypt_aes_cbc(buffer, key, iv, padding),
-            Self::AES_CFB => Self::encrypt_aes_cfb(buffer, key, iv, padding),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
@@ -308,9 +140,6 @@ impl BlockCipherSettings {
             None => None,
         };
 
-        // Sanity check
-        cipher.validate_settings(key, iv)?;
-
         Ok(BlockCipherSettings {
             cipher: cipher,
             key: key,
@@ -320,6 +149,7 @@ impl BlockCipherSettings {
     }
 }
 
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformBlockCipher {
     settings: BlockCipherSettings,
 }
@@ -330,19 +160,190 @@ impl TransformBlockCipher {
             settings: settings,
         }
     }
+
+    fn aes_check_length(length: usize) -> SimpleResult<()> {
+        if length % 16 != 0 {
+            bail!("AES length must be a multiple of 16 bytes");
+        }
+
+        Ok(())
+    }
+
+    fn validate_aes_ecb(self) -> SimpleResult<()> {
+        // Key is 128, 192, or 256
+        match self.settings.key {
+            KeyOrIV::Bits128(_) => (),
+            KeyOrIV::Bits192(_) => (),
+            KeyOrIV::Bits256(_) => (),
+            _ => bail!("Invalid key length for AES-ECB"),
+        };
+
+        // IV is not allowed
+        if self.settings.iv.is_some() {
+            bail!("AES-ECB cannot have an IV");
+        }
+
+        Ok(())
+    }
+
+    fn validate_aes_cbc(self) -> SimpleResult<()> {
+        // Key is 128, 192, or 256
+        match self.settings.key {
+            KeyOrIV::Bits128(_) => (),
+            KeyOrIV::Bits192(_) => (),
+            KeyOrIV::Bits256(_) => (),
+            _ => bail!("Invalid key length for AES_CBC"),
+        };
+
+        // IV is optional, 128 bits
+        if let Some(iv) = self.settings.iv {
+            // Make sure it's the right length
+            iv.get128()?;
+        }
+
+        Ok(())
+    }
+
+    fn validate_aes_cfb(self) -> SimpleResult<()> {
+        // Key is 128, 192, or 256
+        match self.settings.key {
+            KeyOrIV::Bits128(_) => (),
+            KeyOrIV::Bits192(_) => (),
+            KeyOrIV::Bits256(_) => (),
+            _ => bail!("Invalid key length for AES_CFB"),
+        };
+
+        // IV is optional, 128 bits
+        if let Some(iv) = self.settings.iv {
+            // Make sure it's the right length
+            iv.get128()?;
+        }
+
+        Ok(())
+    }
+
+    fn decrypt_aes_ecb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        Self::aes_check_length(buffer.len())?;
+
+        Ok(match self.settings.key {
+            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, self.settings.padding),
+            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes192, self.settings.padding),
+            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes256, self.settings.padding),
+            _ => bail!("Invalid key size for AES-ECB"),
+        }.to_vec())
+    }
+
+    fn decrypt_aes_cbc(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        Self::aes_check_length(buffer.len())?;
+
+        // Get the iv, or a default blank one
+        let iv = match self.settings.iv {
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
+        };
+
+        Ok(match self.settings.key {
+            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, self.settings.padding),
+            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, self.settings.padding),
+            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, self.settings.padding),
+            _ => bail!("Invalid key size for AES-CBC"),
+        }.to_vec())
+    }
+
+    fn decrypt_aes_cfb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        Self::aes_check_length(buffer.len())?;
+
+        // Get the iv, or a default blank one
+        let iv = match self.settings.iv {
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
+        };
+
+        Ok(match self.settings.key {
+            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, self.settings.padding),
+            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, self.settings.padding),
+            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, self.settings.padding),
+            _ => bail!("Invalid key size for AES-CFB"),
+        }.to_vec())
+    }
+
+    fn encrypt_aes_ecb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        Ok(match self.settings.key {
+            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, self.settings.padding),
+            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes192, self.settings.padding),
+            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes256, self.settings.padding),
+            _ => bail!("Invalid key size for AES-ECB"),
+        }.to_vec())
+    }
+
+    fn encrypt_aes_cbc(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = match self.settings.iv {
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
+        };
+
+        Ok(match self.settings.key {
+            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, self.settings.padding),
+            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, self.settings.padding),
+            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, self.settings.padding),
+            _ => bail!("Invalid key size for AES-CBC"),
+        }.to_vec())
+    }
+
+    fn encrypt_aes_cfb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = match self.settings.iv {
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
+        };
+
+        Ok(match self.settings.key {
+            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, self.settings.padding),
+            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, self.settings.padding),
+            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, self.settings.padding),
+            _ => bail!("Invalid key size for AES-CBC"),
+        }.to_vec())
+    }
+
+    fn validate_settings(self) -> SimpleResult<()> {
+        match self.settings.cipher {
+            CipherType::AES_ECB => self.validate_aes_ecb(),
+            CipherType::AES_CBC => self.validate_aes_cbc(),
+            CipherType::AES_CFB => self.validate_aes_cfb(),
+        }
+    }
+
+    fn decrypt(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        match self.settings.cipher {
+            CipherType::AES_ECB => self.decrypt_aes_ecb(buffer),
+            CipherType::AES_CBC => self.decrypt_aes_cbc(buffer),
+            CipherType::AES_CFB => self.decrypt_aes_cfb(buffer),
+        }
+    }
+
+    fn encrypt(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        match self.settings.cipher {
+            CipherType::AES_ECB => self.encrypt_aes_ecb(buffer),
+            CipherType::AES_CBC => self.encrypt_aes_cbc(buffer),
+            CipherType::AES_CFB => self.encrypt_aes_cfb(buffer),
+        }
+    }
 }
 
 impl TransformerTrait for TransformBlockCipher {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv, self.settings.padding)
+        self.validate_settings()?;
+        self.decrypt(buffer)
     }
 
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.cipher.encrypt(buffer, self.settings.key, self.settings.iv, self.settings.padding)
+        self.validate_settings()?;
+        self.encrypt(buffer)
     }
 
     fn check(&self, buffer: &Vec<u8>) -> bool {
-        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv, self.settings.padding).is_ok()
+        self.decrypt(buffer).is_ok()
     }
 }
 
