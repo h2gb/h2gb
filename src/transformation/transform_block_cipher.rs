@@ -1,4 +1,5 @@
 use aes::{Aes128, Aes192, Aes256};
+use des::Des;
 use block_modes::{BlockMode, Ecb, Cbc, Cfb};
 // use block_modes::{Cfb8, Ofb, Pcbc}
 use block_modes::block_padding::{NoPadding, Pkcs7};
@@ -318,8 +319,12 @@ impl TransformBlockCipher {
             (CipherType::AES, CipherMode::CFB) => self.validate_aes_cfb(),
         }
     }
+}
 
-    fn decrypt(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+impl TransformerTrait for TransformBlockCipher {
+    fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        self.validate_settings()?;
+
         match (self.settings.cipher, self.settings.mode) {
             (CipherType::AES, CipherMode::ECB) => self.decrypt_aes_ecb(buffer),
             (CipherType::AES, CipherMode::CBC) => self.decrypt_aes_cbc(buffer),
@@ -327,28 +332,18 @@ impl TransformBlockCipher {
         }
     }
 
-    fn encrypt(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        self.validate_settings()?;
+
         match (self.settings.cipher, self.settings.mode) {
             (CipherType::AES, CipherMode::ECB) => self.encrypt_aes_ecb(buffer),
             (CipherType::AES, CipherMode::CBC) => self.encrypt_aes_cbc(buffer),
             (CipherType::AES, CipherMode::CFB) => self.encrypt_aes_cfb(buffer),
         }
     }
-}
-
-impl TransformerTrait for TransformBlockCipher {
-    fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.validate_settings()?;
-        self.decrypt(buffer)
-    }
-
-    fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.validate_settings()?;
-        self.encrypt(buffer)
-    }
 
     fn check(&self, buffer: &Vec<u8>) -> bool {
-        self.decrypt(buffer).is_ok()
+        self.transform(buffer).is_ok()
     }
 }
 
