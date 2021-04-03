@@ -108,29 +108,33 @@ pub enum CipherPadding {
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum CipherType {
-    // AES (128, 192, or 256-bit) with Electronic Codebook chaining
-    AES_ECB,
-
-    // AES (128, 192, or 256-bit) with Cipher Block Chaining
-    AES_CBC,
-
-    // AES (128, 192, or 256-bit) with Cipher Feedback Chaining
-    AES_CFB,
+    // AES (128, 192, or 256-bit)
+    AES,
 }
 
-impl CipherType {
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+pub enum CipherMode {
+    // Electronic Codebook
+    ECB,
+
+    // Cipher Block Chaining
+    CBC,
+
+    // Cipher Feedback
+    CFB,
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct BlockCipherSettings {
     cipher: CipherType,
+    mode: CipherMode,
+    padding: CipherPadding,
     key: KeyOrIV,
     iv: Option<KeyOrIV>,
-    padding: CipherPadding,
 }
 
 impl BlockCipherSettings {
-    pub fn new(cipher: CipherType, key: Vec<u8>, iv: Option<Vec<u8>>, padding: CipherPadding) -> SimpleResult<Self> {
+    pub fn new(cipher: CipherType, mode: CipherMode, padding: CipherPadding, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
         // Validate and store the key
         let key = KeyOrIV::new(key)?;
 
@@ -142,9 +146,10 @@ impl BlockCipherSettings {
 
         Ok(BlockCipherSettings {
             cipher: cipher,
+            mode: mode,
+            padding: padding,
             key: key,
             iv: iv,
-            padding: padding,
         })
     }
 }
@@ -307,26 +312,26 @@ impl TransformBlockCipher {
     }
 
     fn validate_settings(self) -> SimpleResult<()> {
-        match self.settings.cipher {
-            CipherType::AES_ECB => self.validate_aes_ecb(),
-            CipherType::AES_CBC => self.validate_aes_cbc(),
-            CipherType::AES_CFB => self.validate_aes_cfb(),
+        match (self.settings.cipher, self.settings.mode) {
+            (CipherType::AES, CipherMode::ECB) => self.validate_aes_ecb(),
+            (CipherType::AES, CipherMode::CBC) => self.validate_aes_cbc(),
+            (CipherType::AES, CipherMode::CFB) => self.validate_aes_cfb(),
         }
     }
 
     fn decrypt(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.settings.cipher {
-            CipherType::AES_ECB => self.decrypt_aes_ecb(buffer),
-            CipherType::AES_CBC => self.decrypt_aes_cbc(buffer),
-            CipherType::AES_CFB => self.decrypt_aes_cfb(buffer),
+        match (self.settings.cipher, self.settings.mode) {
+            (CipherType::AES, CipherMode::ECB) => self.decrypt_aes_ecb(buffer),
+            (CipherType::AES, CipherMode::CBC) => self.decrypt_aes_cbc(buffer),
+            (CipherType::AES, CipherMode::CFB) => self.decrypt_aes_cfb(buffer),
         }
     }
 
     fn encrypt(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.settings.cipher {
-            CipherType::AES_ECB => self.encrypt_aes_ecb(buffer),
-            CipherType::AES_CBC => self.encrypt_aes_cbc(buffer),
-            CipherType::AES_CFB => self.encrypt_aes_cfb(buffer),
+        match (self.settings.cipher, self.settings.mode) {
+            (CipherType::AES, CipherMode::ECB) => self.encrypt_aes_ecb(buffer),
+            (CipherType::AES, CipherMode::CBC) => self.encrypt_aes_cbc(buffer),
+            (CipherType::AES, CipherMode::CFB) => self.encrypt_aes_cfb(buffer),
         }
     }
 }
@@ -424,12 +429,13 @@ mod tests {
             ),
         ];
 
-        for (plaintext, key, ignore_padding, ciphertext) in tests {
+        for (plaintext, key, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::AES_ECB,
+                CipherType::AES,
+                CipherMode::ECB,
+                padding,
                 key,
                 None,
-                ignore_padding,
             )?);
 
             let result = transformation.transform(&ciphertext)?;
@@ -533,12 +539,13 @@ mod tests {
             ),
         ];
 
-        for (plaintext, key, iv, ignore_padding, ciphertext) in tests {
+        for (plaintext, key, iv, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::AES_CBC,
+                CipherType::AES,
+                CipherMode::CBC,
+                padding,
                 key,
                 iv,
-                ignore_padding,
             )?);
 
             let result = transformation.transform(&ciphertext)?;
@@ -617,12 +624,13 @@ mod tests {
             ),
         ];
 
-        for (plaintext, key, iv, ignore_padding, ciphertext) in tests {
+        for (plaintext, key, iv, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::AES_CFB,
+                CipherType::AES,
+                CipherMode::CFB,
+                padding,
                 key,
                 iv,
-                ignore_padding,
             )?);
 
             let result = transformation.transform(&ciphertext)?;
