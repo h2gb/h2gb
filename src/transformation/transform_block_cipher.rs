@@ -8,6 +8,29 @@ use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
 
+macro_rules! decrypt {
+    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
+        match $mode::<$algorithm, $padding>::new_var($key, $iv) {
+            Ok(c) => {
+                match c.decrypt_vec($buffer) {
+                    Ok(d) => d,
+                    Err(e) => bail!("Error decrypting buffer: {}", e),
+                }
+            },
+            Err(e) => bail!("Error setting up cipher: {}", e),
+        }
+    };
+}
+
+macro_rules! encrypt {
+    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
+        match $mode::<$algorithm, $padding>::new_var($key, $iv) {
+            Ok(c) => c.encrypt_vec($buffer),
+            Err(e) => bail!("Error setting up cipher: {}", e),
+        }
+    };
+}
+
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 enum KeyOrIV {
     Bits64([u8; 8]),
@@ -132,86 +155,25 @@ impl CipherType {
     fn decrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
         Self::aes_check_length(buffer.len())?;
 
-        // Pick the implementation based on the key
         let out = match key {
             KeyOrIV::Bits128(k) => {
                 match ignore_padding {
-                    true => {
-                        match Ecb::<Aes128, NoPadding>::new_var(&k, Default::default()) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
-                    false => {
-                        match Ecb::<Aes128, Pkcs7>::new_var(&k, Default::default()) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
+                    true => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, NoPadding),
+                    false => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits192(k) => {
                 match ignore_padding {
-                    true => {
-                        match Ecb::<Aes192, NoPadding>::new_var(&k, Default::default()) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
-                    false => {
-                        match Ecb::<Aes192, Pkcs7>::new_var(&k, Default::default()) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
+                    true => decrypt!(&buffer,  &k, Default::default(), Ecb, Aes192, NoPadding),
+                    false => decrypt!(&buffer, &k, Default::default(), Ecb, Aes192, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits256(k) => {
                 match ignore_padding {
-                    true => {
-                        match Ecb::<Aes256, NoPadding>::new_var(&k, Default::default()) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
-                    false => {
-                        match Ecb::<Aes256, Pkcs7>::new_var(&k, Default::default()) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
+                    true => decrypt!(&buffer,  &k, Default::default(), Ecb, Aes256, NoPadding),
+                    false => decrypt!(&buffer, &k, Default::default(), Ecb, Aes256, Pkcs7),
                 }
             },
 
@@ -237,86 +199,25 @@ impl CipherType {
             None => [0; 16],
         };
 
-        // Pick the implementation based on the key
         let out = match key {
             KeyOrIV::Bits128(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cbc::<Aes128, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => decrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
+                    false => decrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits192(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cbc::<Aes192, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => decrypt!(&buffer,  &k, &iv, Cbc, Aes192, NoPadding),
+                    false => decrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits256(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cbc::<Aes256, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => decrypt!(&buffer,  &k, &iv, Cbc, Aes256, NoPadding),
+                    false => decrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
                 }
             },
 
@@ -342,91 +243,30 @@ impl CipherType {
             None => [0; 16],
         };
 
-        // Pick the implementation based on the key
         let out = match key {
             KeyOrIV::Bits128(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cfb::<Aes128, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cfb::<Aes128, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => decrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
+                    false => decrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits192(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cfb::<Aes192, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cfb::<Aes192, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => decrypt!(&buffer,  &k, &iv, Cfb, Aes192, NoPadding),
+                    false => decrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits256(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cfb::<Aes256, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cfb::<Aes256, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => {
-                                match c.decrypt_vec(&buffer) {
-                                    Ok(d) => d,
-                                    Err(e) => bail!("Error decrypting buffer: {}", e),
-                                }
-                            }
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => decrypt!(&buffer,  &k, &iv, Cfb, Aes256, NoPadding),
+                    false => decrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
                 }
             },
 
             _ => {
-                bail!("Invalid key size for AES-CFB");
+                bail!("Invalid key size for AES-CBC");
             },
         };
 
@@ -434,61 +274,30 @@ impl CipherType {
     }
 
     fn encrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
-        // Pick the implementation based on the key
         let out = match key {
             KeyOrIV::Bits128(k) => {
                 match ignore_padding {
-                    true => {
-                        match Ecb::<Aes128, NoPadding>::new_var(&k, Default::default()) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Ecb::<Aes128, Pkcs7>::new_var(&k, Default::default()) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
+                    true => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, NoPadding),
+                    false => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits192(k) => {
                 match ignore_padding {
-                    true => {
-                        match Ecb::<Aes192, NoPadding>::new_var(&k, Default::default()) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Ecb::<Aes192, Pkcs7>::new_var(&k, Default::default()) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
+                    true => encrypt!(&buffer,  &k, Default::default(), Ecb, Aes192, NoPadding),
+                    false => encrypt!(&buffer, &k, Default::default(), Ecb, Aes192, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits256(k) => {
                 match ignore_padding {
-                    true => {
-                        match Ecb::<Aes256, NoPadding>::new_var(&k, Default::default()) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Ecb::<Aes256, Pkcs7>::new_var(&k, Default::default()) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    }
+                    true => encrypt!(&buffer,  &k, Default::default(), Ecb, Aes256, NoPadding),
+                    false => encrypt!(&buffer, &k, Default::default(), Ecb, Aes256, Pkcs7),
                 }
             },
 
             _ => {
-                bail!("Invalid key size for AES-ECB");
+                bail!("Invalid key size for AES-CBC");
             },
         };
 
@@ -507,56 +316,25 @@ impl CipherType {
             None => [0; 16],
         };
 
-        // Pick the implementation based on the key
         let out = match key {
             KeyOrIV::Bits128(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cbc::<Aes128, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cbc::<Aes128, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => encrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
+                    false => encrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits192(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cbc::<Aes192, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cbc::<Aes192, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => encrypt!(&buffer,  &k, &iv, Cbc, Aes192, NoPadding),
+                    false => encrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits256(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cbc::<Aes256, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cbc::<Aes256, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => encrypt!(&buffer,  &k, &iv, Cbc, Aes256, NoPadding),
+                    false => encrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
                 }
             },
 
@@ -580,61 +358,30 @@ impl CipherType {
             None => [0; 16],
         };
 
-        // Pick the implementation based on the key
         let out = match key {
             KeyOrIV::Bits128(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cfb::<Aes128, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cfb::<Aes128, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => encrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
+                    false => encrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits192(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cfb::<Aes192, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cfb::<Aes192, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => encrypt!(&buffer,  &k, &iv, Cfb, Aes192, NoPadding),
+                    false => encrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
                 }
             },
 
             KeyOrIV::Bits256(k) => {
                 match ignore_padding {
-                    true => {
-                        match Cfb::<Aes256, NoPadding>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
-                    false => {
-                        match Cfb::<Aes256, Pkcs7>::new_var(&k, &iv) {
-                            Ok(c) => c.encrypt_vec(&buffer),
-                            Err(e) => bail!("Error setting up cipher: {}", e),
-                        }
-                    },
+                    true => encrypt!(&buffer,  &k, &iv, Cfb, Aes256, NoPadding),
+                    false => encrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
                 }
             },
 
             _ => {
-                bail!("Invalid key size for AES-CFB");
+                bail!("Invalid key size for AES-CBC");
             },
         };
 
@@ -1010,9 +757,4 @@ mod tests {
 
         Ok(())
     }
-
-    // #[test]
-    // fn test_aes_errors() -> SimpleResult<()> {
-    //     bail!("Not implemented");
-    // }
 }
