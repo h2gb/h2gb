@@ -67,6 +67,13 @@ impl KeyOrIV {
         })
     }
 
+    fn get64(self) -> SimpleResult<[u8; 8]> {
+        match self {
+            KeyOrIV::Bits64(v) => Ok(v),
+            _ => bail!("Invalid IV length"),
+        }
+    }
+
     fn get128(self) -> SimpleResult<[u8; 16]> {
         match self {
             KeyOrIV::Bits128(v) => Ok(v),
@@ -86,6 +93,9 @@ pub enum CipherPadding {
 pub enum CipherType {
     // AES (128, 192, or 256-bit)
     AES,
+
+    // DES (64-bit)
+    DES,
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
@@ -142,62 +152,17 @@ impl TransformBlockCipher {
         }
     }
 
+    fn des_check_length(length: usize) -> SimpleResult<()> {
+        if length % 8 != 0 {
+            bail!("DES length must be a multiple of 8 bytes / 64 bits");
+        }
+
+        Ok(())
+    }
+
     fn aes_check_length(length: usize) -> SimpleResult<()> {
         if length % 16 != 0 {
-            bail!("AES length must be a multiple of 16 bytes");
-        }
-
-        Ok(())
-    }
-
-    fn validate_aes_ecb(self) -> SimpleResult<()> {
-        // Key is 128, 192, or 256
-        match self.settings.key {
-            KeyOrIV::Bits128(_) => (),
-            KeyOrIV::Bits192(_) => (),
-            KeyOrIV::Bits256(_) => (),
-            _ => bail!("Invalid key length for AES-ECB"),
-        };
-
-        // IV is not allowed
-        if self.settings.iv.is_some() {
-            bail!("AES-ECB cannot have an IV");
-        }
-
-        Ok(())
-    }
-
-    fn validate_aes_cbc(self) -> SimpleResult<()> {
-        // Key is 128, 192, or 256
-        match self.settings.key {
-            KeyOrIV::Bits128(_) => (),
-            KeyOrIV::Bits192(_) => (),
-            KeyOrIV::Bits256(_) => (),
-            _ => bail!("Invalid key length for AES_CBC"),
-        };
-
-        // IV is optional, 128 bits
-        if let Some(iv) = self.settings.iv {
-            // Make sure it's the right length
-            iv.get128()?;
-        }
-
-        Ok(())
-    }
-
-    fn validate_aes_cfb(self) -> SimpleResult<()> {
-        // Key is 128, 192, or 256
-        match self.settings.key {
-            KeyOrIV::Bits128(_) => (),
-            KeyOrIV::Bits192(_) => (),
-            KeyOrIV::Bits256(_) => (),
-            _ => bail!("Invalid key length for AES_CFB"),
-        };
-
-        // IV is optional, 128 bits
-        if let Some(iv) = self.settings.iv {
-            // Make sure it's the right length
-            iv.get128()?;
+            bail!("AES length must be a multiple of 16 bytes / 128-bits");
         }
 
         Ok(())
@@ -241,6 +206,48 @@ impl TransformBlockCipher {
         }.to_vec())
     }
 
+    fn decrypt_des(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        Self::des_check_length(buffer.len())?;
+
+        // Get the iv, or a default blank one
+        let iv = match self.settings.iv {
+            Some(iv) => iv.get64()?,
+            None     => [0; 8],
+        };
+
+        Ok(match (self.settings.key, self.settings.mode, self.settings.padding) {
+            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Ecb, Des, NoPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cbc, Des, NoPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cfb, Des, NoPadding),
+
+            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Ecb, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
+
+            (_, _, _) => bail!("Invalid key size, mode, or padding"),
+        }.to_vec())
+    }
+
+    fn encrypt_des(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+        // Get the iv, or a default blank one
+        let iv = match self.settings.iv {
+            Some(iv) => iv.get64()?,
+            None     => [0; 8],
+        };
+
+        Ok(match (self.settings.key, self.settings.mode, self.settings.padding) {
+            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Des, NoPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Des, NoPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Des, NoPadding),
+
+            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
+
+            (_, _, _) => bail!("Invalid key size, mode, or padding"),
+        }.to_vec())
+    }
+
     fn encrypt_aes(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = match self.settings.iv {
@@ -278,11 +285,39 @@ impl TransformBlockCipher {
     }
 
     fn validate_settings(self) -> SimpleResult<()> {
-        match (self.settings.cipher, self.settings.mode) {
-            (CipherType::AES, CipherMode::ECB) => self.validate_aes_ecb(),
-            (CipherType::AES, CipherMode::CBC) => self.validate_aes_cbc(),
-            (CipherType::AES, CipherMode::CFB) => self.validate_aes_cfb(),
-        }
+        // Validate the iv for ECB mode
+        match (self.settings.iv, self.settings.mode) {
+            // Don't allow an IV with ECB ever
+            (Some(_), CipherMode::ECB) => bail!("ECB is not compatible with IVs"),
+
+            // If the iv is set, make sure it's the correct length
+            (Some(iv), _) => {
+                match (self.settings.cipher, iv) {
+                    (CipherType::AES, KeyOrIV::Bits128(_)) => (),
+                    (CipherType::AES, _) => bail!("Invalid IV size for AES (must be 128 bits)"),
+
+                    (CipherType::DES, KeyOrIV::Bits64(_)) => (),
+                    (CipherType::DES, _) => bail!("Invalid IV size for DES (must be 64 bits)"),
+                }
+            },
+
+            // If no IV is set, we're probably okay
+            (None, _) => (),
+
+        };
+
+        // Validate the key length
+        match (self.settings.cipher, self.settings.key) {
+            (CipherType::AES, KeyOrIV::Bits128(_)) => (),
+            (CipherType::AES, KeyOrIV::Bits192(_)) => (),
+            (CipherType::AES, KeyOrIV::Bits256(_)) => (),
+            (CipherType::AES, _) => bail!("Invalid key size for AES (must be 128, 192, or 256 bits)"),
+
+            (CipherType::DES, KeyOrIV::Bits64(_)) => (),
+            (CipherType::DES, _) => bail!("Invalid key size for DES (must be 64 bits)"),
+        };
+
+        Ok(())
     }
 }
 
@@ -291,7 +326,8 @@ impl TransformerTrait for TransformBlockCipher {
         self.validate_settings()?;
 
         match self.settings.cipher {
-            CipherType::AES => self.decrypt_aes(buffer)
+            CipherType::AES => self.decrypt_aes(buffer),
+            CipherType::DES => self.decrypt_des(buffer),
         }
     }
 
@@ -299,7 +335,8 @@ impl TransformerTrait for TransformBlockCipher {
         self.validate_settings()?;
 
         match self.settings.cipher {
-            CipherType::AES => self.encrypt_aes(buffer)
+            CipherType::AES => self.encrypt_aes(buffer),
+            CipherType::DES => self.encrypt_des(buffer),
         }
     }
 
@@ -395,10 +432,10 @@ mod tests {
             )?);
 
             let result = transformation.transform(&ciphertext)?;
-            assert_eq!(plaintext, result, "transform {}", std::str::from_utf8(&plaintext).unwrap());
+            assert_eq!(plaintext, result, "aes transform {}", std::str::from_utf8(&plaintext).unwrap());
 
             let result = transformation.untransform(&result)?;
-            assert_eq!(ciphertext, result, "untransform {}", std::str::from_utf8(&plaintext).unwrap());
+            assert_eq!(ciphertext, result, "aes untransform {}", std::str::from_utf8(&plaintext).unwrap());
         }
 
         Ok(())
@@ -505,10 +542,10 @@ mod tests {
             )?);
 
             let result = transformation.transform(&ciphertext)?;
-            assert_eq!(plaintext, result, "transform {}", std::str::from_utf8(&plaintext).unwrap());
+            assert_eq!(plaintext, result, "aes transform {}", std::str::from_utf8(&plaintext).unwrap());
 
             let result = transformation.untransform(&result)?;
-            assert_eq!(ciphertext, result, "untransform {}", std::str::from_utf8(&plaintext).unwrap());
+            assert_eq!(ciphertext, result, "aes untransform {}", std::str::from_utf8(&plaintext).unwrap());
         }
 
         Ok(())
@@ -590,10 +627,79 @@ mod tests {
             )?);
 
             let result = transformation.transform(&ciphertext)?;
-            assert_eq!(plaintext, result, "transform {}", std::str::from_utf8(&plaintext).unwrap());
+            assert_eq!(plaintext, result, "aes transform {}", std::str::from_utf8(&plaintext).unwrap());
 
             let result = transformation.untransform(&result)?;
-            assert_eq!(ciphertext, result, "untransform {}", std::str::from_utf8(&plaintext).unwrap());
+            assert_eq!(ciphertext, result, "aes untransform {}", std::str::from_utf8(&plaintext).unwrap());
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_des() -> SimpleResult<()> {
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherMode, CipherPadding, Vec<u8>)> = vec![
+            (
+                b"DES-ECB!!".to_vec(),                                                        // Plaintext
+                b"AAAAAAAA".to_vec(),                                                         // Key
+                None,                                                                         // IV
+                CipherMode::ECB,
+                CipherPadding::Pkcs7,                                                         // Padding
+                // Ciphertext
+                b"\x08\x39\x7c\x04\xb5\xbc\x8f\x3f\x01\x58\xb7\xc1\x70\x0e\xd6\x92".to_vec(),
+            ),
+            (
+                b"DES-CBC!!".to_vec(),                                                        // Plaintext
+                b"AAAAAAAA".to_vec(),                                                         // Key
+                None,                                                                         // IV
+                CipherMode::CBC,
+                CipherPadding::Pkcs7,                                                         // Padding
+                // Ciphertext
+                b"\x50\x1d\x75\x4f\x12\x6d\xa5\x8b\x8d\x19\x20\xf6\xb9\x24\x9e\xed".to_vec(),
+            ),
+            (
+                b"DES-CBC!!".to_vec(),                                                        // Plaintext
+                b"AAAAAAAA".to_vec(),                                                         // Key
+                Some(b"BBBBBBBB".to_vec()),                                                            // IV
+                CipherMode::CBC,
+                CipherPadding::Pkcs7,                                                         // Padding
+                // Ciphertext
+                b"\x71\x55\xb0\xdc\x7b\xed\xcd\x81\x3b\x81\xfa\x9a\xc7\x7c\x8a\x8e".to_vec(),
+            ),
+            (
+                b"DES-CFB!!".to_vec(),                                                        // Plaintext
+                b"AAAAAAAA".to_vec(),                                                         // Key
+                None,                                                                         // IV
+                CipherMode::CFB,
+                CipherPadding::Pkcs7,                                                         // Padding
+                // Ciphertext
+                b"\x80\xf2\x6b\xe0\x92\xcb\x2c\x69\xd0\xc4\x55\xea\x50\x98\xfd\x55".to_vec(),
+            ),
+            (
+                b"DES-CFB!!".to_vec(),                                                        // Plaintext
+                b"AAAAAAAA".to_vec(),                                                         // Key
+                Some(b"BBBBBBBB".to_vec()),                                                   // IV
+                CipherMode::CFB,
+                CipherPadding::Pkcs7,                                                         // Padding
+                // Ciphertext
+                b"\x5c\xbb\x74\x22\xc2\x46\x5b\x3d\x73\xf2\x3c\xdf\xdf\x4d\x10\x37".to_vec(),
+            ),
+        ];
+
+        for (plaintext, key, iv, mode, padding, ciphertext) in tests {
+            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+                CipherType::DES,
+                mode,
+                padding,
+                key,
+                iv,
+            )?);
+
+            let result = transformation.transform(&ciphertext)?;
+            assert_eq!(plaintext, result, "des transform {}", std::str::from_utf8(&plaintext).unwrap());
+
+            let result = transformation.untransform(&result)?;
+            assert_eq!(ciphertext, result, "des untransform {}", std::str::from_utf8(&plaintext).unwrap());
         }
 
         Ok(())
