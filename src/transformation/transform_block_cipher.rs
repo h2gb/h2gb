@@ -10,23 +10,48 @@ use crate::transformation::TransformerTrait;
 
 macro_rules! decrypt {
     ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
-        match $mode::<$algorithm, $padding>::new_var($key, $iv) {
-            Ok(c) => {
-                match c.decrypt_vec($buffer) {
-                    Ok(d) => d,
-                    Err(e) => bail!("Error decrypting buffer: {}", e),
+        match $padding {
+            CipherPadding::NoPadding => {
+                match $mode::<$algorithm, NoPadding>::new_var($key, $iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec($buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    },
+                    Err(e) => bail!("Error setting up cipher: {}", e),
                 }
             },
-            Err(e) => bail!("Error setting up cipher: {}", e),
+            CipherPadding::Pkcs7 => {
+                match $mode::<$algorithm, Pkcs7>::new_var($key, $iv) {
+                    Ok(c) => {
+                        match c.decrypt_vec($buffer) {
+                            Ok(d) => d,
+                            Err(e) => bail!("Error decrypting buffer: {}", e),
+                        }
+                    },
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
         }
     };
 }
 
 macro_rules! encrypt {
     ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
-        match $mode::<$algorithm, $padding>::new_var($key, $iv) {
-            Ok(c) => c.encrypt_vec($buffer),
-            Err(e) => bail!("Error setting up cipher: {}", e),
+        match $padding {
+            CipherPadding::NoPadding => {
+                match $mode::<$algorithm, NoPadding>::new_var($key, $iv) {
+                    Ok(c) => c.encrypt_vec($buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
+            CipherPadding::Pkcs7 => {
+                match $mode::<$algorithm, Pkcs7>::new_var($key, $iv) {
+                    Ok(c) => c.encrypt_vec($buffer),
+                    Err(e) => bail!("Error setting up cipher: {}", e),
+                }
+            },
         }
     };
 }
@@ -65,6 +90,19 @@ impl KeyOrIV {
             _  => bail!("Invalid BlockCipher key or iv length: {} bytes / {} bits", key.len(), key.len() * 8),
         })
     }
+
+    fn get128(self) -> SimpleResult<[u8; 16]> {
+        match self {
+            KeyOrIV::Bits128(v) => Ok(v),
+            _ => bail!("Invalid IV length"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
+pub enum CipherPadding {
+    NoPadding,
+    Pkcs7,
 }
 
 #[allow(non_camel_case_types)]
@@ -116,15 +154,10 @@ impl CipherType {
         };
 
         // IV is optional, 128 bits
-        match iv {
-            Some(iv) => {
-                match iv {
-                    KeyOrIV::Bits128(_) => (),
-                    _ => bail!("Invalid IV length for AES_CBC"),
-                }
-            },
-            None => (),
-        };
+        if let Some(iv) = iv {
+            // Make sure it's the right length
+            iv.get128()?;
+        }
 
         Ok(())
     }
@@ -139,253 +172,96 @@ impl CipherType {
         };
 
         // IV is optional, 128 bits
-        match iv {
-            Some(iv) => {
-                match iv {
-                    KeyOrIV::Bits128(_) => (),
-                    _ => bail!("Invalid IV length for AES_CFB"),
-                }
-            },
-            None => (),
-        };
+        if let Some(iv) = iv {
+            // Make sure it's the right length
+            iv.get128()?;
+        }
 
         Ok(())
     }
 
-    fn decrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
+    fn decrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
         Self::aes_check_length(buffer.len())?;
 
-        let out = match key {
-            KeyOrIV::Bits128(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, NoPadding),
-                    false => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer,  &k, Default::default(), Ecb, Aes192, NoPadding),
-                    false => decrypt!(&buffer, &k, Default::default(), Ecb, Aes192, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer,  &k, Default::default(), Ecb, Aes256, NoPadding),
-                    false => decrypt!(&buffer, &k, Default::default(), Ecb, Aes256, Pkcs7),
-                }
-            },
-
-            _ => {
-                bail!("Invalid key size for AES-ECB");
-            },
-        };
-
-        Ok(out.to_vec())
+        Ok(match key {
+            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, padding),
+            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes192, padding),
+            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes256, padding),
+            _ => bail!("Invalid key size for AES-ECB"),
+        }.to_vec())
     }
 
-    fn decrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
+    fn decrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
         Self::aes_check_length(buffer.len())?;
 
         // Get the iv, or a default blank one
         let iv = match iv {
-            Some(iv) => {
-                match iv {
-                    KeyOrIV::Bits128(iv) => iv,
-                    _ => bail!("Invalid IV length"),
-                }
-            },
-            None => [0; 16],
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
         };
 
-        let out = match key {
-            KeyOrIV::Bits128(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
-                    false => decrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer,  &k, &iv, Cbc, Aes192, NoPadding),
-                    false => decrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer,  &k, &iv, Cbc, Aes256, NoPadding),
-                    false => decrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
-                }
-            },
-
-            _ => {
-                bail!("Invalid key size for AES-CBC");
-            },
-        };
-
-        Ok(out.to_vec())
+        Ok(match key {
+            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, padding),
+            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, padding),
+            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, padding),
+            _ => bail!("Invalid key size for AES-CBC"),
+        }.to_vec())
     }
 
-    fn decrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
+    fn decrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
         Self::aes_check_length(buffer.len())?;
 
         // Get the iv, or a default blank one
         let iv = match iv {
-            Some(iv) => {
-                match iv {
-                    KeyOrIV::Bits128(iv) => iv,
-                    _ => bail!("Invalid IV length"),
-                }
-            },
-            None => [0; 16],
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
         };
 
-        let out = match key {
-            KeyOrIV::Bits128(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
-                    false => decrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer,  &k, &iv, Cfb, Aes192, NoPadding),
-                    false => decrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match ignore_padding {
-                    true => decrypt!(&buffer,  &k, &iv, Cfb, Aes256, NoPadding),
-                    false => decrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
-                }
-            },
-
-            _ => {
-                bail!("Invalid key size for AES-CBC");
-            },
-        };
-
-        Ok(out.to_vec())
+        Ok(match key {
+            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, padding),
+            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, padding),
+            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, padding),
+            _ => bail!("Invalid key size for AES-CFB"),
+        }.to_vec())
     }
 
-    fn encrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
-        let out = match key {
-            KeyOrIV::Bits128(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, NoPadding),
-                    false => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer,  &k, Default::default(), Ecb, Aes192, NoPadding),
-                    false => encrypt!(&buffer, &k, Default::default(), Ecb, Aes192, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer,  &k, Default::default(), Ecb, Aes256, NoPadding),
-                    false => encrypt!(&buffer, &k, Default::default(), Ecb, Aes256, Pkcs7),
-                }
-            },
-
-            _ => {
-                bail!("Invalid key size for AES-CBC");
-            },
-        };
-
-        Ok(out.to_vec())
+    fn encrypt_aes_ecb(buffer: &Vec<u8>, key: KeyOrIV, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
+        Ok(match key {
+            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, padding),
+            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes192, padding),
+            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes256, padding),
+            _ => bail!("Invalid key size for AES-ECB"),
+        }.to_vec())
     }
 
-    fn encrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
+    fn encrypt_aes_cbc(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = match iv {
-            Some(iv) => {
-                match iv {
-                    KeyOrIV::Bits128(iv) => iv,
-                    _ => bail!("Invalid IV length"),
-                }
-            },
-            None => [0; 16],
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
         };
 
-        let out = match key {
-            KeyOrIV::Bits128(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
-                    false => encrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer,  &k, &iv, Cbc, Aes192, NoPadding),
-                    false => encrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer,  &k, &iv, Cbc, Aes256, NoPadding),
-                    false => encrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
-                }
-            },
-
-            _ => {
-                bail!("Invalid key size for AES-CBC");
-            },
-        };
-
-        Ok(out.to_vec())
+        Ok(match key {
+            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, padding),
+            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, padding),
+            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, padding),
+            _ => bail!("Invalid key size for AES-CBC"),
+        }.to_vec())
     }
 
-    fn encrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
+    fn encrypt_aes_cfb(buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = match iv {
-            Some(iv) => {
-                match iv {
-                    KeyOrIV::Bits128(iv) => iv,
-                    _ => bail!("Invalid IV length"),
-                }
-            },
-            None => [0; 16],
+            Some(iv) => iv.get128()?,
+            None     => [0; 16],
         };
 
-        let out = match key {
-            KeyOrIV::Bits128(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
-                    false => encrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits192(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer,  &k, &iv, Cfb, Aes192, NoPadding),
-                    false => encrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
-                }
-            },
-
-            KeyOrIV::Bits256(k) => {
-                match ignore_padding {
-                    true => encrypt!(&buffer,  &k, &iv, Cfb, Aes256, NoPadding),
-                    false => encrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
-                }
-            },
-
-            _ => {
-                bail!("Invalid key size for AES-CBC");
-            },
-        };
-
-        Ok(out.to_vec())
+        Ok(match key {
+            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, padding),
+            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, padding),
+            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, padding),
+            _ => bail!("Invalid key size for AES-CBC"),
+        }.to_vec())
     }
 
     fn validate_settings(self, key: KeyOrIV, iv: Option<KeyOrIV>) -> SimpleResult<()> {
@@ -396,19 +272,19 @@ impl CipherType {
         }
     }
 
-    fn decrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
+    fn decrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
         match self {
-            Self::AES_ECB => Self::decrypt_aes_ecb(buffer, key, ignore_padding),
-            Self::AES_CBC => Self::decrypt_aes_cbc(buffer, key, iv, ignore_padding),
-            Self::AES_CFB => Self::decrypt_aes_cfb(buffer, key, iv, ignore_padding),
+            Self::AES_ECB => Self::decrypt_aes_ecb(buffer, key, padding),
+            Self::AES_CBC => Self::decrypt_aes_cbc(buffer, key, iv, padding),
+            Self::AES_CFB => Self::decrypt_aes_cfb(buffer, key, iv, padding),
         }
     }
 
-    fn encrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, ignore_padding: bool) -> SimpleResult<Vec<u8>> {
+    fn encrypt(self, buffer: &Vec<u8>, key: KeyOrIV, iv: Option<KeyOrIV>, padding: CipherPadding) -> SimpleResult<Vec<u8>> {
         match self {
-            Self::AES_ECB => Self::encrypt_aes_ecb(buffer, key, ignore_padding),
-            Self::AES_CBC => Self::encrypt_aes_cbc(buffer, key, iv, ignore_padding),
-            Self::AES_CFB => Self::encrypt_aes_cfb(buffer, key, iv, ignore_padding),
+            Self::AES_ECB => Self::encrypt_aes_ecb(buffer, key, padding),
+            Self::AES_CBC => Self::encrypt_aes_cbc(buffer, key, iv, padding),
+            Self::AES_CFB => Self::encrypt_aes_cfb(buffer, key, iv, padding),
         }
     }
 }
@@ -418,11 +294,11 @@ pub struct BlockCipherSettings {
     cipher: CipherType,
     key: KeyOrIV,
     iv: Option<KeyOrIV>,
-    ignore_padding: bool,
+    padding: CipherPadding,
 }
 
 impl BlockCipherSettings {
-    pub fn new(cipher: CipherType, key: Vec<u8>, iv: Option<Vec<u8>>, ignore_padding: bool) -> SimpleResult<Self> {
+    pub fn new(cipher: CipherType, key: Vec<u8>, iv: Option<Vec<u8>>, padding: CipherPadding) -> SimpleResult<Self> {
         // Validate and store the key
         let key = KeyOrIV::new(key)?;
 
@@ -439,7 +315,7 @@ impl BlockCipherSettings {
             cipher: cipher,
             key: key,
             iv: iv,
-            ignore_padding: ignore_padding,
+            padding: padding,
         })
     }
 }
@@ -458,15 +334,15 @@ impl TransformBlockCipher {
 
 impl TransformerTrait for TransformBlockCipher {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv, self.settings.ignore_padding)
+        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv, self.settings.padding)
     }
 
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.cipher.encrypt(buffer, self.settings.key, self.settings.iv, self.settings.ignore_padding)
+        self.settings.cipher.encrypt(buffer, self.settings.key, self.settings.iv, self.settings.padding)
     }
 
     fn check(&self, buffer: &Vec<u8>) -> bool {
-        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv, self.settings.ignore_padding).is_ok()
+        self.settings.cipher.decrypt(buffer, self.settings.key, self.settings.iv, self.settings.padding).is_ok()
     }
 }
 
@@ -479,11 +355,11 @@ mod tests {
 
     #[test]
     fn test_aes_ecb() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, bool, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, CipherPadding, Vec<u8>)> = vec![
             (
                 b"Test for AES-128 with ECB padding and a couple blocks".to_vec(),            // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \xdc\x7e\x2f\x80\xcc\x6d\x67\xd9\xaa\xea\xda\x4f\xf3\xe6\x54\x52\
@@ -494,7 +370,7 @@ mod tests {
             (
                 b"Test for AES-192 with EBC chaining!".to_vec(),                               // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                          // Key
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \x26\x91\x98\x01\x45\x06\xf5\x95\x99\xb2\x9e\x3c\x13\xb5\xee\xb5\
@@ -504,7 +380,7 @@ mod tests {
             (
                 b"Final test for AES-256 ECB with a much longer plaintext and many blocks".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\xed\x79\xa2\x28\x21\x55\x65\xc9\x50\xbc\x93\xc8\xa3\xed\x6a\xc4\
                   \x10\x48\xc6\x47\xac\x30\xf0\x55\x96\xd1\xd6\xfc\x51\x5b\x6b\x04\
@@ -516,7 +392,7 @@ mod tests {
             (
                 b"Test for AES-128 with ECB padding and a couple blocks\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \xdc\x7e\x2f\x80\xcc\x6d\x67\xd9\xaa\xea\xda\x4f\xf3\xe6\x54\x52\
@@ -527,7 +403,7 @@ mod tests {
             (
                 b"Test for AES-192 with EBC chaining!\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                          // Key
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \x26\x91\x98\x01\x45\x06\xf5\x95\x99\xb2\x9e\x3c\x13\xb5\xee\xb5\
@@ -537,7 +413,7 @@ mod tests {
             (
                 b"Final test for AES-256 ECB with a much longer plaintext and many blocks\x09\x09\x09\x09\x09\x09\x09\x09\x09".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\xed\x79\xa2\x28\x21\x55\x65\xc9\x50\xbc\x93\xc8\xa3\xed\x6a\xc4\
                   \x10\x48\xc6\x47\xac\x30\xf0\x55\x96\xd1\xd6\xfc\x51\x5b\x6b\x04\
@@ -567,12 +443,12 @@ mod tests {
 
     #[test]
     fn test_aes_cbc() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, bool, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherPadding, Vec<u8>)> = vec![
             (
                 b"Test for AES-128 with CBC padding and a couple blocks".to_vec(),            // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 None,                                                                         // IV
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \x21\x2c\x88\x77\x01\x5c\x28\xe9\xa6\xac\x34\xb8\xb4\x3c\x15\x21\
@@ -584,7 +460,7 @@ mod tests {
                 b"AES128 with an IV!".to_vec(),                                               // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x86\x62\x63\x07\x47\x5d\x2e\x61\x8e\x3d\xed\x1a\xff\x00\xef\xc3\
                   \x95\x8b\x83\x3d\xc8\x30\x6e\x50\x36\x4e\x6d\x29\x9e\x19\xd2\xc9".to_vec(),
@@ -594,7 +470,7 @@ mod tests {
                 b"Test for AES-192 with CBC padding!".to_vec(),                               // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \xed\xcf\x7c\xf3\xaa\xe0\xdb\xcc\x39\xd7\x7f\x24\x02\x6d\x6c\x98\
@@ -605,7 +481,7 @@ mod tests {
                 b"Final test for AES-256 with a longer plaintext".to_vec(),                   // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 None,                                                                         // IV
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\xed\x79\xa2\x28\x21\x55\x65\xc9\x50\xbc\x93\xc8\xa3\xed\x6a\xc4\
                   \xac\x6c\x8c\x56\x56\xea\x83\x29\x22\x43\x76\xa1\xe2\x2d\x74\xe3\
@@ -616,7 +492,7 @@ mod tests {
                 b"AES256 with an all-C IV!".to_vec(),                                         // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"CCCCCCCCCCCCCCCC".to_vec()),                                           // IV
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x99\x70\x25\x50\x5c\xd5\x9e\x9d\xc7\x73\x19\x94\x5c\xae\xc9\x9f\
                   \xd5\x28\x00\xf1\x34\xcd\xcf\xf9\xbf\x15\x08\x52\x2b\xd4\x09\xa2".to_vec(),
@@ -626,7 +502,7 @@ mod tests {
                 b"Test for AES-128 with CBC padding and a couple blocks\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 None,                                                                         // IV
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \x21\x2c\x88\x77\x01\x5c\x28\xe9\xa6\xac\x34\xb8\xb4\x3c\x15\x21\
@@ -638,7 +514,7 @@ mod tests {
                 b"Test for AES-192 with CBC padding!\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \xed\xcf\x7c\xf3\xaa\xe0\xdb\xcc\x39\xd7\x7f\x24\x02\x6d\x6c\x98\
@@ -649,7 +525,7 @@ mod tests {
                 b"AES256 with an all-C IV!\x08\x08\x08\x08\x08\x08\x08\x08".to_vec(),         // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"CCCCCCCCCCCCCCCC".to_vec()),                                           // IV
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\x99\x70\x25\x50\x5c\xd5\x9e\x9d\xc7\x73\x19\x94\x5c\xae\xc9\x9f\
                   \xd5\x28\x00\xf1\x34\xcd\xcf\xf9\xbf\x15\x08\x52\x2b\xd4\x09\xa2".to_vec(),
@@ -676,12 +552,12 @@ mod tests {
 
     #[test]
     fn test_aes_cfb() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, bool, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherPadding, Vec<u8>)> = vec![
             (
                 b"Test for AES-128 with CFB padding and a couple blocks".to_vec(),            // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 b"\x65\x86\x49\x1a\x72\x36\xff\xe8\x5e\x10\xc9\xb4\x40\x1d\xad\x41\
                   \xd0\x55\x2f\x5c\xa9\x5b\xcb\xcf\x8b\x6e\xc8\x09\x73\xa7\x03\x3d\
                   \xb0\x10\x8c\x66\xa3\x18\xda\x1d\x46\x55\xb9\x61\xfa\xb2\xc9\x2e\
@@ -692,7 +568,7 @@ mod tests {
                 b"AES-192 + CFB!".to_vec(),                                                   // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x4e\x7c\x30\x7f\x6e\x64\xb0\x01\x11\x59\xaf\x39\xb2\xc6\x8f\xfe".to_vec(),
             ),
@@ -701,7 +577,7 @@ mod tests {
                 b"Final test for AES-256 with a longer plaintext".to_vec(),                   // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
-                false,                                                                        // Ignore padding
+                CipherPadding::Pkcs7,                                                         // Padding
                 // Ciphertext
                 b"\x89\x80\x0e\xd3\x0f\x53\x26\x36\xac\x10\xc7\x0c\x3e\x9d\x62\xc9\
                   \xf2\x34\xde\x6f\xf4\x6c\xcb\x68\xbb\xaa\x13\x8d\x89\xe8\x76\xb5\
@@ -712,7 +588,7 @@ mod tests {
                 b"Test for AES-128 with CFB padding and a couple blocks\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 b"\x65\x86\x49\x1a\x72\x36\xff\xe8\x5e\x10\xc9\xb4\x40\x1d\xad\x41\
                   \xd0\x55\x2f\x5c\xa9\x5b\xcb\xcf\x8b\x6e\xc8\x09\x73\xa7\x03\x3d\
                   \xb0\x10\x8c\x66\xa3\x18\xda\x1d\x46\x55\xb9\x61\xfa\xb2\xc9\x2e\
@@ -723,7 +599,7 @@ mod tests {
                 b"AES-192 + CFB!\x02\x02".to_vec(),                                           // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\x4e\x7c\x30\x7f\x6e\x64\xb0\x01\x11\x59\xaf\x39\xb2\xc6\x8f\xfe".to_vec(),
             ),
@@ -732,7 +608,7 @@ mod tests {
                 b"Final test for AES-256 with a longer plaintext\x02\x02".to_vec(),           // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
-                true,                                                                         // Ignore padding
+                CipherPadding::NoPadding,                                                     // Padding
                 // Ciphertext
                 b"\x89\x80\x0e\xd3\x0f\x53\x26\x36\xac\x10\xc7\x0c\x3e\x9d\x62\xc9\
                   \xf2\x34\xde\x6f\xf4\x6c\xcb\x68\xbb\xaa\x13\x8d\x89\xe8\x76\xb5\
