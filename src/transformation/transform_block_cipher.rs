@@ -10,49 +10,24 @@ use serde::{Serialize, Deserialize};
 use crate::transformation::TransformerTrait;
 
 macro_rules! decrypt {
-    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:expr) => {
-        match $padding {
-            CipherPadding::NoPadding => {
-                match $mode::<$algorithm, NoPadding>::new_var($key, $iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec($buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    },
-                    Err(e) => bail!("Error setting up cipher: {}", e),
+    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
+        match $mode::<$algorithm, $padding>::new_var($key, $iv) {
+            Ok(c) => {
+                match c.decrypt_vec($buffer) {
+                    Ok(d) => d,
+                    Err(e) => bail!("Error decrypting buffer: {}", e),
                 }
             },
-            CipherPadding::Pkcs7 => {
-                match $mode::<$algorithm, Pkcs7>::new_var($key, $iv) {
-                    Ok(c) => {
-                        match c.decrypt_vec($buffer) {
-                            Ok(d) => d,
-                            Err(e) => bail!("Error decrypting buffer: {}", e),
-                        }
-                    },
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
+            Err(e) => bail!("Error setting up cipher: {}", e),
         }
     };
 }
 
 macro_rules! encrypt {
-    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:expr) => {
-        match $padding {
-            CipherPadding::NoPadding => {
-                match $mode::<$algorithm, NoPadding>::new_var($key, $iv) {
-                    Ok(c) => c.encrypt_vec($buffer),
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
-            CipherPadding::Pkcs7 => {
-                match $mode::<$algorithm, Pkcs7>::new_var($key, $iv) {
-                    Ok(c) => c.encrypt_vec($buffer),
-                    Err(e) => bail!("Error setting up cipher: {}", e),
-                }
-            },
+    ($buffer:expr, $key:expr, $iv:expr, $mode:ident, $algorithm:ident, $padding:ident) => {
+        match $mode::<$algorithm, $padding>::new_var($key, $iv) {
+            Ok(c) => c.encrypt_vec($buffer),
+            Err(e) => bail!("Error setting up cipher: {}", e),
         }
     };
 }
@@ -228,18 +203,7 @@ impl TransformBlockCipher {
         Ok(())
     }
 
-    fn decrypt_aes_ecb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Self::aes_check_length(buffer.len())?;
-
-        Ok(match self.settings.key {
-            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes128, self.settings.padding),
-            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes192, self.settings.padding),
-            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, Default::default(), Ecb, Aes256, self.settings.padding),
-            _ => bail!("Invalid key size for AES-ECB"),
-        }.to_vec())
-    }
-
-    fn decrypt_aes_cbc(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    fn decrypt_aes(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         Self::aes_check_length(buffer.len())?;
 
         // Get the iv, or a default blank one
@@ -248,67 +212,68 @@ impl TransformBlockCipher {
             None     => [0; 16],
         };
 
-        Ok(match self.settings.key {
-            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, self.settings.padding),
-            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, self.settings.padding),
-            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, self.settings.padding),
-            _ => bail!("Invalid key size for AES-CBC"),
+        Ok(match (self.settings.key, self.settings.mode, self.settings.padding) {
+            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes256, NoPadding),
+
+            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, NoPadding),
+
+            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, NoPadding),
+
+            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Ecb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Ecb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Ecb, Aes256, Pkcs7),
+
+            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
+
+            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
+
+            (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
     }
 
-    fn decrypt_aes_cfb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Self::aes_check_length(buffer.len())?;
-
+    fn encrypt_aes(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         // Get the iv, or a default blank one
         let iv = match self.settings.iv {
             Some(iv) => iv.get128()?,
             None     => [0; 16],
         };
 
-        Ok(match self.settings.key {
-            KeyOrIV::Bits128(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, self.settings.padding),
-            KeyOrIV::Bits192(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, self.settings.padding),
-            KeyOrIV::Bits256(k) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, self.settings.padding),
-            _ => bail!("Invalid key size for AES-CFB"),
-        }.to_vec())
-    }
+        Ok(match (self.settings.key, self.settings.mode, self.settings.padding) {
+            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, NoPadding),
 
-    fn encrypt_aes_ecb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Ok(match self.settings.key {
-            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes128, self.settings.padding),
-            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes192, self.settings.padding),
-            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, Default::default(), Ecb, Aes256, self.settings.padding),
-            _ => bail!("Invalid key size for AES-ECB"),
-        }.to_vec())
-    }
+            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, NoPadding),
 
-    fn encrypt_aes_cbc(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        // Get the iv, or a default blank one
-        let iv = match self.settings.iv {
-            Some(iv) => iv.get128()?,
-            None     => [0; 16],
-        };
+            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, NoPadding),
 
-        Ok(match self.settings.key {
-            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, self.settings.padding),
-            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, self.settings.padding),
-            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, self.settings.padding),
-            _ => bail!("Invalid key size for AES-CBC"),
-        }.to_vec())
-    }
+            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, Pkcs7),
 
-    fn encrypt_aes_cfb(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        // Get the iv, or a default blank one
-        let iv = match self.settings.iv {
-            Some(iv) => iv.get128()?,
-            None     => [0; 16],
-        };
+            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
 
-        Ok(match self.settings.key {
-            KeyOrIV::Bits128(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, self.settings.padding),
-            KeyOrIV::Bits192(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, self.settings.padding),
-            KeyOrIV::Bits256(k) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, self.settings.padding),
-            _ => bail!("Invalid key size for AES-CBC"),
+            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
+
+            (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
     }
 
@@ -325,20 +290,16 @@ impl TransformerTrait for TransformBlockCipher {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         self.validate_settings()?;
 
-        match (self.settings.cipher, self.settings.mode) {
-            (CipherType::AES, CipherMode::ECB) => self.decrypt_aes_ecb(buffer),
-            (CipherType::AES, CipherMode::CBC) => self.decrypt_aes_cbc(buffer),
-            (CipherType::AES, CipherMode::CFB) => self.decrypt_aes_cfb(buffer),
+        match self.settings.cipher {
+            CipherType::AES => self.decrypt_aes(buffer)
         }
     }
 
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         self.validate_settings()?;
 
-        match (self.settings.cipher, self.settings.mode) {
-            (CipherType::AES, CipherMode::ECB) => self.encrypt_aes_ecb(buffer),
-            (CipherType::AES, CipherMode::CBC) => self.encrypt_aes_cbc(buffer),
-            (CipherType::AES, CipherMode::CFB) => self.encrypt_aes_cfb(buffer),
+        match self.settings.cipher {
+            CipherType::AES => self.encrypt_aes(buffer)
         }
     }
 
