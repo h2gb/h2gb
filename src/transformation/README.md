@@ -9,7 +9,7 @@ saving any context (while the length is constant, the data isn't always
 identical - like the case of Base32 and hex strings). If proper undo/redo
 is needed, this won't fit the bill.
 
-Check out the definition of the `Transformation` enum for full details on
+Check out the definition of the [`Transformation`] enum for full details on
 everything it can do!
 
 ## Usage

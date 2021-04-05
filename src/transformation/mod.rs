@@ -9,7 +9,7 @@
 //! identical - like the case of Base32 and hex strings). If proper undo/redo
 //! is needed, this won't fit the bill.
 //!
-//! Check out the definition of the `Transformation` enum for full details on
+//! Check out the definition of the [`Transformation`] enum for full details on
 //! everything it can do!
 //!
 //! # Usage
@@ -66,7 +66,7 @@ use transform_hex::TransformHex;
 
 mod transform_block_cipher;
 use transform_block_cipher::TransformBlockCipher;
-pub use transform_block_cipher::BlockCipherSettings;
+pub use transform_block_cipher::{BlockCipherSettings, CipherPadding, CipherType, CipherMode};
 
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
@@ -123,7 +123,7 @@ pub enum Transformation {
     ///
     /// // Input: "\x00\x01\x02\x03", XorSettings::SixteenBit(0xFF00)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
-
+    ///
     /// // Output: "\xFF\x01\xFD\x03"
     /// let o = Transformation::XorByConstant(XorSettings::SixteenBit(0xFF00)).transform(&i);
     /// assert_eq!(Ok(b"\xff\x01\xfd\x03".to_vec()), o);
@@ -143,10 +143,13 @@ pub enum Transformation {
     /// ```
     XorByConstant(XorSettings),
 
-    /// Generic Base64
+    /// Generic Base64 implementation.
+    ///
+    /// You can use this and set up your [`Base64Settings`] by hand, if you
+    /// like, or you can use one of the other Base64 types from this enum.
     FromBase64(Base64Settings),
 
-    /// Convert from standard Base64 with padding.
+    /// Convert from standard Base64 with padding (the '=' signs at the end).
     ///
     /// # Example
     ///
@@ -333,7 +336,10 @@ pub enum Transformation {
     /// ```
     FromBase64URLPermissive,
 
-    /// General base32 class
+    /// General Base32 class.
+    ///
+    /// You can use this class and set up the [`Base32Settings`] by hand, or
+    /// just use one of the pre-configured variants below.
     FromBase32(Base32Settings),
 
     /// Convert from standard Base32 with padding. Case is ignored.
@@ -541,6 +547,40 @@ pub enum Transformation {
     /// and a-f.
     FromHex,
 
+    /// Convert from a block cipher such as AES and DES.
+    ///
+    /// Block ciphers have a lot of knobs, such as the algorithm, the key,
+    /// the IV, mode of operation, and so on. These options are all included
+    /// in the [`BlockCipherSettings`] struct.
+    ///
+    /// # Example
+    ///
+    /// This is AES-128-CBC with Pkcs7 padding and a key/IV (this is by far the
+    /// most common operation I see).
+    ///
+    /// ```
+    /// use libh2gb::transformation::*;
+    ///
+    /// let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+    ///     CipherType::AES, // AES algorithm
+    ///     CipherMode::CBC, // Cipher block chaining
+    ///     CipherPadding::Pkcs7, // Pkcs7 is the usual padding
+    ///     b"AAAAAAAAAAAAAAAA".to_vec(), // A 128-bit key
+    ///     Some(b"BBBBBBBBBBBBBBBB".to_vec()), // A 128-bit IV
+    /// ).unwrap());
+    ///
+    ///
+    /// // Here's some encrypted data that I generated with Ruby:
+    /// // irb(main):057:0> c = OpenSSL::Cipher.new('AES-128-CBC')
+    /// // irb(main):058:0> c.encrypt
+    /// // irb(main):059:0> c.key = 'A' * 16
+    /// // irb(main):060:0> c.iv = 'B' * 16
+    /// // irb(main):061:0> puts (c.update("Hello example section!") + c.final()).bytes.map { |b| '\x%02x' % b }.join
+    /// // => \x9c\xf2\x65\x82\xa2\xa7\x8b\x65\xcb\x41\xbc\x2d\x02\x1a\xe4\x18\xaf\xf4\xbc\x9e\xf4\x0c\x8a\x26\xc4\x97\x22\x26\x3e\xc2\x34\x95
+    ///
+    /// let result = transformation.transform(&b"\x9c\xf2\x65\x82\xa2\xa7\x8b\x65\xcb\x41\xbc\x2d\x02\x1a\xe4\x18\xaf\xf4\xbc\x9e\xf4\x0c\x8a\x26\xc4\x97\x22\x26\x3e\xc2\x34\x95".to_vec()).unwrap();
+    /// assert_eq!(b"Hello example section!".to_vec(), result);
+    /// ```
     FromBlockCipher(BlockCipherSettings),
 }
 
