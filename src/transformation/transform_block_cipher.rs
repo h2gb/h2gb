@@ -2,7 +2,7 @@ use aes::{Aes128, Aes192, Aes256};
 use des::Des;
 use block_modes::{BlockMode, Ecb, Cbc, Cfb};
 // use block_modes::{Cfb8, Ofb, Pcbc}
-use block_modes::block_padding::{NoPadding, Pkcs7};
+use block_modes::block_padding::{NoPadding, Pkcs7, ZeroPadding};
 
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
@@ -86,6 +86,7 @@ impl KeyOrIV {
 pub enum CipherPadding {
     NoPadding,
     Pkcs7,
+    ZeroPadding,
 }
 
 #[allow(non_camel_case_types)]
@@ -202,6 +203,18 @@ impl TransformBlockCipher {
             (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
             (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
 
+            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes256, ZeroPadding),
+
+            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, ZeroPadding),
+
+            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, ZeroPadding),
+
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
     }
@@ -224,6 +237,10 @@ impl TransformBlockCipher {
             (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
             (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
 
+            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Des, ZeroPadding),
+
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
     }
@@ -243,6 +260,10 @@ impl TransformBlockCipher {
             (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Des, Pkcs7),
             (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
             (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
+
+            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Des, ZeroPadding),
 
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
@@ -279,6 +300,18 @@ impl TransformBlockCipher {
             (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
             (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
             (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
+
+            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, ZeroPadding),
+
+            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, ZeroPadding),
+
+            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, ZeroPadding),
 
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
@@ -689,6 +722,39 @@ mod tests {
         for (plaintext, key, iv, mode, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
                 CipherType::DES,
+                mode,
+                padding,
+                key,
+                iv,
+            )?);
+
+            let result = transformation.transform(&ciphertext)?;
+            assert_eq!(plaintext, result, "des transform {}", std::str::from_utf8(&plaintext).unwrap());
+
+            let result = transformation.untransform(&result)?;
+            assert_eq!(ciphertext, result, "des untransform {}", std::str::from_utf8(&plaintext).unwrap());
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_zero_padding() -> SimpleResult<()> {
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherMode, CipherPadding, Vec<u8>)> = vec![
+            (
+                b"TEST Zero Pad".to_vec(),                                     // Plaintext
+                b"AAAAAAAAAAAAAAAA".to_vec(),                                  // Key
+                None,                                                          // IV
+                CipherMode::ECB,
+                CipherPadding::ZeroPadding,                                    // Padding
+                // Ciphertext
+                b"\xd2\xc0\xaf\x98\xae\xf3\xce\x2d\x95\x93\x37\xe6\x9a\xcb\x7f\x31".to_vec(),
+            ),
+        ];
+
+        for (plaintext, key, iv, mode, padding, ciphertext) in tests {
+            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+                CipherType::AES,
                 mode,
                 padding,
                 key,
