@@ -58,5 +58,15 @@ impl KeyOrIV {
             _ => bail!("Invalid IV length"),
         }
     }
+
+    /// Get the value as a 256-bit key, or throw an error.
+    ///
+    /// This simplifies validating an AES IV.
+    pub fn get256(self) -> SimpleResult<[u8; 32]> {
+        match self {
+            KeyOrIV::Bits256(v) => Ok(v),
+            _ => bail!("Invalid IV length"),
+        }
+    }
 }
 
