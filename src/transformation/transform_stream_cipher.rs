@@ -10,7 +10,6 @@ use crate::transformation::key_or_iv::KeyOrIV;
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum StreamCipherType {
-    Chacha20,
     Salsa20,
 }
 
@@ -44,7 +43,7 @@ impl StreamCipherSettings {
         Ok(result)
     }
 
-    /// Internal function to decrypt AES with any settings.
+    /// Internal function to decrypt
     fn decrypt_salsa20(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         // Make sure the nonce is sane
         let nonce = self.iv.get64()?;
@@ -73,17 +72,49 @@ impl StreamCipherSettings {
         Ok(encrypted)
     }
 
+    /// Internal function to encrypt
     fn encrypt_salsa20(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         // Encrypting is literally identical to decrypting
         self.decrypt_salsa20(buffer)
     }
+
+    // /// Internal function to decrypt
+    // fn decrypt_chacha(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    //     // Make sure the nonce is sane
+    //     let nonce = self.iv.get64()?;
+
+    //     // Create a buffer for the output
+    //     let mut encrypted = vec![0; buffer.len()];
+
+    //     match self.key {
+    //         KeyOrIV::Bits256(k) => {
+    //             let mut c = match ChaCha::with_key_and_nonce(&k, &nonce) {
+    //                 Ok(c) => c,
+    //                 Err(e) => bail!("ChaCha cipher failed: {}", e),
+    //             };
+    //             c.crypt(&mut encrypted, buffer);
+    //         },
+    //         _ => bail!("Invalid key size for ChaCha"),
+    //     };
+
+    //     Ok(encrypted)
+    // }
+
+    // /// Internal function to encrypt
+    // fn encrypt_chacha(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
+    //     // Encrypting is literally identical to decrypting
+    //     self.decrypt_chacha(buffer)
+    // }
 
     /// Sanity check settings (key size, IV, etc).
     fn validate_settings(self) -> SimpleResult<()> {
         match (self.cipher, self.iv, self.key) {
             (StreamCipherType::Salsa20, KeyOrIV::Bits64(_), KeyOrIV::Bits128(_)) => (),
             (StreamCipherType::Salsa20, KeyOrIV::Bits64(_), KeyOrIV::Bits256(_)) => (),
-            (_, _, _) => bail!("Invalid stream cipher settings"),
+            (StreamCipherType::Salsa20, _, _) => bail!("Invalid stream cipher settings for Salsa20"),
+
+            // (StreamCipherType::ChaCha,  KeyOrIV::Bits64(_), KeyOrIV::Bits256(_)) => (),
+            // (StreamCipherType::ChaCha, _, _) => bail!("Invalid stream cipher settings for ChaCha"),
         }
 
         Ok(())
@@ -111,7 +142,7 @@ impl TransformerTrait for TransformStreamCipher {
 
         match self.settings.cipher {
             StreamCipherType::Salsa20 => self.settings.decrypt_salsa20(buffer),
-            _ => bail!("Not implemented"),
+            // StreamCipherType::ChaCha  => self.settings.decrypt_chacha(buffer),
         }
     }
 
@@ -121,7 +152,7 @@ impl TransformerTrait for TransformStreamCipher {
 
         match self.settings.cipher {
             StreamCipherType::Salsa20 => self.settings.encrypt_salsa20(buffer),
-            _ => bail!("Not implemented"),
+            // StreamCipherType::ChaCha  => self.settings.encrypt_chacha(buffer),
         }
     }
 }
@@ -168,4 +199,42 @@ mod tests {
 
         Ok(())
     }
+
+    // #[test]
+    // fn test_chacha() -> SimpleResult<()> {
+    //     let tests: Vec<(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>)> = vec![
+    //         (
+    //             b"\xe2\x8a\x5f\xa4\xa6\x7f\x8c\x5d\xef\xed\x3e\x6f\xb7\x30\x34\x86".to_vec(),
+    //             b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+    //               \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec(), // Key
+    //             b"\x00\x00\x00\x00\x00\x00\x00\x00".to_vec(),                                 // IV
+    //             // Ciphertext
+    //             b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec(), // Plaintext
+    //         ),
+    //         // (
+    //         //     b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec(), // Plaintext
+    //         //     b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
+    //         //       \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec(), // Key
+    //         //     b"\x01\x01\x01\x01\x01\x01\x01\x01".to_vec(),                                 // IV
+    //         //     // Ciphertext
+    //         //     b"".to_vec()
+    //         // ),
+    //     ];
+
+    //     for (plaintext, key, iv, ciphertext) in tests {
+    //         let transformation = Transformation::FromStreamCipher(StreamCipherSettings::new(
+    //             StreamCipherType::Salsa20,
+    //             key,
+    //             iv,
+    //         )?);
+
+    //         let result = transformation.transform(&ciphertext)?;
+    //         assert_eq!(plaintext, result);
+
+    //         // let result = transformation.untransform(&result)?;
+    //         // assert_eq!(ciphertext, result, "chacha untransform {}", std::str::from_utf8(&plaintext).unwrap());
+    //     }
+
+    //     Ok(())
+    // }
 }
