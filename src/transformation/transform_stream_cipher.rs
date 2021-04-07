@@ -124,14 +124,6 @@ impl TransformerTrait for TransformStreamCipher {
             _ => bail!("Not implemented"),
         }
     }
-
-    /// check() =~ does decrypt work?
-    ///
-    /// We could probably improve this with certain modes of operation, but
-    /// I don't think it's worth the trouble.
-    fn check(&self, buffer: &Vec<u8>) -> bool {
-        self.transform(buffer).is_ok()
-    }
 }
 
 #[cfg(test)]

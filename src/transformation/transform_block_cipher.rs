@@ -394,14 +394,6 @@ impl TransformerTrait for TransformBlockCipher {
             CipherType::DES => self.settings.encrypt_des(buffer),
         }
     }
-
-    /// check() =~ does decrypt work?
-    ///
-    /// We could probably improve this with certain modes of operation, but
-    /// I don't think it's worth the trouble.
-    fn check(&self, buffer: &Vec<u8>) -> bool {
-        self.transform(buffer).is_ok()
-    }
 }
 
 #[cfg(test)]

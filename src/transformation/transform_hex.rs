@@ -29,10 +29,6 @@ impl TransformerTrait for TransformHex {
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         Ok(hex::encode(buffer).into_bytes())
     }
-
-    fn check(&self, buffer: &Vec<u8>) -> bool {
-        self.transform(buffer).is_ok()
-    }
 }
 
 #[cfg(test)]
