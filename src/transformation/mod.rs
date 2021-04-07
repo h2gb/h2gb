@@ -68,6 +68,13 @@ mod transform_block_cipher;
 use transform_block_cipher::TransformBlockCipher;
 pub use transform_block_cipher::{BlockCipherSettings, CipherPadding, CipherType, CipherMode};
 
+mod transform_stream_cipher;
+use transform_stream_cipher::TransformStreamCipher;
+pub use transform_stream_cipher::{StreamCipherType, StreamCipherSettings};
+
+mod key_or_iv;
+
+// XXX: Move this to its own file (maybe /helpers?), and implement check(), and add is_two_way
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
@@ -582,6 +589,9 @@ pub enum Transformation {
     /// assert_eq!(b"Hello example section!".to_vec(), result);
     /// ```
     FromBlockCipher(BlockCipherSettings),
+
+    /// XXX: Documentation
+    FromStreamCipher(StreamCipherSettings),
 }
 
 /// A list of transformations that can automatically be detected.
@@ -633,7 +643,8 @@ impl Transformation {
 
             Self::FromHex                       => Box::new(TransformHex::new()),
 
-            Self::FromBlockCipher(s)                    => Box::new(TransformBlockCipher::new(*s)),
+            Self::FromBlockCipher(s)            => Box::new(TransformBlockCipher::new(*s)),
+            Self::FromStreamCipher(s)           => Box::new(TransformStreamCipher::new(*s)),
         }
     }
 
@@ -691,7 +702,8 @@ impl Transformation {
             Self::FromBase32NoPadding           => true,
             Self::FromBase32Crockford           => true,
             Self::FromHex                       => true,
-            Self::FromBlockCipher(_)                    => true,
+            Self::FromBlockCipher(_)            => true,
+            Self::FromStreamCipher(_)           => true,
 
             Self::FromBase64Permissive          => false,
             Self::FromBase64URLPermissive       => false,
