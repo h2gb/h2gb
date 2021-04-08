@@ -12,11 +12,6 @@ impl TransformNull {
     pub fn new() -> Self {
         TransformNull {}
     }
-
-    pub fn detect(_buffer: &Vec<u8>) -> Vec<Transformation> {
-        // Detecting null transforms is silly
-        vec![]
-    }
 }
 
 impl TransformerTrait for TransformNull {
@@ -34,6 +29,10 @@ impl TransformerTrait for TransformNull {
 
     fn is_two_way(&self) -> bool {
         true
+    }
+
+    fn detect(_buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
+        vec![]
     }
 }
 

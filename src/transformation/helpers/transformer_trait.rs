@@ -1,4 +1,5 @@
 use simple_error::SimpleResult;
+use crate::transformation::Transformation;
 
 pub trait TransformerTrait {
     /// A transform takes a buffer that's encoded and decodes it.
@@ -23,4 +24,6 @@ pub trait TransformerTrait {
     /// that's the same length as the original, but not necessarily the same
     /// exact content.
     fn is_two_way(&self) -> bool;
+
+    fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized;
 }

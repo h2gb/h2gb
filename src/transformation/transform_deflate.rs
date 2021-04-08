@@ -60,22 +60,6 @@ impl TransformDeflate {
         // The only reasonable way to check is by just doing it
         self.transform_deflated_zlib(buffer).is_ok()
     }
-
-    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
-        let mut out: Vec<_> = Vec::new();
-
-        let t = Transformation::FromDeflatedZlibHeader;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        let t = Transformation::FromDeflatedNoZlibHeader;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        out
-    }
 }
 
 impl TransformerTrait for TransformDeflate {
@@ -100,6 +84,22 @@ impl TransformerTrait for TransformDeflate {
     fn is_two_way(&self) -> bool {
         // Deflate can't reliably go backwards
         false
+    }
+
+    fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
+        let mut out: Vec<_> = Vec::new();
+
+        let t = Transformation::FromDeflatedZlibHeader;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        let t = Transformation::FromDeflatedNoZlibHeader;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        out
     }
 }
 

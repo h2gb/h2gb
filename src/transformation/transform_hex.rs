@@ -12,14 +12,6 @@ impl TransformHex {
     pub fn new() -> Self {
         TransformHex {}
     }
-
-    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
-        let s = Self::new();
-        match s.check(buffer) {
-            true => vec![Transformation::FromHex],
-            false => vec![],
-        }
-    }
 }
 
 impl TransformerTrait for TransformHex {
@@ -41,6 +33,14 @@ impl TransformerTrait for TransformHex {
 
     fn is_two_way(&self) -> bool {
         true
+    }
+
+    fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
+        let s = Self::new();
+        match s.check(buffer) {
+            true => vec![Transformation::FromHex],
+            false => vec![],
+        }
     }
 }
 

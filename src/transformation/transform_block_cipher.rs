@@ -372,10 +372,6 @@ impl TransformBlockCipher {
             settings: settings,
         }
     }
-
-    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
-        vec![]
-    }
 }
 
 impl TransformerTrait for TransformBlockCipher {
@@ -402,6 +398,10 @@ impl TransformerTrait for TransformBlockCipher {
     fn is_two_way(&self) -> bool {
         // Block ciphers can always go back and forth!
         true
+    }
+
+    fn detect(_buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
+        vec![]
     }
 }
 

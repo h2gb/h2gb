@@ -133,32 +133,6 @@ impl TransformBase64 {
         // The only reasonable way to check is by just doing it (since the config is opaque to us)
         self.transform_permissive(buffer).is_ok()
     }
-
-    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
-        let mut out: Vec<_> = Vec::new();
-
-        let t = Transformation::FromBase64Standard;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        let t = Transformation::FromBase64NoPadding;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        let t = Transformation::FromBase64URL;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        let t = Transformation::FromBase64URLNoPadding;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        out
-    }
 }
 
 impl TransformerTrait for TransformBase64 {
@@ -187,6 +161,32 @@ impl TransformerTrait for TransformBase64 {
         // It's two-way if it's not permissive (permissive allows illegal stuff,
         // which would only be one way).
         !self.settings.permissive
+    }
+
+    fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
+        let mut out: Vec<_> = Vec::new();
+
+        let t = Transformation::FromBase64Standard;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        let t = Transformation::FromBase64NoPadding;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        let t = Transformation::FromBase64URL;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        let t = Transformation::FromBase64URLNoPadding;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        out
     }
 }
 
