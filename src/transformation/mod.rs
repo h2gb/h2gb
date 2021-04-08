@@ -708,8 +708,6 @@ impl Transformation {
     ///
     /// Does not require a buffer, because the variant itself is enough to
     /// make this determination.
-    ///
-    /// TODO: Move this into the trait
     pub fn is_two_way(&self) -> bool {
         self.get_transformer().is_two_way()
     }
