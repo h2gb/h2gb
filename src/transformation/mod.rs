@@ -66,7 +66,7 @@ use transform_hex::TransformHex;
 
 mod transform_block_cipher;
 use transform_block_cipher::TransformBlockCipher;
-pub use transform_block_cipher::{BlockCipherSettings, CipherPadding, CipherType, CipherMode};
+pub use transform_block_cipher::{BlockCipherSettings, BlockCipherPadding, BlockCipherType, BlockCipherMode};
 
 mod transform_stream_cipher;
 use transform_stream_cipher::TransformStreamCipher;
@@ -578,9 +578,9 @@ pub enum Transformation {
     /// use libh2gb::transformation::*;
     ///
     /// let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-    ///     CipherType::AES, // AES algorithm
-    ///     CipherMode::CBC, // Cipher block chaining
-    ///     CipherPadding::Pkcs7, // Pkcs7 is the usual padding
+    ///     BlockCipherType::AES, // AES algorithm
+    ///     BlockCipherMode::CBC, // Cipher block chaining
+    ///     BlockCipherPadding::Pkcs7, // Pkcs7 is the usual padding
     ///     b"AAAAAAAAAAAAAAAA".to_vec(), // A 128-bit key
     ///     Some(b"BBBBBBBBBBBBBBBB".to_vec()), // A 128-bit IV
     /// ).unwrap());

@@ -38,11 +38,11 @@ macro_rules! encrypt {
 
 /// How should the ciphertext's padding be validated?
 ///
-/// If in doubt, use [`CipherPadding::NoPadding`]. You'll see the padding in
+/// If in doubt, use [`BlockCipherPadding::NoPadding`]. You'll see the padding in
 /// the output, then you can match it up to the correct padding if NoPadding
 /// was incorrect
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub enum CipherPadding {
+pub enum BlockCipherPadding {
     /// Don't touch padding at all.
     ///
     /// The advantage is that you'll see the output in all its glory.
@@ -74,7 +74,7 @@ pub enum CipherPadding {
 /// you need `AES128`, `AES192`, or `AES256` will be sorted out at runtime.
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub enum CipherType {
+pub enum BlockCipherType {
     /// AES (128, 192, or 256-bit keys)
     AES,
 
@@ -88,9 +88,9 @@ pub enum CipherType {
 /// end up in a situation where the first block is correct and the rest are
 /// wrong, you might be using the wrong mode!
 ///
-/// If in doubt, try [`CipherMode::CBC`] or [`CipherMode::ECB`].
+/// If in doubt, try [`BlockCipherMode::CBC`] or [`BlockCipherMode::ECB`].
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub enum CipherMode {
+pub enum BlockCipherMode {
     /// Electronic Codebook
     ///
     /// Each block is encrypted independently of all the others. Really bad!
@@ -113,9 +113,9 @@ pub enum CipherMode {
 /// serializable place.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct BlockCipherSettings {
-    cipher: CipherType,
-    mode: CipherMode,
-    padding: CipherPadding,
+    cipher: BlockCipherType,
+    mode: BlockCipherMode,
+    padding: BlockCipherPadding,
     key: KeyOrIV,
     iv: Option<KeyOrIV>,
 }
@@ -126,7 +126,7 @@ impl BlockCipherSettings {
     /// The settings are validated as much as possible (key lengths and such),
     /// then they are "written in stone", so to speak - you can't change them
     /// without creating a new instance.
-    pub fn new(cipher: CipherType, mode: CipherMode, padding: CipherPadding, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
+    pub fn new(cipher: BlockCipherType, mode: BlockCipherMode, padding: BlockCipherPadding, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
         // Validate and store the key
         let key = KeyOrIV::new(key)?;
 
@@ -181,41 +181,41 @@ impl BlockCipherSettings {
         };
 
         Ok(match (self.key, self.mode, self.padding) {
-            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Ecb, Aes128, NoPadding),
-            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Ecb, Aes192, NoPadding),
-            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Ecb, Aes256, NoPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Ecb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Ecb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Ecb, Aes256, NoPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cbc, Aes192, NoPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cbc, Aes256, NoPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cbc, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cbc, Aes256, NoPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cfb, Aes192, NoPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cfb, Aes256, NoPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cfb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding)   => decrypt!(&buffer, &k, &iv, Cfb, Aes256, NoPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Ecb, Aes128, Pkcs7),
-            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Ecb, Aes192, Pkcs7),
-            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Ecb, Aes256, Pkcs7),
+            (KeyOrIV::Bits128(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Ecb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Ecb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Ecb, Aes256, Pkcs7),
 
-            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
-            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
-            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
 
-            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
-            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
-            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7)       => decrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
 
-            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes128, ZeroPadding),
-            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes192, ZeroPadding),
-            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes256, ZeroPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Aes256, ZeroPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, ZeroPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, ZeroPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, ZeroPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Aes256, ZeroPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, ZeroPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, ZeroPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, ZeroPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Aes256, ZeroPadding),
 
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
@@ -230,41 +230,41 @@ impl BlockCipherSettings {
         };
 
         Ok(match (self.key, self.mode, self.padding) {
-            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, NoPadding),
-            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, NoPadding),
-            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, NoPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, NoPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, NoPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, NoPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, NoPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, NoPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, NoPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, NoPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, NoPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, NoPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, Pkcs7),
-            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, Pkcs7),
-            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, Pkcs7),
+            (KeyOrIV::Bits128(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, Pkcs7),
 
-            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
-            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
-            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, Pkcs7),
 
-            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
-            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
-            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, Pkcs7),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, Pkcs7),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, Pkcs7),
 
-            (KeyOrIV::Bits128(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, ZeroPadding),
-            (KeyOrIV::Bits192(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, ZeroPadding),
-            (KeyOrIV::Bits256(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, ZeroPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Aes256, ZeroPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, ZeroPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, ZeroPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, ZeroPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Aes256, ZeroPadding),
 
-            (KeyOrIV::Bits128(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, ZeroPadding),
-            (KeyOrIV::Bits192(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, ZeroPadding),
-            (KeyOrIV::Bits256(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, ZeroPadding),
+            (KeyOrIV::Bits128(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes128, ZeroPadding),
+            (KeyOrIV::Bits192(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes192, ZeroPadding),
+            (KeyOrIV::Bits256(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Aes256, ZeroPadding),
 
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
@@ -281,17 +281,17 @@ impl BlockCipherSettings {
         };
 
         Ok(match (self.key, self.mode, self.padding) {
-            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Ecb, Des, NoPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cbc, Des, NoPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cfb, Des, NoPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Ecb, Des, NoPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cbc, Des, NoPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding) => decrypt!(&buffer, &k, &iv, Cfb, Des, NoPadding),
 
-            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Ecb, Des, Pkcs7),
-            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
-            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Ecb, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7) => decrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
 
-            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Des, ZeroPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Des, ZeroPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Ecb, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cbc, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => decrypt!(&buffer, &k, &iv, Cfb, Des, ZeroPadding),
 
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
@@ -306,17 +306,17 @@ impl BlockCipherSettings {
         };
 
         Ok(match (self.key, self.mode, self.padding) {
-            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Des, NoPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Des, NoPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Des, NoPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::ECB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Ecb, Des, NoPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CBC, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cbc, Des, NoPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CFB, BlockCipherPadding::NoPadding) => encrypt!(&buffer, &k, &iv, Cfb, Des, NoPadding),
 
-            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Des, Pkcs7),
-            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
-            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), BlockCipherMode::ECB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Ecb, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CBC, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cbc, Des, Pkcs7),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CFB, BlockCipherPadding::Pkcs7) => encrypt!(&buffer, &k, &iv, Cfb, Des, Pkcs7),
 
-            (KeyOrIV::Bits64(k), CipherMode::ECB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Des, ZeroPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CBC, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Des, ZeroPadding),
-            (KeyOrIV::Bits64(k), CipherMode::CFB, CipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::ECB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Ecb, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CBC, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cbc, Des, ZeroPadding),
+            (KeyOrIV::Bits64(k), BlockCipherMode::CFB, BlockCipherPadding::ZeroPadding) => encrypt!(&buffer, &k, &iv, Cfb, Des, ZeroPadding),
 
             (_, _, _) => bail!("Invalid key size, mode, or padding"),
         }.to_vec())
@@ -327,16 +327,16 @@ impl BlockCipherSettings {
         // Validate the iv for ECB mode
         match (self.iv, self.mode) {
             // Don't allow an IV with ECB ever
-            (Some(_), CipherMode::ECB) => bail!("ECB is not compatible with IVs"),
+            (Some(_), BlockCipherMode::ECB) => bail!("ECB is not compatible with IVs"),
 
             // If the iv is set, make sure it's the correct length
             (Some(iv), _) => {
                 match (self.cipher, iv) {
-                    (CipherType::AES, KeyOrIV::Bits128(_)) => (),
-                    (CipherType::AES, _) => bail!("Invalid IV size for AES (must be 128 bits)"),
+                    (BlockCipherType::AES, KeyOrIV::Bits128(_)) => (),
+                    (BlockCipherType::AES, _) => bail!("Invalid IV size for AES (must be 128 bits)"),
 
-                    (CipherType::DES, KeyOrIV::Bits64(_)) => (),
-                    (CipherType::DES, _) => bail!("Invalid IV size for DES (must be 64 bits)"),
+                    (BlockCipherType::DES, KeyOrIV::Bits64(_)) => (),
+                    (BlockCipherType::DES, _) => bail!("Invalid IV size for DES (must be 64 bits)"),
                 }
             },
 
@@ -347,13 +347,13 @@ impl BlockCipherSettings {
 
         // Validate the key length
         match (self.cipher, self.key) {
-            (CipherType::AES, KeyOrIV::Bits128(_)) => (),
-            (CipherType::AES, KeyOrIV::Bits192(_)) => (),
-            (CipherType::AES, KeyOrIV::Bits256(_)) => (),
-            (CipherType::AES, _) => bail!("Invalid key size for AES (must be 128, 192, or 256 bits)"),
+            (BlockCipherType::AES, KeyOrIV::Bits128(_)) => (),
+            (BlockCipherType::AES, KeyOrIV::Bits192(_)) => (),
+            (BlockCipherType::AES, KeyOrIV::Bits256(_)) => (),
+            (BlockCipherType::AES, _) => bail!("Invalid key size for AES (must be 128, 192, or 256 bits)"),
 
-            (CipherType::DES, KeyOrIV::Bits64(_)) => (),
-            (CipherType::DES, _) => bail!("Invalid key size for DES (must be 64 bits)"),
+            (BlockCipherType::DES, KeyOrIV::Bits64(_)) => (),
+            (BlockCipherType::DES, _) => bail!("Invalid key size for DES (must be 64 bits)"),
         };
 
         Ok(())
@@ -380,8 +380,8 @@ impl TransformerTrait for TransformBlockCipher {
         self.settings.validate_settings()?;
 
         match self.settings.cipher {
-            CipherType::AES => self.settings.decrypt_aes(buffer),
-            CipherType::DES => self.settings.decrypt_des(buffer),
+            BlockCipherType::AES => self.settings.decrypt_aes(buffer),
+            BlockCipherType::DES => self.settings.decrypt_des(buffer),
         }
     }
 
@@ -390,8 +390,8 @@ impl TransformerTrait for TransformBlockCipher {
         self.settings.validate_settings()?;
 
         match self.settings.cipher {
-            CipherType::AES => self.settings.encrypt_aes(buffer),
-            CipherType::DES => self.settings.encrypt_des(buffer),
+            BlockCipherType::AES => self.settings.encrypt_aes(buffer),
+            BlockCipherType::DES => self.settings.encrypt_des(buffer),
         }
     }
 }
@@ -405,11 +405,11 @@ mod tests {
 
     #[test]
     fn test_aes_ecb() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, CipherPadding, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, BlockCipherPadding, Vec<u8>)> = vec![
             (
                 b"Test for AES-128 with ECB padding and a couple blocks".to_vec(),            // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \xdc\x7e\x2f\x80\xcc\x6d\x67\xd9\xaa\xea\xda\x4f\xf3\xe6\x54\x52\
@@ -420,7 +420,7 @@ mod tests {
             (
                 b"Test for AES-192 with EBC chaining!".to_vec(),                               // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                          // Key
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                     // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \x26\x91\x98\x01\x45\x06\xf5\x95\x99\xb2\x9e\x3c\x13\xb5\xee\xb5\
@@ -429,8 +429,8 @@ mod tests {
 
             (
                 b"Final test for AES-256 ECB with a much longer plaintext and many blocks".to_vec(), // Plaintext
-                b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
-                CipherPadding::Pkcs7,                                                         // Padding
+                b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                        // Key
+                BlockCipherPadding::Pkcs7,                                                           // Padding
                 // Ciphertext
                 b"\xed\x79\xa2\x28\x21\x55\x65\xc9\x50\xbc\x93\xc8\xa3\xed\x6a\xc4\
                   \x10\x48\xc6\x47\xac\x30\xf0\x55\x96\xd1\xd6\xfc\x51\x5b\x6b\x04\
@@ -441,8 +441,8 @@ mod tests {
 
             (
                 b"Test for AES-128 with ECB padding and a couple blocks\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b".to_vec(), // Plaintext
-                b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
-                CipherPadding::NoPadding,                                                     // Padding
+                b"AAAAAAAAAAAAAAAA".to_vec(),                                                                                  // Key
+                BlockCipherPadding::NoPadding,                                                                                 // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \xdc\x7e\x2f\x80\xcc\x6d\x67\xd9\xaa\xea\xda\x4f\xf3\xe6\x54\x52\
@@ -452,8 +452,8 @@ mod tests {
 
             (
                 b"Test for AES-192 with EBC chaining!\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d\x0d".to_vec(), // Plaintext
-                b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                          // Key
-                CipherPadding::NoPadding,                                                     // Padding
+                b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                                                // Key
+                BlockCipherPadding::NoPadding,                                                                       // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \x26\x91\x98\x01\x45\x06\xf5\x95\x99\xb2\x9e\x3c\x13\xb5\xee\xb5\
@@ -462,8 +462,8 @@ mod tests {
 
             (
                 b"Final test for AES-256 ECB with a much longer plaintext and many blocks\x09\x09\x09\x09\x09\x09\x09\x09\x09".to_vec(), // Plaintext
-                b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
-                CipherPadding::NoPadding,                                                     // Padding
+                b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                                                            // Key
+                BlockCipherPadding::NoPadding,                                                                                           // Padding
                 // Ciphertext
                 b"\xed\x79\xa2\x28\x21\x55\x65\xc9\x50\xbc\x93\xc8\xa3\xed\x6a\xc4\
                   \x10\x48\xc6\x47\xac\x30\xf0\x55\x96\xd1\xd6\xfc\x51\x5b\x6b\x04\
@@ -475,8 +475,8 @@ mod tests {
 
         for (plaintext, key, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::AES,
-                CipherMode::ECB,
+                BlockCipherType::AES,
+                BlockCipherMode::ECB,
                 padding,
                 key,
                 None,
@@ -494,12 +494,12 @@ mod tests {
 
     #[test]
     fn test_aes_cbc() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherPadding, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, BlockCipherPadding, Vec<u8>)> = vec![
             (
                 b"Test for AES-128 with CBC padding and a couple blocks".to_vec(),            // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 None,                                                                         // IV
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \x21\x2c\x88\x77\x01\x5c\x28\xe9\xa6\xac\x34\xb8\xb4\x3c\x15\x21\
@@ -511,7 +511,7 @@ mod tests {
                 b"AES128 with an IV!".to_vec(),                                               // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x86\x62\x63\x07\x47\x5d\x2e\x61\x8e\x3d\xed\x1a\xff\x00\xef\xc3\
                   \x95\x8b\x83\x3d\xc8\x30\x6e\x50\x36\x4e\x6d\x29\x9e\x19\xd2\xc9".to_vec(),
@@ -521,7 +521,7 @@ mod tests {
                 b"Test for AES-192 with CBC padding!".to_vec(),                               // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \xed\xcf\x7c\xf3\xaa\xe0\xdb\xcc\x39\xd7\x7f\x24\x02\x6d\x6c\x98\
@@ -532,7 +532,7 @@ mod tests {
                 b"Final test for AES-256 with a longer plaintext".to_vec(),                   // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 None,                                                                         // IV
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\xed\x79\xa2\x28\x21\x55\x65\xc9\x50\xbc\x93\xc8\xa3\xed\x6a\xc4\
                   \xac\x6c\x8c\x56\x56\xea\x83\x29\x22\x43\x76\xa1\xe2\x2d\x74\xe3\
@@ -543,7 +543,7 @@ mod tests {
                 b"AES256 with an all-C IV!".to_vec(),                                         // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"CCCCCCCCCCCCCCCC".to_vec()),                                           // IV
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x99\x70\x25\x50\x5c\xd5\x9e\x9d\xc7\x73\x19\x94\x5c\xae\xc9\x9f\
                   \xd5\x28\x00\xf1\x34\xcd\xcf\xf9\xbf\x15\x08\x52\x2b\xd4\x09\xa2".to_vec(),
@@ -553,7 +553,7 @@ mod tests {
                 b"Test for AES-128 with CBC padding and a couple blocks\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 None,                                                                         // IV
-                CipherPadding::NoPadding,                                                     // Padding
+                BlockCipherPadding::NoPadding,                                                // Padding
                 // Ciphertext
                 b"\x8f\x43\x5a\x89\xf4\xda\x6b\x67\xe2\x2f\x43\xaf\x71\xbf\x93\xb0\
                   \x21\x2c\x88\x77\x01\x5c\x28\xe9\xa6\xac\x34\xb8\xb4\x3c\x15\x21\
@@ -565,7 +565,7 @@ mod tests {
                 b"Test for AES-192 with CBC padding!\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e\x0e".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                CipherPadding::NoPadding,                                                     // Padding
+                BlockCipherPadding::NoPadding,                                                // Padding
                 // Ciphertext
                 b"\x4d\x44\x10\x2e\x61\x88\xe9\xa0\xc5\xf0\x60\xd9\xb7\x0c\xc6\x75\
                   \xed\xcf\x7c\xf3\xaa\xe0\xdb\xcc\x39\xd7\x7f\x24\x02\x6d\x6c\x98\
@@ -576,7 +576,7 @@ mod tests {
                 b"AES256 with an all-C IV!\x08\x08\x08\x08\x08\x08\x08\x08".to_vec(),         // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"CCCCCCCCCCCCCCCC".to_vec()),                                           // IV
-                CipherPadding::NoPadding,                                                     // Padding
+                BlockCipherPadding::NoPadding,                                                // Padding
                 // Ciphertext
                 b"\x99\x70\x25\x50\x5c\xd5\x9e\x9d\xc7\x73\x19\x94\x5c\xae\xc9\x9f\
                   \xd5\x28\x00\xf1\x34\xcd\xcf\xf9\xbf\x15\x08\x52\x2b\xd4\x09\xa2".to_vec(),
@@ -585,8 +585,8 @@ mod tests {
 
         for (plaintext, key, iv, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::AES,
-                CipherMode::CBC,
+                BlockCipherType::AES,
+                BlockCipherMode::CBC,
                 padding,
                 key,
                 iv,
@@ -604,12 +604,12 @@ mod tests {
 
     #[test]
     fn test_aes_cfb() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherPadding, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, BlockCipherPadding, Vec<u8>)> = vec![
             (
                 b"Test for AES-128 with CFB padding and a couple blocks".to_vec(),            // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 b"\x65\x86\x49\x1a\x72\x36\xff\xe8\x5e\x10\xc9\xb4\x40\x1d\xad\x41\
                   \xd0\x55\x2f\x5c\xa9\x5b\xcb\xcf\x8b\x6e\xc8\x09\x73\xa7\x03\x3d\
                   \xb0\x10\x8c\x66\xa3\x18\xda\x1d\x46\x55\xb9\x61\xfa\xb2\xc9\x2e\
@@ -620,7 +620,7 @@ mod tests {
                 b"AES-192 + CFB!".to_vec(),                                                   // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x4e\x7c\x30\x7f\x6e\x64\xb0\x01\x11\x59\xaf\x39\xb2\xc6\x8f\xfe".to_vec(),
             ),
@@ -629,7 +629,7 @@ mod tests {
                 b"Final test for AES-256 with a longer plaintext".to_vec(),                   // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x89\x80\x0e\xd3\x0f\x53\x26\x36\xac\x10\xc7\x0c\x3e\x9d\x62\xc9\
                   \xf2\x34\xde\x6f\xf4\x6c\xcb\x68\xbb\xaa\x13\x8d\x89\xe8\x76\xb5\
@@ -639,8 +639,8 @@ mod tests {
             (
                 b"Test for AES-128 with CFB padding and a couple blocks\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b".to_vec(), // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                                 // Key
-                Some(b"BBBBBBBBBBBBBBBB".to_vec()),
-                CipherPadding::NoPadding,                                                     // Padding
+                Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
+                BlockCipherPadding::NoPadding,                                                // Padding
                 b"\x65\x86\x49\x1a\x72\x36\xff\xe8\x5e\x10\xc9\xb4\x40\x1d\xad\x41\
                   \xd0\x55\x2f\x5c\xa9\x5b\xcb\xcf\x8b\x6e\xc8\x09\x73\xa7\x03\x3d\
                   \xb0\x10\x8c\x66\xa3\x18\xda\x1d\x46\x55\xb9\x61\xfa\xb2\xc9\x2e\
@@ -651,7 +651,7 @@ mod tests {
                 b"AES-192 + CFB!\x02\x02".to_vec(),                                           // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                         // Key
                 None,                                                                         // IV
-                CipherPadding::NoPadding,                                                     // Padding
+                BlockCipherPadding::NoPadding,                                                // Padding
                 // Ciphertext
                 b"\x4e\x7c\x30\x7f\x6e\x64\xb0\x01\x11\x59\xaf\x39\xb2\xc6\x8f\xfe".to_vec(),
             ),
@@ -660,7 +660,7 @@ mod tests {
                 b"Final test for AES-256 with a longer plaintext\x02\x02".to_vec(),           // Plaintext
                 b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),                                 // Key
                 Some(b"BBBBBBBBBBBBBBBB".to_vec()),                                           // IV
-                CipherPadding::NoPadding,                                                     // Padding
+                BlockCipherPadding::NoPadding,                                                // Padding
                 // Ciphertext
                 b"\x89\x80\x0e\xd3\x0f\x53\x26\x36\xac\x10\xc7\x0c\x3e\x9d\x62\xc9\
                   \xf2\x34\xde\x6f\xf4\x6c\xcb\x68\xbb\xaa\x13\x8d\x89\xe8\x76\xb5\
@@ -670,8 +670,8 @@ mod tests {
 
         for (plaintext, key, iv, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::AES,
-                CipherMode::CFB,
+                BlockCipherType::AES,
+                BlockCipherMode::CFB,
                 padding,
                 key,
                 iv,
@@ -689,13 +689,13 @@ mod tests {
 
     #[test]
     fn test_des() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherMode, CipherPadding, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, BlockCipherMode, BlockCipherPadding, Vec<u8>)> = vec![
             (
                 b"DES-ECB!!".to_vec(),                                                        // Plaintext
                 b"AAAAAAAA".to_vec(),                                                         // Key
                 None,                                                                         // IV
-                CipherMode::ECB,
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherMode::ECB,
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x08\x39\x7c\x04\xb5\xbc\x8f\x3f\x01\x58\xb7\xc1\x70\x0e\xd6\x92".to_vec(),
             ),
@@ -703,17 +703,17 @@ mod tests {
                 b"DES-CBC!!".to_vec(),                                                        // Plaintext
                 b"AAAAAAAA".to_vec(),                                                         // Key
                 None,                                                                         // IV
-                CipherMode::CBC,
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherMode::CBC,
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x50\x1d\x75\x4f\x12\x6d\xa5\x8b\x8d\x19\x20\xf6\xb9\x24\x9e\xed".to_vec(),
             ),
             (
                 b"DES-CBC!!".to_vec(),                                                        // Plaintext
                 b"AAAAAAAA".to_vec(),                                                         // Key
-                Some(b"BBBBBBBB".to_vec()),                                                            // IV
-                CipherMode::CBC,
-                CipherPadding::Pkcs7,                                                         // Padding
+                Some(b"BBBBBBBB".to_vec()),                                                   // IV
+                BlockCipherMode::CBC,
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x71\x55\xb0\xdc\x7b\xed\xcd\x81\x3b\x81\xfa\x9a\xc7\x7c\x8a\x8e".to_vec(),
             ),
@@ -721,8 +721,8 @@ mod tests {
                 b"DES-CFB!!".to_vec(),                                                        // Plaintext
                 b"AAAAAAAA".to_vec(),                                                         // Key
                 None,                                                                         // IV
-                CipherMode::CFB,
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherMode::CFB,
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x80\xf2\x6b\xe0\x92\xcb\x2c\x69\xd0\xc4\x55\xea\x50\x98\xfd\x55".to_vec(),
             ),
@@ -730,8 +730,8 @@ mod tests {
                 b"DES-CFB!!".to_vec(),                                                        // Plaintext
                 b"AAAAAAAA".to_vec(),                                                         // Key
                 Some(b"BBBBBBBB".to_vec()),                                                   // IV
-                CipherMode::CFB,
-                CipherPadding::Pkcs7,                                                         // Padding
+                BlockCipherMode::CFB,
+                BlockCipherPadding::Pkcs7,                                                    // Padding
                 // Ciphertext
                 b"\x5c\xbb\x74\x22\xc2\x46\x5b\x3d\x73\xf2\x3c\xdf\xdf\x4d\x10\x37".to_vec(),
             ),
@@ -739,7 +739,7 @@ mod tests {
 
         for (plaintext, key, iv, mode, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::DES,
+                BlockCipherType::DES,
                 mode,
                 padding,
                 key,
@@ -758,13 +758,13 @@ mod tests {
 
     #[test]
     fn test_zero_padding() -> SimpleResult<()> {
-        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, CipherMode, CipherPadding, Vec<u8>)> = vec![
+        let tests: Vec<(Vec<u8>, Vec<u8>, Option<Vec<u8>>, BlockCipherMode, BlockCipherPadding, Vec<u8>)> = vec![
             (
                 b"TEST Zero Pad".to_vec(),                                     // Plaintext
                 b"AAAAAAAAAAAAAAAA".to_vec(),                                  // Key
                 None,                                                          // IV
-                CipherMode::ECB,
-                CipherPadding::ZeroPadding,                                    // Padding
+                BlockCipherMode::ECB,
+                BlockCipherPadding::ZeroPadding,                               // Padding
                 // Ciphertext
                 b"\xd2\xc0\xaf\x98\xae\xf3\xce\x2d\x95\x93\x37\xe6\x9a\xcb\x7f\x31".to_vec(),
             ),
@@ -772,7 +772,7 @@ mod tests {
 
         for (plaintext, key, iv, mode, padding, ciphertext) in tests {
             let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
-                CipherType::AES,
+                BlockCipherType::AES,
                 mode,
                 padding,
                 key,
