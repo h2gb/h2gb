@@ -1,6 +1,5 @@
 use simple_error::SimpleResult;
 
-// XXX: implement check(), and add is_two_way
 pub trait TransformerTrait {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
 
