@@ -33,16 +33,16 @@ pub enum StreamCipherType {
 /// that the settings must match standards or an error will be returned when
 /// creating (or transforming).
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct StreamCipherSettings {
+pub struct TransformStreamCipher {
     cipher: StreamCipherType,
     key: KeyOrIV,
     iv: Option<KeyOrIV>,
     offset: u64,
 }
 
-impl StreamCipherSettings {
-    /// Create a new instance of [`StreamCipherSettings`].
-    pub fn new(cipher: StreamCipherType, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
+impl TransformStreamCipher {
+    /// Create a new instance of [`TransformStreamCipher`].
+    pub fn new(cipher: StreamCipherType, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Transformation> {
         // Validate and store the key / iv
         let key = KeyOrIV::new(key)?;
         let iv = match iv {
@@ -51,7 +51,7 @@ impl StreamCipherSettings {
         };
 
         // Create the result so we can validate it
-        let result = StreamCipherSettings {
+        let result = TransformStreamCipher {
             cipher: cipher,
             key: key,
             iv: iv,
@@ -61,7 +61,7 @@ impl StreamCipherSettings {
         // This validates the key length and iv and other characteristics
         result.validate_settings()?;
 
-        Ok(result)
+        Ok(Transformation::FromStreamCipher(result))
     }
 
     /// Internal function to decrypt
@@ -190,39 +190,26 @@ impl StreamCipherSettings {
     }
 }
 
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct TransformStreamCipher {
-    settings: StreamCipherSettings,
-}
-
-impl TransformStreamCipher {
-    pub fn new(settings: StreamCipherSettings) -> Self {
-        TransformStreamCipher {
-            settings: settings,
-        }
-    }
-}
-
 impl TransformerTrait for TransformStreamCipher {
     /// transform() =~ decrypt
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.validate_settings()?;
+        self.validate_settings()?;
 
-        match self.settings.cipher {
-            StreamCipherType::Salsa20 => self.settings.decrypt_salsa20(buffer),
-            StreamCipherType::ChaCha  => self.settings.decrypt_chacha(buffer),
-            StreamCipherType::Arc4    => self.settings.decrypt_arc4(buffer),
+        match self.cipher {
+            StreamCipherType::Salsa20 => self.decrypt_salsa20(buffer),
+            StreamCipherType::ChaCha  => self.decrypt_chacha(buffer),
+            StreamCipherType::Arc4    => self.decrypt_arc4(buffer),
         }
     }
 
     /// transform() =~ encrypt
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.validate_settings()?;
+        self.validate_settings()?;
 
-        match self.settings.cipher {
-            StreamCipherType::Salsa20 => self.settings.encrypt_salsa20(buffer),
-            StreamCipherType::ChaCha  => self.settings.encrypt_chacha(buffer),
-            StreamCipherType::Arc4    => self.settings.encrypt_arc4(buffer),
+        match self.cipher {
+            StreamCipherType::Salsa20 => self.encrypt_salsa20(buffer),
+            StreamCipherType::ChaCha  => self.encrypt_chacha(buffer),
+            StreamCipherType::Arc4    => self.encrypt_arc4(buffer),
         }
     }
 
@@ -239,8 +226,6 @@ impl TransformerTrait for TransformStreamCipher {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_salsa20() -> SimpleResult<()> {
@@ -262,11 +247,11 @@ mod tests {
         ];
 
         for (plaintext, key, iv, ciphertext) in tests {
-            let transformation = Transformation::FromStreamCipher(StreamCipherSettings::new(
+            let transformation = TransformStreamCipher::new(
                 StreamCipherType::Salsa20,
                 key,
                 Some(iv),
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result, "salsa20 transform {}", std::str::from_utf8(&plaintext).unwrap());
@@ -299,11 +284,11 @@ mod tests {
         ];
 
         for (key, iv, ciphertext) in tests {
-            let transformation = Transformation::FromStreamCipher(StreamCipherSettings::new(
+            let transformation = TransformStreamCipher::new(
                 StreamCipherType::ChaCha,
                 key,
                 Some(iv),
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(vec![0; ciphertext.len()], result);
@@ -339,11 +324,11 @@ mod tests {
         ];
 
         for (plaintext, key, ciphertext) in tests {
-            let transformation = Transformation::FromStreamCipher(StreamCipherSettings::new(
+            let transformation = TransformStreamCipher::new(
                 StreamCipherType::Arc4,
                 key,
                 None,
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result, "Arc4 transform {}", std::str::from_utf8(&plaintext).unwrap());

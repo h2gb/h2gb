@@ -59,18 +59,15 @@ pub use transform_xor_by_constant::XorSettings;
 
 mod transform_deflate;
 pub use transform_deflate::TransformDeflate;
-pub use transform_deflate::DeflateSettings;
 
 mod transform_hex;
 pub use transform_hex::TransformHex;
 
 mod transform_block_cipher;
-pub use transform_block_cipher::TransformBlockCipher;
-pub use transform_block_cipher::{BlockCipherSettings, BlockCipherPadding, BlockCipherType, BlockCipherMode};
+pub use transform_block_cipher::{TransformBlockCipher, BlockCipherPadding, BlockCipherType, BlockCipherMode};
 
 mod transform_stream_cipher;
-pub use transform_stream_cipher::TransformStreamCipher;
-pub use transform_stream_cipher::{StreamCipherType, StreamCipherSettings};
+pub use transform_stream_cipher::{TransformStreamCipher, StreamCipherType};
 
 mod helpers;
 use helpers::transformer_trait::TransformerTrait;
@@ -503,10 +500,7 @@ pub enum Transformation {
     /// ```
     FromBase32CrockfordPermissive,
 
-    /// Generic from deflated
-    FromDeflated(DeflateSettings),
-
-    /// Convert from Zlib "Deflated" format with no header. Uses the
+    /// Convert from Zlib "Deflated" format with or without a header. Uses the
     /// [inflate](https://github.com/image-rs/inflate) library.
     ///
     /// This is a ONE-WAY transformation!
@@ -514,17 +508,7 @@ pub enum Transformation {
     /// # Restrictions / errors
     ///
     /// Must be valid deflated data.
-    FromDeflatedNoZlibHeader,
-
-    /// Convert from Zlib "Deflated" format with a header. Uses the
-    /// [inflate](https://github.com/image-rs/inflate) library.
-    ///
-    /// This is a ONE-WAY transformation!
-    ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid deflated data with a valid checksum.
-    FromDeflatedZlibHeader,
+    FromDeflated(TransformDeflate),
 
     /// Convert from a hex string. Case is ignored.
     ///
@@ -562,14 +546,13 @@ pub enum Transformation {
     /// ```
     /// use libh2gb::transformation::*;
     ///
-    /// let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+    /// let transformation = TransformBlockCipher::new(
     ///     BlockCipherType::AES, // AES algorithm
     ///     BlockCipherMode::CBC, // Cipher block chaining
     ///     BlockCipherPadding::Pkcs7, // Pkcs7 is the usual padding
     ///     b"AAAAAAAAAAAAAAAA".to_vec(), // A 128-bit key
     ///     Some(b"BBBBBBBBBBBBBBBB".to_vec()), // A 128-bit IV
-    /// ).unwrap());
-    ///
+    /// ).unwrap();
     ///
     /// // Here's some encrypted data that I generated with Ruby:
     /// // irb(main):056:0> require 'openssl'
@@ -583,7 +566,7 @@ pub enum Transformation {
     /// let result = transformation.transform(&b"\x9c\xf2\x65\x82\xa2\xa7\x8b\x65\xcb\x41\xbc\x2d\x02\x1a\xe4\x18\xaf\xf4\xbc\x9e\xf4\x0c\x8a\x26\xc4\x97\x22\x26\x3e\xc2\x34\x95".to_vec()).unwrap();
     /// assert_eq!(b"Hello example section!".to_vec(), result);
     /// ```
-    FromBlockCipher(BlockCipherSettings),
+    FromBlockCipher(TransformBlockCipher),
 
     /// Convert from a stream cipher such as Salsa20, ChaCha, or Arc4.
     ///
@@ -597,11 +580,11 @@ pub enum Transformation {
     /// ```
     /// use libh2gb::transformation::*;
     ///
-    /// let transformation = Transformation::FromStreamCipher(StreamCipherSettings::new(
+    /// let transformation = TransformStreamCipher::new(
     ///     StreamCipherType::Salsa20,    // Salsa20
     ///     b"AAAAAAAAAAAAAAAA".to_vec(), // A 128-bit key
     ///     Some(b"BBBBBBBB".to_vec()),   // A 64-bit IV
-    /// ).unwrap());
+    /// ).unwrap();
     ///
     /// // Here's some encrypted data that I generated with Ruby:
     /// // irb(main):002:0> require 'salsa20'
@@ -611,7 +594,7 @@ pub enum Transformation {
     /// let result = transformation.transform(&b"\xef\xc6\x5d\x82\x35\x1c\xcc\xa6\x11\xe2\x82\xfc".to_vec()).unwrap();
     /// assert_eq!(b"Salsa20 Demo".to_vec(), result);
     /// ```
-    FromStreamCipher(StreamCipherSettings),
+    FromStreamCipher(TransformStreamCipher),
 }
 
 impl Transformation {
@@ -635,14 +618,12 @@ impl Transformation {
             Self::FromBase32Permissive          => Box::new(TransformBase32::new(Base32Settings::permissive())),
             Self::FromBase32CrockfordPermissive => Box::new(TransformBase32::new(Base32Settings::crockford_permissive())),
 
-            Self::FromDeflated(s)               => Box::new(TransformDeflate::new(*s)),
-            Self::FromDeflatedNoZlibHeader      => Box::new(TransformDeflate::new(DeflateSettings::no_zlib_header())),
-            Self::FromDeflatedZlibHeader        => Box::new(TransformDeflate::new(DeflateSettings::zlib_header())),
+            Self::FromDeflated(s)               => Box::new(*s),
 
             Self::FromHex(s)                    => Box::new(*s),
 
-            Self::FromBlockCipher(s)            => Box::new(TransformBlockCipher::new(*s)),
-            Self::FromStreamCipher(s)           => Box::new(TransformStreamCipher::new(*s)),
+            Self::FromBlockCipher(s)            => Box::new(*s),
+            Self::FromStreamCipher(s)           => Box::new(*s),
         }
     }
 

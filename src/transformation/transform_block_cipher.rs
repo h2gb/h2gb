@@ -113,7 +113,7 @@ pub enum BlockCipherMode {
 /// This configures all the settings for a block cipher together, in a single
 /// serializable place.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct BlockCipherSettings {
+pub struct TransformBlockCipher {
     cipher: BlockCipherType,
     mode: BlockCipherMode,
     padding: BlockCipherPadding,
@@ -121,13 +121,13 @@ pub struct BlockCipherSettings {
     iv: Option<KeyOrIV>,
 }
 
-impl BlockCipherSettings {
-    /// Create a new instance of [`BlockCipherSettings`].
+impl TransformBlockCipher {
+    /// Create a new instance of [`TransformBlockCipher`].
     ///
     /// The settings are validated as much as possible (key lengths and such),
     /// then they are "written in stone", so to speak - you can't change them
     /// without creating a new instance.
-    pub fn new(cipher: BlockCipherType, mode: BlockCipherMode, padding: BlockCipherPadding, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
+    pub fn new(cipher: BlockCipherType, mode: BlockCipherMode, padding: BlockCipherPadding, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Transformation> {
         // Validate and store the key
         let key = KeyOrIV::new(key)?;
 
@@ -138,7 +138,7 @@ impl BlockCipherSettings {
         };
 
         // Create the result so we can validate it
-        let result = BlockCipherSettings {
+        let result = TransformBlockCipher {
             cipher: cipher,
             mode: mode,
             padding: padding,
@@ -149,7 +149,7 @@ impl BlockCipherSettings {
         // This validates the key length and iv and other characteristics
         result.validate_settings()?;
 
-        Ok(result)
+        Ok(Transformation::FromBlockCipher(result))
     }
 
     /// A helper function - ensure that the DES ciphertext length is sane.
@@ -361,37 +361,24 @@ impl BlockCipherSettings {
     }
 }
 
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct TransformBlockCipher {
-    settings: BlockCipherSettings,
-}
-
-impl TransformBlockCipher {
-    pub fn new(settings: BlockCipherSettings) -> Self {
-        TransformBlockCipher {
-            settings: settings,
-        }
-    }
-}
-
 impl TransformerTrait for TransformBlockCipher {
     /// transform() =~ decrypt
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.validate_settings()?;
+        self.validate_settings()?;
 
-        match self.settings.cipher {
-            BlockCipherType::AES => self.settings.decrypt_aes(buffer),
-            BlockCipherType::DES => self.settings.decrypt_des(buffer),
+        match self.cipher {
+            BlockCipherType::AES => self.decrypt_aes(buffer),
+            BlockCipherType::DES => self.decrypt_des(buffer),
         }
     }
 
     /// transform() =~ encrypt
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        self.settings.validate_settings()?;
+        self.validate_settings()?;
 
-        match self.settings.cipher {
-            BlockCipherType::AES => self.settings.encrypt_aes(buffer),
-            BlockCipherType::DES => self.settings.encrypt_des(buffer),
+        match self.cipher {
+            BlockCipherType::AES => self.encrypt_aes(buffer),
+            BlockCipherType::DES => self.encrypt_des(buffer),
         }
     }
 
@@ -409,8 +396,6 @@ impl TransformerTrait for TransformBlockCipher {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_aes_ecb() -> SimpleResult<()> {
@@ -483,13 +468,13 @@ mod tests {
         ];
 
         for (plaintext, key, padding, ciphertext) in tests {
-            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+            let transformation = TransformBlockCipher::new(
                 BlockCipherType::AES,
                 BlockCipherMode::ECB,
                 padding,
                 key,
                 None,
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result, "aes transform {}", std::str::from_utf8(&plaintext).unwrap());
@@ -593,13 +578,13 @@ mod tests {
         ];
 
         for (plaintext, key, iv, padding, ciphertext) in tests {
-            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+            let transformation = TransformBlockCipher::new(
                 BlockCipherType::AES,
                 BlockCipherMode::CBC,
                 padding,
                 key,
                 iv,
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result, "aes transform {}", std::str::from_utf8(&plaintext).unwrap());
@@ -678,13 +663,13 @@ mod tests {
         ];
 
         for (plaintext, key, iv, padding, ciphertext) in tests {
-            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+            let transformation = TransformBlockCipher::new(
                 BlockCipherType::AES,
                 BlockCipherMode::CFB,
                 padding,
                 key,
                 iv,
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result, "aes transform {}", std::str::from_utf8(&plaintext).unwrap());
@@ -747,13 +732,13 @@ mod tests {
         ];
 
         for (plaintext, key, iv, mode, padding, ciphertext) in tests {
-            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+            let transformation = TransformBlockCipher::new(
                 BlockCipherType::DES,
                 mode,
                 padding,
                 key,
                 iv,
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result, "des transform {}", std::str::from_utf8(&plaintext).unwrap());
@@ -780,13 +765,13 @@ mod tests {
         ];
 
         for (plaintext, key, iv, mode, padding, ciphertext) in tests {
-            let transformation = Transformation::FromBlockCipher(BlockCipherSettings::new(
+            let transformation = TransformBlockCipher::new(
                 BlockCipherType::AES,
                 mode,
                 padding,
                 key,
                 iv,
-            )?);
+            )?;
 
             let result = transformation.transform(&ciphertext)?;
             assert_eq!(plaintext, result, "des transform {}", std::str::from_utf8(&plaintext).unwrap());

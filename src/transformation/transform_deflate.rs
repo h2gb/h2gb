@@ -2,38 +2,26 @@ use inflate;
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::transformation::TransformerTrait;
-use crate::transformation::Transformation;
-
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct DeflateSettings {
-    zlib_header: bool,
-}
+use crate::transformation::{Transformation, TransformerTrait};
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformDeflate {
-    settings: DeflateSettings,
-}
-
-impl DeflateSettings {
-    pub fn zlib_header() -> Self {
-        DeflateSettings {
-            zlib_header: true,
-        }
-    }
-
-    pub fn no_zlib_header() -> Self {
-        DeflateSettings {
-            zlib_header: false,
-        }
-    }
+    zlib_header: bool,
 }
 
 impl TransformDeflate {
-    pub fn new(settings: DeflateSettings) -> Self {
-        TransformDeflate {
-            settings: settings,
+    pub fn new(zlib_header: bool) -> Self {
+        Self {
+            zlib_header: zlib_header,
         }
+    }
+
+    pub fn with_header() -> Self {
+        Self::new(true)
+    }
+
+    pub fn without_header() -> Self {
+        Self::new(false)
     }
 
     fn transform_deflated(self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
@@ -64,7 +52,7 @@ impl TransformDeflate {
 
 impl TransformerTrait for TransformDeflate {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.settings.zlib_header {
+        match self.zlib_header {
             true => self.transform_deflated_zlib(buffer),
             false => self.transform_deflated(buffer),
         }
@@ -75,7 +63,7 @@ impl TransformerTrait for TransformDeflate {
     }
 
     fn can_transform(&self, buffer: &Vec<u8>) -> bool {
-        match self.settings.zlib_header {
+        match self.zlib_header {
             true => self.check_deflated_zlib(buffer),
             false => self.check_deflated(buffer),
         }
@@ -89,12 +77,12 @@ impl TransformerTrait for TransformDeflate {
     fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
         let mut out: Vec<_> = Vec::new();
 
-        let t = Transformation::FromDeflatedZlibHeader;
+        let t = Transformation::FromDeflated(TransformDeflate::with_header());
         if t.can_transform(buffer) {
             out.push(t);
         }
 
-        let t = Transformation::FromDeflatedNoZlibHeader;
+        let t = Transformation::FromDeflated(TransformDeflate::without_header());
         if t.can_transform(buffer) {
             out.push(t);
         }
@@ -107,11 +95,10 @@ impl TransformerTrait for TransformDeflate {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_deflate() -> SimpleResult<()> {
-        let t = Transformation::FromDeflatedNoZlibHeader;
+        let t = TransformDeflate::without_header();
 
         let result = t.transform(&b"\x03\x00\x00\x00\x00\x01".to_vec())?;
         assert_eq!(0, result.len());
@@ -141,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_deflate_zlib() -> SimpleResult<()> {
-        let t = Transformation::FromDeflatedZlibHeader;
+        let t = TransformDeflate::with_header();
 
         let result = t.transform(&b"\x78\x9c\x03\x00\x00\x00\x00\x01".to_vec())?;
         assert_eq!(0, result.len());
