@@ -9,8 +9,8 @@ pub struct TransformNull {
 }
 
 impl TransformNull {
-    pub fn new() -> Self {
-        TransformNull {}
+    pub fn new() -> Transformation {
+        Transformation::Null(TransformNull {})
     }
 }
 
@@ -23,7 +23,7 @@ impl TransformerTrait for TransformNull {
         Ok(buffer.clone())
     }
 
-    fn check(&self, _buffer: &Vec<u8>) -> bool {
+    fn can_transform(&self, _buffer: &Vec<u8>) -> bool {
         true
     }
 
@@ -40,11 +40,10 @@ impl TransformerTrait for TransformNull {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_null() -> SimpleResult<()> {
-        assert_eq!(true, Transformation::Null.is_two_way());
+        assert_eq!(true, TransformNull::new().is_two_way());
 
         let tests: Vec<(Vec<u8>, SimpleResult<Vec<u8>>)> = vec![
             (vec![1],             Ok(vec![1])),
@@ -53,12 +52,12 @@ mod tests {
         ];
 
         for (test, expected) in tests {
-            assert!(Transformation::Null.can_transform(&test));
+            assert!(TransformNull::new().can_transform(&test));
 
-            let result = Transformation::Null.transform(&test);
+            let result = TransformNull::new().transform(&test);
             assert_eq!(expected, result);
 
-            let result = Transformation::Null.untransform(&result?);
+            let result = TransformNull::new().untransform(&result?);
             assert_eq!(Ok(test), result);
         }
 

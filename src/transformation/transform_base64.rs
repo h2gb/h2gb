@@ -150,7 +150,7 @@ impl TransformerTrait for TransformBase64 {
         }
     }
 
-    fn check(&self, buffer: &Vec<u8>) -> bool {
+    fn can_transform(&self, buffer: &Vec<u8>) -> bool {
         match self.settings.permissive {
             false => self.check_standard(buffer),
             true  => self.check_permissive(buffer),

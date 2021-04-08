@@ -74,7 +74,7 @@ impl TransformerTrait for TransformDeflate {
         bail!("Deflate cannot be untransformed");
     }
 
-    fn check(&self, buffer: &Vec<u8>) -> bool {
+    fn can_transform(&self, buffer: &Vec<u8>) -> bool {
         match self.settings.zlib_header {
             true => self.check_deflated_zlib(buffer),
             false => self.check_deflated(buffer),

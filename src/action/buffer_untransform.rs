@@ -109,7 +109,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
     use crate::action::Action;
-    use crate::transformation::Transformation;
+    use crate::transformation::{Transformation, TransformHex};
 
     #[test]
     fn test_action() -> SimpleResult<()> {
@@ -124,7 +124,7 @@ mod tests {
 
         // Do a couple transformations, verify they worked right
         record.apply(Action::buffer_transform("buffer", Transformation::FromBase64Standard))?;
-        record.apply(Action::buffer_transform("buffer", Transformation::FromHex))?;
+        record.apply(Action::buffer_transform("buffer", TransformHex::new()))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Untransform one layer, which will encode back to hex - note that the
@@ -173,7 +173,7 @@ mod tests {
         record.apply(Action::buffer_create_from_bytes("buffer", b"4a4b4c4d4e".to_vec(), 0x80000000))?;
 
         // Do a transformation
-        record.apply(Action::buffer_transform("buffer", Transformation::FromHex))?;
+        record.apply(Action::buffer_transform("buffer", TransformHex::new()))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Untransform successfully, then try again with an empty stack

@@ -19,19 +19,19 @@ then untransforms some hex data:
 
 
 ```rust
-use libh2gb::transformation::Transformation;
+use libh2gb::transformation::TransformHex;
 
 // Input (note that some are uppercase and some are lower - that's allowed)
 let i: Vec<u8> = b"48656c6C6F2c20776f726c64".to_vec();
 
 // Output
-let o = Transformation::FromHex.transform(&i).unwrap();
+let o = TransformHex::new().transform(&i).unwrap();
 
 // It's "Hello, world"
 assert_eq!(b"Hello, world".to_vec(), o);
 
 // Transform back to the original
-let i = Transformation::FromHex.untransform(&o).unwrap();
+let i = TransformHex::new().untransform(&o).unwrap();
 
 // Get the original back - note that it's the same length, but the case has
 // been normalized

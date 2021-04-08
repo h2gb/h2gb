@@ -108,7 +108,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
     use crate::action::Action;
-    use crate::transformation::Transformation;
+    use crate::transformation::{Transformation, TransformHex};
 
     #[test]
     fn test_action() -> SimpleResult<()> {
@@ -126,7 +126,7 @@ mod tests {
         record.apply(Action::buffer_transform("buffer", Transformation::FromBase64Standard))?;
         assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
 
-        record.apply(Action::buffer_transform("buffer", Transformation::FromHex))?;
+        record.apply(Action::buffer_transform("buffer", TransformHex::new()))?;
         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Undo both
@@ -156,7 +156,7 @@ mod tests {
         record.apply(Action::buffer_create_from_bytes("buffer", b"abcxyz".to_vec(), 0x80000000))?;
 
         // Try to unhex
-        assert!(record.apply(Action::buffer_transform("buffer", Transformation::FromHex)).is_err());
+        assert!(record.apply(Action::buffer_transform("buffer", TransformHex::new())).is_err());
 
         // Make sure nothing changed
         assert_eq!(b"abcxyz".to_vec(), record.target().get_buffer("buffer")?.data);

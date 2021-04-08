@@ -26,16 +26,16 @@ pub struct TransformXorByConstant {
 }
 
 impl TransformXorByConstant {
-    pub fn new(settings: XorSettings) -> Self {
-        Self {
+    pub fn new(settings: XorSettings) -> Transformation {
+        Transformation::XorByConstant(Self {
             settings: settings,
-        }
+        })
     }
 }
 
 impl TransformerTrait for TransformXorByConstant {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        if !self.check(buffer) {
+        if !self.can_transform(buffer) {
             bail!("Xor failed: Xor isn't a multiple of the buffer size");
         }
 
@@ -103,7 +103,7 @@ impl TransformerTrait for TransformXorByConstant {
         self.transform(buffer)
     }
 
-    fn check(&self, buffer: &Vec<u8>) -> bool {
+    fn can_transform(&self, buffer: &Vec<u8>) -> bool {
         match self.settings {
             XorSettings::EightBit(_)     => true,
             XorSettings::SixteenBit(_)   => {
@@ -131,11 +131,10 @@ impl TransformerTrait for TransformXorByConstant {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_xor8() -> SimpleResult<()> {
-        assert_eq!(true, Transformation::XorByConstant(XorSettings::EightBit(0)).is_two_way());
+        assert_eq!(true, TransformXorByConstant::new(XorSettings::EightBit(0)).is_two_way());
 
         let tests: Vec<(u8, Vec<u8>, SimpleResult<Vec<u8>>)> = vec![
             (0, vec![1],             Ok(vec![1])),
@@ -152,12 +151,14 @@ mod tests {
         ];
 
         for (c, test, expected) in tests {
-            assert!(Transformation::XorByConstant(XorSettings::EightBit(c)).can_transform(&test));
+            let t = TransformXorByConstant::new(XorSettings::EightBit(c));
 
-            let result = Transformation::XorByConstant(XorSettings::EightBit(c)).transform(&test);
+            assert!(t.can_transform(&test));
+
+            let result = t.transform(&test);
             assert_eq!(expected, result);
 
-            let result = Transformation::XorByConstant(XorSettings::EightBit(c)).untransform(&result?);
+            let result = t.untransform(&result?);
             assert_eq!(Ok(test), result);
         }
 
@@ -166,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_xor16() -> SimpleResult<()> {
-        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
+        let t = TransformXorByConstant::new(XorSettings::SixteenBit(0x0000));
 
         // It can transform even-length vectors
         assert!(t.can_transform(&vec![0x11, 0x22]));
@@ -177,14 +178,14 @@ mod tests {
         assert!(!t.can_transform(&vec![0x11, 0x22, 0x33]));
 
         // Simplest examples
-        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0x0000));
+        let t = TransformXorByConstant::new(XorSettings::SixteenBit(0x0000));
         assert_eq!(vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66])?);
 
-        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0xFFFF));
+        let t = TransformXorByConstant::new(XorSettings::SixteenBit(0xFFFF));
         assert_eq!(vec![0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66])?);
 
         // More complex examples
-        let t = Transformation::XorByConstant(XorSettings::SixteenBit(0x1234));
+        let t = TransformXorByConstant::new(XorSettings::SixteenBit(0x1234));
 
         // First byte: 0x11 & 0x12 = 0x03
         // Second byte: 0x22 & 0x34 = 0x16
@@ -202,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_xor32() -> SimpleResult<()> {
-        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
+        let t = TransformXorByConstant::new(XorSettings::ThirtyTwoBit(0x00000000));
 
         // It can transform multiple-of-4 vectors
         assert!(t.can_transform(&vec![0x11, 0x22, 0x33, 0x44]));
@@ -215,14 +216,14 @@ mod tests {
         assert!(!t.can_transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55]));
 
         // Simplest examples
-        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x00000000));
+        let t = TransformXorByConstant::new(XorSettings::ThirtyTwoBit(0x00000000));
         assert_eq!(vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88])?);
 
-        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0xFFFFFFFF));
+        let t = TransformXorByConstant::new(XorSettings::ThirtyTwoBit(0xFFFFFFFF));
         assert_eq!(vec![0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77], t.transform(&vec![0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88])?);
 
         // More complex examples
-        let t = Transformation::XorByConstant(XorSettings::ThirtyTwoBit(0x12345678));
+        let t = TransformXorByConstant::new(XorSettings::ThirtyTwoBit(0x12345678));
 
         // First byte:  0x11 & 0x12 = 0x03
         // Second byte: 0x22 & 0x34 = 0x16
@@ -243,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_xor64() -> SimpleResult<()> {
-        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
+        let t = TransformXorByConstant::new(XorSettings::SixtyFourBit(0x0000000000000000));
 
         // It can transform multiple-of-8 vectors
         assert!(t.can_transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77]));
@@ -260,20 +261,20 @@ mod tests {
         assert!(!t.can_transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88]));
 
         // Simplest examples
-        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0000000000000000));
+        let t = TransformXorByConstant::new(XorSettings::SixtyFourBit(0x0000000000000000));
         assert_eq!(
             vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff],
             t.transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff])?
         );
 
-        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0xFFFFFFFFFFFFFFFF));
+        let t = TransformXorByConstant::new(XorSettings::SixtyFourBit(0xFFFFFFFFFFFFFFFF));
         assert_eq!(
             vec![0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00],
             t.transform(&vec![0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff])?
         );
 
         // // More complex examples
-        let t = Transformation::XorByConstant(XorSettings::SixtyFourBit(0x0123456789abcdef));
+        let t = TransformXorByConstant::new(XorSettings::SixtyFourBit(0x0123456789abcdef));
 
         // First byte:   0x00 & 0x01 = 0x01
         // Second byte:  0x11 & 0x23 = 0x32

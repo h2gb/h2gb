@@ -23,7 +23,7 @@ use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::ops::Range;
 
-use crate::transformation::Transformation;
+use crate::transformation::{Transformation, TransformHex};
 
 use crate::h2layer::H2Layer;
 
@@ -353,7 +353,7 @@ mod tests {
     #[test]
     fn test_transform() -> SimpleResult<()> {
         let mut buffer = H2Buffer::new(b"41424344".to_vec(), 0x4000)?;
-        let original = buffer.transform(Transformation::FromHex)?;
+        let original = buffer.transform(TransformHex::new())?;
 
         assert_eq!(b"41424344".to_vec(), original);
         assert_eq!(b"ABCD".to_vec(), buffer.data);
@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn test_transform_bad_transformation() -> SimpleResult<()> {
         let mut buffer = H2Buffer::new(b"abc".to_vec(), 0x4000)?;
-        assert!(buffer.transform(Transformation::FromHex).is_err());
+        assert!(buffer.transform(TransformHex::new()).is_err());
 
         Ok(())
     }
@@ -378,7 +378,7 @@ mod tests {
     fn test_transform_undo() -> SimpleResult<()> {
         let mut buffer = H2Buffer::new(b"41424344".to_vec(), 0x4000)?;
 
-        let original = buffer.transform(Transformation::FromHex)?;
+        let original = buffer.transform(TransformHex::new())?;
         assert_eq!(b"ABCD".to_vec(), buffer.data);
 
         buffer.transform_undo(original)?;
@@ -394,14 +394,14 @@ mod tests {
         let mut buffer = H2Buffer::new(b"4a4B4c4D".to_vec(), 0x4000)?;
         assert_eq!(b"4a4B4c4D".to_vec(), buffer.data);
 
-        buffer.transform(Transformation::FromHex)?;
+        buffer.transform(TransformHex::new())?;
         assert_eq!(b"JKLM".to_vec(), buffer.data);
 
         // Note that the case normalizes
         let (data, transformation) = buffer.untransform()?;
         assert_eq!(b"4a4b4c4d".to_vec(), buffer.data);
         assert_eq!(b"JKLM".to_vec(), data);
-        assert_eq!(transformation, Transformation::FromHex);
+        assert_eq!(transformation, TransformHex::new());
 
         Ok(())
     }
@@ -411,14 +411,14 @@ mod tests {
         let mut buffer = H2Buffer::new(b"4a4B4c4D".to_vec(), 0x4000)?;
         assert_eq!(b"4a4B4c4D".to_vec(), buffer.data);
 
-        buffer.transform(Transformation::FromHex)?;
+        buffer.transform(TransformHex::new())?;
         assert_eq!(b"JKLM".to_vec(), buffer.data);
 
         // Note that the case normalizes
         let (data, transformation) = buffer.untransform()?;
         assert_eq!(b"4a4b4c4d".to_vec(), buffer.data);
         assert_eq!(b"JKLM".to_vec(), data);
-        assert_eq!(transformation, Transformation::FromHex);
+        assert_eq!(transformation, TransformHex::new());
 
         buffer.untransform_undo(data, transformation)?;
         assert_eq!(b"JKLM".to_vec(), buffer.data);

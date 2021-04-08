@@ -9,8 +9,8 @@ pub struct TransformHex {
 }
 
 impl TransformHex {
-    pub fn new() -> Self {
-        TransformHex {}
+    pub fn new() -> Transformation {
+        Transformation::FromHex(TransformHex {})
     }
 }
 
@@ -37,8 +37,8 @@ impl TransformerTrait for TransformHex {
 
     fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
         let s = Self::new();
-        match s.check(buffer) {
-            true => vec![Transformation::FromHex],
+        match s.can_transform(buffer) {
+            true => vec![s],
             false => vec![],
         }
     }
@@ -48,11 +48,10 @@ impl TransformerTrait for TransformHex {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_hex() -> SimpleResult<()> {
-        let t = Transformation::FromHex;
+        let t = TransformHex::new();
 
         assert!(t.is_two_way());
         assert!(t.can_transform(&b"00".to_vec()));

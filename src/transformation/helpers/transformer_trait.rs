@@ -14,7 +14,7 @@ pub trait TransformerTrait {
     /// By default, we use a naive implementation that'll work in most
     /// circumstances. But if you have a more efficient way to check whether
     /// it'll successfully transform, I suggest doing that here.
-    fn check(&self, buffer: &Vec<u8>) -> bool {
+    fn can_transform(&self, buffer: &Vec<u8>) -> bool {
         self.transform(buffer).is_ok()
     }
 
