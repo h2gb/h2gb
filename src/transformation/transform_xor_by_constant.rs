@@ -117,6 +117,9 @@ impl TransformerTrait for TransformXorByConstant {
         }
     }
 
+    fn is_two_way(&self) -> bool {
+        true
+    }
 }
 
 #[cfg(test)]

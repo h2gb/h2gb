@@ -394,6 +394,11 @@ impl TransformerTrait for TransformBlockCipher {
             BlockCipherType::DES => self.settings.encrypt_des(buffer),
         }
     }
+
+    fn is_two_way(&self) -> bool {
+        // Block ciphers can always go back and forth!
+        true
+    }
 }
 
 #[cfg(test)]

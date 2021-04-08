@@ -73,22 +73,7 @@ use transform_stream_cipher::TransformStreamCipher;
 pub use transform_stream_cipher::{StreamCipherType, StreamCipherSettings};
 
 mod helpers;
-
-// XXX: Move this to its own file (maybe /helpers?), and implement check(), and add is_two_way
-pub trait TransformerTrait {
-    fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
-
-    fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
-
-    /// Check if the transformation will work.
-    ///
-    /// By default, we use a naive implementation that'll work in most
-    /// circumstances. But if you have a more efficient way to check whether
-    /// it'll successfully transform, I suggest doing that here.
-    fn check(&self, buffer: &Vec<u8>) -> bool {
-        self.transform(buffer).is_ok()
-    }
-}
+use helpers::transformer_trait::TransformerTrait;
 
 /// Which transformation to perform.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
@@ -726,32 +711,7 @@ impl Transformation {
     ///
     /// TODO: Move this into the trait
     pub fn is_two_way(&self) -> bool {
-        match self {
-            Self::Null                          => true,
-            Self::XorByConstant(_)              => true,
-            Self::FromBase64Standard            => true,
-            Self::FromBase64NoPadding           => true,
-            Self::FromBase64URL                 => true,
-            Self::FromBase64URLNoPadding        => true,
-            Self::FromBase32Standard            => true,
-            Self::FromBase32NoPadding           => true,
-            Self::FromBase32Crockford           => true,
-            Self::FromHex                       => true,
-            Self::FromBlockCipher(_)            => true,
-            Self::FromStreamCipher(_)           => true,
-
-            Self::FromBase64Permissive          => false,
-            Self::FromBase64URLPermissive       => false,
-            Self::FromBase32Permissive          => false,
-            Self::FromBase32CrockfordPermissive => false,
-            Self::FromDeflated(_)               => false,
-            Self::FromDeflatedNoZlibHeader      => false,
-            Self::FromDeflatedZlibHeader        => false,
-
-            // Can't know for sure, for generic types
-            Self::FromBase64(_)                 => false,
-            Self::FromBase32(_)                 => false,
-        }
+        self.get_transformer().is_two_way()
     }
 
     /// Returns a list of possible transformations that will work on this

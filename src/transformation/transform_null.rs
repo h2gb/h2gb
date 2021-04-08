@@ -25,6 +25,10 @@ impl TransformerTrait for TransformNull {
     fn check(&self, _buffer: &Vec<u8>) -> bool {
         true
     }
+
+    fn is_two_way(&self) -> bool {
+        true
+    }
 }
 
 #[cfg(test)]

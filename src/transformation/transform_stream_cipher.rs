@@ -224,6 +224,10 @@ impl TransformerTrait for TransformStreamCipher {
             StreamCipherType::Arc4    => self.settings.encrypt_arc4(buffer),
         }
     }
+
+    fn is_two_way(&self) -> bool {
+        true
+    }
 }
 
 #[cfg(test)]

@@ -59,7 +59,6 @@ impl TransformDeflate {
         // The only reasonable way to check is by just doing it
         self.transform_deflated_zlib(buffer).is_ok()
     }
-
 }
 
 impl TransformerTrait for TransformDeflate {
@@ -79,6 +78,11 @@ impl TransformerTrait for TransformDeflate {
             true => self.check_deflated_zlib(buffer),
             false => self.check_deflated(buffer),
         }
+    }
+
+    fn is_two_way(&self) -> bool {
+        // Deflate can't reliably go backwards
+        false
     }
 }
 

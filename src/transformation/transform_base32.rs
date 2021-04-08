@@ -161,6 +161,12 @@ impl TransformerTrait for TransformBase32 {
             true  => self.check_permissive(buffer),
         }
     }
+
+    fn is_two_way(&self) -> bool {
+        // It's two-way if it's not permissive (permissive allows illegal stuff,
+        // which would only be one way).
+        !self.settings.permissive
+    }
 }
 
 #[cfg(test)]
