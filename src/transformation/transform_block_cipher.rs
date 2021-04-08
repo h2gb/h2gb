@@ -75,10 +75,10 @@ pub enum BlockCipherPadding {
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum BlockCipherType {
-    /// AES (128, 192, or 256-bit keys)
+    /// AES (128, 192, or 256-bit keys, 128-bit IV)
     AES,
 
-    /// DES (64-bit keys)
+    /// DES (64-bit keys, 64-bit IVs)
     DES,
 }
 

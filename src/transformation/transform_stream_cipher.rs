@@ -16,17 +16,21 @@ use crate::transformation::key_or_iv::KeyOrIV;
 #[allow(non_camel_case_types)]
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum StreamCipherType {
-    // Salsa20 (128 or 256-bit key, 64-bit IV)
+    /// Salsa20 (20 rounds, 128 or 256-bit key, 64-bit IV)
     Salsa20,
 
-    // ChaCha (256-bit key, 64-bit IV, 20 rounds)
+    /// ChaCha20 (20 rounds, 256-bit key, 64-bit IV)
     ChaCha,
 
-    // RC4 (40 - 256-bit key (though we only support powers of 2), no nonce)
+    /// Arc4 / RC4 (any size key (though we only support powers of 2), no IV
     Arc4,
 }
 
 /// Configures a stream cipher.
+///
+/// Configure all the settings for a stream cipher in a serializable place. Note
+/// that the settings must match standards or an error will be returned when
+/// creating (or transforming).
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct StreamCipherSettings {
     cipher: StreamCipherType,
@@ -166,10 +170,11 @@ impl StreamCipherSettings {
     }
     /// Sanity check settings (key size, IV, etc).
     fn validate_settings(self) -> SimpleResult<()> {
-        match (self.cipher,             self.iv,                  self.key) {
+        match (self.cipher, self.iv, self.key) {
+
             (StreamCipherType::Salsa20, Some(KeyOrIV::Bits64(_)), KeyOrIV::Bits128(_)) => (),
             (StreamCipherType::Salsa20, Some(KeyOrIV::Bits64(_)), KeyOrIV::Bits256(_)) => (),
-            (StreamCipherType::Salsa20, _, _) => bail!("Invalid stream cipher settings for Salsa20"),
+            (StreamCipherType::Salsa20, _,                         _                 ) => bail!("Invalid stream cipher settings for Salsa20"),
 
             (StreamCipherType::ChaCha,  Some(KeyOrIV::Bits64(_)), KeyOrIV::Bits256(_)) => (),
             (StreamCipherType::ChaCha,  Some(KeyOrIV::Bits64(_)), _                  ) => bail!("Invalid key size for ChaCha"),
@@ -195,7 +200,6 @@ impl TransformStreamCipher {
             settings: settings,
         }
     }
-
 }
 
 impl TransformerTrait for TransformStreamCipher {

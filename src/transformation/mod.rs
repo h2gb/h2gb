@@ -587,6 +587,7 @@ pub enum Transformation {
     ///
     ///
     /// // Here's some encrypted data that I generated with Ruby:
+    /// // irb(main):056:0> require 'openssl'
     /// // irb(main):057:0> c = OpenSSL::Cipher.new('AES-128-CBC')
     /// // irb(main):058:0> c.encrypt
     /// // irb(main):059:0> c.key = 'A' * 16
@@ -599,7 +600,32 @@ pub enum Transformation {
     /// ```
     FromBlockCipher(BlockCipherSettings),
 
-    /// XXX: Documentation
+    /// Convert from a stream cipher such as Salsa20, ChaCha, or Arc4.
+    ///
+    /// Stream ciphers have even more knobs than block ciphers. I tried to
+    /// implement some of the most common algorithms with common settings, but
+    /// that meant skipping others. The most popular libraries are also somewhat
+    /// opinionated (for example, they don't support Salsa20 with a 128-bit
+    /// key), so I had to carefully pick and choose what to implement. I'll
+    /// likely go back and fill in gaps in the future.
+    ///
+    /// ```
+    /// use libh2gb::transformation::*;
+    ///
+    /// let transformation = Transformation::FromStreamCipher(StreamCipherSettings::new(
+    ///     StreamCipherType::Salsa20,    // Salsa20
+    ///     b"AAAAAAAAAAAAAAAA".to_vec(), // A 128-bit key
+    ///     Some(b"BBBBBBBB".to_vec()),   // A 64-bit IV
+    /// ).unwrap());
+    ///
+    /// // Here's some encrypted data that I generated with Ruby:
+    /// // irb(main):002:0> require 'salsa20'
+    /// // irb(main):003:0> puts (Salsa20.new("A"*16, "B"*8).encrypt("Salsa20 Demo")).bytes.map { |b| '\x%02x' % b }.join
+    /// // \xef\xc6\x5d\x82\x35\x1c\xcc\xa6\x11\xe2\x82\xfc
+    ///
+    /// let result = transformation.transform(&b"\xef\xc6\x5d\x82\x35\x1c\xcc\xa6\x11\xe2\x82\xfc".to_vec()).unwrap();
+    /// assert_eq!(b"Salsa20 Demo".to_vec(), result);
+    /// ```
     FromStreamCipher(StreamCipherSettings),
 }
 
