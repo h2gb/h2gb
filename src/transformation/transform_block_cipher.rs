@@ -8,7 +8,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
-use crate::transformation::key_or_iv::KeyOrIV;
+use crate::transformation::helpers::key_or_iv::KeyOrIV;
 
 /// A macro to simplify decryption - lets us pass a class name as an argument
 /// (and greatly simplifies the code)

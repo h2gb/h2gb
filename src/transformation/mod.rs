@@ -72,7 +72,7 @@ mod transform_stream_cipher;
 use transform_stream_cipher::TransformStreamCipher;
 pub use transform_stream_cipher::{StreamCipherType, StreamCipherSettings};
 
-mod key_or_iv;
+mod helpers;
 
 // XXX: Move this to its own file (maybe /helpers?), and implement check(), and add is_two_way
 pub trait TransformerTrait {
