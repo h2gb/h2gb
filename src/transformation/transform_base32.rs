@@ -3,6 +3,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
+use crate::transformation::Transformation;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct Base32Settings {
@@ -138,6 +139,26 @@ impl TransformBase32 {
         self.transform_permissive(buffer).is_ok()
     }
 
+    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
+        let mut out: Vec<_> = Vec::new();
+
+        let t = Transformation::FromBase32Standard;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        let t = Transformation::FromBase32NoPadding;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        let t = Transformation::FromBase32Crockford;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        out
+    }
 }
 
 impl TransformerTrait for TransformBase32 {

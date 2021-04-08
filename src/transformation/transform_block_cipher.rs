@@ -8,6 +8,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
+use crate::transformation::Transformation;
 use crate::transformation::helpers::key_or_iv::KeyOrIV;
 
 /// A macro to simplify decryption - lets us pass a class name as an argument
@@ -372,6 +373,9 @@ impl TransformBlockCipher {
         }
     }
 
+    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
+        vec![]
+    }
 }
 
 impl TransformerTrait for TransformBlockCipher {

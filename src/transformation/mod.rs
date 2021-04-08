@@ -614,28 +614,6 @@ pub enum Transformation {
     FromStreamCipher(StreamCipherSettings),
 }
 
-/// A list of transformations that can automatically be detected.
-///
-/// This is used as a basis for the `detect()` call. Many transformations
-/// are overly broad (such as `FromBase32Permissive`), overly useless (such as
-/// `Null`), or require configuration (such as `FromHex`). We skip those and
-/// only look at potentially interesting transformations.
-const TRANSFORMATIONS_THAT_CAN_BE_DETECTED: [Transformation; 10] = [
-    Transformation::FromBase64Standard,
-    Transformation::FromBase64NoPadding,
-    Transformation::FromBase64URL,
-    Transformation::FromBase64URLNoPadding,
-
-    Transformation::FromBase32Standard,
-    Transformation::FromBase32NoPadding,
-    Transformation::FromBase32Crockford,
-
-    Transformation::FromDeflatedNoZlibHeader,
-    Transformation::FromDeflatedZlibHeader,
-
-    Transformation::FromHex,
-];
-
 impl Transformation {
     fn get_transformer(&self) -> Box<dyn TransformerTrait> {
         match self {
@@ -717,10 +695,19 @@ impl Transformation {
     ///
     /// This is VERY expensive, as it attempts to transform using every
     /// potential variant.
-    pub fn detect(buffer: &Vec<u8>) -> Vec<&Transformation> {
-        TRANSFORMATIONS_THAT_CAN_BE_DETECTED.iter().filter(|t| {
-            t.can_transform(buffer)
-        }).collect()
+    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
+        let mut out: Vec<Transformation> = Vec::new();
+
+        out.extend(TransformNull::detect(buffer));
+        out.extend(TransformHex::detect(buffer));
+        out.extend(TransformXorByConstant::detect(buffer));
+        out.extend(TransformBase64::detect(buffer));
+        out.extend(TransformBase32::detect(buffer));
+        out.extend(TransformDeflate::detect(buffer));
+        out.extend(TransformBlockCipher::detect(buffer));
+        out.extend(TransformStreamCipher::detect(buffer));
+
+        out
     }
 }
 
@@ -743,11 +730,11 @@ mod tests {
                 "Testcase: 'AA'",
                 b"AA".to_vec(),
                 vec![
-                    &Transformation::FromBase64NoPadding,
-                    &Transformation::FromBase64URLNoPadding,
-                    &Transformation::FromHex,
-                    &Transformation::FromBase32NoPadding,
-                    &Transformation::FromBase32Crockford,
+                    Transformation::FromBase64NoPadding,
+                    Transformation::FromBase64URLNoPadding,
+                    Transformation::FromHex,
+                    Transformation::FromBase32NoPadding,
+                    Transformation::FromBase32Crockford,
                 ],
             ),
 
@@ -755,8 +742,8 @@ mod tests {
                 "Testcase: 'AA=='",
                 b"AA==".to_vec(),
                 vec![
-                    &Transformation::FromBase64Standard,
-                    &Transformation::FromBase64URL,
+                    Transformation::FromBase64Standard,
+                    Transformation::FromBase64URL,
                 ],
             ),
 
@@ -764,7 +751,7 @@ mod tests {
                 "Testcase: '/+AAAA=='",
                 b"/+AAAA==".to_vec(),
                 vec![
-                    &Transformation::FromBase64Standard,
+                    Transformation::FromBase64Standard,
                 ],
             ),
 
@@ -772,8 +759,8 @@ mod tests {
                 "Testcase: '-_AAAA=='",
                 b"-_AAAA==".to_vec(),
                 vec![
-                    &Transformation::FromBase64URL,
-                    &Transformation::FromDeflatedNoZlibHeader,
+                    Transformation::FromBase64URL,
+                    Transformation::FromDeflatedNoZlibHeader,
                 ],
             ),
 
@@ -781,7 +768,7 @@ mod tests {
                 "Testcase: Simple deflated",
                 b"\x03\x00\x00\x00\x00\x01".to_vec(),
                 vec![
-                    &Transformation::FromDeflatedNoZlibHeader,
+                    Transformation::FromDeflatedNoZlibHeader,
                 ]
             ),
 
@@ -789,7 +776,7 @@ mod tests {
                 "Testcase: Zlib deflated",
                 b"\x78\x9c\x03\x00\x00\x00\x00\x01".to_vec(),
                 vec![
-                    &Transformation::FromDeflatedZlibHeader,
+                    Transformation::FromDeflatedZlibHeader,
                 ]
             ),
 
@@ -797,7 +784,7 @@ mod tests {
                 "Testcase: Base32",
                 b"ORSXG5BRGIZSA2DFNRWG6===".to_vec(),
                 vec![
-                    &Transformation::FromBase32Standard,
+                    Transformation::FromBase32Standard,
                 ]
             ),
 
@@ -805,8 +792,8 @@ mod tests {
                 "Testcase: Base32 no padding",
                 b"ORSXG5BRGIZSA2DFNRWG6".to_vec(),
                 vec![
-                    &Transformation::FromBase32NoPadding,
-                    &Transformation::FromBase32Crockford,
+                    Transformation::FromBase32NoPadding,
+                    Transformation::FromBase32Crockford,
                 ]
             ),
 
@@ -814,7 +801,7 @@ mod tests {
                 "Testcase: Base32 crockford",
                 b"EHJQ6X1H68SJ0T35DHP6Y".to_vec(),
                 vec![
-                    &Transformation::FromBase32Crockford,
+                    Transformation::FromBase32Crockford,
                 ]
             ),
         ];

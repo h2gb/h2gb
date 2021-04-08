@@ -2,6 +2,7 @@ use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
+use crate::transformation::Transformation;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformNull {
@@ -10,6 +11,11 @@ pub struct TransformNull {
 impl TransformNull {
     pub fn new() -> Self {
         TransformNull {}
+    }
+
+    pub fn detect(_buffer: &Vec<u8>) -> Vec<Transformation> {
+        // Detecting null transforms is silly
+        vec![]
     }
 }
 

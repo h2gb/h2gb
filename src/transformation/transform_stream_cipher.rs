@@ -10,6 +10,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
+use crate::transformation::Transformation;
 use crate::transformation::helpers::key_or_iv::KeyOrIV;
 
 /// Which stream cipher should we use?
@@ -199,6 +200,10 @@ impl TransformStreamCipher {
         TransformStreamCipher {
             settings: settings,
         }
+    }
+
+    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
+        vec![]
     }
 }
 

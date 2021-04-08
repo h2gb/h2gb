@@ -2,6 +2,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
+use crate::transformation::Transformation;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformHex {
@@ -10,6 +11,14 @@ pub struct TransformHex {
 impl TransformHex {
     pub fn new() -> Self {
         TransformHex {}
+    }
+
+    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
+        let s = Self::new();
+        match s.check(buffer) {
+            true => vec![Transformation::FromHex],
+            false => vec![],
+        }
     }
 }
 

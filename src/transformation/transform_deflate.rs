@@ -3,6 +3,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
+use crate::transformation::Transformation;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct DeflateSettings {
@@ -58,6 +59,22 @@ impl TransformDeflate {
     fn check_deflated_zlib(self, buffer: &Vec<u8>) -> bool {
         // The only reasonable way to check is by just doing it
         self.transform_deflated_zlib(buffer).is_ok()
+    }
+
+    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
+        let mut out: Vec<_> = Vec::new();
+
+        let t = Transformation::FromDeflatedZlibHeader;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        let t = Transformation::FromDeflatedNoZlibHeader;
+        if t.can_transform(buffer) {
+            out.push(t);
+        }
+
+        out
     }
 }
 

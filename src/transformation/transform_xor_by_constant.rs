@@ -2,6 +2,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
 use crate::transformation::TransformerTrait;
+use crate::transformation::Transformation;
 
 /// When performing an XorByConstant transformation, this represents the size
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
@@ -29,6 +30,10 @@ impl TransformXorByConstant {
         Self {
             settings: settings,
         }
+    }
+
+    pub fn detect(buffer: &Vec<u8>) -> Vec<Transformation> {
+        vec![]
     }
 }
 
