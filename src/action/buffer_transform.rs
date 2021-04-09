@@ -108,7 +108,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
     use crate::action::Action;
-    use crate::transformation::{Transformation, TransformHex};
+    use crate::transformation::{TransformHex, TransformBase64};
 
     #[test]
     fn test_action() -> SimpleResult<()> {
@@ -123,7 +123,7 @@ mod tests {
         assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
 
         // Undo the base64
-        record.apply(Action::buffer_transform("buffer", Transformation::FromBase64Standard))?;
+        record.apply(Action::buffer_transform("buffer", TransformBase64::standard()))?;
         assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
 
         record.apply(Action::buffer_transform("buffer", TransformHex::new()))?;

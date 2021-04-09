@@ -47,11 +47,9 @@ pub use transform_null::TransformNull;
 
 mod transform_base64;
 pub use transform_base64::TransformBase64;
-pub use transform_base64::Base64Settings;
 
 mod transform_base32;
 pub use transform_base32::TransformBase32;
-pub use transform_base32::Base32Settings;
 
 mod transform_xor_by_constant;
 pub use transform_xor_by_constant::TransformXorByConstant;
@@ -141,364 +139,141 @@ pub enum Transformation {
     /// ```
     XorByConstant(TransformXorByConstant),
 
-    /// Generic Base64 implementation.
+    /// Base64 decode the buffer.
     ///
-    /// You can use this and set up your [`Base64Settings`] by hand, if you
-    /// like, or you can use one of the other Base64 types from this enum.
-    FromBase64(Base64Settings),
-
-    /// Convert from standard Base64 with padding (the '=' signs at the end).
+    /// [`Base64Transform`] has a number of constructors to configure the
+    /// padding, character set, and strictness.
     ///
-    /// # Example
+    /// The validation, padding, and ability to do a two-way conversation
+    /// all depends on the options.
+    ///
+    /// # Example 1 - Standard
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase64;
     ///
     /// // Input: "AQIDBA=="
     /// let i: Vec<u8> = b"AQIDBA==".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = Transformation::FromBase64Standard.transform(&i).unwrap();
+    /// let o = TransformBase64::standard().transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
     ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid Base64 with correct padding and decode to full bytes.
-    ///
+    /// # Example 2 - Error
     /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase64;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
     /// // Error
-    /// assert!(Transformation::FromBase64Standard.transform(&i).is_err());
+    /// assert!(TransformBase64::standard().transform(&i).is_err());
     /// ```
-    FromBase64Standard,
-
-    /// Convert from standard Base64 with NO padding.
     ///
-    /// # Example
+    /// # Example 3 - No padding
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase64;
     ///
     /// // Input: "AQIDBA"
     /// let i: Vec<u8> = b"AQIDBA".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = Transformation::FromBase64NoPadding.transform(&i).unwrap();
+    /// let o = TransformBase64::no_padding().transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
     ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid Base64 with NO padding whatsoever, and decode to full bytes.
+    /// # Example 4 - URL character set
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// let i: Vec<u8> = b"Not valid base64~".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase64NoPadding.transform(&i).is_err());
-    /// ```
-    FromBase64NoPadding,
-
-    /// Convert from standard Base64 with optional padding, with some attempt
-    /// to ignore problems.
-    ///
-    /// This is a ONE-WAY transformation!
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// // Input: "AQIDBA="
-    /// let i: Vec<u8> = b"AQIDBA=".to_vec();
-    ///
-    /// // Output: "\x01\x02\x03\x04"
-    /// let o = Transformation::FromBase64Permissive.transform(&i).unwrap();
-    ///
-    /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
-    /// ```
-    ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid enough Base64.
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// let i: Vec<u8> = b"Not valid base64~".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase64Permissive.transform(&i).is_err());
-    /// ```
-    FromBase64Permissive,
-
-    /// Convert from URL-safe Base64 with padding - that is, `+` becomes `-`
-    /// and `/` becomes `_`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase64;
     ///
     /// // Input: "aa--_z8="
     /// let i: Vec<u8> = b"aa--_z8=".to_vec();
     ///
     /// // Output: "\x69\xaf\xbe\xff\x3f"
-    /// let o = Transformation::FromBase64URL.transform(&i).unwrap();
+    /// let o = TransformBase64::url().transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), o);
     /// ```
     ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid Base64 with correct padding and decode to full bytes.
+    /// # Example 5 - Permissive
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase64;
     ///
-    /// let i: Vec<u8> = b"Not valid base64~".to_vec();
+    /// // Input: "AQIDBA="
+    /// let i: Vec<u8> = b"AQIDBA=".to_vec();
     ///
-    /// // Error
-    /// assert!(Transformation::FromBase64URL.transform(&i).is_err());
+    /// // Output: "\x01\x02\x03\x04"
+    /// let o = TransformBase64::permissive().transform(&i).unwrap();
+    ///
+    /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
-    FromBase64URL,
+    FromBase64(TransformBase64),
 
-    /// Convert from URL-safe Base64 with NO padding.
+    /// Decode Base32.
     ///
-    /// # Example
+    /// Like Base64, many options can be configured depending on which
+    /// constructor / variant you choose. The Permissive variations will
+    /// try hard to decode even broken data (ignoring illegal characters), but
+    /// will almost certainly output garbage.
     ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// // Input: "aa--_z8"
-    /// let i: Vec<u8> = b"aa--_z8".to_vec();
-    ///
-    /// // Output: "\x69\xaf\xbe\xff\x3f"
-    /// let o = Transformation::FromBase64URLNoPadding.transform(&i).unwrap();
-    ///
-    /// assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), o);
-    /// ```
-    ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid Base64 with NO padding whatsoever, and decode to full bytes.
+    /// # Example 1 - Standard
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// let i: Vec<u8> = b"Not valid base64~".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase64URLNoPadding.transform(&i).is_err());
-    /// ```
-    FromBase64URLNoPadding,
-
-    /// Convert from URL-safe Base64URL with optional padding, with some attempt
-    /// to ignore problems.
-    ///
-    /// This is a ONE-WAY transformation!
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// // Input: "aa--_z8"
-    /// let i: Vec<u8> = b"aa--_z8".to_vec();
-    ///
-    /// // Output: "\x69\xaf\xbe\xff\x3f"
-    /// let o = Transformation::FromBase64URLPermissive.transform(&i).unwrap();
-    ///
-    /// assert_eq!(b"\x69\xaf\xbe\xff\x3f".to_vec(), o);
-    /// ```
-    ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid enough Base64.
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// let i: Vec<u8> = b"Not valid base64~".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase64URLPermissive.transform(&i).is_err());
-    /// ```
-    FromBase64URLPermissive,
-
-    /// General Base32 class.
-    ///
-    /// You can use this class and set up the [`Base32Settings`] by hand, or
-    /// just use one of the pre-configured variants below.
-    FromBase32(Base32Settings),
-
-    /// Convert from standard Base32 with padding. Case is ignored.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase32;
     ///
     /// // Input: "AEBAGBA="
     /// let i: Vec<u8> = b"AEBAGBA=".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = Transformation::FromBase32Standard.transform(&i).unwrap();
+    /// let o = TransformBase32::standard().transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
     ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid Base32 with correct padding and decode to full bytes.
+    /// # Example 2 - Invalid transformation
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase32;
     ///
     /// let i: Vec<u8> = b"Not valid base32~".to_vec();
     ///
     /// // Error
-    /// assert!(Transformation::FromBase32Standard.transform(&i).is_err());
-    /// ```
-    FromBase32Standard,
-
-    /// Convert from standard Base32 with no padding. Case is ignored.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// // Input: "AEBAGBA"
-    /// let i: Vec<u8> = b"AEBAGBA".to_vec();
-    ///
-    /// // Output: "\x01\x02\x03\x04"
-    /// let o = Transformation::FromBase32NoPadding.transform(&i).unwrap();
-    ///
-    /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
+    /// assert!(TransformBase32::standard().transform(&i).is_err());
     /// ```
     ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid Base32 with no padding and decode to full bytes.
+    /// # Example 3 - Crockford character set
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// let i: Vec<u8> = b"Not valid base32~".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase32NoPadding.transform(&i).is_err());
-    /// ```
-    FromBase32NoPadding,
-
-    /// Convert from Base32 using the Crockford alphabet, which does not allow
-    /// padding. Case is ignored, and ambiguous letters (like i/l/L) are
-    /// treated the same. Untransforming is possible, but will be normalized.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase32;
     ///
     /// // Input: "91JPRV3F"
     /// let i: Vec<u8> = b"91JPRV3F".to_vec();
     ///
     /// // Output: "Hello"
-    /// let o = Transformation::FromBase32Crockford.transform(&i).unwrap();
+    /// let o = TransformBase32::crockford().transform(&i).unwrap();
     ///
     /// assert_eq!(b"Hello".to_vec(), o);
     /// ```
     ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid Base32 Crockford with no padding and decode to full bytes.
+    /// # Example 4 - Permissive
     ///
     /// ```
-    /// use libh2gb::transformation::Transformation;
+    /// use libh2gb::transformation::TransformBase32;
     ///
-    /// let i: Vec<u8> = b"Not valid base32~".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase32Crockford.transform(&i).is_err());
-    /// ```
-    FromBase32Crockford,
-
-    /// Convert from standard Base32 with optional padding. Any non-Base32
-    /// characters are ignored and discarded.
-    ///
-    /// This is a ONE-WAY transformation!
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// // Input: "AEBAGBA="
-    /// let i: Vec<u8> = b"AEBAGBA=".to_vec();
+    /// // Input: "AEBA??*GBA=" (bad characters will be ignored)
+    /// let i: Vec<u8> = b"AEBA??*GBA=".to_vec();
     ///
     /// // Output: "\x01\x02\x03\x04"
-    /// let o = Transformation::FromBase32Standard.transform(&i).unwrap();
+    /// let o = TransformBase32::permissive().transform(&i).unwrap();
     ///
     /// assert_eq!(b"\x01\x02\x03\x04".to_vec(), o);
     /// ```
-    ///
-    /// # Restrictions / errors
-    ///
-    /// Must be close enough to Base32 and decode to full bytes.
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// let i: Vec<u8> = b"Not valid base32~0123456789".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase32Permissive.transform(&i).is_err());
-    /// ```
-    FromBase32Permissive,
-
-    /// Convert from Base32 using the Crockford alphabet, but allow optional
-    /// padding. Case is ignored, and ambiguous letters (like i/l/L) are
-    /// treated the same. All non-Base32 characters are ignored.
-    ///
-    /// This is a ONE-WAY transformation!
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// // Input: "91JPRV3F=="
-    /// let i: Vec<u8> = b"91JPRV3F==".to_vec();
-    ///
-    /// // Output: "Hello"
-    /// let o = Transformation::FromBase32CrockfordPermissive.transform(&i).unwrap();
-    ///
-    /// assert_eq!(b"Hello".to_vec(), o);
-    /// ```
-    ///
-    /// # Restrictions / errors
-    ///
-    /// Must be valid enough Base32 Crockford and decode to full bytes (the
-    /// letter 'u', for example, is not allowed)
-    ///
-    /// ```
-    /// use libh2gb::transformation::Transformation;
-    ///
-    /// let i: Vec<u8> = b"uuuuu".to_vec();
-    ///
-    /// // Error
-    /// assert!(Transformation::FromBase32CrockfordPermissive.transform(&i).is_err());
-    /// ```
-    FromBase32CrockfordPermissive,
+    FromBase32(TransformBase32),
 
     /// Convert from Zlib "Deflated" format with or without a header. Uses the
     /// [inflate](https://github.com/image-rs/inflate) library.
@@ -600,30 +375,14 @@ pub enum Transformation {
 impl Transformation {
     fn get_transformer(&self) -> Box<dyn TransformerTrait> {
         match self {
-            Self::Null(s)                       => Box::new(*s),
-            Self::XorByConstant(s)              => Box::new(*s),
-
-            Self::FromBase64(s)                 => Box::new(TransformBase64::new(*s)),
-            Self::FromBase64Standard            => Box::new(TransformBase64::new(Base64Settings::standard())),
-            Self::FromBase64NoPadding           => Box::new(TransformBase64::new(Base64Settings::no_padding())),
-            Self::FromBase64Permissive          => Box::new(TransformBase64::new(Base64Settings::permissive())),
-            Self::FromBase64URL                 => Box::new(TransformBase64::new(Base64Settings::url())),
-            Self::FromBase64URLNoPadding        => Box::new(TransformBase64::new(Base64Settings::url_no_padding())),
-            Self::FromBase64URLPermissive       => Box::new(TransformBase64::new(Base64Settings::url_permissive())),
-
-            Self::FromBase32(s)                 => Box::new(TransformBase32::new(*s)),
-            Self::FromBase32Standard            => Box::new(TransformBase32::new(Base32Settings::standard())),
-            Self::FromBase32NoPadding           => Box::new(TransformBase32::new(Base32Settings::no_padding())),
-            Self::FromBase32Crockford           => Box::new(TransformBase32::new(Base32Settings::crockford())),
-            Self::FromBase32Permissive          => Box::new(TransformBase32::new(Base32Settings::permissive())),
-            Self::FromBase32CrockfordPermissive => Box::new(TransformBase32::new(Base32Settings::crockford_permissive())),
-
-            Self::FromDeflated(s)               => Box::new(*s),
-
-            Self::FromHex(s)                    => Box::new(*s),
-
-            Self::FromBlockCipher(s)            => Box::new(*s),
-            Self::FromStreamCipher(s)           => Box::new(*s),
+            Self::Null(s)             => Box::new(*s),
+            Self::XorByConstant(s)    => Box::new(*s),
+            Self::FromBase64(s)       => Box::new(*s),
+            Self::FromBase32(s)       => Box::new(*s),
+            Self::FromDeflated(s)     => Box::new(*s),
+            Self::FromHex(s)          => Box::new(*s),
+            Self::FromBlockCipher(s)  => Box::new(*s),
+            Self::FromStreamCipher(s) => Box::new(*s),
         }
     }
 

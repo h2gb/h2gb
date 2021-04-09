@@ -6,66 +6,47 @@ use crate::transformation::TransformerTrait;
 use crate::transformation::Transformation;
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct Base64Settings {
+pub struct TransformBase64 {
     no_padding: bool,
     permissive: bool,
     url: bool,
 }
 
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
-pub struct TransformBase64 {
-    settings: Base64Settings,
-}
-
-impl Base64Settings {
-    pub fn standard() -> Self {
-        Base64Settings {
-            no_padding: false,
-            permissive: false,
-            url: false,
-        }
+impl TransformBase64 {
+    pub fn new(no_padding: bool, permissive: bool, url: bool) -> Transformation {
+        Transformation::FromBase64(Self {
+            no_padding: no_padding,
+            permissive: permissive,
+            url: url,
+        })
     }
 
-    pub fn no_padding() -> Self {
-        Base64Settings {
-            no_padding: true,
-            permissive: false,
-            url: false,
-        }
+    pub fn standard() -> Transformation {
+        Self::new(false, false, false)
     }
 
-    pub fn permissive() -> Self {
-        Base64Settings {
-            no_padding: false,
-            permissive: true,
-            url: false,
-        }
+    pub fn no_padding() -> Transformation {
+        Self::new(true, false, false)
     }
 
-    pub fn url() -> Self {
-        Base64Settings {
-            no_padding: false,
-            permissive: false,
-            url: true,
-        }
+    pub fn permissive() -> Transformation {
+        Self::new(false, true, false)
     }
 
-    pub fn url_no_padding() -> Self {
-        Base64Settings {
-            no_padding: true,
-            permissive: false,
-            url: true,
-        }
+    pub fn url() -> Transformation {
+        Self::new(false, false, true)
     }
 
-    pub fn url_permissive() -> Self {
-        Base64Settings {
-            no_padding: false,
-            permissive: true,
-            url: true,
-        }
+    pub fn url_no_padding() -> Transformation {
+        Self::new(true, false, true)
     }
 
+    pub fn url_permissive() -> Transformation {
+        Self::new(false, true, true)
+    }
+
+    /// Convert my padding and URL booleans into the built-in [`base64`]
+    /// constants
     fn get_config(&self) -> base64::Config {
         match (self.no_padding, self.url) {
             (false, false) => base64::STANDARD,
@@ -74,26 +55,18 @@ impl Base64Settings {
             (true,  true)  => base64::URL_SAFE_NO_PAD,
         }
     }
-}
-
-impl TransformBase64 {
-    pub fn new(settings: Base64Settings) -> Self {
-        TransformBase64 {
-            settings: settings,
-        }
-    }
 
     fn transform_standard(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         let original_length = buffer.len();
 
         // Decode
-        let out = match base64::decode_config(buffer, self.settings.get_config()) {
+        let out = match base64::decode_config(buffer, self.get_config()) {
             Ok(r) => r,
             Err(e) => bail!("Couldn't decode base64: {}", e),
         };
 
         // Ensure it encodes to the same length - we can't handle length changes
-        if base64::encode_config(&out, self.settings.get_config()).len() != original_length {
+        if base64::encode_config(&out, self.get_config()).len() != original_length {
             bail!("Base64 didn't decode correctly (the length changed with decode->encode, check padding)");
         }
 
@@ -101,7 +74,7 @@ impl TransformBase64 {
     }
 
     fn untransform_standard(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        Ok(base64::encode_config(buffer, self.settings.get_config()).into_bytes())
+        Ok(base64::encode_config(buffer, self.get_config()).into_bytes())
     }
 
     fn check_standard(&self, buffer: &Vec<u8>) -> bool {
@@ -117,7 +90,7 @@ impl TransformBase64 {
         }).collect();
 
         // Decode
-        let out = match base64::decode_config(buffer, self.settings.get_config()) {
+        let out = match base64::decode_config(buffer, self.get_config()) {
             Ok(r) => r,
             Err(e) => bail!("Couldn't decode base64: {}", e),
         };
@@ -137,21 +110,21 @@ impl TransformBase64 {
 
 impl TransformerTrait for TransformBase64 {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.settings.permissive {
+        match self.permissive {
             false => self.transform_standard(buffer),
             true  => self.transform_permissive(buffer),
         }
     }
 
     fn untransform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
-        match self.settings.permissive {
+        match self.permissive {
             false => self.untransform_standard(buffer),
             true  => self.untransform_permissive(buffer),
         }
     }
 
     fn can_transform(&self, buffer: &Vec<u8>) -> bool {
-        match self.settings.permissive {
+        match self.permissive {
             false => self.check_standard(buffer),
             true  => self.check_permissive(buffer),
         }
@@ -160,33 +133,20 @@ impl TransformerTrait for TransformBase64 {
     fn is_two_way(&self) -> bool {
         // It's two-way if it's not permissive (permissive allows illegal stuff,
         // which would only be one way).
-        !self.settings.permissive
+        !self.permissive
     }
 
     fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
-        let mut out: Vec<_> = Vec::new();
+        // These are all the detect-able transformations
+        let transformations = vec![
+            Self::standard(),
+            Self::no_padding(),
+            Self::url(),
+            Self::url_no_padding()
+        ];
 
-        let t = Transformation::FromBase64Standard;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        let t = Transformation::FromBase64NoPadding;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        let t = Transformation::FromBase64URL;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        let t = Transformation::FromBase64URLNoPadding;
-        if t.can_transform(buffer) {
-            out.push(t);
-        }
-
-        out
+        // Filter down to the ones that work
+        transformations.into_iter().filter(|t| t.can_transform(buffer)).collect()
     }
 }
 
@@ -198,7 +158,7 @@ mod tests {
 
     #[test]
     fn test_base64_standard() -> SimpleResult<()> {
-        let t = Transformation::FromBase64Standard;
+        let t = TransformBase64::standard();
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -241,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_base64_standard_no_padding() -> SimpleResult<()> {
-        let t = Transformation::FromBase64NoPadding;
+        let t = TransformBase64::no_padding();
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -278,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_base64_permissive() -> SimpleResult<()> {
-        let t = Transformation::FromBase64Permissive;
+        let t = TransformBase64::permissive();
         assert_eq!(false, t.is_two_way());
 
         // Short string: "\x00" with various padding
@@ -297,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_base64_url() -> SimpleResult<()> {
-        let t = Transformation::FromBase64URL;
+        let t = TransformBase64::url();
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -334,7 +294,7 @@ mod tests {
 
     #[test]
     fn test_base64_standard_url_no_padding() -> SimpleResult<()> {
-        let t = Transformation::FromBase64URLNoPadding;
+        let t = TransformBase64::url_no_padding();
         assert_eq!(true, t.is_two_way());
 
         // Short string: "\x00"
@@ -369,7 +329,7 @@ mod tests {
 
     #[test]
     fn test_base64_url_permissive() -> SimpleResult<()> {
-        let t = Transformation::FromBase64URLPermissive;
+        let t = TransformBase64::url_permissive();
         assert_eq!(false, t.is_two_way());
 
         // Short string: "\x00" with various padding
