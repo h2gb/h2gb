@@ -1,8 +1,7 @@
 use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 
-use crate::transformation::TransformerTrait;
-use crate::transformation::Transformation;
+use crate::transformation::{Transformation, TransformerTrait};
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformNull {

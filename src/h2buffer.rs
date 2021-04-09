@@ -23,7 +23,7 @@ use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::ops::Range;
 
-use crate::transformation::{Transformation, TransformHex};
+use crate::transformation::Transformation;
 
 use crate::h2layer::H2Layer;
 
@@ -258,7 +258,7 @@ impl H2Buffer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    //use h2transformer::Transformation;
+    use crate::transformation::TransformHex;
 
     #[test]
     fn test_new() -> SimpleResult<()> {

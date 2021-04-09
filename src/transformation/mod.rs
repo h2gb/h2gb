@@ -456,107 +456,107 @@ mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
 
-    // #[test]
-    // fn test_detect() -> SimpleResult<()> {
-    //     let tests: Vec<_> = vec![
-    //         (
-    //             "Testcase: 'A'",
-    //             b"A".to_vec(),
-    //             vec![
-    //             ],
-    //         ),
+    #[test]
+    fn test_detect() -> SimpleResult<()> {
+        let tests: Vec<_> = vec![
+            (
+                "Testcase: 'A'",
+                b"A".to_vec(),
+                vec![
+                ],
+            ),
 
-    //         (
-    //             "Testcase: 'AA'",
-    //             b"AA".to_vec(),
-    //             vec![
-    //                 Transformation::FromBase64NoPadding,
-    //                 Transformation::FromBase64URLNoPadding,
-    //                 Transformation::FromHex,
-    //                 Transformation::FromBase32NoPadding,
-    //                 Transformation::FromBase32Crockford,
-    //             ],
-    //         ),
+            (
+                "Testcase: 'AA'",
+                b"AA".to_vec(),
+                vec![
+                    TransformBase32::no_padding(),
+                    TransformBase32::crockford(),
+                    TransformBase64::no_padding(),
+                    TransformBase64::url_no_padding(),
+                    TransformHex::new(),
+                ],
+            ),
 
-    //         (
-    //             "Testcase: 'AA=='",
-    //             b"AA==".to_vec(),
-    //             vec![
-    //                 Transformation::FromBase64Standard,
-    //                 Transformation::FromBase64URL,
-    //             ],
-    //         ),
+            (
+                "Testcase: 'AA=='",
+                b"AA==".to_vec(),
+                vec![
+                    TransformBase64::standard(),
+                    TransformBase64::url(),
+                ],
+            ),
 
-    //         (
-    //             "Testcase: '/+AAAA=='",
-    //             b"/+AAAA==".to_vec(),
-    //             vec![
-    //                 Transformation::FromBase64Standard,
-    //             ],
-    //         ),
+            (
+                "Testcase: '/+AAAA=='",
+                b"/+AAAA==".to_vec(),
+                vec![
+                    TransformBase64::standard(),
+                ],
+            ),
 
-    //         (
-    //             "Testcase: '-_AAAA=='",
-    //             b"-_AAAA==".to_vec(),
-    //             vec![
-    //                 Transformation::FromBase64URL,
-    //                 Transformation::FromDeflatedNoZlibHeader,
-    //             ],
-    //         ),
+            (
+                "Testcase: '-_AAAA=='",
+                b"-_AAAA==".to_vec(),
+                vec![
+                    TransformBase64::url(),
+                    TransformDeflate::without_header(),
+                ],
+            ),
 
-    //         (
-    //             "Testcase: Simple deflated",
-    //             b"\x03\x00\x00\x00\x00\x01".to_vec(),
-    //             vec![
-    //                 Transformation::FromDeflatedNoZlibHeader,
-    //             ]
-    //         ),
+            (
+                "Testcase: Simple deflated",
+                b"\x03\x00\x00\x00\x00\x01".to_vec(),
+                vec![
+                    TransformDeflate::without_header(),
+                ]
+            ),
 
-    //         (
-    //             "Testcase: Zlib deflated",
-    //             b"\x78\x9c\x03\x00\x00\x00\x00\x01".to_vec(),
-    //             vec![
-    //                 Transformation::FromDeflatedZlibHeader,
-    //             ]
-    //         ),
+            (
+                "Testcase: Zlib deflated",
+                b"\x78\x9c\x03\x00\x00\x00\x00\x01".to_vec(),
+                vec![
+                    TransformDeflate::with_header(),
+                ]
+            ),
 
-    //         (
-    //             "Testcase: Base32",
-    //             b"ORSXG5BRGIZSA2DFNRWG6===".to_vec(),
-    //             vec![
-    //                 Transformation::FromBase32Standard,
-    //             ]
-    //         ),
+            (
+                "Testcase: Base32",
+                b"ORSXG5BRGIZSA2DFNRWG6===".to_vec(),
+                vec![
+                    TransformBase32::standard(),
+                ]
+            ),
 
-    //         (
-    //             "Testcase: Base32 no padding",
-    //             b"ORSXG5BRGIZSA2DFNRWG6".to_vec(),
-    //             vec![
-    //                 Transformation::FromBase32NoPadding,
-    //                 Transformation::FromBase32Crockford,
-    //             ]
-    //         ),
+            (
+                "Testcase: Base32 no padding",
+                b"ORSXG5BRGIZSA2DFNRWG6".to_vec(),
+                vec![
+                    TransformBase32::no_padding(),
+                    TransformBase32::crockford(),
+                ]
+            ),
 
-    //         (
-    //             "Testcase: Base32 crockford",
-    //             b"EHJQ6X1H68SJ0T35DHP6Y".to_vec(),
-    //             vec![
-    //                 Transformation::FromBase32Crockford,
-    //             ]
-    //         ),
-    //     ];
+            (
+                "Testcase: Base32 crockford",
+                b"EHJQ6X1H68SJ0T35DHP6Y".to_vec(),
+                vec![
+                    TransformBase32::crockford(),
+                ]
+            ),
+        ];
 
-    //     // Do this in a loop since we have to sort both vectors
-    //     for (desc, s, r) in tests {
-    //         let mut t = Transformation::detect(&s);
-    //         t.sort();
+        // Do this in a loop since we have to sort both vectors
+        for (desc, s, r) in tests {
+            let mut t = Transformation::detect(&s);
+            t.sort();
 
-    //         let mut r = r.clone();
-    //         r.sort();
+            let mut r = r.clone();
+            r.sort();
 
-    //         assert_eq!(t, r, "{}", desc);
-    //     }
+            assert_eq!(t, r, "{}", desc);
+        }
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 }

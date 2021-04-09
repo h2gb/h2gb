@@ -1,8 +1,7 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::transformation::TransformerTrait;
-use crate::transformation::Transformation;
+use crate::transformation::{Transformation, TransformerTrait};
 
 /// When performing an XorByConstant transformation, this represents the size
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]

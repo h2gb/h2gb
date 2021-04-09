@@ -10,17 +10,17 @@ pub struct TransformDeflate {
 }
 
 impl TransformDeflate {
-    pub fn new(zlib_header: bool) -> Self {
-        Self {
+    pub fn new(zlib_header: bool) -> Transformation {
+        Transformation::FromDeflated(Self {
             zlib_header: zlib_header,
-        }
+        })
     }
 
-    pub fn with_header() -> Self {
+    pub fn with_header() -> Transformation {
         Self::new(true)
     }
 
-    pub fn without_header() -> Self {
+    pub fn without_header() -> Transformation {
         Self::new(false)
     }
 
@@ -77,12 +77,12 @@ impl TransformerTrait for TransformDeflate {
     fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
         let mut out: Vec<_> = Vec::new();
 
-        let t = Transformation::FromDeflated(TransformDeflate::with_header());
+        let t = TransformDeflate::with_header();
         if t.can_transform(buffer) {
             out.push(t);
         }
 
-        let t = Transformation::FromDeflated(TransformDeflate::without_header());
+        let t = TransformDeflate::without_header();
         if t.can_transform(buffer) {
             out.push(t);
         }

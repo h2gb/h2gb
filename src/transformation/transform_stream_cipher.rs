@@ -1,4 +1,4 @@
-use cipher::{NewStreamCipher, SyncStreamCipher, SyncStreamCipherSeek};
+use cipher::{NewStreamCipher, SyncStreamCipher};
 use salsa20::Salsa20;
 use chacha20::ChaCha20Legacy;
 
@@ -9,8 +9,7 @@ use nettle::cipher::insecure_do_not_use::ArcFour;
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::transformation::TransformerTrait;
-use crate::transformation::Transformation;
+use crate::transformation::{Transformation, TransformerTrait};
 use crate::transformation::helpers::key_or_iv::KeyOrIV;
 
 /// Which stream cipher should we use?

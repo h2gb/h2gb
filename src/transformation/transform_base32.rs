@@ -156,7 +156,6 @@ impl TransformerTrait for TransformBase32 {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_base32_standard() -> SimpleResult<()> {

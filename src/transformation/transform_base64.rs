@@ -2,8 +2,7 @@ use base64;
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::transformation::TransformerTrait;
-use crate::transformation::Transformation;
+use crate::transformation::{Transformation, TransformerTrait};
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformBase64 {
@@ -56,6 +55,7 @@ impl TransformBase64 {
         }
     }
 
+    // TODO: Permit newlines / whitespace in base64 (seems fairly common)
     fn transform_standard(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
         let original_length = buffer.len();
 
@@ -154,7 +154,6 @@ impl TransformerTrait for TransformBase64 {
 mod tests {
     use super::*;
     use pretty_assertions::assert_eq;
-    use crate::transformation::Transformation;
 
     #[test]
     fn test_base64_standard() -> SimpleResult<()> {

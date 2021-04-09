@@ -7,8 +7,7 @@ use block_modes::block_padding::{NoPadding, Pkcs7, ZeroPadding};
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::transformation::TransformerTrait;
-use crate::transformation::Transformation;
+use crate::transformation::{Transformation, TransformerTrait};
 use crate::transformation::helpers::key_or_iv::KeyOrIV;
 
 /// A macro to simplify decryption - lets us pass a class name as an argument
