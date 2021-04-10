@@ -219,6 +219,11 @@ impl TransformerTrait for TransformStreamCipher {
     fn detect(_buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
         vec![]
     }
+
+    // Unfortunately, we can never tell whether a stream cipher is valid
+    fn can_transform(&self, _buffer: &Vec<u8>) -> bool {
+        true
+    }
 }
 
 #[cfg(test)]

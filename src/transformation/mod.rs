@@ -544,6 +544,42 @@ mod tests {
                     TransformBase32::crockford(),
                 ]
             ),
+
+            (
+                "Testcase: AES-128-CBC or ECB with a NULL key + IV",
+                b"\x1c\xdc\x23\xdb\xc0\xc5\x5a\x68\xd6\xed\x4e\x5b\x1d\x36\xdf\xf5".to_vec(),
+                vec![
+                    TransformBlockCipher::new(
+                        BlockCipherType::AES,
+                        BlockCipherMode::CBC,
+                        BlockCipherPadding::Pkcs7,
+                        b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+                        None,
+                    ).unwrap(),
+                    TransformBlockCipher::new(
+                        BlockCipherType::AES,
+                        BlockCipherMode::ECB,
+                        BlockCipherPadding::Pkcs7,
+                        b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+                        None,
+                    ).unwrap(),
+                ]
+            ),
+            (
+                "Testcase: AES-128-CBC with a NULL key + IV",
+                b"\xfb\x35\x97\x36\x05\x1a\xf5\x90\x18\xe4\xdd\x95\x31\xcd\x6a\x27\
+                  \x68\x74\xd0\xd8\x48\x6b\x0b\xc8\x1f\x3c\xc4\xd1\x95\x14\xcc\x1a\
+                  \x16\xc3\x0d\x5a\x74\xa9\x1a\x3c\x01\xa3\x34\x52\x69\x46\x0e\x52".to_vec(),
+                vec![
+                    TransformBlockCipher::new(
+                        BlockCipherType::AES,
+                        BlockCipherMode::CBC,
+                        BlockCipherPadding::Pkcs7,
+                        b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+                        None,
+                    ).unwrap(),
+                ]
+            ),
         ];
 
         // Do this in a loop since we have to sort both vectors

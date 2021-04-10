@@ -386,8 +386,71 @@ impl TransformerTrait for TransformBlockCipher {
         true
     }
 
-    fn detect(_buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
-        vec![]
+    // We can try a couple ciphers with common keys
+    fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
+        let mut transformations: Vec<Transformation> = vec![];
+
+        // If the buffer is consistent with AES, add AES keys
+        if (buffer.len() % 16) == 0 {
+            // Some common aes keys
+            let aes_keys = vec![
+                b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+                b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+                b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
+                b"AAAAAAAAAAAAAAAA".to_vec(),
+                b"AAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),
+                b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(),
+            ];
+            for k in aes_keys.into_iter() {
+                transformations.push(Self::new(BlockCipherType::AES, BlockCipherMode::CBC, BlockCipherPadding::Pkcs7, k.clone(), None).unwrap());
+                transformations.push(Self::new(BlockCipherType::AES, BlockCipherMode::ECB, BlockCipherPadding::Pkcs7, k.clone(), None).unwrap());
+                transformations.push(Self::new(BlockCipherType::AES, BlockCipherMode::CFB, BlockCipherPadding::Pkcs7, k.clone(), None).unwrap());
+            }
+        }
+
+        // If the buffer is consistent with DES, add some DES keys
+        if (buffer.len() % 8) == 0 {
+            // Some common des keys
+            let des_keys = vec![
+                b"\0\0\0\0\0\0\0\0".to_vec(),
+                b"AAAAAAAA".to_vec(),
+            ];
+            for k in des_keys.into_iter() {
+                transformations.push(Self::new(BlockCipherType::DES, BlockCipherMode::CBC, BlockCipherPadding::Pkcs7, k.clone(), None).unwrap());
+                transformations.push(Self::new(BlockCipherType::DES, BlockCipherMode::ECB, BlockCipherPadding::Pkcs7, k.clone(), None).unwrap());
+                transformations.push(Self::new(BlockCipherType::DES, BlockCipherMode::CFB, BlockCipherPadding::Pkcs7, k.clone(), None).unwrap());
+            }
+        }
+
+        // Filter down to the ones that work
+        transformations.into_iter().filter(|t| t.can_transform(buffer)).collect()
+    }
+
+    fn can_transform(&self, buffer: &Vec<u8>) -> bool {
+        // Check that the ciphertext is a multiple of the blocksize
+        match self.cipher {
+            BlockCipherType::AES => {
+                if buffer.len() % 16 != 0 {
+                    return false;
+                }
+            },
+            BlockCipherType::DES => {
+                if buffer.len() % 8 != 0 {
+                    return false;
+                }
+            },
+        }
+
+        // With many padding types, we just can't tell and have to assume it's
+        // okay
+        match self.padding {
+            BlockCipherPadding::NoPadding   => return true,
+            BlockCipherPadding::ZeroPadding => return true,
+            _ => (),
+        }
+
+        // When all else fails, just say yes
+        self.transform(buffer).is_ok()
     }
 }
 
