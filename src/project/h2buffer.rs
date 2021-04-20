@@ -28,7 +28,7 @@ use crate::transformation::Transformation;
 use crate::project::h2layer::H2Layer;
 
 // H2Buffer holds the actual data, as well as its layers
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Buffer {
     pub data: Vec<u8>,
     pub base_address: usize,

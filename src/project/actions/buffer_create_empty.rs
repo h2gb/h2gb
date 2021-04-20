@@ -6,44 +6,38 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::project::h2project::H2Project;
 use crate::project::h2buffer::H2Buffer;
+use crate::project::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ActionBufferCreateEmptyForward {
+struct Forward {
     pub name: String,
     pub size: usize,
     pub base_address: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ActionBufferCreateEmptyBackward {
+struct Backward {
     name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferCreateEmpty {
-    forward: Option<ActionBufferCreateEmptyForward>,
-    backward: Option<ActionBufferCreateEmptyBackward>,
+    forward: Option<Forward>,
+    backward: Option<Backward>,
 }
 
 impl ActionBufferCreateEmpty {
-    pub fn new(forward: ActionBufferCreateEmptyForward) -> Self {
-        ActionBufferCreateEmpty {
-            forward: Some(forward),
-            backward: None,
-        }
-    }
-}
-
-impl From<(&str, usize, usize)> for ActionBufferCreateEmpty {
-    fn from(o: (&str, usize, usize)) -> Self {
-        ActionBufferCreateEmpty {
-            forward: Some(ActionBufferCreateEmptyForward {
-                name: o.0.to_string(),
-                size: o.1,
-                base_address: o.2,
-            }),
-            backward: None,
-        }
+    pub fn new(name: &str, size: usize, base_address: usize) -> Action {
+        Action::BufferCreateEmpty(
+            ActionBufferCreateEmpty {
+                forward: Some(Forward {
+                    name: String::from(name),
+                    size: size,
+                    base_address: base_address,
+                }),
+                backward: None,
+            }
+        )
     }
 }
 
@@ -63,7 +57,7 @@ impl Command for ActionBufferCreateEmpty {
         project.buffer_insert(&forward.name, buffer)?;
 
         // Swap backward + forward
-        self.backward = Some(ActionBufferCreateEmptyBackward {
+        self.backward = Some(Backward {
             name: forward.name.to_string(),
         });
         self.forward = None;
@@ -80,7 +74,7 @@ impl Command for ActionBufferCreateEmpty {
         let name = &backward.name;
         let buffer = project.buffer_remove(name)?;
 
-        self.forward = Some(ActionBufferCreateEmptyForward {
+        self.forward = Some(Forward {
             name: name.clone(),
             size: buffer.data.len(),
             base_address: buffer.base_address,
@@ -102,48 +96,52 @@ mod tests {
 
     #[test]
     fn test_action() -> SimpleResult<()> {
-        let mut record: Record<ActionBufferCreateEmpty> = Record::new(
+        let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
 
         assert_eq!(0, record.target().buffers().len());
 
-        record.apply(("buffer", 10, 0x80000000).into())?;
+        let action = ActionBufferCreateEmpty::new("buffer", 10, 0x80000000);
+        record.apply(action)?;
 
         let buffers = record.target().buffers();
         assert_eq!(1, buffers.len());
-
         assert_eq!(10, buffers["buffer"].data.len());
         assert_eq!(0x80000000, buffers["buffer"].base_address);
 
         record.undo()?;
-
         record.redo()?;
+
+        let buffers = record.target().buffers();
+        assert_eq!(1, buffers.len());
+        assert_eq!(10, buffers["buffer"].data.len());
+        assert_eq!(0x80000000, buffers["buffer"].base_address);
 
         Ok(())
     }
 
     #[test]
     fn test_action_fails_if_buffer_already_exists() -> SimpleResult<()> {
-        let mut record: Record<ActionBufferCreateEmpty> = Record::new(
+        let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
 
-        assert!(record.apply(("buffer", 10, 0x80000000).into()).is_ok());
-        assert!(record.apply(("buffer2", 10, 0x80000000).into()).is_ok());
-        assert!(record.apply(("buffer", 10, 0x80000000).into()).is_err());
-        assert!(record.apply(("buffer2", 10, 0x80000000).into()).is_err());
+        assert!(record.apply(ActionBufferCreateEmpty::new("buffer", 10, 0x80000000)).is_ok());
+        assert!(record.apply(ActionBufferCreateEmpty::new("buffer2", 10, 0x80000000)).is_ok());
+        assert!(record.apply(ActionBufferCreateEmpty::new("buffer", 10, 0x80000000)).is_err());
+        assert!(record.apply(ActionBufferCreateEmpty::new("buffer2", 10, 0x80000000)).is_err());
 
         Ok(())
     }
 
     #[test]
     fn test_action_fails_with_zero_size() -> SimpleResult<()> {
-        let mut record: Record<ActionBufferCreateEmpty> = Record::new(
+        let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
 
-        assert!(record.apply(("buffer", 0, 0x80000000).into()).is_err());
+        assert!(record.apply(ActionBufferCreateEmpty::new("buffer", 0, 0x80000000)).is_err());
 
         Ok(())
     }

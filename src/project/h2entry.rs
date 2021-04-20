@@ -12,7 +12,7 @@ use std::ops::Range;
 
 use crate::bumpy_vector::AutoBumpyEntry;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Entry {
     pub range: Range<usize>,
     pub display: String,

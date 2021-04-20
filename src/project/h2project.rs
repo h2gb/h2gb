@@ -15,7 +15,7 @@ use crate::project::h2entry::H2Entry;
 
 // H2Project is the very core, and the root of undo. All actions will be taken
 // via this object.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Project {
     pub name: String,
     pub version: String,

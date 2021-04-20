@@ -23,7 +23,7 @@ use simple_error::SimpleResult;
 // use std::collections::HashMap;
 // use std::ops::Range;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Layer {
 }
 

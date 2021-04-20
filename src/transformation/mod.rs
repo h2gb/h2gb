@@ -374,7 +374,7 @@ pub enum Transformation {
 
 impl Transformation {
     fn get_transformer(&self) -> Box<dyn TransformerTrait> {
-        match self {
+        match self { // TODO: I think I can simplify this by moving the *
             Self::Null(s)             => Box::new(*s),
             Self::XorByConstant(s)    => Box::new(*s),
             Self::FromBase64(s)       => Box::new(*s),
