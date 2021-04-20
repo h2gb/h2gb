@@ -9,7 +9,7 @@ saving any context (while the length is constant, the data isn't always
 identical - like the case of Base32 and hex strings). If proper undo/redo
 is needed, this won't fit the bill.
 
-Check out the definition of the `H2Transformation` enum for full details on
+Check out the definition of the [`Transformation`] enum for full details on
 everything it can do!
 
 ## Usage
@@ -19,19 +19,19 @@ then untransforms some hex data:
 
 
 ```rust
-use libh2gb::transformation::H2Transformation;
+use libh2gb::transformation::TransformHex;
 
 // Input (note that some are uppercase and some are lower - that's allowed)
 let i: Vec<u8> = b"48656c6C6F2c20776f726c64".to_vec();
 
 // Output
-let o = H2Transformation::FromHex.transform(&i).unwrap();
+let o = TransformHex::new().transform(&i).unwrap();
 
 // It's "Hello, world"
 assert_eq!(b"Hello, world".to_vec(), o);
 
 // Transform back to the original
-let i = H2Transformation::FromHex.untransform(&o).unwrap();
+let i = TransformHex::new().untransform(&o).unwrap();
 
 // Get the original back - note that it's the same length, but the case has
 // been normalized

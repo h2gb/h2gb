@@ -20,7 +20,7 @@ pub struct H2Entry {
     pub creations: Option<Vec<()>>,
     pub references: Option<Vec<()>>,
     //pub datatype: H2Type,
-    //pub transformations: H2Transformation
+    //pub transformations: Transformation
 }
 
 impl fmt::Display for H2Entry {
