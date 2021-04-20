@@ -8,8 +8,8 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::h2project::H2Project;
-use crate::h2buffer::H2Buffer;
+use crate::project::h2project::H2Project;
+use crate::project::h2buffer::H2Buffer;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferDeleteForward {
@@ -97,8 +97,8 @@ mod tests {
 
     use crate::transformation::TransformHex;
 
-    use crate::h2project::H2Project;
-    use crate::action::Action;
+    use crate::project::h2project::H2Project;
+    use crate::project::actions::Action;
 
     #[test]
     fn test_action() -> SimpleResult<()> {

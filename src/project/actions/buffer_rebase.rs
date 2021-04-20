@@ -8,7 +8,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::h2project::H2Project;
+use crate::project::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferRebaseForward {
@@ -102,10 +102,10 @@ impl Command for ActionBufferRebase {
 mod tests {
     use simple_error::SimpleResult;
 
-    use crate::h2project::H2Project;
+    use crate::project::h2project::H2Project;
     use redo::Record;
     use pretty_assertions::assert_eq;
-    use crate::action::Action;
+    use crate::project::actions::Action;
 
     #[test]
     fn test_action() -> SimpleResult<()> {

@@ -10,8 +10,8 @@ use std::fmt;
 
 use crate::multi_vector::MultiVector;
 
-use crate::h2buffer::H2Buffer;
-use crate::h2entry::H2Entry;
+use crate::project::h2buffer::H2Buffer;
+use crate::project::h2entry::H2Entry;
 
 // H2Project is the very core, and the root of undo. All actions will be taken
 // via this object.

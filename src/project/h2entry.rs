@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 use std::fmt;
 use std::ops::Range;
 
-//use crate::h2datatype::H2Type;
+//use crate::project::h2datatype::H2Type;
 
 use crate::bumpy_vector::AutoBumpyEntry;
 

@@ -25,7 +25,7 @@ use std::ops::Range;
 
 use crate::transformation::Transformation;
 
-use crate::h2layer::H2Layer;
+use crate::project::h2layer::H2Layer;
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Serialize, Deserialize, Debug)]

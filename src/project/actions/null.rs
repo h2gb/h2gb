@@ -7,7 +7,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};
 
-use crate::h2project::H2Project;
+use crate::project::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NullAction {

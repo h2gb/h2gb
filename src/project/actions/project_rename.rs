@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 use std::mem;
 
-use crate::h2project::H2Project;
+use crate::project::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionProjectRenameForward {
@@ -93,7 +93,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::h2project::H2Project;
+    use crate::project::h2project::H2Project;
     use redo::Record;
     use pretty_assertions::assert_eq;
 

@@ -16,8 +16,8 @@ use simple_error::{SimpleResult, SimpleError, bail};
 use std::cmp::Ord;
 use std::collections::HashMap;
 
-use crate::h2project::H2Project;
-use crate::h2buffer::H2Buffer;
+use crate::project::h2project::H2Project;
+use crate::project::h2buffer::H2Buffer;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Split {
@@ -203,8 +203,8 @@ mod tests {
     use redo::Record;
     use simple_error::SimpleResult;
 
-    use crate::action::Action;
-    use crate::h2project::H2Project;
+    use crate::project::actions::Action;
+    use crate::project::h2project::H2Project;
 
     #[test]
     fn test_action() -> SimpleResult<()> {

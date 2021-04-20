@@ -1054,13 +1054,13 @@ mod tests {
         struct Test {
             size: usize,
             index: usize,
-        };
+        }
 
         impl AutoBumpyEntry for Test {
             fn range(&self) -> Range<usize> {
                 self.index..(self.index+self.size)
             }
-        };
+        }
 
         let good_entry1 = Test {
             index: 0,

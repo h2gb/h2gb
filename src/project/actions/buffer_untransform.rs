@@ -15,7 +15,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::transformation::Transformation;
-use crate::h2project::H2Project;
+use crate::project::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferUntransformForward {
@@ -105,10 +105,10 @@ impl Command for ActionBufferUntransform {
 mod tests {
     use simple_error::SimpleResult;
 
-    use crate::h2project::H2Project;
+    use crate::project::h2project::H2Project;
     use redo::Record;
     use pretty_assertions::assert_eq;
-    use crate::action::Action;
+    use crate::project::actions::Action;
     use crate::transformation::{TransformHex, TransformBase64};
 
     #[test]
