@@ -29,13 +29,24 @@ use crate::project::h2project::H2Project;
 // * What about pointers / structs / arrays / etc?
 
 pub mod buffer_create_empty;
+pub use buffer_create_empty::ActionBufferCreateEmpty;
+
+pub mod buffer_create_from_bytes;
+pub use buffer_create_from_bytes::ActionBufferCreateFromBytes;
+
+pub mod buffer_transform;
+pub use buffer_transform::ActionBufferTransform;
+
 pub mod null;
+pub use null::NullAction;
 
 // Don't create this directly - use the actions' new() functions
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
-    Null(null::NullAction),
-    BufferCreateEmpty(buffer_create_empty::ActionBufferCreateEmpty),
+    Null(NullAction),
+    BufferCreateEmpty(ActionBufferCreateEmpty),
+    BufferCreateFromBytes(ActionBufferCreateFromBytes),
+    BufferTransform(ActionBufferTransform),
 }
 
 impl Action {
@@ -54,15 +65,19 @@ impl Command for Action {
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         match self {
-            Action::Null(a)              => a.apply(project),
-            Action::BufferCreateEmpty(a) => a.apply(project),
+            Action::Null(a)                  => a.apply(project),
+            Action::BufferCreateEmpty(a)     => a.apply(project),
+            Action::BufferCreateFromBytes(a) => a.apply(project),
+            Action::BufferTransform(a)       => a.apply(project),
         }
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         match self {
-            Action::Null(a)              => a.undo(project),
-            Action::BufferCreateEmpty(a) => a.undo(project),
+            Action::Null(a)                  => a.undo(project),
+            Action::BufferCreateEmpty(a)     => a.undo(project),
+            Action::BufferCreateFromBytes(a) => a.undo(project),
+            Action::BufferTransform(a)       => a.undo(project),
         }
     }
 }
