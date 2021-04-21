@@ -21,23 +21,25 @@ struct Backward {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+enum State {
+    Forward(Forward),
+    Backward(Backward),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ActionBufferCreateEmpty {
-    forward: Option<Forward>,
-    backward: Option<Backward>,
+    state: State,
 }
 
 impl ActionBufferCreateEmpty {
     pub fn new(name: &str, size: usize, base_address: usize) -> Action {
-        Action::BufferCreateEmpty(
-            ActionBufferCreateEmpty {
-                forward: Some(Forward {
-                    name: String::from(name),
-                    size: size,
-                    base_address: base_address,
-                }),
-                backward: None,
-            }
-        )
+        let state = State::Forward(Forward {
+            name: String::from(name),
+            size: size,
+            base_address: base_address,
+        });
+
+        Action::BufferCreateEmpty(ActionBufferCreateEmpty { state: state } )
     }
 }
 
@@ -47,9 +49,9 @@ impl Command for ActionBufferCreateEmpty {
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         // Get the forward instructions
-        let forward = match &self.forward {
-            Some(f) => f,
-            None => bail!("Failed to apply: missing context"),
+        let forward = match &self.state {
+            State::Forward(f) => f,
+            _                   => bail!("Failed to apply: missing context"),
         };
 
         // Apply the change
@@ -57,29 +59,27 @@ impl Command for ActionBufferCreateEmpty {
         project.buffer_insert(&forward.name, buffer)?;
 
         // Swap backward + forward
-        self.backward = Some(Backward {
+        self.state = State::Backward(Backward {
             name: forward.name.to_string(),
         });
-        self.forward = None;
 
         Ok(())
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let backward = match &self.backward {
-            Some(b) => b,
-            None => bail!("Failed to undo: missing context"),
+        let backward = match &self.state {
+            State::Backward(b) => b,
+            _                    => bail!("Failed to undo: missing context"),
         };
 
         let name = &backward.name;
         let buffer = project.buffer_remove(name)?;
 
-        self.forward = Some(Forward {
+        self.state = State::Forward(Forward {
             name: name.clone(),
             size: buffer.data.len(),
             base_address: buffer.base_address,
         });
-        self.backward = None;
 
         Ok(())
     }
