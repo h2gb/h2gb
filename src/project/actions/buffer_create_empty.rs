@@ -10,9 +10,9 @@ use crate::project::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Forward {
-    pub name: String,
-    pub size: usize,
-    pub base_address: usize,
+    name: String,
+    size: usize,
+    base_address: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

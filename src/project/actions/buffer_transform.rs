@@ -8,8 +8,8 @@ use crate::transformation::Transformation;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Forward {
-    pub name: String,
-    pub transformation: Transformation,
+    name: String,
+    transformation: Transformation,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
