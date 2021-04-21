@@ -61,7 +61,7 @@ mod tests {
 
         analyze_terraria(&mut record, "buffer")?;
 
-        println!("{:?}", &record);
+        // println!("{:?}", &record);
 
         Ok(())
     }
