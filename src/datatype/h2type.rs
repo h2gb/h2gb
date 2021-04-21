@@ -127,7 +127,7 @@ impl H2Type {
         self.field_type().range(offset, Alignment::None)
     }
 
-    /// Get the [`Range<u64`] that the type will cover, with padding.
+    /// Get the [`Range<u64>`] that the type will cover, with padding.
     pub fn aligned_range(&self, offset: Offset) -> SimpleResult<Range<u64>> {
         self.field_type().range(offset, self.alignment)
     }

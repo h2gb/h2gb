@@ -252,6 +252,25 @@ impl H2Buffer {
 
         Ok(old_base_address)
     }
+
+    pub fn layer_add(&mut self, layer: H2Layer) -> SimpleResult<()> {
+        let name = layer.name();
+
+        if self.layers.contains_key(name) {
+            bail!("Buffer already contains a layer named {}", name);
+        }
+
+        self.layers.insert(String::from(name), layer);
+
+        Ok(())
+    }
+
+    pub fn layer_remove(&mut self, layer: &str) -> SimpleResult<H2Layer> {
+        match self.layers.remove(layer) {
+            Some(l) => Ok(l),
+            None => bail!("Buffer doesn't contain a layer named {}", layer),
+        }
+    }
 }
 
 #[cfg(test)]

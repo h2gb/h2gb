@@ -25,16 +25,18 @@ use simple_error::SimpleResult;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Layer {
+    name: String,
 }
 
 impl H2Layer {
-    /// Create a new buffer with the given data and base_address
-    ///
-    /// # Errors
-    ///
-    /// * Data must be at least
-    pub fn new() -> SimpleResult<Self> {
-        Ok(H2Layer { })
+    pub fn new(name: &str) -> SimpleResult<Self> {
+        Ok(H2Layer {
+            name: String::from(name),
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
 

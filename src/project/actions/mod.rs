@@ -40,6 +40,9 @@ pub use buffer_transform::ActionBufferTransform;
 pub mod null;
 pub use null::NullAction;
 
+pub mod layer_create;
+pub use layer_create::ActionLayerCreate;
+
 // Don't create this directly - use the actions' new() functions
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -47,16 +50,7 @@ pub enum Action {
     BufferCreateEmpty(ActionBufferCreateEmpty),
     BufferCreateFromBytes(ActionBufferCreateFromBytes),
     BufferTransform(ActionBufferTransform),
-}
-
-impl Action {
-    // Not sure this is possible
-    // fn get_command(&self) -> Box<dyn Command<Target = H2Project, Error = SimpleError>> {
-    //     match self {
-    //         Action::Null(a)              => Box::new(*a),
-    //         Action::BufferCreateEmpty(a) => Box::new(*a),
-    //     }
-    // }
+    LayerCreate(ActionLayerCreate),
 }
 
 impl Command for Action {
@@ -69,6 +63,7 @@ impl Command for Action {
             Action::BufferCreateEmpty(a)     => a.apply(project),
             Action::BufferCreateFromBytes(a) => a.apply(project),
             Action::BufferTransform(a)       => a.apply(project),
+            Action::LayerCreate(a)           => a.apply(project),
         }
     }
 
@@ -78,6 +73,7 @@ impl Command for Action {
             Action::BufferCreateEmpty(a)     => a.undo(project),
             Action::BufferCreateFromBytes(a) => a.undo(project),
             Action::BufferTransform(a)       => a.undo(project),
+            Action::LayerCreate(a)           => a.undo(project),
         }
     }
 }

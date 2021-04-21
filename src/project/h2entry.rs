@@ -16,9 +16,9 @@ use crate::bumpy_vector::AutoBumpyEntry;
 pub struct H2Entry {
     pub range: Range<usize>,
     pub display: String,
-    pub creator: Option<()>,
-    pub creations: Option<Vec<()>>,
-    pub references: Option<Vec<()>>,
+    // pub creator: Option<()>,
+    // pub creations: Option<Vec<()>>,
+    // pub references: Option<Vec<()>>,
     //pub datatype: H2Type,
     //pub transformations: Transformation
 }
@@ -38,9 +38,6 @@ impl H2Entry {
         Self {
             range: range.clone(),
             display: display,
-            creator: None,
-            creations: None,
-            references: None,
         }
     }
 }
