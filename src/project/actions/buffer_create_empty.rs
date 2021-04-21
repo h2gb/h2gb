@@ -27,19 +27,19 @@ enum State {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ActionBufferCreateEmpty {
-    state: State,
-}
+pub struct ActionBufferCreateEmpty(State);
 
 impl ActionBufferCreateEmpty {
     pub fn new(name: &str, size: usize, base_address: usize) -> Action {
-        let state = State::Forward(Forward {
-            name: String::from(name),
-            size: size,
-            base_address: base_address,
-        });
-
-        Action::BufferCreateEmpty(ActionBufferCreateEmpty { state: state } )
+        Action::BufferCreateEmpty(
+            ActionBufferCreateEmpty(
+                State::Forward(Forward {
+                    name: String::from(name),
+                    size: size,
+                    base_address: base_address,
+                })
+            )
+        )
     }
 }
 
@@ -48,18 +48,18 @@ impl Command for ActionBufferCreateEmpty {
     type Error = SimpleError;
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        // Get the forward instructions
-        let forward = match &self.state {
+        // Get the forward struct
+        let forward = match &self.0 {
             State::Forward(f) => f,
-            _                   => bail!("Failed to apply: action ended up in a broken undo/redo state"),
+            _                 => bail!("Failed to apply: action ended up in a broken undo/redo state"),
         };
 
-        // Apply the change
+        // Do stuff with it
         let buffer = H2Buffer::new(vec![0; forward.size], forward.base_address)?;
         project.buffer_insert(&forward.name, buffer)?;
 
-        // Swap backward + forward
-        self.state = State::Backward(Backward {
+        // Save the backward struct
+        self.0 = State::Backward(Backward {
             name: forward.name.to_string(),
         });
 
@@ -67,15 +67,18 @@ impl Command for ActionBufferCreateEmpty {
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
-        let backward = match &self.state {
+        // Get the backward struct
+        let backward = match &self.0 {
             State::Backward(b) => b,
             _                    => bail!("Failed to undo: action ended up in a broken undo/redo state"),
         };
 
+        // Do stuff with it
         let name = &backward.name;
         let buffer = project.buffer_remove(name)?;
 
-        self.state = State::Forward(Forward {
+        // Save the forward struct
+        self.0 = State::Forward(Forward {
             name: name.clone(),
             size: buffer.data.len(),
             base_address: buffer.base_address,

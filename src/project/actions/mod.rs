@@ -31,9 +31,7 @@ use crate::project::h2project::H2Project;
 pub mod buffer_create_empty;
 pub mod null;
 
-use buffer_create_empty::*;
-use null::*;
-
+// Don't create this directly - use the actions' new() functions
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
     Null(null::NullAction),
@@ -56,14 +54,14 @@ impl Command for Action {
 
     fn apply(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         match self {
-            Action::Null(a) => a.apply(project),
+            Action::Null(a)              => a.apply(project),
             Action::BufferCreateEmpty(a) => a.apply(project),
         }
     }
 
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         match self {
-            Action::Null(a) => a.undo(project),
+            Action::Null(a)              => a.undo(project),
             Action::BufferCreateEmpty(a) => a.undo(project),
         }
     }
