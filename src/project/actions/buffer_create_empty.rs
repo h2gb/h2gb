@@ -51,7 +51,7 @@ impl Command for ActionBufferCreateEmpty {
         // Get the forward instructions
         let forward = match &self.state {
             State::Forward(f) => f,
-            _                   => bail!("Failed to apply: missing context"),
+            _                   => bail!("Failed to apply: action ended up in a broken undo/redo state"),
         };
 
         // Apply the change
@@ -69,7 +69,7 @@ impl Command for ActionBufferCreateEmpty {
     fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
         let backward = match &self.state {
             State::Backward(b) => b,
-            _                    => bail!("Failed to undo: missing context"),
+            _                    => bail!("Failed to undo: action ended up in a broken undo/redo state"),
         };
 
         let name = &backward.name;
