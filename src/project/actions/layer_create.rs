@@ -5,7 +5,6 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::project::h2project::H2Project;
-use crate::project::h2layer::H2Layer;
 use crate::project::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -51,7 +50,7 @@ impl Command for ActionLayerCreate {
         };
 
         // Do stuff with it
-        project.layer_add(&forward.buffer, H2Layer::new(&forward.name)?)?;
+        project.layer_add(&forward.buffer, &forward.name)?;
 
         // Save the backward struct
         self.0 = State::Backward(Backward {
@@ -108,21 +107,12 @@ mod tests {
         let action = ActionLayerCreate::new("buffer", "layer");
         record.apply(action)?;
 
-        // Get the buffer and make sure the layer now exists
-        let buffer = record.target().get_buffer("buffer")?;
-        assert!(buffer.get_layer("layer").is_ok());
-
+        // Ensure the layer exists, and undo/redo works
+        assert!(record.target().layer_exists("buffer", "layer")?);
         record.undo()?;
-
-        // Get the buffer and make sure the layer is gone
-        let buffer = record.target().get_buffer("buffer")?;
-        assert!(buffer.get_layer("layer").is_err());
-
+        assert!(!record.target().layer_exists("buffer", "layer")?);
         record.redo()?;
-
-        // Get the buffer and make sure the layer is back again
-        let buffer = record.target().get_buffer("buffer")?;
-        assert!(buffer.get_layer("layer").is_ok());
+        assert!(record.target().layer_exists("buffer", "layer")?);
 
         Ok(())
     }

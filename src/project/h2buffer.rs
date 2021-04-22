@@ -20,12 +20,10 @@ use std::mem;
 
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::ops::Range;
 
 use crate::transformation::Transformation;
-
-use crate::project::h2layer::H2Layer;
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -36,8 +34,12 @@ pub struct H2Buffer {
     pub data: Vec<u8>,
     pub base_address: usize,
 
-    layers: HashMap<String, H2Layer>,
+    // A list of transformations that this buffer has undergone
     transformations: Vec<Transformation>,
+
+    // A list of layers that this buffer contains (the actual layer data is
+    // stored in H2Project::entreis)
+    layers: HashSet<String>,
 }
 
 impl H2Buffer {
@@ -55,7 +57,7 @@ impl H2Buffer {
             name: name.to_string(),
             data: data,
             base_address: base_address,
-            layers: HashMap::new(),
+            layers: HashSet::new(),
             transformations: Vec::new(),
         })
     }
@@ -262,38 +264,21 @@ impl H2Buffer {
         Ok(old_base_address)
     }
 
-    pub fn layer_add(&mut self, layer: H2Layer) -> SimpleResult<()> {
-        let name = layer.name();
-
-        if self.layers.contains_key(&name) {
-            bail!("Buffer already contains a layer named {}", name);
+    pub fn layer_add(&mut self, layer: &str) -> SimpleResult<()> {
+        if !self.layers.insert(layer.to_string()) {
+            bail!("Layer already exists");
         }
-
-        // Insert into the layers table
-        self.layers.insert(String::from(name), layer);
 
         Ok(())
     }
 
-    pub fn layer_remove(&mut self, layer: &str) -> SimpleResult<H2Layer> {
-        match self.layers.remove(layer) {
-            Some(l) => Ok(l),
-            None => bail!("Buffer doesn't contain a layer named {}", layer),
+    // Note: doesn't check if the layer is empty!
+    pub fn layer_remove(&mut self, layer: &str) -> SimpleResult<()> {
+        if !self.layers.remove(&layer.to_string()) {
+            bail!("Layer doesn't exist");
         }
-    }
 
-    pub fn get_layer(&self, name: &str) -> SimpleResult<&H2Layer> {
-        match self.layers.get(name) {
-            Some(b) => Ok(b),
-            None => bail!("Layer {} not found", name),
-        }
-    }
-
-    pub fn get_layer_mut(&mut self, name: &str) -> SimpleResult<&mut H2Layer> {
-        match self.layers.get_mut(name) {
-            Some(b) => Ok(b),
-            None => bail!("Layer {} not found", name),
-        }
+        Ok(())
     }
 }
 

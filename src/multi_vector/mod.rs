@@ -678,6 +678,10 @@ where
         Ok(results)
     }
 
+    //pub fn remove_entries_range(&mut self, vector: &N, range: Range<usize>) {
+        // TODO: Implement remove_entries_range for deleting entries (later)
+    //}
+
     /// Returns the number of vectors in the `MultiVector`.
     pub fn vector_count(&self) -> usize {
         self.vectors.len()
