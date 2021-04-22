@@ -5,7 +5,6 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::project::h2project::H2Project;
-use crate::project::h2buffer::H2Buffer;
 use crate::project::h2layer::H2Layer;
 use crate::project::actions::Action;
 
@@ -89,44 +88,76 @@ impl Command for ActionLayerCreate {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // use pretty_assertions::assert_eq;
+    use redo::Record;
     use simple_error::SimpleResult;
 
     use crate::project::h2project::H2Project;
-    use redo::Record;
-    use pretty_assertions::assert_eq;
+    use crate::project::actions::ActionBufferCreateEmpty;
 
     #[test]
     fn test_action() -> SimpleResult<()> {
-        // let mut record: Record<Action> = Record::new(
-        //     H2Project::new("name", "1.0")
-        // );
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
 
-        // assert_eq!(0, record.target().buffers().len());
+        // Create a buffer
+        let action = ActionBufferCreateEmpty::new("buffer", 100, 0);
+        record.apply(action)?;
 
-        // let action = ActionLayerCreate::new("buffer", "layer");
-        // record.apply(action)?;
+        // Create a layer in the buffer
+        let action = ActionLayerCreate::new("buffer", "layer");
+        record.apply(action)?;
 
-        // let buffers = record.target().buffers();
-        // assert_eq!(1, buffers.len());
-        // assert_eq!(10, buffers["buffer"].data.len());
-        // assert_eq!(0x80000000, buffers["buffer"].base_address);
+        // Get the buffer and make sure the layer now exists
+        let buffer = record.target().get_buffer("buffer")?;
+        assert!(buffer.get_layer("layer").is_ok());
 
-        // record.undo()?;
-        // record.redo()?;
+        record.undo()?;
 
-        // let buffers = record.target().buffers();
-        // assert_eq!(1, buffers.len());
-        // assert_eq!(10, buffers["buffer"].data.len());
-        // assert_eq!(0x80000000, buffers["buffer"].base_address);
+        // Get the buffer and make sure the layer is gone
+        let buffer = record.target().get_buffer("buffer")?;
+        assert!(buffer.get_layer("layer").is_err());
+
+        record.redo()?;
+
+        // Get the buffer and make sure the layer is back again
+        let buffer = record.target().get_buffer("buffer")?;
+        assert!(buffer.get_layer("layer").is_ok());
 
         Ok(())
     }
 
     #[test]
     fn test_action_fails_if_layer_already_exists() -> SimpleResult<()> {
-        // let mut record: Record<Action> = Record::new(
-        //     H2Project::new("name", "1.0")
-        // );
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Create a pair of buffers
+        let action = ActionBufferCreateEmpty::new("buffer1", 100, 0);
+        record.apply(action)?;
+        let action = ActionBufferCreateEmpty::new("buffer2", 100, 0);
+        record.apply(action)?;
+
+        // Create a layer in the first buffer
+        let action = ActionLayerCreate::new("buffer1", "layer");
+        record.apply(action)?;
+
+        // Make sure it fails if we try again
+        let action = ActionLayerCreate::new("buffer1", "layer");
+        assert!(record.apply(action).is_err());
+
+        // Make sure it succeeds on the other buffer
+        let action = ActionLayerCreate::new("buffer2", "layer");
+        assert!(record.apply(action).is_ok());
+
+        // Undo / redo for good measure
+        record.undo()?;
+        record.undo()?;
+        record.redo()?;
+        record.redo()?;
 
         Ok(())
     }
