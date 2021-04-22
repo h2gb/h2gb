@@ -55,7 +55,7 @@ impl Command for ActionBufferCreateFromBytes {
         };
 
         // Do stuff with it
-        let buffer = H2Buffer::new(forward.data.clone(), forward.base_address)?;
+        let buffer = H2Buffer::new(&forward.name, forward.data.clone(), forward.base_address)?;
         project.buffer_insert(&forward.name, buffer)?;
 
         // Save the backward struct

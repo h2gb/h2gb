@@ -30,11 +30,14 @@ use crate::project::h2layer::H2Layer;
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Buffer {
+    name: String,
+
+    // TODO: Make these private, I think only tests are using them directly
     pub data: Vec<u8>,
     pub base_address: usize,
 
-    pub layers: HashMap<String, H2Layer>,
-    pub transformations: Vec<Transformation>,
+    layers: HashMap<String, H2Layer>,
+    transformations: Vec<Transformation>,
 }
 
 impl H2Buffer {
@@ -43,12 +46,13 @@ impl H2Buffer {
     /// # Errors
     ///
     /// * Data must be at least
-    pub fn new(data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
+    pub fn new(name: &str, data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
         if data.len() == 0 {
             bail!("Can't create a buffer of zero length");
         }
 
         Ok(H2Buffer {
+            name: name.to_string(),
             data: data,
             base_address: base_address,
             layers: HashMap::new(),
@@ -73,7 +77,7 @@ impl H2Buffer {
     ///   (which obviously shouldn't be possible)
     pub fn clone_shallow(&self, new_base_address: Option<usize>) -> SimpleResult<Self> {
         // Create the basics (use Self::new for consistent error checks)
-        let mut cloned = Self::new(self.data.clone(), new_base_address.unwrap_or(self.base_address))?;
+        let mut cloned = Self::new(&self.name, self.data.clone(), new_base_address.unwrap_or(self.base_address))?;
 
         // Preserve the transformations
         cloned.transformations = self.transformations.clone();
@@ -113,7 +117,7 @@ impl H2Buffer {
             None => self.base_address + range.start,
         };
 
-        Self::new(self.data[range].into(), base_address)
+        Self::new(&self.name, self.data[range].into(), base_address)
     }
 
     /// Returns true if the buffer contains layers, entries, or any changes
@@ -271,6 +275,20 @@ impl H2Buffer {
             None => bail!("Buffer doesn't contain a layer named {}", layer),
         }
     }
+
+    pub fn get_layer(&self, name: &str) -> SimpleResult<&H2Layer> {
+        match self.layers.get(name) {
+            Some(b) => Ok(b),
+            None => bail!("Layer {} not found", name),
+        }
+    }
+
+    pub fn get_layer_mut(&mut self, name: &str) -> SimpleResult<&mut H2Layer> {
+        match self.layers.get_mut(name) {
+            Some(b) => Ok(b),
+            None => bail!("Layer {} not found", name),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -281,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_new() -> SimpleResult<()> {
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x4000)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x4000)?;
         assert_eq!(vec![0x41, 0x42, 0x43, 0x44], buffer.data);
         assert_eq!(0x4000, buffer.base_address);
 
@@ -290,14 +308,14 @@ mod tests {
 
     #[test]
     fn test_new_errors() -> SimpleResult<()> {
-        assert!(H2Buffer::new(vec![], 0x4000).is_err());
+        assert!(H2Buffer::new("name", vec![], 0x4000).is_err());
 
         Ok(())
     }
 
     #[test]
     fn test_clone_shallow_same_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x4000)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x4000)?;
         let buffer = buffer.clone_shallow(None)?;
         assert_eq!(b"ABCD".to_vec(), buffer.data);
         assert_eq!(0x4000, buffer.base_address);
@@ -307,7 +325,7 @@ mod tests {
 
     #[test]
     fn test_clone_shallow_new_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x4000)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x4000)?;
         let buffer = buffer.clone_shallow(Some(0x8000))?;
         assert_eq!(b"ABCD".to_vec(), buffer.data);
         assert_eq!(0x8000, buffer.base_address);
@@ -317,7 +335,7 @@ mod tests {
 
     #[test]
     fn test_clone_partial_same_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new(b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
+        let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
 
         let buffer_start = buffer.clone_partial(0..4, None)?;
         assert_eq!(b"ABCD".to_vec(), buffer_start.data);
@@ -336,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_clone_partial_new_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new(b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
+        let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
 
         let buffer_start = buffer.clone_partial(0..4, Some(0x8000))?;
         assert_eq!(b"ABCD".to_vec(), buffer_start.data);
@@ -355,7 +373,7 @@ mod tests {
 
     #[test]
     fn test_clone_partial_bad_range() -> SimpleResult<()> {
-        let buffer = H2Buffer::new(b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
+        let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
 
         assert!(buffer.clone_partial(0..0, None).is_err()); // Zero length
         assert!(buffer.clone_partial(4..0, None).is_err()); // Negative length
@@ -371,7 +389,7 @@ mod tests {
 
     #[test]
     fn test_transform() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new(b"41424344".to_vec(), 0x4000)?;
+        let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
         let original = buffer.transform(TransformHex::new())?;
 
         assert_eq!(b"41424344".to_vec(), original);
@@ -382,7 +400,7 @@ mod tests {
 
     #[test]
     fn test_transform_bad_transformation() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new(b"abc".to_vec(), 0x4000)?;
+        let mut buffer = H2Buffer::new("name", b"abc".to_vec(), 0x4000)?;
         assert!(buffer.transform(TransformHex::new()).is_err());
 
         Ok(())
@@ -395,7 +413,7 @@ mod tests {
 
     #[test]
     fn test_transform_undo() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new(b"41424344".to_vec(), 0x4000)?;
+        let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
 
         let original = buffer.transform(TransformHex::new())?;
         assert_eq!(b"ABCD".to_vec(), buffer.data);
@@ -410,7 +428,7 @@ mod tests {
 
     #[test]
     fn test_untransform() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new(b"4a4B4c4D".to_vec(), 0x4000)?;
+        let mut buffer = H2Buffer::new("name", b"4a4B4c4D".to_vec(), 0x4000)?;
         assert_eq!(b"4a4B4c4D".to_vec(), buffer.data);
 
         buffer.transform(TransformHex::new())?;
@@ -427,7 +445,7 @@ mod tests {
 
     #[test]
     fn test_untransform_undo() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new(b"4a4B4c4D".to_vec(), 0x4000)?;
+        let mut buffer = H2Buffer::new("name", b"4a4B4c4D".to_vec(), 0x4000)?;
         assert_eq!(b"4a4B4c4D".to_vec(), buffer.data);
 
         buffer.transform(TransformHex::new())?;
@@ -447,7 +465,7 @@ mod tests {
 
     #[test]
     fn test_edit() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new(b"41424344".to_vec(), 0x4000)?;
+        let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
         assert_eq!(b"41424344".to_vec(), buffer.data);
 
         let original = buffer.edit(b"ZZ".to_vec(), 0)?;
@@ -467,7 +485,7 @@ mod tests {
 
     #[test]
     fn test_edit_errors() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new(b"41424344".to_vec(), 0x4000)?;
+        let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
         assert_eq!(b"41424344".to_vec(), buffer.data);
 
         // Zero length

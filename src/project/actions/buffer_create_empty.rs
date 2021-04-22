@@ -55,7 +55,7 @@ impl Command for ActionBufferCreateEmpty {
         };
 
         // Do stuff with it
-        let buffer = H2Buffer::new(vec![0; forward.size], forward.base_address)?;
+        let buffer = H2Buffer::new(&forward.name, vec![0; forward.size], forward.base_address)?;
         project.buffer_insert(&forward.name, buffer)?;
 
         // Save the backward struct

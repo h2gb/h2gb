@@ -57,6 +57,7 @@ impl H2Project {
         return &self.buffers;
     }
 
+    // TODO: Should this return an Option?
     pub fn get_buffer(&self, name: &str) -> SimpleResult<&H2Buffer> {
         match self.buffers.get(name) {
             Some(b) => Ok(b),
@@ -173,7 +174,7 @@ mod tests {
     #[test]
     fn test_buffer_insert() -> SimpleResult<()> {
         let mut project = H2Project::new("name", "1.0");
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?;
 
         // No buffer, can't be retrieved
         assert_eq!(false, project.buffer_exists("buffer"));
@@ -188,11 +189,11 @@ mod tests {
         assert_eq!(0x100, project.get_buffer("buffer")?.base_address);
 
         // Try to insert a duplicate, and fail
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?;
         assert!(project.buffer_insert("buffer", buffer).is_err());
 
         // Try to insert a blank name, and fail
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?;
         assert!(project.buffer_insert("", buffer).is_err());
 
         Ok(())
@@ -203,9 +204,9 @@ mod tests {
         let mut project = H2Project::new("name", "1.0");
 
         let mut buffers: HashMap<String, H2Buffer> = HashMap::new();
-        buffers.insert("buffer1".to_string(), H2Buffer::new(b"ABCD".to_vec(), 0x100)?);
-        buffers.insert("buffer2".to_string(), H2Buffer::new(b"EFGH".to_vec(), 0x100)?);
-        buffers.insert("buffer3".to_string(), H2Buffer::new(b"IJKL".to_vec(), 0x100)?);
+        buffers.insert("buffer1".to_string(), H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?);
+        buffers.insert("buffer2".to_string(), H2Buffer::new("name", b"EFGH".to_vec(), 0x100)?);
+        buffers.insert("buffer3".to_string(), H2Buffer::new("name", b"IJKL".to_vec(), 0x100)?);
 
         assert_eq!(false, project.buffer_exists("buffer1"));
         assert_eq!(false, project.buffer_exists("buffer2"));
@@ -223,13 +224,13 @@ mod tests {
     fn test_buffer_insert_multiple_fails_clean() -> SimpleResult<()> {
         let mut project = H2Project::new("name", "1.0");
 
-        project.buffer_insert("duplicate", H2Buffer::new(b"ZZZZ".to_vec(), 0x200)?)?;
+        project.buffer_insert("duplicate", H2Buffer::new("name", b"ZZZZ".to_vec(), 0x200)?)?;
 
         let mut buffers: HashMap<String, H2Buffer> = HashMap::new();
-        buffers.insert("buffer1".to_string(), H2Buffer::new(b"ABCD".to_vec(), 0x100)?);
-        buffers.insert("buffer2".to_string(), H2Buffer::new(b"EFGH".to_vec(), 0x100)?);
-        buffers.insert("buffer3".to_string(), H2Buffer::new(b"IJKL".to_vec(), 0x100)?);
-        buffers.insert("duplicate".to_string(), H2Buffer::new(b"YYYY".to_vec(), 0x100)?);
+        buffers.insert("buffer1".to_string(), H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?);
+        buffers.insert("buffer2".to_string(), H2Buffer::new("name", b"EFGH".to_vec(), 0x100)?);
+        buffers.insert("buffer3".to_string(), H2Buffer::new("name", b"IJKL".to_vec(), 0x100)?);
+        buffers.insert("duplicate".to_string(), H2Buffer::new("name", b"YYYY".to_vec(), 0x100)?);
 
         assert_eq!(false, project.buffer_exists("buffer1"));
         assert_eq!(false, project.buffer_exists("buffer2"));
@@ -250,7 +251,7 @@ mod tests {
     #[test]
     fn test_buffer_remove() -> SimpleResult<()> {
         let mut project = H2Project::new("name", "1.0");
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?;
 
         // Insert it
         project.buffer_insert("buffer", buffer)?;
@@ -284,7 +285,7 @@ mod tests {
     #[test]
     fn test_buffer_rename() -> SimpleResult<()> {
         let mut project = H2Project::new("name", "1.0");
-        let buffer = H2Buffer::new(b"ABCD".to_vec(), 0x100)?;
+        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?;
 
         // Insert it
         project.buffer_insert("buffer", buffer)?;
