@@ -43,6 +43,9 @@ pub use null::NullAction;
 pub mod layer_create;
 pub use layer_create::ActionLayerCreate;
 
+pub mod entry_create_from_type;
+pub use entry_create_from_type::ActionEntryCreateFromType;
+
 // Don't create this directly - use the actions' new() functions
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -51,6 +54,7 @@ pub enum Action {
     BufferCreateFromBytes(ActionBufferCreateFromBytes),
     BufferTransform(ActionBufferTransform),
     LayerCreate(ActionLayerCreate),
+    EntryCreateFromType(ActionEntryCreateFromType),
 }
 
 impl Command for Action {
@@ -64,6 +68,7 @@ impl Command for Action {
             Action::BufferCreateFromBytes(a) => a.apply(project),
             Action::BufferTransform(a)       => a.apply(project),
             Action::LayerCreate(a)           => a.apply(project),
+            Action::EntryCreateFromType(a)   => a.apply(project),
         }
     }
 
@@ -74,6 +79,7 @@ impl Command for Action {
             Action::BufferCreateFromBytes(a) => a.undo(project),
             Action::BufferTransform(a)       => a.undo(project),
             Action::LayerCreate(a)           => a.undo(project),
+            Action::EntryCreateFromType(a)   => a.undo(project),
         }
     }
 }

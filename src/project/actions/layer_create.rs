@@ -51,8 +51,7 @@ impl Command for ActionLayerCreate {
         };
 
         // Do stuff with it
-        let buffer = project.get_buffer_mut(&forward.buffer)?;
-        buffer.layer_add(H2Layer::new(&forward.name)?)?;
+        project.layer_add(&forward.buffer, H2Layer::new(&forward.name)?)?;
 
         // Save the backward struct
         self.0 = State::Backward(Backward {
@@ -71,8 +70,7 @@ impl Command for ActionLayerCreate {
         };
 
         // Do stuff with it
-        let buffer = project.get_buffer_mut(&backward.buffer)?;
-        buffer.layer_remove(&backward.name)?;
+        project.layer_remove(&backward.buffer, &backward.name)?;
 
         // Save the forward struct
         self.0 = State::Forward(Forward {

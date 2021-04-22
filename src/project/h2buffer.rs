@@ -65,6 +65,11 @@ impl H2Buffer {
         self.data.len()
     }
 
+    /// Get the name
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     /// Clone the buffer and data (but not the layers and entries).
     ///
     /// The base address can be preserved or changed as part of the copy. The
@@ -260,10 +265,11 @@ impl H2Buffer {
     pub fn layer_add(&mut self, layer: H2Layer) -> SimpleResult<()> {
         let name = layer.name();
 
-        if self.layers.contains_key(name) {
+        if self.layers.contains_key(&name) {
             bail!("Buffer already contains a layer named {}", name);
         }
 
+        // Insert into the layers table
         self.layers.insert(String::from(name), layer);
 
         Ok(())

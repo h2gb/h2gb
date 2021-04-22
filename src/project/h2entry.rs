@@ -4,19 +4,17 @@
 //! quite ready for detailed comments just yet. :)
 
 use serde::{Serialize, Deserialize};
-//use simple_error::{bail, SimpleResult};
 use std::fmt;
 use std::ops::Range;
 
-//use crate::project::h2datatype::H2Type;
-
 use crate::bumpy_vector::AutoBumpyEntry;
+use crate::datatype::{H2Type, ResolvedType};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Entry {
-    pub range: Range<usize>,
-    pub display: String,
-    // pub creator: Option<()>,
+    datatype: ResolvedType,
+    creator: Option<H2Type>,
+
     // pub creations: Option<Vec<()>>,
     // pub references: Option<Vec<()>>,
     //pub datatype: H2Type,
@@ -25,20 +23,27 @@ pub struct H2Entry {
 
 impl fmt::Display for H2Entry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} - {}: {}\n", self.range.start, self.range.end, self.display)
+        write!(f, "{} - {}: {}\n", self.datatype.actual_range.start, self.datatype.actual_range.end, self.datatype.display)
     }
 }
 
 impl AutoBumpyEntry for H2Entry {
-    fn range(&self) -> Range<usize> { self.range.clone() }
+    fn range(&self) -> Range<usize> {
+        // TODO: Converting like this is bad news
+        (self.datatype.aligned_range.start as usize)..(self.datatype.aligned_range.end as usize)
+    }
 }
 
 impl H2Entry {
-    fn new(range: Range<usize>, display: String) -> Self {
+    pub fn new(datatype: ResolvedType, creator: Option<H2Type>) -> Self {
         Self {
-            range: range.clone(),
-            display: display,
+            datatype: datatype,
+            creator: creator,
         }
+    }
+
+    pub fn get_datatype(&self) -> &ResolvedType {
+        &self.datatype
     }
 }
 

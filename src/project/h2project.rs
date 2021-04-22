@@ -8,10 +8,13 @@ use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::fmt;
 
+use crate::datatype::{H2Type, Offset};
+use crate::sized_number::Context;
 use crate::multi_vector::MultiVector;
 
 use crate::project::h2buffer::H2Buffer;
 use crate::project::h2entry::H2Entry;
+use crate::project::h2layer::H2Layer;
 
 // H2Project is the very core, and the root of undo. All actions will be taken
 // via this object.
@@ -47,7 +50,13 @@ impl H2Project {
 
 impl fmt::Display for H2Project {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Name: {}, version: {}\n", self.name, self.version)
+        write!(f, "Name: {}, version: {}\n", self.name, self.version)?;
+
+        for entry in self.entries.into_iter() {
+            write!(f, "{}\n", entry.entry.data)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -161,6 +170,71 @@ impl H2Project {
         self.buffers.insert(to.to_string(), b);
 
         Ok(())
+    }
+
+    pub fn layer_add(&mut self, buffer: &str, layer: H2Layer) -> SimpleResult<()> {
+        let actual_buffer = self.get_buffer_mut(buffer)?;
+
+        // Save the layer's name for later
+        let layer_name = layer.name();
+
+        // Add the layer to the buffer
+        actual_buffer.layer_add(layer)?;
+
+        // Create some MultiVector space for it
+        let len = actual_buffer.len();
+        self.entries.create_vector((buffer.to_string(), layer_name.to_string()), len)?;
+
+        Ok(())
+    }
+
+    pub fn layer_remove(&mut self, buffer: &str, layer: &str) -> SimpleResult<H2Layer> {
+        // Delete from the MultiVector (this will fail if the buffer isn't empty)
+        self.entries.destroy_vector(&(buffer.to_string(), layer.to_string()))?;
+
+        let actual_buffer = self.get_buffer_mut(buffer)?;
+        actual_buffer.layer_remove(layer)
+    }
+
+    pub fn entry_create_from_type(&mut self, buffer: &str, layer: &str, datatype: H2Type, start: usize) -> SimpleResult<()> {
+        // Ensure that the buffer and layer exist
+        let actual_buffer = self.get_buffer(buffer)?;
+        actual_buffer.get_layer(layer)?;
+        let multi_index = &(buffer.to_string(), layer.to_string());
+
+        // Get a pointer to the data
+        let data = &actual_buffer.data;
+
+        // Resolve the data
+        let context = Context::new(data).at(start as u64); // TODO: I don't like this cast
+        let offset = Offset::Dynamic(context);
+        let resolved = datatype.resolve(offset, None)?;
+
+        // Remove any entries in the way
+        // XXX: This can't be undone, this is only a prototype for now
+        for offset in resolved.aligned_range.clone() {
+            match self.entries.remove_entries(multi_index, offset as usize) {
+                Ok(_) => (),
+                Err(_) => (),
+            };
+        }
+
+        // Create the entry
+        let entry = H2Entry::new(resolved, Some(datatype));
+
+        // Insert it
+        self.entries.insert_entry(multi_index, entry)?;
+
+        Ok(())
+    }
+
+    pub fn entry_get(&mut self, buffer: &str, layer: &str, start: usize) -> SimpleResult<&H2Entry> {
+        let entry = match self.entries.get_entry(&(buffer.to_string(), layer.to_string()), start) {
+            Some(entry) => entry,
+            None        => bail!("Could not find entry"),
+        };
+
+        Ok(&entry.entry.data)
     }
 }
 

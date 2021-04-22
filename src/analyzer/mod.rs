@@ -5,6 +5,10 @@ use simple_error::SimpleResult;
 use crate::project::actions::*;
 //use crate::project::h2project::H2Project;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
+use crate::datatype::simple::H2Number;
+use crate::datatype::simple::character::{ASCII, StrictASCII};
+use crate::datatype::composite::string::LPString;
+use crate::sized_number::{SizedDefinition, SizedDisplay, Endian};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
@@ -19,6 +23,22 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         Some(TERRARIA_IV.to_vec()),
     )?;
     record.apply(ActionBufferTransform::new(buffer, transformation))?;
+
+    // Create a layer
+    record.apply(ActionLayerCreate::new(buffer, "default"))?;
+
+    // Create an entry for the version
+    let datatype = H2Number::new(SizedDefinition::U16(Endian::Little), SizedDisplay::Decimal);
+    record.apply(ActionEntryCreateFromType::new(buffer, "default", datatype, 0))?;
+
+    // Create an entry for the name
+    let datatype = LPString::new(
+        H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal),
+        ASCII::new(StrictASCII::Permissive),
+    )?;
+    record.apply(ActionEntryCreateFromType::new(buffer, "default", datatype, 0x18))?;
+
+
 
     // Create entries:
     // -> Version -> 16 bits little endian
@@ -61,7 +81,7 @@ mod tests {
 
         analyze_terraria(&mut record, "buffer")?;
 
-        // println!("{:?}", &record);
+        println!("{}", &record.target());
 
         Ok(())
     }
