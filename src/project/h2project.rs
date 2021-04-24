@@ -8,7 +8,7 @@ use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::datatype::{H2Type, Offset};
+use crate::datatype::{H2Type, Offset, ResolvedType};
 use crate::sized_number::Context;
 use crate::multi_vector::MultiVector;
 
@@ -50,22 +50,6 @@ impl H2Project {
         (buffer.to_string(), layer.to_string())
     }
 
-}
-
-impl fmt::Display for H2Project {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Name: {}, version: {}\n", self.name, self.version)?;
-
-        for entry in self.entries.into_iter() {
-            write!(f, "{}\n", entry.entry.data)?;
-        }
-
-        Ok(())
-    }
-}
-
-// Buffer
-impl H2Project {
     pub fn buffers(&self) -> &HashMap<String, H2Buffer> {
         return &self.buffers;
     }
@@ -239,7 +223,7 @@ impl H2Project {
         Ok(self.entries.vector_exists(&Self::multi_key(buffer, layer)))
     }
 
-    pub fn entry_create_from_type(&mut self, buffer: &str, layer: &str, datatype: H2Type, start: usize) -> SimpleResult<()> {
+    pub fn entry_create_from_type(&mut self, buffer: &str, layer: &str, datatype: H2Type, start: usize) -> SimpleResult<ResolvedType> {
         // Ensure that the buffer and layer exist
         let actual_buffer = self.get_buffer(buffer)?;
         let multi_key = Self::multi_key(buffer, layer);
@@ -252,22 +236,34 @@ impl H2Project {
         let resolved = datatype.resolve(offset, None)?;
 
         // Create the entry object
-        let entry = H2Entry::new(resolved, Some(datatype));
+        let entry = H2Entry::new(resolved.clone(), Some(datatype));
 
         // Insert it
         // This will fail if there's already something there
         self.entries.insert_entry(&multi_key, entry)?;
 
-        Ok(())
+        Ok(resolved)
     }
 
-    pub fn entry_get(&mut self, buffer: &str, layer: &str, start: usize) -> SimpleResult<&H2Entry> {
+    pub fn entry_get(&self, buffer: &str, layer: &str, start: usize) -> SimpleResult<&H2Entry> {
         let entry = match self.entries.get_entry(&(buffer.to_string(), layer.to_string()), start) {
             Some(entry) => entry,
             None        => bail!("Could not find entry"),
         };
 
         Ok(&entry.entry.data)
+    }
+}
+
+impl fmt::Display for H2Project {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Name: {}, version: {}\n", self.name, self.version)?;
+
+        for entry in self.entries.into_iter() {
+            write!(f, "{}\n", entry.entry.data)?;
+        }
+
+        Ok(())
     }
 }
 

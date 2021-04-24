@@ -42,7 +42,7 @@ impl H2Entry {
         }
     }
 
-    pub fn get_datatype(&self) -> &ResolvedType {
+    pub fn resolved(&self) -> &ResolvedType {
         &self.datatype
     }
 }

@@ -2,7 +2,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::datatype::H2Type;
+use crate::datatype::{H2Type, ResolvedType};
 use crate::project::h2project::H2Project;
 use crate::project::actions::Action;
 
@@ -54,7 +54,7 @@ impl Command for ActionEntryCreateFromType {
             _                 => bail!("Failed to apply: action ended up in a broken undo/redo state"),
         };
 
-        // Do stuff with it
+        // Create the entry and saved the ResolvedType
         project.entry_create_from_type(&forward.buffer, &forward.layer, forward.datatype.clone(), forward.offset)?;
 
         // Save the backward struct
@@ -64,81 +64,121 @@ impl Command for ActionEntryCreateFromType {
     }
 
     fn undo(&mut self, _project: &mut H2Project) -> SimpleResult<()> {
+        // XXX
         bail!("Can't go backwards :(");
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     use redo::Record;
-//     use pretty_assertions::assert_eq;
+    use redo::Record;
+    use pretty_assertions::assert_eq;
 
-//     use crate::transformation::{TransformHex, TransformBase64};
-//     use crate::project::actions::{Action, ActionBufferCreateFromBytes};
+    use crate::project::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
-//     #[test]
-//     fn test_action() -> SimpleResult<()> {
-//         let mut record: Record<Action> = Record::new(
-//             H2Project::new("name", "1.0")
-//         );
+    use crate::datatype::{H2Number, LPString, ASCII, StrictASCII, SizedDefinition, SizedDisplay, Endian};
 
-//         // Create a buffer with "JKLMN" encoded as hex then base64 - I alternate
-//         // case to ensure it's undoing correctly:
-//         // $ echo -ne '4a4B4c4D4e' | base64 NGE0QjRjNEQ0ZQ==
-//         let action = ActionBufferCreateFromBytes::new("buffer", &b"NGE0QjRjNEQ0ZQ==".to_vec(), 0x80000000);
-//         record.apply(action)?;
-//         assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
+    #[test]
+    fn test_action() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
 
-//         // Undo the base64
-//         let action = ActionBufferTransform::new("buffer", TransformBase64::standard());
-//         record.apply(action)?;
-//         assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Create a buffer + layer
+        record.apply(ActionBufferCreateFromBytes::new("buffer", &b"\x01\x02\x03\x04\x0bHello World".to_vec(), 0))?;
+        record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
-//         let action = ActionBufferTransform::new("buffer", TransformHex::new());
-//         record.apply(action)?;
-//         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Create a numeric type
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
+        record.apply(action)?;
 
-//         // Undo both
-//         record.undo()?;
-//         assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Make sure it's there
+        let entry = record.target().entry_get("buffer", "default", 0)?;
+        assert_eq!(0x01020304, entry.resolved().as_u64.unwrap());
+        assert_eq!(0..4, entry.resolved().aligned_range);
 
-//         record.undo()?;
-//         assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Retrieve it from the other side to make sure that works
+        let entry = record.target().entry_get("buffer", "default", 3)?;
+        assert_eq!(0x01020304, entry.resolved().as_u64.unwrap());
+        assert_eq!(0..4, entry.resolved().aligned_range);
 
-//         // Redo them
-//         record.redo()?;
-//         assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Create a string type
+        let datatype = LPString::new(H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal), ASCII::new(StrictASCII::Strict))?;
+        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 4);
+        record.apply(action)?;
 
-//         record.redo()?;
-//         assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Retrieve it
+        let entry = record.target().entry_get("buffer", "default", 4)?;
+        assert_eq!("Hello World", entry.resolved().as_string.clone().unwrap());
 
-//         Ok(())
-//     }
+        // TODO: Need to test undo / redo when they're implemented!
 
-//     #[test]
-//     fn test_action_fails_on_impossible_transform() -> SimpleResult<()> {
-//         let mut record: Record<Action> = Record::new(
-//             H2Project::new("name", "1.0")
-//         );
+        Ok(())
+    }
 
-//         // Definitely not hex
-//         let action = ActionBufferCreateFromBytes::new("buffer", &b"abcxyz".to_vec(), 0x80000000);
-//         record.apply(action)?;
+    #[test]
+    fn test_overlap_on_same_layer() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
 
-//         // Try to unhex
-//         let action = ActionBufferTransform::new("buffer", TransformHex::new());
-//         assert!(record.apply(action).is_err());
+        // Create a buffer + layer
+        record.apply(ActionBufferCreateFromBytes::new("buffer", &b"\x01\x02\x03\x04\x05\x06\x07\x08".to_vec(), 0))?;
+        record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
-//         // Make sure nothing changed
-//         assert_eq!(b"abcxyz".to_vec(), record.target().get_buffer("buffer")?.data);
+        // Create an entry
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
+        record.apply(action)?;
 
-//         Ok(())
-//     }
+        // Make sure we can't overlap it
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
 
-//     // #[test]
-//     // fn test_action_fails_when_buffer_is_populated() -> SimpleResult<()> {
-//     //     Ok(())
-//     // }
-// }
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 1)).is_err());
+
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 2)).is_err());
+
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 3)).is_err());
+
+        // Going off the end should also be an error
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 5)).is_err());
+
+        // But 4, like the third bed, should be jussst right
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 4)).is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_overlap_on_different_layers() -> SimpleResult<()> {
+        let mut record: Record<Action> = Record::new(
+            H2Project::new("name", "1.0")
+        );
+
+        // Create a buffer + a couple layers
+        record.apply(ActionBufferCreateFromBytes::new("buffer", &b"\x01\x02\x03\x04\x05\x06\x07\x08".to_vec(), 0))?;
+        record.apply(ActionLayerCreate::new("buffer", "default"))?;
+        record.apply(ActionLayerCreate::new("buffer", "default2"))?;
+
+        // Create an entry
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
+        record.apply(action)?;
+
+        // Make sure we can't overlap it
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
+
+
+        Ok(())
+    }
+}
