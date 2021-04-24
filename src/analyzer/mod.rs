@@ -5,10 +5,7 @@ use simple_error::SimpleResult;
 use crate::project::actions::*;
 //use crate::project::h2project::H2Project;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
-use crate::datatype::simple::H2Number;
-use crate::datatype::simple::character::{ASCII, StrictASCII};
-use crate::datatype::composite::string::LPString;
-use crate::sized_number::{SizedDefinition, SizedDisplay, Endian};
+use crate::datatype::{H2Number, LPString, ASCII, StrictASCII, SizedDefinition, SizedDisplay, Endian};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";

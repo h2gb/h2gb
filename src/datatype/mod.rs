@@ -224,4 +224,7 @@ mod h2type;
 pub use h2type::{H2Types, H2Type};
 
 pub mod simple;
+pub use simple::*;
+
 pub mod composite;
+pub use composite::*;
