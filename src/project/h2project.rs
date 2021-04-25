@@ -235,6 +235,10 @@ impl H2Project {
         let offset = Offset::Dynamic(Context::new(data).at(start as u64)); // TODO: I don't like this cast
         let resolved = datatype.resolve(offset, None)?;
 
+        if !resolved.related.is_empty() {
+            bail!("Tried to insert an entry with 'related' data.. we don't know how to handle that (yet?)");
+        }
+
         // Create the entry object
         let entry = H2Entry::new(resolved.clone(), Some(datatype));
 
@@ -245,13 +249,41 @@ impl H2Project {
         Ok(resolved)
     }
 
-    pub fn entry_get(&self, buffer: &str, layer: &str, start: usize) -> SimpleResult<&H2Entry> {
-        let entry = match self.entries.get_entry(&(buffer.to_string(), layer.to_string()), start) {
+    pub fn entry_get(&self, buffer: &str, layer: &str, offset: usize) -> SimpleResult<&H2Entry> {
+        let multi_key = Self::multi_key(buffer, layer);
+        let entry = match self.entries.get_entry(&multi_key, offset) {
             Some(entry) => entry,
             None        => bail!("Could not find entry"),
         };
 
         Ok(&entry.entry.data)
+    }
+
+    // Remove an entry, and any others that were inserted along with it
+    pub fn entry_remove(&mut self, buffer: &str, layer: &str, offset: usize) -> SimpleResult<Vec<(String, String, Option<H2Type>, usize)>> {
+        let multi_key = Self::multi_key(buffer, layer);
+        let entries = self.entries.remove_entries(&multi_key, offset)?;
+
+        let entries: Vec<_> = entries.iter().filter_map(|e| {
+            match e {
+                Some(entry) => {
+                    // Get the offset from the BumpyEntry
+                    let offset = entry.range.start;
+
+                    // Get the vector from the MultiEntry
+                    let buffer_layer = entry.entry.vector.clone();
+
+                    // Get the H2Type from the data
+                    let datatype = entry.entry.data.creator();
+
+                    // Put them together in the same order as entry_create_from_type()'s arguments
+                    Some((buffer_layer.0, buffer_layer.1, datatype, offset))
+                },
+                None => None,
+            }
+        }).collect();
+
+        Ok(entries)
     }
 }
 

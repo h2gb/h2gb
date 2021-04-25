@@ -45,6 +45,10 @@ impl H2Entry {
     pub fn resolved(&self) -> &ResolvedType {
         &self.datatype
     }
+
+    pub fn creator(&self) -> Option<H2Type> {
+        self.creator.clone()
+    }
 }
 
 #[cfg(test)]

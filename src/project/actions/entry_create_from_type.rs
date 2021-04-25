@@ -16,7 +16,9 @@ struct Forward {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Backward {
-    // TODO: Add undo for this
+    buffer: String,
+    layer: String,
+    offset: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -58,14 +60,53 @@ impl Command for ActionEntryCreateFromType {
         project.entry_create_from_type(&forward.buffer, &forward.layer, forward.datatype.clone(), forward.offset)?;
 
         // Save the backward struct
-        self.0 = State::Backward(Backward {});
+        // Gotta save enough to know where to find it
+        self.0 = State::Backward(Backward {
+            buffer: forward.buffer.clone(),
+            layer: forward.layer.clone(),
+            offset: forward.offset,
+        });
 
         Ok(())
     }
 
-    fn undo(&mut self, _project: &mut H2Project) -> SimpleResult<()> {
-        // XXX
-        bail!("Can't go backwards :(");
+    fn undo(&mut self, project: &mut H2Project) -> SimpleResult<()> {
+        // Get the forward struct
+        let backward = match &self.0 {
+            State::Backward(f) => f,
+            _                  => bail!("Failed to undo: action ended up in a broken undo/redo state"),
+        };
+
+        // Do stuff with it
+        // Remove the entry
+        let mut entry = project.entry_remove(&backward.buffer, &backward.layer, backward.offset)?;
+
+        // Grab the fields from it (hopefully it has an entry!)
+        let (buffer, layer, datatype, offset) = match entry.pop() {
+            Some(e) => e,
+            None => bail!("Something went wrong with undoing the created entry! Removing the entry removed {} entries instead of just one", entry.len()),
+        };
+
+        // Sanity check - should never happen
+        if offset != backward.offset {
+            bail!("Something went wrong with undoing the created entry! The offset should have been {} but was actually {}", backward.offset, offset);
+        }
+
+        // This would also be really bad
+        let datatype = match datatype {
+            Some(d) => d,
+            None => bail!("Something went wrong with undoing the created entry! The entry didn't have an H2Type associated with it"),
+        };
+
+        // Save the backward struct
+        self.0 = State::Forward(Forward{
+            buffer: buffer,
+            layer: layer,
+            datatype: datatype,
+            offset: offset,
+        });
+
+        Ok(())
     }
 }
 
@@ -81,7 +122,7 @@ mod tests {
     use crate::datatype::{H2Number, LPString, ASCII, StrictASCII, SizedDefinition, SizedDisplay, Endian};
 
     #[test]
-    fn test_action() -> SimpleResult<()> {
+    fn test_action_create_entry() -> SimpleResult<()> {
         let mut record: Record<Action> = Record::new(
             H2Project::new("name", "1.0")
         );
@@ -114,7 +155,25 @@ mod tests {
         let entry = record.target().entry_get("buffer", "default", 4)?;
         assert_eq!("Hello World", entry.resolved().as_string.clone().unwrap());
 
-        // TODO: Need to test undo / redo when they're implemented!
+        record.undo()?;
+
+        assert!(record.target().entry_get("buffer", "default", 0).is_ok());
+        assert!(record.target().entry_get("buffer", "default", 4).is_err());
+
+        record.undo()?;
+
+        assert!(record.target().entry_get("buffer", "default", 0).is_err());
+        assert!(record.target().entry_get("buffer", "default", 4).is_err());
+
+        record.redo();
+
+        assert!(record.target().entry_get("buffer", "default", 0).is_ok());
+        assert!(record.target().entry_get("buffer", "default", 4).is_err());
+
+        record.redo();
+
+        assert!(record.target().entry_get("buffer", "default", 0).is_ok());
+        assert!(record.target().entry_get("buffer", "default", 4).is_ok());
 
         Ok(())
     }
