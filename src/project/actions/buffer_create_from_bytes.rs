@@ -118,8 +118,11 @@ mod tests {
         assert_eq!(vec![0, 1, 2, 4], buffers["buffer"].data);
         assert_eq!(0x80000000, buffers["buffer"].base_address);
 
+        assert!(record.target().buffer_exists("buffer"));
         record.undo()?;
+        assert!(!record.target().buffer_exists("buffer"));
         record.redo()?;
+        assert!(record.target().buffer_exists("buffer"));
 
         let buffers = record.target().buffers();
         assert_eq!(1, buffers.len());

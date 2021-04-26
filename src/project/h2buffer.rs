@@ -22,9 +22,11 @@ use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::ops::Range;
+use std::fmt;
 
 use crate::transformation::Transformation;
-use crate::project::h2layer::H2Layer;
+use crate::project::{H2Layer, H2Entry};
+use crate::datatype::{Context, Offset, H2Type};
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -39,6 +41,19 @@ pub struct H2Buffer {
     transformations: Vec<Transformation>,
 
     layers: HashMap<String, H2Layer>,
+}
+
+impl fmt::Display for H2Buffer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Buffer: {}", self.name)?;
+        writeln!(f, " Base address: 0x{:x}", self.base_address)?;
+
+        for (_, layer) in &self.layers {
+            writeln!(f, "{}", layer)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl H2Buffer {
@@ -290,6 +305,46 @@ impl H2Buffer {
             Some(_) => Ok(()),
             None => bail!("Failed to remove the layer"),
         }
+    }
+
+    pub fn layer_exists(&self, layer: &str) -> bool {
+        self.layers.contains_key(layer)
+    }
+
+    pub fn layer_get(&self, layer: &str) -> Option<&H2Layer> {
+        self.layers.get(layer)
+    }
+
+    pub fn layer_get_mut(&mut self, layer: &str) -> Option<&mut H2Layer> {
+        self.layers.get_mut(layer)
+    }
+
+    pub fn entry_insert_from_type(&mut self, layer: &str, abstract_type: H2Type, offset: usize) -> SimpleResult<()> {
+        // Resolve from our data
+        let offset = Offset::Dynamic(Context::new(&self.data).at(offset as u64)); // TODO: I don't like this cast
+        let concrete_type = abstract_type.resolve(offset, None)?;
+
+        if !concrete_type.related.is_empty() {
+            bail!("Tried to insert an entry with 'related' data.. we don't know how to handle that (yet?)");
+        }
+
+        // Create the entry object
+        let entry = H2Entry::new(concrete_type.clone(), Some(abstract_type));
+
+        // Insert it into the layer
+        let layer = match self.layers.get_mut(layer) {
+            Some(l) => l,
+            None => bail!("Couldn't find layer {} in buffer {}", layer, self.name()),
+        };
+
+        layer.entry_insert(entry)?;
+
+        Ok(())
+    }
+
+    pub fn entry_remove(&mut self, layer: &str, offset: usize) -> Option<H2Entry> {
+        let layer = self.layers.get_mut(layer)?;
+        layer.entry_remove(offset)
     }
 }
 

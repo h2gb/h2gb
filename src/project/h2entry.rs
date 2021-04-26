@@ -25,8 +25,8 @@ pub struct H2Entry {
 impl fmt::Display for H2Entry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.comment {
-            Some(c) => write!(f, "{} - {}: {} ; {}\n", self.datatype.actual_range.start, self.datatype.actual_range.end, self.datatype.display, c),
-            None    => write!(f, "{} - {}: {}\n", self.datatype.actual_range.start, self.datatype.actual_range.end, self.datatype.display),
+            Some(c) => write!(f, "{} - {}: {} ; {}", self.datatype.actual_range.start, self.datatype.actual_range.end, self.datatype.display, c),
+            None    => write!(f, "{} - {}: {}", self.datatype.actual_range.start, self.datatype.actual_range.end, self.datatype.display),
         }
     }
 }

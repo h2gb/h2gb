@@ -51,8 +51,13 @@ impl Command for ActionBufferTransform {
             _                 => bail!("Failed to apply: action ended up in a broken undo/redo state"),
         };
 
-        // Do stuff with it
-        let buffer = project.get_buffer_mut(&forward.name)?;
+        // Get a handle to the buffer
+        let buffer = match project.buffer_get_mut(&forward.name) {
+            Some(b) => b,
+            None => bail!("Could not find buffer {} to transform", &forward.name),
+        };
+
+        // Transform the buffer, and get the original data (for undo)
         let original_data = buffer.transform(forward.transformation)?;
 
         // Save the backward struct
@@ -71,8 +76,13 @@ impl Command for ActionBufferTransform {
             _                    => bail!("Failed to undo: action ended up in a broken undo/redo state"),
         };
 
-        // Do stuff with it
-        let buffer = project.get_buffer_mut(&backward.name)?;
+        // Get a handle to the buffer
+        let buffer = match project.buffer_get_mut(&backward.name) {
+            Some(b) => b,
+            None => bail!("Could not find buffer {} to under the transformation", &backward.name),
+        };
+
+        // Do the undo and save the transformation
         let transformation = buffer.transform_undo(backward.original_data.clone())?;
 
         // Save the forward struct
@@ -106,30 +116,30 @@ mod tests {
         // $ echo -ne '4a4B4c4D4e' | base64 NGE0QjRjNEQ0ZQ==
         let action = ActionBufferCreateFromBytes::new("buffer", &b"NGE0QjRjNEQ0ZQ==".to_vec(), 0x80000000);
         record.apply(action)?;
-        assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         // Undo the base64
         let action = ActionBufferTransform::new("buffer", TransformBase64::standard());
         record.apply(action)?;
-        assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         let action = ActionBufferTransform::new("buffer", TransformHex::new());
         record.apply(action)?;
-        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"JKLMN".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         // Undo both
         record.undo()?;
-        assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         record.undo()?;
-        assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"NGE0QjRjNEQ0ZQ==".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         // Redo them
         record.redo()?;
-        assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"4a4B4c4D4e".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         record.redo()?;
-        assert_eq!(b"JKLMN".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"JKLMN".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         Ok(())
     }
@@ -149,7 +159,7 @@ mod tests {
         assert!(record.apply(action).is_err());
 
         // Make sure nothing changed
-        assert_eq!(b"abcxyz".to_vec(), record.target().get_buffer("buffer")?.data);
+        assert_eq!(b"abcxyz".to_vec(), record.target().buffer_get("buffer").unwrap().data);
 
         Ok(())
     }

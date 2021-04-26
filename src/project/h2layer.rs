@@ -19,6 +19,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
+use std::fmt;
 
 use crate::bumpy_vector::BumpyVector;
 use crate::project::h2entry::H2Entry;
@@ -34,6 +35,18 @@ pub struct H2Layer {
     entries: BumpyVector<H2Entry>,
 }
 
+impl fmt::Display for H2Layer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, " Layer: {}", self.name)?;
+
+        for entry in self.entries.into_iter() {
+            writeln!(f, "  {}", entry.entry)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl H2Layer {
     pub fn new(name: &str, size: usize) -> Self {
         H2Layer {
@@ -46,29 +59,29 @@ impl H2Layer {
         &self.name
     }
 
-    pub fn insert_entry(&mut self, entry: H2Entry) -> SimpleResult<()> {
+    pub fn entry_insert(&mut self, entry: H2Entry) -> SimpleResult<()> {
         self.entries.insert_auto(entry)
     }
 
-    pub fn remove_entry(&mut self, offset: usize) -> Option<H2Entry> {
+    pub fn entry_remove(&mut self, offset: usize) -> Option<H2Entry> {
         self.entries.remove(offset).map(|entry| {
             entry.entry
         })
     }
 
-    pub fn remove_range(&mut self, range: Range<usize>) -> Vec<H2Entry> {
+    pub fn entry_remove_range(&mut self, range: Range<usize>) -> Vec<H2Entry> {
         self.entries.remove_range(range).into_iter().map(|entry| entry.entry).collect()
     }
 
-    pub fn get_entry(&mut self, index: usize) -> Option<&H2Entry> {
-        self.entries.get(index).map(|entry| &entry.entry)
+    pub fn entry_get(&self, offset: usize) -> Option<&H2Entry> {
+        self.entries.get(offset).map(|entry| &entry.entry)
     }
 
-    pub fn get_entry_mut(&mut self, index: usize) -> Option<&mut H2Entry> {
-        self.entries.get_mut(index).map(|entry| &mut entry.entry)
+    pub fn entry_get_mut(&mut self, offset: usize) -> Option<&mut H2Entry> {
+        self.entries.get_mut(offset).map(|entry| &mut entry.entry)
     }
 
-    pub fn get_entries(&self, range: Range<usize>) -> Vec<&H2Entry> {
+    pub fn entries_get(&self, range: Range<usize>) -> Vec<&H2Entry> {
         self.entries.get_range(range).into_iter().map(|entry| &entry.entry).collect()
     }
 

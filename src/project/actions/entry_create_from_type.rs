@@ -10,7 +10,7 @@ use crate::project::actions::Action;
 struct Forward {
     buffer: String,
     layer: String,
-    datatype: H2Type,
+    abstract_type: H2Type,
     offset: usize,
 }
 
@@ -31,13 +31,13 @@ enum State {
 pub struct ActionEntryCreateFromType(State);
 
 impl ActionEntryCreateFromType {
-    pub fn new(buffer: &str, layer: &str, datatype: H2Type, offset: usize) -> Action {
+    pub fn new(buffer: &str, layer: &str, abstract_type: H2Type, offset: usize) -> Action {
         Action::EntryCreateFromType(
             ActionEntryCreateFromType(
                 State::Forward(Forward {
                     buffer: buffer.to_string(),
                     layer: layer.to_string(),
-                    datatype: datatype,
+                    abstract_type: abstract_type,
                     offset: offset,
                 })
             )
@@ -57,7 +57,7 @@ impl Command for ActionEntryCreateFromType {
         };
 
         // Create the entry and saved the ResolvedType
-        project.entry_create_from_type(&forward.buffer, &forward.layer, forward.datatype.clone(), forward.offset)?;
+        project.entry_create_from_type(&forward.buffer, &forward.layer, forward.abstract_type.clone(), forward.offset)?;
 
         // Save the backward struct
         // Gotta save enough to know where to find it
@@ -79,31 +79,22 @@ impl Command for ActionEntryCreateFromType {
 
         // Do stuff with it
         // Remove the entry
-        let mut entry = project.entry_remove(&backward.buffer, &backward.layer, backward.offset)?;
-
-        // Grab the fields from it (hopefully it has an entry!)
-        let (buffer, layer, datatype, offset) = match entry.pop() {
+        let entry = match project.entry_remove(&backward.buffer, &backward.layer, backward.offset) {
             Some(e) => e,
-            None => bail!("Something went wrong with undoing the created entry! Removing the entry removed {} entries instead of just one", entry.len()),
+            None => bail!("Could not remove entry: not found"),
         };
 
-        // Sanity check - should never happen
-        if offset != backward.offset {
-            bail!("Something went wrong with undoing the created entry! The offset should have been {} but was actually {}", backward.offset, offset);
-        }
-
-        // This would also be really bad
-        let datatype = match datatype {
-            Some(d) => d,
-            None => bail!("Something went wrong with undoing the created entry! The entry didn't have an H2Type associated with it"),
+        let abstract_type = match entry.creator() {
+            Some(a) => a,
+            None => bail!("We undid the entry, but it did not contain the type we expected: {:?}", &entry),
         };
 
         // Save the backward struct
-        self.0 = State::Forward(Forward{
-            buffer: buffer,
-            layer: layer,
-            datatype: datatype,
-            offset: offset,
+        self.0 = State::Forward(Forward {
+            buffer: backward.buffer.clone(),
+            layer: backward.layer.clone(),
+            abstract_type: abstract_type,
+            offset: backward.offset,
         });
 
         Ok(())
@@ -137,12 +128,12 @@ mod tests {
         record.apply(action)?;
 
         // Make sure it's there
-        let entry = record.target().entry_get("buffer", "default", 0)?;
+        let entry = record.target().entry_get("buffer", "default", 0).unwrap();
         assert_eq!(0x01020304, entry.resolved().as_u64.unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Retrieve it from the other side to make sure that works
-        let entry = record.target().entry_get("buffer", "default", 3)?;
+        let entry = record.target().entry_get("buffer", "default", 3).unwrap();
         assert_eq!(0x01020304, entry.resolved().as_u64.unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
@@ -152,28 +143,28 @@ mod tests {
         record.apply(action)?;
 
         // Retrieve it
-        let entry = record.target().entry_get("buffer", "default", 4)?;
+        let entry = record.target().entry_get("buffer", "default", 4).unwrap();
         assert_eq!("Hello World", entry.resolved().as_string.clone().unwrap());
 
         record.undo()?;
 
-        assert!(record.target().entry_get("buffer", "default", 0).is_ok());
-        assert!(record.target().entry_get("buffer", "default", 4).is_err());
+        assert!(record.target().entry_get("buffer", "default", 0).is_some());
+        assert!(record.target().entry_get("buffer", "default", 4).is_none());
 
         record.undo()?;
 
-        assert!(record.target().entry_get("buffer", "default", 0).is_err());
-        assert!(record.target().entry_get("buffer", "default", 4).is_err());
+        assert!(record.target().entry_get("buffer", "default", 0).is_none());
+        assert!(record.target().entry_get("buffer", "default", 4).is_none());
 
         record.redo()?;
 
-        assert!(record.target().entry_get("buffer", "default", 0).is_ok());
-        assert!(record.target().entry_get("buffer", "default", 4).is_err());
+        assert!(record.target().entry_get("buffer", "default", 0).is_some());
+        assert!(record.target().entry_get("buffer", "default", 4).is_none());
 
         record.redo()?;
 
-        assert!(record.target().entry_get("buffer", "default", 0).is_ok());
-        assert!(record.target().entry_get("buffer", "default", 4).is_ok());
+        assert!(record.target().entry_get("buffer", "default", 0).is_some());
+        assert!(record.target().entry_get("buffer", "default", 4).is_some());
 
         Ok(())
     }
@@ -236,7 +227,6 @@ mod tests {
         // Make sure we can't overlap it
         let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
-
 
         Ok(())
     }

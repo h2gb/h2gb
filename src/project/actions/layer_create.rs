@@ -108,11 +108,11 @@ mod tests {
         record.apply(action)?;
 
         // Ensure the layer exists, and undo/redo works
-        assert!(record.target().layer_exists("buffer", "layer")?);
+        assert!(record.target().layer_exists("buffer", "layer"));
         record.undo()?;
-        assert!(!record.target().layer_exists("buffer", "layer")?);
+        assert!(!record.target().layer_exists("buffer", "layer"));
         record.redo()?;
-        assert!(record.target().layer_exists("buffer", "layer")?);
+        assert!(record.target().layer_exists("buffer", "layer"));
 
         Ok(())
     }

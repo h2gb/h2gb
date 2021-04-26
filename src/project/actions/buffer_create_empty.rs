@@ -112,9 +112,13 @@ mod tests {
         assert_eq!(1, buffers.len());
         assert_eq!(10, buffers["buffer"].data.len());
         assert_eq!(0x80000000, buffers["buffer"].base_address);
+        assert!(record.target().buffer_exists("buffer"));
 
         record.undo()?;
+        assert!(!record.target().buffer_exists("buffer"));
+
         record.redo()?;
+        assert!(record.target().buffer_exists("buffer"));
 
         let buffers = record.target().buffers();
         assert_eq!(1, buffers.len());
