@@ -2,7 +2,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::datatype::{H2Type, ResolvedType};
+use crate::datatype::H2Type;
 use crate::project::h2project::H2Project;
 use crate::project::actions::Action;
 
@@ -165,12 +165,12 @@ mod tests {
         assert!(record.target().entry_get("buffer", "default", 0).is_err());
         assert!(record.target().entry_get("buffer", "default", 4).is_err());
 
-        record.redo();
+        record.redo()?;
 
         assert!(record.target().entry_get("buffer", "default", 0).is_ok());
         assert!(record.target().entry_get("buffer", "default", 4).is_err());
 
-        record.redo();
+        record.redo()?;
 
         assert!(record.target().entry_get("buffer", "default", 0).is_ok());
         assert!(record.target().entry_get("buffer", "default", 4).is_ok());

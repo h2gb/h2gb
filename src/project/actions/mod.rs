@@ -46,6 +46,9 @@ pub use layer_create::ActionLayerCreate;
 pub mod entry_create_from_type;
 pub use entry_create_from_type::ActionEntryCreateFromType;
 
+pub mod entry_set_comment;
+pub use entry_set_comment::ActionEntrySetComment;
+
 // Don't create this directly - use the actions' new() functions
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
@@ -55,6 +58,7 @@ pub enum Action {
     BufferTransform(ActionBufferTransform),
     LayerCreate(ActionLayerCreate),
     EntryCreateFromType(ActionEntryCreateFromType),
+    EntrySetComment(ActionEntrySetComment),
 }
 
 impl Command for Action {
@@ -69,6 +73,7 @@ impl Command for Action {
             Action::BufferTransform(a)       => a.apply(project),
             Action::LayerCreate(a)           => a.apply(project),
             Action::EntryCreateFromType(a)   => a.apply(project),
+            Action::EntrySetComment(a)       => a.apply(project),
         }
     }
 
@@ -80,6 +85,7 @@ impl Command for Action {
             Action::BufferTransform(a)       => a.undo(project),
             Action::LayerCreate(a)           => a.undo(project),
             Action::EntryCreateFromType(a)   => a.undo(project),
+            Action::EntrySetComment(a)       => a.undo(project),
         }
     }
 }

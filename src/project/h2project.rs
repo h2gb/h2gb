@@ -259,6 +259,22 @@ impl H2Project {
         Ok(&entry.entry.data)
     }
 
+    pub fn entry_get_mut(&mut self, buffer: &str, layer: &str, offset: usize) -> SimpleResult<&mut H2Entry> {
+        let multi_key = Self::multi_key(buffer, layer);
+        let entry = match self.entries.get_entry_mut(&multi_key, offset) {
+            Some(entry) => entry,
+            None        => bail!("Could not find entry"),
+        };
+
+        Ok(&mut entry.entry.data)
+    }
+
+    pub fn entry_set_comment(&mut self, buffer: &str, layer: &str, offset: usize, comment: Option<&str>) -> SimpleResult<Option<String>> {
+        let entry = self.entry_get_mut(buffer, layer, offset)?;
+
+        Ok(entry.set_comment(comment))
+    }
+
     // Remove an entry, and any others that were inserted along with it
     pub fn entry_remove(&mut self, buffer: &str, layer: &str, offset: usize) -> SimpleResult<Vec<(String, String, Option<H2Type>, usize)>> {
         let multi_key = Self::multi_key(buffer, layer);
