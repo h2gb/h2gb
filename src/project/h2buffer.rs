@@ -20,10 +20,11 @@ use std::mem;
 
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::ops::Range;
 
 use crate::transformation::Transformation;
+use crate::project::h2layer::H2Layer;
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -37,9 +38,7 @@ pub struct H2Buffer {
     // A list of transformations that this buffer has undergone
     transformations: Vec<Transformation>,
 
-    // A list of layers that this buffer contains (the actual layer data is
-    // stored in H2Project::entreis)
-    layers: HashSet<String>,
+    layers: HashMap<String, H2Layer>,
 }
 
 impl H2Buffer {
@@ -57,7 +56,7 @@ impl H2Buffer {
             name: name.to_string(),
             data: data,
             base_address: base_address,
-            layers: HashSet::new(),
+            layers: HashMap::new(),
             transformations: Vec::new(),
         })
     }
@@ -265,20 +264,32 @@ impl H2Buffer {
     }
 
     pub fn layer_add(&mut self, layer: &str) -> SimpleResult<()> {
-        if !self.layers.insert(layer.to_string()) {
-            bail!("Layer already exists");
-        }
+        // Get this up front, we won't be able to once we borrow self in the match
+        let length = self.len();
+
+        // Either insert, or error if there's already a layer there
+        match self.layers.entry(layer.to_string()) {
+            std::collections::hash_map::Entry::Occupied(_) => bail!("A layer named {} already exists in the buffer {}", layer, self.name),
+            std::collections::hash_map::Entry::Vacant(v) => v.insert(H2Layer::new(layer, length)),
+        };
 
         Ok(())
     }
 
-    // Note: doesn't check if the layer is empty!
     pub fn layer_remove(&mut self, layer: &str) -> SimpleResult<()> {
-        if !self.layers.remove(&layer.to_string()) {
-            bail!("Layer doesn't exist");
+        let is_populated = match self.layers.get(layer) {
+            Some(layer) => layer.is_populated(),
+            None => bail!("Could not find layer {} in buffer {}", self.name, layer),
+        };
+
+        if is_populated {
+            bail!("Cannot remove layer {} from buffer {} because it's not empty", layer, self.name);
         }
 
-        Ok(())
+        match self.layers.remove(layer) {
+            Some(_) => Ok(()),
+            None => bail!("Failed to remove the layer"),
+        }
     }
 }
 
