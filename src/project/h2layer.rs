@@ -17,9 +17,10 @@
 //! In other words: DON'T USE THESE DIRECTLY, unless you're writing actions.
 
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, bail};
 use std::ops::Range;
 use std::fmt;
+use std::collections::HashMap;
 
 use crate::bumpy_vector::BumpyVector;
 use crate::project::h2entry::H2Entry;
@@ -33,25 +34,27 @@ pub struct H2Layer {
     name: String,
 
     entries: BumpyVector<H2Entry>,
+    comments: HashMap<usize, String>,
 }
 
-impl fmt::Display for H2Layer {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, " Layer: {}", self.name)?;
+// impl fmt::Display for H2Layer {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         writeln!(f, " Layer: {}", self.name)?;
 
-        for entry in self.entries.into_iter() {
-            writeln!(f, "  {}", entry.entry)?;
-        }
+//         for entry in self.entries.into_iter() {
+//             writeln!(f, "  {}", entry.entry)?;
+//         }
 
-        Ok(())
-    }
-}
+//         Ok(())
+//     }
+// }
 
 impl H2Layer {
     pub fn new(name: &str, size: usize) -> Self {
         H2Layer {
             name: name.to_string(),
             entries: BumpyVector::new(size),
+            comments: HashMap::new(),
         }
     }
 
@@ -85,11 +88,44 @@ impl H2Layer {
         self.entries.get_range(range).into_iter().map(|entry| &entry.entry).collect()
     }
 
+    pub fn entries(&self) -> &BumpyVector<H2Entry> {
+        &self.entries
+    }
+
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
     pub fn is_populated(&self) -> bool {
         self.len() > 0
+    }
+
+    pub fn comment_get(&self, offset: usize) -> SimpleResult<Option<&String>> {
+        if offset >= self.entries.max_size() {
+            bail!("Tried to put comment at illegal offset");
+        }
+
+        Ok(self.comments.get(&offset))
+    }
+
+    pub fn comments_get(&self, range: Range<usize>) -> SimpleResult<Vec<&String>> {
+        let mut out = Vec::new();
+
+        for offset in range {
+            match self.comment_get(offset)? {
+                Some(comment) => out.push(comment),
+                None => (),
+            }
+        }
+
+        Ok(out)
+    }
+
+    pub fn comment_set(&mut self, offset: usize, comment: String) -> SimpleResult<Option<String>> {
+        if offset >= self.entries.max_size() {
+            bail!("Tried to put comment at illegal offset");
+        }
+
+        Ok(self.comments.insert(offset, comment))
     }
 }

@@ -41,6 +41,8 @@ pub struct H2Buffer {
     transformations: Vec<Transformation>,
 
     layers: HashMap<String, H2Layer>,
+
+    display_empty_addresses: bool,
 }
 
 impl fmt::Display for H2Buffer {
@@ -48,8 +50,83 @@ impl fmt::Display for H2Buffer {
         writeln!(f, "Buffer: {}", self.name)?;
         writeln!(f, " Base address: 0x{:x}", self.base_address)?;
 
-        for (_, layer) in &self.layers {
-            writeln!(f, "{}", layer)?;
+        for (layer_name, layer) in &self.layers {
+            writeln!(f, "Layer: {}", layer_name)?;
+
+            // Start at offset 0, but process in entry-sized chunks
+            let mut offset = 0;
+
+            while offset < self.data.len() {
+                match layer.entry_get(offset) {
+                    Some(entry) => {
+                        // Deal with the entry
+                        let resolved = entry.resolved();
+                        let actual_range = (resolved.actual_range.start as usize)..(resolved.actual_range.end as usize);
+
+                        let entry_byte_string: Vec<String> = self.data[actual_range.clone()].iter().map(|b| format!("{:02x}", b)).collect();
+                        let entry_byte_string = entry_byte_string.join(" ");
+
+                        write!(f, " 0x{:08x} - 0x{:08x}    {}   {}",
+                                 actual_range.start + self.base_address,
+                                 actual_range.end + self.base_address,
+                                 entry_byte_string,
+                                 entry,
+                        )?;
+
+                        // Deal with comments on the entry
+                        let comments = layer.comments_get(actual_range).unwrap();
+                        if comments.len() == 0 {
+                            writeln!(f, "")?;
+                        } else {
+                            let comments: Vec<String> = comments.iter().map(|c| c.to_string()).collect();
+                            writeln!(f, " ; {}", comments.join(" / "))?;
+                        }
+
+                        // Deal with the padding / alignment
+                        let alignment_range = (resolved.actual_range.end as usize)..(resolved.aligned_range.end as usize);
+                        if !alignment_range.is_empty() {
+                            let alignment_byte_string: Vec<String> = self.data[alignment_range.clone()].iter().map(|b| format!("{:02x}", b)).collect();
+                            let alignment_byte_string = alignment_byte_string.join(" ");
+
+                            write!(f, " 0x{:08x} - 0x{:08x}    {}    (padding / alignment)",
+                                alignment_range.start + self.base_address,
+                                alignment_range.end + self.base_address,
+                                alignment_byte_string,
+                            )?;
+
+                            // Deal with comments on the alignment area
+                            let comments = layer.comments_get(alignment_range).unwrap();
+                            if comments.len() == 0 {
+                                writeln!(f, "")?;
+                            } else {
+                                let comments: Vec<String> = comments.iter().map(|c| c.to_string()).collect();
+                                writeln!(f, " ; {}", comments.join(" / "))?;
+                            }
+                        }
+
+                        // Move to the next entry
+                        offset = resolved.aligned_range.end as usize;
+                    },
+                    None => {
+                        if self.display_empty_addresses {
+                            // Handle the case where there are no entries here
+                            write!(f, " 0x{:08x} - 0x{:08x}    {:02x}",
+                                     offset + self.base_address,
+                                     offset + self.base_address,
+                                     self.data[offset],
+                            )?;
+
+                            match layer.comment_get(offset).unwrap() {
+                                Some(comment) => writeln!(f, " ; {}", comment)?,
+                                None =>          writeln!(f, "")?,
+                            }
+                        }
+
+                        // Increment the offset
+                        offset += 1;
+                    }
+                };
+            }
         }
 
         Ok(())
@@ -73,6 +150,8 @@ impl H2Buffer {
             base_address: base_address,
             layers: HashMap::new(),
             transformations: Vec::new(),
+
+            display_empty_addresses: false, // TODO: Figure out how to handle empty addresses
         })
     }
 

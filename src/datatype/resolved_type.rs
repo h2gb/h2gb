@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 
+use std::fmt;
 use std::ops::Range;
 
 use crate::datatype::H2Type;
@@ -34,5 +35,11 @@ impl ResolvedType {
 
     pub fn aligned_size(&self) -> u64 {
         self.aligned_range.end - self.aligned_range.start
+    }
+}
+
+impl fmt::Display for ResolvedType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.display)
     }
 }

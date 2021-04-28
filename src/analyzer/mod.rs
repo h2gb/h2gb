@@ -73,7 +73,7 @@ mod tests {
 
         // Load the file data into a new buffer
         let data = fs::read(d).unwrap();
-        let action = ActionBufferCreateFromBytes::new("buffer", &data, 0x80000000);
+        let action = ActionBufferCreateFromBytes::new("buffer", &data, 0x0);
         record.apply(action)?;
 
         analyze_terraria(&mut record, "buffer")?;

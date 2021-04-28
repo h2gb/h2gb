@@ -14,7 +14,6 @@ use crate::datatype::{H2Type, ResolvedType};
 pub struct H2Entry {
     datatype: ResolvedType,
     creator: Option<H2Type>,
-    comment: Option<String>,
 
     // pub creations: Option<Vec<()>>,
     // pub references: Option<Vec<()>>,
@@ -24,10 +23,7 @@ pub struct H2Entry {
 
 impl fmt::Display for H2Entry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.comment {
-            Some(c) => write!(f, "{} - {}: {} ; {}", self.datatype.actual_range.start, self.datatype.actual_range.end, self.datatype.display, c),
-            None    => write!(f, "{} - {}: {}", self.datatype.actual_range.start, self.datatype.actual_range.end, self.datatype.display),
-        }
+        write!(f, "{}", self.datatype)
     }
 }
 
@@ -43,7 +39,6 @@ impl H2Entry {
         Self {
             datatype: datatype,
             creator: creator,
-            comment: None,
         }
     }
 
@@ -53,14 +48,6 @@ impl H2Entry {
 
     pub fn creator(&self) -> Option<H2Type> {
         self.creator.clone()
-    }
-
-    pub fn set_comment(&mut self, comment: Option<&str>) -> Option<String> {
-        std::mem::replace(&mut self.comment, comment.map(|c| c.to_string()))
-    }
-
-    pub fn comment(&self) -> Option<&str> {
-        self.comment.as_deref()
     }
 }
 
