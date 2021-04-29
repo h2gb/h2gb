@@ -1,5 +1,6 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
+use std::fmt;
 
 use crate::transformation::{Transformation, TransformerTrait};
 
@@ -22,6 +23,12 @@ pub enum XorSettings {
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformXorByConstant {
     settings: XorSettings,
+}
+
+impl fmt::Display for TransformXorByConstant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl TransformXorByConstant {

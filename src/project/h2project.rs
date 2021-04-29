@@ -8,8 +8,7 @@ use simple_error::{bail, SimpleResult};
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::datatype::{H2Type, Offset, ResolvedType};
-use crate::sized_number::Context;
+use crate::datatype::H2Type;
 use crate::project::{H2Buffer, H2Layer, H2Entry};
 
 // H2Project is the very core, and the root of undo. All actions will be taken
@@ -197,10 +196,14 @@ impl H2Project {
         self.buffer_get_mut(buffer)?.entry_remove(layer, offset)
     }
 
-    // pub fn entry_set_comment(&mut self, buffer: &str, layer: &str, offset: usize, comment: Option<&str>) -> Option<String> {
-    //     let entry = self.entry_get_mut(buffer, layer, offset)?;
-    //     Ok(entry.set_comment(comment))
-    // }
+    pub fn comment_set(&mut self, buffer: &str, layer: &str, offset: usize, comment: Option<String>) -> SimpleResult<Option<String>> {
+        let buffer = match self.buffer_get_mut(buffer) {
+            Some(l) => l,
+            None => bail!("Couldn't find buffer {} to add comment", buffer),
+        };
+
+        buffer.comment_set(layer, offset, comment)
+    }
 
     // Remove an entry, and any others that were inserted along with it
     // pub fn entry_remove(&mut self, buffer: &str, layer: &str, offset: usize) -> SimpleResult<Vec<(String, String, Option<H2Type>, usize)>> {
@@ -234,7 +237,7 @@ impl fmt::Display for H2Project {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "Name: {}, version: {}", self.name, self.version)?;
 
-        for (name, buffer) in self.buffers() {
+        for (_name, buffer) in self.buffers() {
             writeln!(f, "{}", buffer)?;
             writeln!(f, "")?;
         }

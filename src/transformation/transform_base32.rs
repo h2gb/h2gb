@@ -1,6 +1,7 @@
 use base32;
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
+use std::fmt;
 
 use crate::transformation::{Transformation, TransformerTrait};
 
@@ -9,6 +10,12 @@ pub struct TransformBase32 {
     no_padding: bool,
     permissive: bool,
     crockford: bool,
+}
+
+impl fmt::Display for TransformBase32 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl TransformBase32 {

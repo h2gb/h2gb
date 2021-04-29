@@ -1,5 +1,6 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
+use std::fmt;
 
 use crate::transformation::{Transformation, TransformerTrait};
 
@@ -10,6 +11,12 @@ pub struct TransformHex {
 impl TransformHex {
     pub fn new() -> Transformation {
         Transformation::FromHex(TransformHex {})
+    }
+}
+
+impl fmt::Display for TransformHex {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 

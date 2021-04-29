@@ -1,5 +1,6 @@
 use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
+use std::fmt;
 
 use crate::transformation::{Transformation, TransformerTrait};
 
@@ -10,6 +11,12 @@ pub struct TransformNull {
 impl TransformNull {
     pub fn new() -> Transformation {
         Transformation::Null(TransformNull {})
+    }
+}
+
+impl fmt::Display for TransformNull {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 

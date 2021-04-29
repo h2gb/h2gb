@@ -19,7 +19,6 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 use std::ops::Range;
-use std::fmt;
 use std::collections::HashMap;
 
 use crate::bumpy_vector::BumpyVector;
@@ -121,11 +120,14 @@ impl H2Layer {
         Ok(out)
     }
 
-    pub fn comment_set(&mut self, offset: usize, comment: String) -> SimpleResult<Option<String>> {
+    pub fn comment_set(&mut self, offset: usize, comment: Option<String>) -> SimpleResult<Option<String>> {
         if offset >= self.entries.max_size() {
             bail!("Tried to put comment at illegal offset");
         }
 
-        Ok(self.comments.insert(offset, comment))
+        match comment {
+            Some(comment) => Ok(self.comments.insert(offset, comment)),
+            None => Ok(self.comments.remove(&offset)),
+        }
     }
 }

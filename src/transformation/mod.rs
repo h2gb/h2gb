@@ -39,6 +39,7 @@
 //! ```
 
 use simple_error::{SimpleResult, bail};
+use std::fmt;
 
 use serde::{Serialize, Deserialize};
 
@@ -370,6 +371,12 @@ pub enum Transformation {
     /// assert_eq!(b"Salsa20 Demo".to_vec(), result);
     /// ```
     FromStreamCipher(TransformStreamCipher),
+}
+
+impl fmt::Display for Transformation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.get_transformer())
+    }
 }
 
 impl Transformation {

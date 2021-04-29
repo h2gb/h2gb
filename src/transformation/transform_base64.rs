@@ -1,6 +1,7 @@
 use base64;
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
+use std::fmt;
 
 use crate::transformation::{Transformation, TransformerTrait};
 
@@ -9,6 +10,12 @@ pub struct TransformBase64 {
     no_padding: bool,
     permissive: bool,
     url: bool,
+}
+
+impl fmt::Display for TransformBase64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl TransformBase64 {

@@ -1,7 +1,9 @@
 use simple_error::SimpleResult;
+use std::fmt;
+
 use crate::transformation::Transformation;
 
-pub trait TransformerTrait {
+pub trait TransformerTrait: fmt::Display {
     /// A transform takes a buffer that's encoded and decodes it.
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>>;
 

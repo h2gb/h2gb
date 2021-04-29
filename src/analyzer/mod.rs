@@ -1,4 +1,5 @@
 //! Some good info should go here!
+
 use redo::Record;
 use simple_error::SimpleResult;
 
@@ -27,6 +28,10 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     // Create an entry for the version
     let datatype = H2Number::new(SizedDefinition::U16(Endian::Little), SizedDisplay::Decimal);
     record.apply(ActionEntryCreateFromType::new(buffer, "default", datatype, 0))?;
+
+    //let entry = record.target().entry_get(buffer, "default", 0).unwrap().resolved();
+    record.apply(ActionEntrySetComment::new(buffer, "default", 0, Some("Version number".to_string())))?;
+
 
     // Create an entry for the name
     let datatype = LPString::new(
@@ -79,7 +84,6 @@ mod tests {
         analyze_terraria(&mut record, "buffer")?;
 
         println!("{}", &record.target());
-
         Ok(())
     }
 }

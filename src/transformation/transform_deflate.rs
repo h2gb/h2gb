@@ -1,12 +1,19 @@
 use inflate;
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
+use std::fmt;
 
 use crate::transformation::{Transformation, TransformerTrait};
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformDeflate {
     zlib_header: bool,
+}
+
+impl fmt::Display for TransformDeflate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl TransformDeflate {

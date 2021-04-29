@@ -1,4 +1,5 @@
 use simple_error::{SimpleResult, bail};
+use std::fmt;
 use serde::{Serialize, Deserialize};
 
 /// A simple class to abstract-out differently-sized keys.
@@ -10,6 +11,17 @@ pub enum KeyOrIV {
     Bits128([u8; 16]),
     Bits192([u8; 24]),
     Bits256([u8; 32]),
+}
+
+impl fmt::Display for KeyOrIV {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", match self {
+            KeyOrIV::Bits64(c)  => format!("{} (64 bits)", hex::encode(c)),
+            KeyOrIV::Bits128(c) => format!("{} (128 bits)", hex::encode(c)),
+            KeyOrIV::Bits192(c) => format!("{} (192 bits)", hex::encode(c)),
+            KeyOrIV::Bits256(c) => format!("{} (256 bits)", hex::encode(c)),
+        })
+    }
 }
 
 impl KeyOrIV {

@@ -1,3 +1,7 @@
+use simple_error::{SimpleResult, bail};
+use serde::{Serialize, Deserialize};
+use std::fmt;
+
 use cipher::{NewStreamCipher, SyncStreamCipher};
 use salsa20::Salsa20;
 use chacha20::ChaCha20Legacy;
@@ -5,9 +9,6 @@ use chacha20::ChaCha20Legacy;
 // These aren't implemented in the standard cipher crate
 use nettle::cipher::Salsa20_128;
 use nettle::cipher::insecure_do_not_use::ArcFour;
-
-use simple_error::{SimpleResult, bail};
-use serde::{Serialize, Deserialize};
 
 use crate::transformation::{Transformation, TransformerTrait};
 use crate::transformation::helpers::key_or_iv::KeyOrIV;
@@ -37,6 +38,12 @@ pub struct TransformStreamCipher {
     key: KeyOrIV,
     iv: Option<KeyOrIV>,
     offset: u64,
+}
+
+impl fmt::Display for TransformStreamCipher {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl TransformStreamCipher {

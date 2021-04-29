@@ -47,8 +47,12 @@ pub struct H2Buffer {
 
 impl fmt::Display for H2Buffer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Buffer: {}", self.name)?;
-        writeln!(f, " Base address: 0x{:x}", self.base_address)?;
+        writeln!(f, "Buffer: {} (base 0x{:x})", self.name, self.base_address)?;
+        writeln!(f, " Transformations:")?;
+        for transformation in self.transformations.iter() {
+            writeln!(f, " * {}", transformation)?;
+        }
+        writeln!(f)?;
 
         for (layer_name, layer) in &self.layers {
             writeln!(f, "Layer: {}", layer_name)?;
@@ -424,6 +428,15 @@ impl H2Buffer {
     pub fn entry_remove(&mut self, layer: &str, offset: usize) -> Option<H2Entry> {
         let layer = self.layers.get_mut(layer)?;
         layer.entry_remove(offset)
+    }
+
+    pub fn comment_set(&mut self, layer: &str, offset: usize, comment: Option<String>) -> SimpleResult<Option<String>> {
+        let layer = match self.layer_get_mut(layer) {
+            Some(l) => l,
+            None => bail!("Couldn't find layer {} in buffer {} to add comment", layer, self.name()),
+        };
+
+        layer.comment_set(offset, comment)
     }
 }
 

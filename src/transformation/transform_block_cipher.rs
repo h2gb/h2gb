@@ -1,11 +1,10 @@
 use aes::{Aes128, Aes192, Aes256};
-use des::Des;
-use block_modes::{BlockMode, Ecb, Cbc, Cfb};
-// use block_modes::{Cfb8, Ofb, Pcbc}
 use block_modes::block_padding::{NoPadding, Pkcs7, ZeroPadding};
-
-use simple_error::{SimpleResult, bail};
+use block_modes::{BlockMode, Ecb, Cbc, Cfb};
+use des::Des;
 use serde::{Serialize, Deserialize};
+use simple_error::{SimpleResult, bail};
+use std::fmt;
 
 use crate::transformation::{Transformation, TransformerTrait};
 use crate::transformation::helpers::key_or_iv::KeyOrIV;
@@ -118,6 +117,15 @@ pub struct TransformBlockCipher {
     padding: BlockCipherPadding,
     key: KeyOrIV,
     iv: Option<KeyOrIV>,
+}
+
+impl fmt::Display for TransformBlockCipher {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.iv {
+            Some(iv) => write!(f, "TransformBlockCipher {{ cipher: {:?}, mode: {:?}, padding: {:?}, key: {}, IV: {} }}", self.cipher, self.mode, self.padding, self.key, iv),
+            None => write!(f, "TransformBlockCipher {{ cipher: {:?}, mode: {:?}, padding: {:?}, key: {}, IV: n/a }}", self.cipher, self.mode, self.padding, self.key),
+        }
+    }
 }
 
 impl TransformBlockCipher {
