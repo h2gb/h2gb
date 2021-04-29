@@ -108,7 +108,7 @@ mod tests {
     use crate::project::h2project::H2Project;
     use redo::Record;
     use pretty_assertions::assert_eq;
-    use crate::project::actions::Action;
+    use crate::actions::Action;
     use crate::transformation::{TransformHex, TransformBase64};
 
     #[test]

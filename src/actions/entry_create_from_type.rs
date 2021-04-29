@@ -4,7 +4,7 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::datatype::H2Type;
 use crate::project::h2project::H2Project;
-use crate::project::actions::Action;
+use crate::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Forward {
@@ -108,7 +108,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
 
-    use crate::project::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
+    use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
     use crate::datatype::{H2Number, LPString, ASCII, StrictASCII, SizedDefinition, SizedDisplay, Endian};
 

@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::project::h2project::H2Project;
-use crate::project::actions::Action;
+use crate::actions::Action;
 use crate::transformation::Transformation;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -103,7 +103,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::transformation::{TransformHex, TransformBase64};
-    use crate::project::actions::{Action, ActionBufferCreateFromBytes};
+    use crate::actions::{Action, ActionBufferCreateFromBytes};
 
     #[test]
     fn test_action() -> SimpleResult<()> {

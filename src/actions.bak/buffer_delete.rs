@@ -98,7 +98,7 @@ mod tests {
     use crate::transformation::TransformHex;
 
     use crate::project::h2project::H2Project;
-    use crate::project::actions::Action;
+    use crate::actions::Action;
 
     #[test]
     fn test_action() -> SimpleResult<()> {

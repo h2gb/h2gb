@@ -133,7 +133,7 @@ mod tests {
     use crate::project::h2project::H2Project;
     use redo::Record;
     use pretty_assertions::assert_eq;
-    use crate::project::actions::Action;
+    use crate::actions::Action;
 
     #[test]
     fn test_action() -> SimpleResult<()> {

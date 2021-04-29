@@ -6,7 +6,7 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::project::h2project::H2Project;
 use crate::project::h2buffer::H2Buffer;
-use crate::project::actions::Action;
+use crate::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Forward {

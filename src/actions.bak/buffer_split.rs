@@ -203,7 +203,7 @@ mod tests {
     use redo::Record;
     use simple_error::SimpleResult;
 
-    use crate::project::actions::Action;
+    use crate::actions::Action;
     use crate::project::h2project::H2Project;
 
     #[test]

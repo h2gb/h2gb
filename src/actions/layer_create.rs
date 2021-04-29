@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::project::h2project::H2Project;
-use crate::project::actions::Action;
+use crate::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Forward {
@@ -91,7 +91,7 @@ mod tests {
     use simple_error::SimpleResult;
 
     use crate::project::h2project::H2Project;
-    use crate::project::actions::ActionBufferCreateEmpty;
+    use crate::actions::ActionBufferCreateEmpty;
 
     #[test]
     fn test_action() -> SimpleResult<()> {

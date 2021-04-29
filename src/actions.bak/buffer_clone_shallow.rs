@@ -114,7 +114,7 @@ mod tests {
 
     use crate::transformation::TransformHex;
 
-    use crate::project::actions::Action;
+    use crate::actions::Action;
     use crate::project::h2project::H2Project;
 
     #[test]

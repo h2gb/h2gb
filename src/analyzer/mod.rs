@@ -3,7 +3,7 @@
 use redo::Record;
 use simple_error::SimpleResult;
 
-use crate::project::actions::*;
+use crate::actions::*;
 //use crate::project::h2project::H2Project;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Number, LPString, ASCII, StrictASCII, SizedDefinition, SizedDisplay, Endian};
@@ -62,7 +62,7 @@ mod tests {
     //use pretty_assertions::assert_eq;
 
     use crate::project::h2project::H2Project;
-    use crate::project::actions::ActionBufferCreateFromBytes;
+    use crate::actions::ActionBufferCreateFromBytes;
 
 
     #[test]

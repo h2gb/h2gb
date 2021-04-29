@@ -22,6 +22,7 @@ pub mod sized_number;
 pub mod transformation;
 
 pub mod project;
+pub mod actions;
 
 // Actions we need:
 // * load data as buffer
