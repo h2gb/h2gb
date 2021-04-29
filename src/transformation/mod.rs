@@ -43,33 +43,13 @@ use std::fmt;
 
 use serde::{Serialize, Deserialize};
 
-mod transform_null;
-pub use transform_null::TransformNull;
+mod transform;
+pub use transform::*;
 
-mod transform_base64;
-pub use transform_base64::TransformBase64;
-
-mod transform_base32;
-pub use transform_base32::TransformBase32;
-
-mod transform_xor_by_constant;
-pub use transform_xor_by_constant::TransformXorByConstant;
-pub use transform_xor_by_constant::XorSettings;
-
-mod transform_deflate;
-pub use transform_deflate::TransformDeflate;
-
-mod transform_hex;
-pub use transform_hex::TransformHex;
-
-mod transform_block_cipher;
-pub use transform_block_cipher::{TransformBlockCipher, BlockCipherPadding, BlockCipherType, BlockCipherMode};
-
-mod transform_stream_cipher;
-pub use transform_stream_cipher::{TransformStreamCipher, StreamCipherType};
+mod transformer_trait;
+pub use transformer_trait::TransformerTrait;
 
 mod helpers;
-use helpers::transformer_trait::TransformerTrait;
 
 /// Which transformation to perform.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
