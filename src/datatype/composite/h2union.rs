@@ -6,25 +6,25 @@ use std::ops::Range;
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
-/// Defines an enum - a selection of values in the same memory, of which one
+/// Defines an union - a selection of values in the same memory, of which one
 /// is used.
 ///
 /// Any number of different types can be defined, and the length of the field
 /// will be the length of the longest one. When resolved, the results will have
 /// the same starting address.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct H2Enum {
+pub struct H2Union {
     /// An array of strings and types (which might be other types)
     variants: Vec<(String, H2Type)>,
 }
 
-impl H2Enum {
+impl H2Union {
     pub fn new_aligned(alignment: Alignment, variants: Vec<(String, H2Type)>) -> SimpleResult<H2Type> {
         if variants.len() == 0 {
-            bail!("Enums must have at least one variant");
+            bail!("Unions must have at least one variant");
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Enum(Self {
+        Ok(H2Type::new(alignment, H2Types::H2Union(Self {
             variants: variants,
         })))
     }
@@ -34,7 +34,7 @@ impl H2Enum {
     }
 }
 
-impl H2TypeTrait for H2Enum {
+impl H2TypeTrait for H2Union {
     fn is_static(&self) -> bool {
         // Loop over each field - return an object as soon as is_static() is
         // false
@@ -87,11 +87,11 @@ mod tests {
     use crate::datatype::composite::H2Array;
 
     #[test]
-    fn test_enum() -> SimpleResult<()> {
+    fn test_union() -> SimpleResult<()> {
         let data = b"xxxABCDEFGHIJKLMNOP".to_vec();
         let offset = Offset::Dynamic(Context::new_at(&data, 3));
 
-        let e = H2Enum::new_aligned(Alignment::Loose(16), vec![
+        let e = H2Union::new_aligned(Alignment::Loose(16), vec![
             (
                 "u16".to_string(),
                 H2Number::new_aligned(
