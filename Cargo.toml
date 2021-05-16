@@ -41,9 +41,12 @@ des = "~0.6.0"
 salsa20 = "~0.7.2"
 chacha20 = { version = "~0.6.0", features = ["legacy"] }
 
-
 # Nettle has some crypto ciphers that the others are missing (such as Salsa20-128)
 nettle = "~7.0.1"
+
+# Lets us convert numbers into enums (used for h2enum type)
+num-derive = "~0.3.3"
+num-traits = "~0.2"
 
 [dev-dependencies]
 pretty_assertions = "~0.6.1"
