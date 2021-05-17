@@ -6,7 +6,8 @@ use simple_error::SimpleResult;
 use crate::actions::*;
 //use crate::project::h2project::H2Project;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
-use crate::datatype::{H2Number, LPString, ASCII, StrictASCII, SizedDefinition, SizedDisplay, Endian};
+use crate::datatype::{H2Number, LPString, ASCII, StrictASCII};
+use crate::sized_number::{SizedDefinition, SizedDisplay, Endian, EnumType};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
@@ -39,6 +40,11 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         ASCII::new(StrictASCII::Permissive),
     )?;
     record.apply(ActionEntryCreateFromType::new(buffer, "default", datatype, 0x18))?;
+
+    // Find the end of the name
+    let name_entry = record.target().entry_get(buffer, "default", 0x18).unwrap().resolved();
+    let name_datatype = H2Number::new(SizedDefinition::U8, SizedDisplay::Enum(EnumType::TerrariaGameMode));
+    record.apply(ActionEntryCreateFromType::new(buffer, "default", name_datatype, (name_entry.actual_range.end) as usize))?;
 
 
 

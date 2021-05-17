@@ -64,8 +64,11 @@ use std::mem;
 
 use serde::{Serialize, Deserialize};
 
-pub mod context;
+mod context;
 pub use context::{Context, Endian};
+
+pub mod enum_options;
+pub use enum_options::*;
 
 /// Configure display options for [`SizedDisplay::Scientific`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -235,6 +238,12 @@ pub enum SizedDisplay {
     /// assert_eq!("1e2", SizedDefinition::U8.to_string(context, SizedDisplay::Scientific(Default::default())).unwrap());
     /// ```
     Scientific(ScientificOptions),
+
+    /// Display as an 'enum' - a value selected from a list of common values.
+    ///
+    /// Example: XXX
+    ///
+    Enum(EnumType),
 }
 
 /// Define how data is read from a Context.
@@ -435,6 +444,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -450,6 +460,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -465,6 +476,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -480,6 +492,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -495,6 +508,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(_)             => bail!("128-bit values cannot be an enum element"),
                 }
             },
 
@@ -507,6 +521,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -522,6 +537,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -537,6 +553,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -552,6 +569,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
                 }
             },
 
@@ -567,6 +585,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(_)             => bail!("128-bit values cannot be an enum element"),
                 }
             },
 
@@ -582,6 +601,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(_)            => bail!("Floats can't be displayed as octal"),
                     SizedDisplay::Binary(_)           => bail!("Floats can't be displayed as binary"),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(_)             => bail!("Floats cannot be an enum element"),
                 }
             },
 
@@ -597,6 +617,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(_)            => bail!("Floats can't be displayed as octal"),
                     SizedDisplay::Binary(_)           => bail!("Floats can't be displayed as binary"),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Enum(_)             => bail!("Floats cannot be an enum element"),
                 }
             },
         }
@@ -640,6 +661,11 @@ impl SizedDefinition {
             Self::F32(_)  => false,
             Self::F64(_)  => false,
         }
+    }
+
+    /// Returns `true` for variants that can be displayed as an Enum
+    pub fn can_be_enum(self) -> bool {
+        self.can_be_u64() || self.can_be_i64()
     }
 
     /// Convert to an unsigned 64-bit value, if possible.

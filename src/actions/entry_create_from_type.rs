@@ -110,7 +110,8 @@ mod tests {
 
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
-    use crate::datatype::{H2Number, LPString, ASCII, StrictASCII, SizedDefinition, SizedDisplay, Endian};
+    use crate::datatype::{H2Number, LPString, ASCII, StrictASCII};
+    use crate::sized_number::{SizedDefinition, SizedDisplay, Endian};
 
     #[test]
     fn test_action_create_entry() -> SimpleResult<()> {

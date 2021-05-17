@@ -26,7 +26,8 @@ use std::fmt;
 
 use crate::transformation::Transformation;
 use crate::project::{H2Layer, H2Entry};
-use crate::datatype::{Context, Offset, H2Type};
+use crate::datatype::{Offset, H2Type};
+use crate::sized_number::Context;
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Clone, Debug, Serialize, Deserialize)]

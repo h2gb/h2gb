@@ -14,6 +14,3 @@ pub use h2struct::*;
 
 pub mod string;
 pub use string::*;
-
-// Expose important SizedNumber stuff
-pub use crate::sized_number::*;
