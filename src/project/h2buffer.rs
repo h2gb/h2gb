@@ -73,7 +73,7 @@ impl fmt::Display for H2Buffer {
 
                         write!(f, " 0x{:08x} - 0x{:08x}    {}   {}",
                                  actual_range.start + self.base_address,
-                                 actual_range.end + self.base_address,
+                                 actual_range.end + self.base_address - 1,
                                  entry_byte_string,
                                  entry,
                         )?;

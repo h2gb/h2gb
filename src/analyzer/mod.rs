@@ -1,16 +1,34 @@
 //! Some good info should go here!
 
 use redo::Record;
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, bail};
 
 use crate::actions::*;
 //use crate::project::h2project::H2Project;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
-use crate::datatype::{H2Number, LPString, ASCII, StrictASCII};
+use crate::datatype::{H2Type, H2Number, LPString, ASCII, StrictASCII, ResolvedType};
 use crate::sized_number::{SizedDefinition, SizedDisplay, Endian, EnumType};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
+
+pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
+    // Create the entry
+    let create_action = ActionEntryCreateFromType::new(buffer, layer, datatype, offset);
+    record.apply(create_action)?;
+
+    // Add a comment
+    if let Some(c) = comment {
+        let comment_action = ActionEntrySetComment::new(buffer, layer, offset, Some(c.to_string()));
+        record.apply(comment_action)?;
+    }
+
+    // Retrieve and return the entry
+    match record.target().entry_get(buffer, layer, offset) {
+        Some(entry) => Ok(entry.resolved().clone()),
+        None => bail!("Entry didn't correctly insert"),
+    }
+}
 
 pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
     // Transform -> decrypt
@@ -27,26 +45,41 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     record.apply(ActionLayerCreate::new(buffer, "default"))?;
 
     // Create an entry for the version
-    let datatype = H2Number::new(SizedDefinition::U16(Endian::Little), SizedDisplay::Decimal);
-    record.apply(ActionEntryCreateFromType::new(buffer, "default", datatype, 0))?;
+    let _version = create_entry(
+        record,
+        buffer,
+        "default",
+        H2Number::new(SizedDefinition::U16(Endian::Little), SizedDisplay::Decimal),
+        0x00, // Offset
+        Some("Version number"),
+    );
 
-    //let entry = record.target().entry_get(buffer, "default", 0).unwrap().resolved();
+    // Add a comment to the version
     record.apply(ActionEntrySetComment::new(buffer, "default", 0, Some("Version number".to_string())))?;
 
 
     // Create an entry for the name
-    let datatype = LPString::new(
-        H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal),
-        ASCII::new(StrictASCII::Permissive),
+    let name = create_entry(
+        record,
+        buffer,
+        "default",
+        LPString::new(
+            H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal),
+            ASCII::new(StrictASCII::Permissive),
+        )?,
+        0x18, // Offset
+        Some("Character name"),
     )?;
-    record.apply(ActionEntryCreateFromType::new(buffer, "default", datatype, 0x18))?;
 
-    // Find the end of the name
-    let name_end = record.target().entry_get(buffer, "default", 0x18).unwrap().resolved().actual_range.end;
-    let name_datatype = H2Number::new(SizedDefinition::U8, SizedDisplay::Enum(EnumType::TerrariaGameMode));
-    record.apply(ActionEntryCreateFromType::new(buffer, "default", name_datatype, (name_end) as usize))?;
-
-
+    // Create an entry for the game mode
+    let _game_mode = create_entry(
+        record,
+        buffer,
+        "default",
+        H2Number::new(SizedDefinition::U8, SizedDisplay::Enum(EnumType::TerrariaGameMode)),
+        name.actual_range.end as usize, // Offset
+        Some("Game mode"),
+    )?;
 
     // Create entries:
     // -> Version -> 16 bits little endian
