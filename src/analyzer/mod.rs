@@ -42,9 +42,9 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     record.apply(ActionEntryCreateFromType::new(buffer, "default", datatype, 0x18))?;
 
     // Find the end of the name
-    let name_entry = record.target().entry_get(buffer, "default", 0x18).unwrap().resolved();
+    let name_end = record.target().entry_get(buffer, "default", 0x18).unwrap().resolved().actual_range.end;
     let name_datatype = H2Number::new(SizedDefinition::U8, SizedDisplay::Enum(EnumType::TerrariaGameMode));
-    record.apply(ActionEntryCreateFromType::new(buffer, "default", name_datatype, (name_entry.actual_range.end) as usize))?;
+    record.apply(ActionEntryCreateFromType::new(buffer, "default", name_datatype, (name_end) as usize))?;
 
 
 
