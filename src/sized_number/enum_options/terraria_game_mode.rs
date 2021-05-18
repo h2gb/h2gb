@@ -3,12 +3,11 @@ use num_derive::FromPrimitive;
 use std::fmt;
 
 #[derive(FromPrimitive, Debug, Clone, Copy, Serialize, Deserialize)]
-
 pub enum TerrariaGameMode {
-  Classic     = 0,
-  MediumCore  = 1,
-  HardCore    = 2,
-  JourneyMode = 3,
+    Classic     = 0,
+    MediumCore  = 1,
+    HardCore    = 2,
+    JourneyMode = 3,
 }
 
 impl fmt::Display for TerrariaGameMode {

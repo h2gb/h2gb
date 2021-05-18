@@ -444,7 +444,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
 
@@ -460,7 +460,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
 
@@ -476,7 +476,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
 
@@ -492,7 +492,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
 
@@ -521,7 +521,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
 
@@ -537,7 +537,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
 
@@ -553,7 +553,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
 
@@ -569,7 +569,7 @@ impl SizedDefinition {
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
                     SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
-                    SizedDisplay::Enum(options)       => Ok(options.to_s(*v as u64)),
+                    SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
 
