@@ -49,7 +49,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         record,
         buffer,
         "default",
-        H2Number::new(SizedDefinition::U16(Endian::Little), SizedDisplay::Decimal),
+        H2Number::new(SizedDefinition::U16(Endian::Little), SizedDisplay::Decimal(Default::default())),
         0x00, // Offset
         Some("Version number"),
     );
@@ -64,7 +64,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         buffer,
         "default",
         LPString::new(
-            H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal),
+            H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal(Default::default())),
             ASCII::new(StrictASCII::Permissive),
         )?,
         0x18, // Offset

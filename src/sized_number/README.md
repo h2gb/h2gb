@@ -30,7 +30,7 @@ let context = Context::new_at(&buffer, 0);
 let d = SizedDefinition::U32(Endian::Big);
 
 assert_eq!("0x41424344", d.to_string(context, SizedDisplay::Hex(HexOptions::default())).unwrap());
-assert_eq!("1094861636", d.to_string(context, SizedDisplay::Decimal).unwrap());
+assert_eq!("1094861636", d.to_string(context, SizedDisplay::Decimal(Default::default())).unwrap());
 assert_eq!("0o10120441504", d.to_string(context, SizedDisplay::Octal(Default::default())).unwrap());
 assert_eq!("0b01000001010000100100001101000100", d.to_string(context, SizedDisplay::Binary(Default::default())).unwrap());
 assert_eq!("1.094861636e9", d.to_string(context, SizedDisplay::Scientific(Default::default())).unwrap());

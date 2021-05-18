@@ -124,7 +124,7 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create a numeric type
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
         record.apply(action)?;
 
@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Create a string type
-        let datatype = LPString::new(H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal), ASCII::new(StrictASCII::Strict))?;
+        let datatype = LPString::new(H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal(Default::default())), ASCII::new(StrictASCII::Strict))?;
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 4);
         record.apply(action)?;
 
@@ -181,29 +181,29 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create an entry
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
         record.apply(action)?;
 
         // Make sure we can't overlap it
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
 
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 1)).is_err());
 
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 2)).is_err());
 
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 3)).is_err());
 
         // Going off the end should also be an error
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 5)).is_err());
 
         // But 4, like the third bed, should be jussst right
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 4)).is_ok());
 
         Ok(())
@@ -221,12 +221,12 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default2"))?;
 
         // Create an entry
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
         record.apply(action)?;
 
         // Make sure we can't overlap it
-        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal);
+        let datatype = H2Number::new(SizedDefinition::U32(Endian::Big), SizedDisplay::Decimal(Default::default()));
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
 
         Ok(())

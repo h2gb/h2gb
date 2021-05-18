@@ -30,7 +30,7 @@
 //! let d = SizedDefinition::U32(Endian::Big);
 //!
 //! assert_eq!("0x41424344", d.to_string(context, SizedDisplay::Hex(HexOptions::default())).unwrap());
-//! assert_eq!("1094861636", d.to_string(context, SizedDisplay::Decimal).unwrap());
+//! assert_eq!("1094861636", d.to_string(context, SizedDisplay::Decimal(Default::default())).unwrap());
 //! assert_eq!("0o10120441504", d.to_string(context, SizedDisplay::Octal(Default::default())).unwrap());
 //! assert_eq!("0b01000001010000100100001101000100", d.to_string(context, SizedDisplay::Binary(Default::default())).unwrap());
 //! assert_eq!("1.094861636e9", d.to_string(context, SizedDisplay::Scientific(Default::default())).unwrap());
@@ -59,77 +59,29 @@
 //! ```
 
 use simple_error::{SimpleResult, bail};
-use std::fmt::{LowerHex, LowerExp, Octal, Display};
-use std::mem;
 
 use serde::{Serialize, Deserialize};
 
 mod context;
 pub use context::{Context, Endian};
 
-pub mod binary_options;
+mod binary_options;
 pub use binary_options::*;
 
-pub mod enum_options;
+mod enum_options;
 pub use enum_options::*;
 
-/// Configure display options for [`SizedDisplay::Scientific`]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct ScientificOptions {
-    /// Print the `e` in the scientific notation will be uppercase (`1E0`
-    /// instead of `1e0`).
-    pub uppercase: bool,
-}
+mod scientific_options;
+pub use scientific_options::*;
 
-impl Default for ScientificOptions {
-    fn default() -> Self {
-        Self {
-            uppercase: false,
-        }
-    }
-}
+mod hex_options;
+pub use hex_options::*;
 
-/// Configure display options for [`SizedDisplay::Hex`]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct HexOptions {
-    /// Print hex characters uppercase - `1A2B` vs `1a2b`.
-    pub uppercase: bool,
+mod octal_options;
+pub use octal_options::*;
 
-    /// Prefix hex strings with `0x`
-    pub prefix: bool,
-
-    /// Zero-pad hex strings to the full width - `0001` vs `1`)
-    pub padded: bool,
-}
-
-impl Default for HexOptions {
-    fn default() -> Self {
-        Self {
-            uppercase: false,
-            prefix: true,
-            padded: true,
-        }
-    }
-}
-
-/// Configure display options for [`SizedDisplay::Octal`]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct OctalOptions {
-    /// Prefix octal strings with `0o`
-    pub prefix: bool,
-
-    /// Zero-pad octal strings to the full width - `0001` vs `1`)
-    pub padded: bool,
-}
-
-impl Default for OctalOptions {
-    fn default() -> Self {
-        Self {
-            prefix: true,
-            padded: false,
-        }
-    }
-}
+mod decimal_options;
+pub use decimal_options::*;
 
 /// Display options with their associated configurations.
 ///
@@ -176,11 +128,11 @@ pub enum SizedDisplay {
     /// let buffer = b"\xFF\xFF".to_vec();
     /// let context = Context::new_at(&buffer, 0);
     ///
-    /// assert_eq!("255", SizedDefinition::U8.to_string(context, SizedDisplay::Decimal).unwrap());
-    /// assert_eq!("-1", SizedDefinition::I8.to_string(context, SizedDisplay::Decimal).unwrap());
+    /// assert_eq!("255", SizedDefinition::U8.to_string(context, SizedDisplay::Decimal(Default::default())).unwrap());
+    /// assert_eq!("-1", SizedDefinition::I8.to_string(context, SizedDisplay::Decimal(Default::default())).unwrap());
     ///
     /// ```
-    Decimal,
+    Decimal(DecimalOptions),
 
     /// Display in octal.
     ///
@@ -281,90 +233,6 @@ pub enum SizedDefinition {
     F64(Endian),
 }
 
-/// An internal function to help with displaying hex.
-///
-/// Unfortunately, I don't know of a way to require both [`UpperHex`] and
-/// [`LowerHex`] traits, so I do some manual formatting :-/
-fn display_hex(v: Box<dyn LowerHex>, options: HexOptions) -> String {
-    let v = v.as_ref();
-
-    let mut h = match options.padded {
-        // No padding is easy
-        false => format!("{:x}",   v),
-
-        // Padding requires a bit more tinkering to do dynamically
-        true => {
-            match (options.padded, mem::size_of_val(v) * 2) {
-                (true, 2)   => format!(  "{:02x}",  v),
-                (true, 4)   => format!(  "{:04x}",  v),
-                (true, 8)   => format!(  "{:08x}",  v),
-                (true, 16)  => format!(  "{:016x}", v),
-                (true, 32)  => format!(  "{:032x}", v),
-
-                // When not padded, or in doubt about length, just print normally
-                (_, _)      => format!(  "{:x}",     v),
-            }
-        }
-    };
-
-    // There's no way to make the parameter both LowerHex and UpperHex
-    if options.uppercase {
-        h = h.to_uppercase();
-    }
-
-    if options.prefix {
-        h = format!("0x{}", h);
-    }
-
-    h
-}
-
-/// An internal function to help with displaying decimal
-fn display_decimal(v: Box<dyn Display>) -> String {
-    format!("{}", v.as_ref())
-}
-
-/// An internal function to help with displaying octal
-fn display_octal(v: Box<dyn Octal>, options: OctalOptions) -> String {
-    let v = v.as_ref();
-
-    if options.padded {
-        match (options.prefix, mem::size_of_val(v)) {
-            (false, 1)  => format!("{:03o}", v),
-            (false, 2)  => format!("{:06o}", v),
-            (false, 4)  => format!("{:011o}", v),
-            (false, 8)  => format!("{:022o}", v),
-            (false, 16) => format!("{:043o}", v),
-            (false, _) => format!("{:o}", v),
-
-            (true,  1)  => format!("0o{:03o}", v),
-            (true,  2)  => format!("0o{:06o}", v),
-            (true,  4)  => format!("0o{:011o}", v),
-            (true,  8)  => format!("0o{:022o}", v),
-            (true,  16) => format!("0o{:043o}", v),
-
-            (true,   _) => format!("0o{:o}", v),
-        }
-    } else {
-        match options.prefix {
-            false => format!("{:o}", v),
-            true  => format!("0o{:o}", v),
-        }
-    }
-}
-
-/// An internal function to help with displaying scientific / exponential
-/// notation.
-fn display_scientific(v: Box<dyn LowerExp>, options: ScientificOptions) -> String {
-    let mut v = format!("{:e}", v.as_ref());
-
-    if options.uppercase {
-        v = v.to_uppercase();
-    }
-
-    v
-}
-
 impl SizedDefinition {
     /// Returns the size, in bytes, of the current type.
     pub fn size(self) -> u64 {
@@ -393,11 +261,11 @@ impl SizedDefinition {
             Self::U8 => {
                 let v = Box::new(context.read_u8()?);
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
@@ -409,11 +277,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
@@ -425,11 +293,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
@@ -441,11 +309,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
             },
@@ -457,11 +325,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(_)             => bail!("128-bit values cannot be an enum element"),
                 }
             },
@@ -470,11 +338,11 @@ impl SizedDefinition {
                 let v = Box::new(context.read_i8()?);
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
@@ -486,11 +354,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
@@ -502,11 +370,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
@@ -518,11 +386,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
             },
@@ -534,11 +402,11 @@ impl SizedDefinition {
                 };
 
                 match display {
-                    SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
-                    SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
+                    SizedDisplay::Hex(options)        => Ok(options.to_s(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
+                    SizedDisplay::Octal(options)      => Ok(options.to_s(v)),
                     SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(_)             => bail!("128-bit values cannot be an enum element"),
                 }
             },
@@ -551,10 +419,10 @@ impl SizedDefinition {
 
                 match display {
                     SizedDisplay::Hex(_)              => bail!("Floats can't be displayed as hex"),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
                     SizedDisplay::Octal(_)            => bail!("Floats can't be displayed as octal"),
                     SizedDisplay::Binary(_)           => bail!("Floats can't be displayed as binary"),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(_)             => bail!("Floats cannot be an enum element"),
                 }
             },
@@ -567,10 +435,10 @@ impl SizedDefinition {
 
                 match display {
                     SizedDisplay::Hex(_)              => bail!("Floats can't be displayed as hex"),
-                    SizedDisplay::Decimal             => Ok(display_decimal(v)),
+                    SizedDisplay::Decimal(options)    => Ok(options.to_s(v)),
                     SizedDisplay::Octal(_)            => bail!("Floats can't be displayed as octal"),
                     SizedDisplay::Binary(_)           => bail!("Floats can't be displayed as binary"),
-                    SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
+                    SizedDisplay::Scientific(options) => Ok(options.to_s(v)),
                     SizedDisplay::Enum(_)             => bail!("Floats cannot be an enum element"),
                 }
             },
@@ -949,7 +817,7 @@ mod tests {
                 expected,
                 SizedDefinition::U8.to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -976,7 +844,7 @@ mod tests {
                 expected,
                 SizedDefinition::I8.to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1003,7 +871,7 @@ mod tests {
                 expected,
                 SizedDefinition::U16(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1030,7 +898,7 @@ mod tests {
                 expected,
                 SizedDefinition::U32(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1057,7 +925,7 @@ mod tests {
                 expected,
                 SizedDefinition::I32(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1084,7 +952,7 @@ mod tests {
                 expected,
                 SizedDefinition::I64(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1109,7 +977,7 @@ mod tests {
                 expected,
                 SizedDefinition::U128(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1134,7 +1002,7 @@ mod tests {
                 expected,
                 SizedDefinition::I128(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1443,7 +1311,7 @@ mod tests {
                 expected,
                 SizedDefinition::F32(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1469,7 +1337,7 @@ mod tests {
                 expected,
                 SizedDefinition::F64(Endian::Big).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1495,7 +1363,7 @@ mod tests {
                 expected,
                 SizedDefinition::F64(Endian::Little).to_string(
                     context,
-                    SizedDisplay::Decimal
+                    SizedDisplay::Decimal(Default::default())
                 )?
             );
         }
@@ -1536,19 +1404,19 @@ mod tests {
     #[test]
     fn test_buffer_too_short() -> SimpleResult<()> {
         let data = b"".to_vec();
-        assert!(SizedDefinition::I8.to_string(Context::new(&data), SizedDisplay::Decimal).is_err());
+        assert!(SizedDefinition::I8.to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
 
         let data = b"A".to_vec();
-        assert!(SizedDefinition::I16(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal).is_err());
+        assert!(SizedDefinition::I16(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
 
         let data = b"AAA".to_vec();
-        assert!(SizedDefinition::I32(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal).is_err());
+        assert!(SizedDefinition::I32(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
 
         let data = b"AAAAAAA".to_vec();
-        assert!(SizedDefinition::I64(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal).is_err());
+        assert!(SizedDefinition::I64(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
 
         let data = b"AAAAAAAAAAAAAAA".to_vec();
-        assert!(SizedDefinition::I128(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal).is_err());
+        assert!(SizedDefinition::I128(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
 
         Ok(())
     }

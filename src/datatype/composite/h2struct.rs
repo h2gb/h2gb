@@ -100,7 +100,7 @@ mod tests {
                 "field_u32_little".to_string(),
                 H2Number::new(
                     SizedDefinition::U32(Endian::Little),
-                    SizedDisplay::Decimal,
+                    SizedDisplay::Decimal(Default::default()),
                 )
             ),
         ])?;

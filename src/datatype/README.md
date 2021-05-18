@@ -84,7 +84,7 @@ let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create the abstract type - this is an H2Type
-let t = H2Number::new(SizedDefinition::I16(Endian::Big), SizedDisplay::Decimal);
+let t = H2Number::new(SizedDefinition::I16(Endian::Big), SizedDisplay::Decimal(Default::default()));
 
 // It takes up two bytes of memory, including aligned (it's not aligned)
 assert_eq!(2, t.actual_size(offset).unwrap());

@@ -109,7 +109,7 @@ mod tests {
 
         let t = H2Number::new(
             SizedDefinition::I16(Endian::Big),
-            SizedDisplay::Decimal,
+            SizedDisplay::Decimal(Default::default()),
         );
 
         assert_eq!(2, t.actual_size(s_offset).unwrap());
@@ -134,7 +134,7 @@ mod tests {
         let t = H2Number::new_aligned(
             Alignment::Loose(8),
             SizedDefinition::I16(Endian::Big),
-            SizedDisplay::Decimal,
+            SizedDisplay::Decimal(Default::default()),
         );
 
         // Starting at 0
@@ -177,7 +177,7 @@ mod tests {
 
         let t = H2Number::new(
             SizedDefinition::I16(Endian::Big),
-            SizedDisplay::Decimal,
+            SizedDisplay::Decimal(Default::default()),
         );
 
         assert_eq!(0,      t.to_i64(offset.at(0))?);
@@ -195,7 +195,7 @@ mod tests {
 
         let t = H2Number::new(
             SizedDefinition::U16(Endian::Big),
-            SizedDisplay::Decimal,
+            SizedDisplay::Decimal(Default::default()),
         );
 
         assert_eq!(0,     t.to_u64(offset.at(0))?);
