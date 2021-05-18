@@ -59,13 +59,16 @@
 //! ```
 
 use simple_error::{SimpleResult, bail};
-use std::fmt::{LowerHex, LowerExp, Octal, Binary, Display};
+use std::fmt::{LowerHex, LowerExp, Octal, Display};
 use std::mem;
 
 use serde::{Serialize, Deserialize};
 
 mod context;
 pub use context::{Context, Endian};
+
+pub mod binary_options;
+pub use binary_options::*;
 
 pub mod enum_options;
 pub use enum_options::*;
@@ -124,25 +127,6 @@ impl Default for OctalOptions {
         Self {
             prefix: true,
             padded: false,
-        }
-    }
-}
-
-/// Configure display options for [`SizedDisplay::Binary`]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct BinaryOptions {
-    /// Prefix binary strings with `0b`
-    pub prefix: bool,
-
-    /// Zero-pad binary strings to the full width - `00000001` vs `1`
-    pub padded: bool,
-}
-
-impl Default for BinaryOptions {
-    fn default() -> Self {
-        Self {
-            padded: true,
-            prefix: true,
         }
     }
 }
@@ -369,36 +353,6 @@ fn display_octal(v: Box<dyn Octal>, options: OctalOptions) -> String {
     }
 }
 
-/// An internal function to help with displaying binary
-fn display_binary(v: Box<dyn Binary>, options: BinaryOptions) -> String {
-    let v = v.as_ref();
-
-    match (options.padded, options.prefix) {
-        (false, false) => format!("{:b}", v),
-        (false, true ) => format!("0b{:b}", v),
-        (true, false) => {
-            match mem::size_of_val(v) * 8 {
-                8   => format!("{:08b}",   v),
-                16  => format!("{:016b}",  v),
-                32  => format!("{:032b}",  v),
-                64  => format!("{:064b}",  v),
-                128 => format!("{:0128b}", v),
-                _   => format!("{:b}",     v),
-            }
-        },
-        (true, true) => {
-            match mem::size_of_val(v) * 8 {
-                8   => format!("0b{:08b}",   v),
-                16  => format!("0b{:016b}",  v),
-                32  => format!("0b{:032b}",  v),
-                64  => format!("0b{:064b}",  v),
-                128 => format!("0b{:0128b}", v),
-                _   => format!("0b{:b}",     v),
-            }
-        }
-    }
-}
-
 /// An internal function to help with displaying scientific / exponential
 /// notation.
 fn display_scientific(v: Box<dyn LowerExp>, options: ScientificOptions) -> String {
@@ -442,7 +396,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
@@ -458,7 +412,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
@@ -474,7 +428,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
@@ -490,7 +444,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.u64_to_s(*v as u64)),
                 }
@@ -506,7 +460,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(_)             => bail!("128-bit values cannot be an enum element"),
                 }
@@ -519,7 +473,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
@@ -535,7 +489,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
@@ -551,7 +505,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
@@ -567,7 +521,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(options)       => Ok(options.i64_to_s(*v as i64)),
                 }
@@ -583,7 +537,7 @@ impl SizedDefinition {
                     SizedDisplay::Hex(options)        => Ok(display_hex(v, options)),
                     SizedDisplay::Decimal             => Ok(display_decimal(v)),
                     SizedDisplay::Octal(options)      => Ok(display_octal(v, options)),
-                    SizedDisplay::Binary(options)     => Ok(display_binary(v, options)),
+                    SizedDisplay::Binary(options)     => Ok(options.to_s(v)),
                     SizedDisplay::Scientific(options) => Ok(display_scientific(v, options)),
                     SizedDisplay::Enum(_)             => bail!("128-bit values cannot be an enum element"),
                 }
