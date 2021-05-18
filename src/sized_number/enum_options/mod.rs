@@ -21,34 +21,25 @@ pub enum EnumType {
 
 impl EnumType {
     pub fn u64_to_s(self, value: u64) -> String {
-        match self {
-            Self::TerrariaGameMode => match TerrariaGameMode::from_u64(value) {
-                Some(v) => format!("TerrariaGameMode::{:?}", v),
-                None => format!("TerrariaGameMode::unknown_0x{:016x}", value),
-            },
+        // Get the name of the option
+        let s: String = match self {
+            Self::TerrariaGameMode => TerrariaGameMode::from_u64(value).map(|v| v.to_string()),
+            Self::TestEnum         => TestEnum::from_u64(value).map(|v| v.to_string()),
+        }.unwrap_or(format!("unknown_0x{:016x}", value));
 
-            Self::TestEnum => match TestEnum::from_u64(value) {
-                Some(v) => format!("TestEnum::{:?}", v),
-                None => format!("TestEnum::unknown_0x{:016x}", value),
-            },
-
-            //Self::Custom(_) => "TODO".to_string(),
-        }
+        // Prefix it with the enum name
+        format!("{:?}::{}", self, s)
     }
 
     pub fn i64_to_s(self, value: i64) -> String {
-        match self {
-            Self::TerrariaGameMode => match TerrariaGameMode::from_i64(value) {
-                Some(v) => format!("TerrariaGameMode::{:?}", v),
-                None => format!("TerrariaGameMode::unknown_0x{:016x}", value),
-            },
+        // Get the name of the option
+        let s: String = match self {
+            Self::TerrariaGameMode => TerrariaGameMode::from_i64(value).map(|v| v.to_string()),
+            Self::TestEnum         => TestEnum::from_i64(value).map(|v| v.to_string()),
+        }.unwrap_or(format!("unknown_0x{:016x}", value));
 
-            Self::TestEnum => match TestEnum::from_i64(value) {
-                Some(v) => format!("TestEnum::{:?}", v),
-                None => format!("TestEnum::unknown_0x{:016x}", value),
-            },
-            //Self::Custom(_) => "TODO".to_string(),
-        }
+        // Prefix it with the enum name
+        format!("{:?}::{}", self, s)
     }
 }
 
