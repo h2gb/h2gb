@@ -37,8 +37,8 @@ impl SizedOptions for EnumType {
     fn to_s_i64(&self, v:  i64)  -> SimpleResult<String> {
         // Get the name of the option
         let s: String = match self {
-            Self::TerrariaGameMode => TerrariaGameMode::from_i64(v).map(|v| v.to_string()),
-            Self::TestEnum         => TestEnum::from_i64(v).map(|v| v.to_string()),
+            Self::TerrariaGameMode => TerrariaGameMode::from_i64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
+            Self::TestEnum         => TestEnum::from_i64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
         }.unwrap_or(format!("unknown_0x{:016x}", v));
 
         // Prefix it with the enum name
@@ -64,8 +64,8 @@ impl SizedOptions for EnumType {
     fn to_s_u64(&self, v:  u64)  -> SimpleResult<String> {
         // Get the name of the option
         let s: String = match self {
-            Self::TerrariaGameMode => TerrariaGameMode::from_u64(v).map(|v| v.to_string()),
-            Self::TestEnum         => TestEnum::from_u64(v).map(|v| v.to_string()),
+            Self::TerrariaGameMode => TerrariaGameMode::from_u64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
+            Self::TestEnum         => TestEnum::from_u64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
         }.unwrap_or(format!("unknown_0x{:016x}", v));
 
         // Prefix it with the enum name
@@ -100,7 +100,7 @@ mod tests {
             Context::new_at(&data.to_vec(), 0),
             SizedDisplay::Enum(EnumType::TestEnum),
         )?;
-        assert_eq!("TestEnum::Zero", s);
+        assert_eq!("TestEnum::Zero (Zero)", s);
 
         Ok(())
     }
@@ -114,14 +114,14 @@ mod tests {
             Context::new_at(&data.to_vec(), 0),
             SizedDisplay::Enum(EnumType::TestEnum),
         )?;
-        assert_eq!("TestEnum::U32Max", s);
+        assert_eq!("TestEnum::U32Max (U32Max)", s);
 
         // i32 is signed, so it'll count as 0xFFFFFFFFFFFFFFFF
         let s = SizedDefinition::I32(Endian::Big).to_string(
             Context::new_at(&data.to_vec(), 0),
             SizedDisplay::Enum(EnumType::TestEnum),
         )?;
-        assert_eq!("TestEnum::NegativeOne", s);
+        assert_eq!("TestEnum::NegativeOne (NegativeOne)", s);
 
         Ok(())
     }

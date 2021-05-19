@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
@@ -14,13 +12,6 @@ impl Default for DecimalOptions {
     fn default() -> Self {
         Self {
         }
-    }
-}
-
-impl DecimalOptions {
-    /// An internal function to help with displaying octal
-    pub fn to_s(self, v: Box<dyn Display>) -> String {
-        format!("{}", v.as_ref())
     }
 }
 

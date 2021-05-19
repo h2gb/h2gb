@@ -27,7 +27,7 @@ impl Default for BinaryOptions {
 
 impl BinaryOptions {
     /// An internal function to help with displaying binary
-    pub fn to_s(self, v: Box<dyn Binary>) -> String {
+    fn to_s(self, v: Box<dyn Binary>) -> String {
         let v = v.as_ref();
 
         match (self.padded, self.prefix) {

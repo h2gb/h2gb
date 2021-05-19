@@ -34,8 +34,7 @@ impl HexOptions {
     ///
     /// Unfortunately, I don't know of a way to require both [`UpperHex`] and
     /// [`LowerHex`] traits, so I do some manual formatting :-/
-    // TODO make this non-pub
-    pub fn to_s(self, v: Box<dyn LowerHex>) -> String {
+    fn to_s(self, v: Box<dyn LowerHex>) -> String {
         let v = v.as_ref();
 
         let mut h = match self.padded {

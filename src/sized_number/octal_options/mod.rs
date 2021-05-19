@@ -27,7 +27,7 @@ impl Default for OctalOptions {
 
 impl OctalOptions {
     /// An internal function to help with displaying octal
-    pub fn to_s(self, v: Box<dyn Octal>) -> String {
+    fn to_s(self, v: Box<dyn Octal>) -> String {
         let v = v.as_ref();
 
         if self.padded {
