@@ -4,10 +4,13 @@ use simple_error::{SimpleResult, bail};
 
 use crate::sized_number::SizedOptions;
 
-pub mod terraria_game_mode;
+mod terraria_game_mode;
 pub use terraria_game_mode::TerrariaGameMode;
 
-pub mod test_enum;
+mod terraria_version;
+pub use terraria_version::TerrariaVersion;
+
+mod test_enum;
 pub use test_enum::TestEnum;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -17,6 +20,7 @@ pub struct CustomEnumType {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum EnumType {
     TerrariaGameMode,
+    TerrariaVersion,
     TestEnum,
     //Custom(CustomEnumType),
 }
@@ -38,6 +42,7 @@ impl SizedOptions for EnumType {
         // Get the name of the option
         let s: String = match self {
             Self::TerrariaGameMode => TerrariaGameMode::from_i64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
+            Self::TerrariaVersion  => TerrariaVersion::from_i64(v).map( |v| format!("{:?} ({})", v, v.to_string())),
             Self::TestEnum         => TestEnum::from_i64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
         }.unwrap_or(format!("unknown_0x{:016x}", v));
 
@@ -65,6 +70,7 @@ impl SizedOptions for EnumType {
         // Get the name of the option
         let s: String = match self {
             Self::TerrariaGameMode => TerrariaGameMode::from_u64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
+            Self::TerrariaVersion  => TerrariaVersion::from_u64(v).map( |v| format!("{:?} ({})", v, v.to_string())),
             Self::TestEnum         => TestEnum::from_u64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
         }.unwrap_or(format!("unknown_0x{:016x}", v));
 
