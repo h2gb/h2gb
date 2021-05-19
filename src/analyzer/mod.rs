@@ -57,7 +57,6 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     // Add a comment to the version
     record.apply(ActionEntrySetComment::new(buffer, "default", 0, Some("Version number".to_string())))?;
 
-
     // Create an entry for the name
     let name = create_entry(
         record,

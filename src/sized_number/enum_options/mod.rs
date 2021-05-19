@@ -1,6 +1,8 @@
-use serde::{Serialize, Deserialize};
-
 use num_traits::FromPrimitive;
+use serde::{Serialize, Deserialize};
+use simple_error::{SimpleResult, bail};
+
+use crate::sized_number::SizedOptions;
 
 pub mod terraria_game_mode;
 pub use terraria_game_mode::TerrariaGameMode;
@@ -19,30 +21,69 @@ pub enum EnumType {
     //Custom(CustomEnumType),
 }
 
-impl EnumType {
-    pub fn u64_to_s(self, value: u64) -> String {
-        // Get the name of the option
-        let s: String = match self {
-            Self::TerrariaGameMode => TerrariaGameMode::from_u64(value).map(|v| v.to_string()),
-            Self::TestEnum         => TestEnum::from_u64(value).map(|v| v.to_string()),
-        }.unwrap_or(format!("unknown_0x{:016x}", value));
-
-        // Prefix it with the enum name
-        format!("{:?}::{}", self, s)
+impl SizedOptions for EnumType {
+    fn to_s_i8(&self, v:   i8)   -> SimpleResult<String> {
+        self.to_s_i64(v as i64)
     }
 
-    pub fn i64_to_s(self, value: i64) -> String {
+    fn to_s_i16(&self, v:  i16)  -> SimpleResult<String> {
+        self.to_s_i64(v as i64)
+    }
+
+    fn to_s_i32(&self, v:  i32)  -> SimpleResult<String> {
+        self.to_s_i64(v as i64)
+    }
+
+    fn to_s_i64(&self, v:  i64)  -> SimpleResult<String> {
         // Get the name of the option
         let s: String = match self {
-            Self::TerrariaGameMode => TerrariaGameMode::from_i64(value).map(|v| v.to_string()),
-            Self::TestEnum         => TestEnum::from_i64(value).map(|v| v.to_string()),
-        }.unwrap_or(format!("unknown_0x{:016x}", value));
+            Self::TerrariaGameMode => TerrariaGameMode::from_i64(v).map(|v| v.to_string()),
+            Self::TestEnum         => TestEnum::from_i64(v).map(|v| v.to_string()),
+        }.unwrap_or(format!("unknown_0x{:016x}", v));
 
         // Prefix it with the enum name
-        format!("{:?}::{}", self, s)
+        Ok(format!("{:?}::{}", self, s))
+    }
+
+    fn to_s_i128(&self, _v: i128) -> SimpleResult<String> {
+        bail!("128-bit values cannot be displayed as an enum")
+    }
+
+    fn to_s_u8(&self, v:   u8)   -> SimpleResult<String> {
+        self.to_s_u64(v as u64)
+    }
+
+    fn to_s_u16(&self, v:  u16)  -> SimpleResult<String> {
+        self.to_s_u64(v as u64)
+    }
+
+    fn to_s_u32(&self, v:  u32)  -> SimpleResult<String> {
+        self.to_s_u64(v as u64)
+    }
+
+    fn to_s_u64(&self, v:  u64)  -> SimpleResult<String> {
+        // Get the name of the option
+        let s: String = match self {
+            Self::TerrariaGameMode => TerrariaGameMode::from_u64(v).map(|v| v.to_string()),
+            Self::TestEnum         => TestEnum::from_u64(v).map(|v| v.to_string()),
+        }.unwrap_or(format!("unknown_0x{:016x}", v));
+
+        // Prefix it with the enum name
+        Ok(format!("{:?}::{}", self, s))
+    }
+
+    fn to_s_u128(&self, _v: u128) -> SimpleResult<String> {
+        bail!("128-bit values cannot be displayed as an enum")
+    }
+
+    fn to_s_f32(&self, _v:  f32) -> SimpleResult<String> {
+        bail!("Floating point values cannot be displayed as an enum")
+    }
+
+    fn to_s_f64(&self, _v:  f64) -> SimpleResult<String> {
+        bail!("Floating point values cannot be displayed as an enum")
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,8 +1,8 @@
-use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
-use simple_error::{SimpleError, SimpleResult, bail};
 use std::io::{Cursor, Read};
 
+use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use serde::{Serialize, Deserialize};
+use simple_error::{SimpleError, SimpleResult, bail};
 
 /// The maximum size of a UTF8 character
 pub const MAX_UTF8_BYTES: usize = 4;
