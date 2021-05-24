@@ -10,6 +10,9 @@ pub use terraria_game_mode::TerrariaGameMode;
 mod terraria_version;
 pub use terraria_version::TerrariaVersion;
 
+mod windows_error;
+pub use windows_error::WindowsError;
+
 mod test_enum;
 pub use test_enum::TestEnum;
 
@@ -21,6 +24,7 @@ pub struct CustomEnumType {
 pub enum EnumType {
     TerrariaGameMode,
     TerrariaVersion,
+    WindowsError,
     TestEnum,
     //Custom(CustomEnumType),
 }
@@ -44,6 +48,7 @@ impl SizedOptions for EnumType {
             Self::TerrariaGameMode => TerrariaGameMode::from_i64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
             Self::TerrariaVersion  => TerrariaVersion::from_i64(v).map( |v| format!("{:?} ({})", v, v.to_string())),
             Self::TestEnum         => TestEnum::from_i64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
+            Self::WindowsError     => WindowsError::from_i64(v).map(    |v| format!("{:?} ({})", v, v.to_string())),
         }.unwrap_or(format!("unknown_0x{:016x}", v));
 
         // Prefix it with the enum name
@@ -71,6 +76,7 @@ impl SizedOptions for EnumType {
         let s: String = match self {
             Self::TerrariaGameMode => TerrariaGameMode::from_u64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
             Self::TerrariaVersion  => TerrariaVersion::from_u64(v).map( |v| format!("{:?} ({})", v, v.to_string())),
+            Self::WindowsError     => WindowsError::from_u64(v).map(    |v| format!("{:?} ({})", v, v.to_string())),
             Self::TestEnum         => TestEnum::from_u64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
         }.unwrap_or(format!("unknown_0x{:016x}", v));
 
