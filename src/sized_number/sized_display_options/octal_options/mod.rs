@@ -1,10 +1,7 @@
-use std::fmt::Octal;
-use std::mem;
-
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::sized_number::SizedOptions;
+use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
 
 /// Configure display options for [`SizedDisplay::Octal`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -16,94 +13,51 @@ pub struct OctalOptions {
     pub padded: bool,
 }
 
-impl Default for OctalOptions {
-    fn default() -> Self {
-        Self {
-            prefix: true,
-            padded: false,
-        }
-    }
-}
-
 impl OctalOptions {
-    /// An internal function to help with displaying octal
-    fn to_s(self, v: Box<dyn Octal>) -> String {
-        let v = v.as_ref();
-
-        if self.padded {
-            match (self.prefix, mem::size_of_val(v)) {
-                (false, 1)  => format!("{:03o}", v),
-                (false, 2)  => format!("{:06o}", v),
-                (false, 4)  => format!("{:011o}", v),
-                (false, 8)  => format!("{:022o}", v),
-                (false, 16) => format!("{:043o}", v),
-                (false, _) => format!("{:o}", v),
-
-                (true,  1)  => format!("0o{:03o}", v),
-                (true,  2)  => format!("0o{:06o}", v),
-                (true,  4)  => format!("0o{:011o}", v),
-                (true,  8)  => format!("0o{:022o}", v),
-                (true,  16) => format!("0o{:043o}", v),
-
-                (true,   _) => format!("0o{:o}", v),
-            }
-        } else {
-            match self.prefix {
-                false => format!("{:o}", v),
-                true  => format!("0o{:o}", v),
-            }
-        }
+    pub fn new(prefix: bool, padded: bool) -> SizedDisplay {
+        SizedDisplay::Octal(Self {
+            prefix: prefix,
+            padded: padded,
+        })
     }
 }
 
 impl SizedOptions for OctalOptions {
-    fn to_s_i8(&self, v:   i8)   -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
+    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+        let mut s = match (self.padded, number) {
+            (true, GenericNumber::U8(v))   => format!("{:03o}", v),
+            (true, GenericNumber::U16(v))  => format!("{:06o}", v),
+            (true, GenericNumber::U32(v))  => format!("{:011o}", v),
+            (true, GenericNumber::U64(v))  => format!("{:022o}", v),
+            (true, GenericNumber::U128(v)) => format!("{:043o}", v),
+            (true, GenericNumber::I8(v))   => format!("{:03o}", v),
+            (true, GenericNumber::I16(v))  => format!("{:06o}", v),
+            (true, GenericNumber::I32(v))  => format!("{:011o}", v),
+            (true, GenericNumber::I64(v))  => format!("{:022o}", v),
+            (true, GenericNumber::I128(v)) => format!("{:043o}", v),
+            (true, GenericNumber::F32(_v)) => bail!("Cannot display floating point as octal"),
+            (true, GenericNumber::F64(_v)) => bail!("Cannot display floating point as octal"),
 
-    fn to_s_i16(&self, v:  i16)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
+            (false, GenericNumber::U8(v))   => format!("{:o}", v),
+            (false, GenericNumber::U16(v))  => format!("{:o}", v),
+            (false, GenericNumber::U32(v))  => format!("{:o}", v),
+            (false, GenericNumber::U64(v))  => format!("{:o}", v),
+            (false, GenericNumber::U128(v)) => format!("{:o}", v),
+            (false, GenericNumber::I8(v))   => format!("{:o}", v),
+            (false, GenericNumber::I16(v))  => format!("{:o}", v),
+            (false, GenericNumber::I32(v))  => format!("{:o}", v),
+            (false, GenericNumber::I64(v))  => format!("{:o}", v),
+            (false, GenericNumber::I128(v)) => format!("{:o}", v),
+            (false, GenericNumber::F32(_v)) => bail!("Cannot display floating point as octal"),
+            (false, GenericNumber::F64(_v)) => bail!("Cannot display floating point as octal"),
+        };
 
-    fn to_s_i32(&self, v:  i32)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
+        // Do the prefix after for simplicity
+        if self.prefix {
+            s = format!("0o{}", s);
+        }
 
-    fn to_s_i64(&self, v:  i64)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_i128(&self, v: i128) -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-
-    fn to_s_u8(&self, v:   u8)   -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u16(&self, v:  u16)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u32(&self, v:  u32)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u64(&self, v:  u64)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u128(&self, v: u128) -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_f32(&self, _v:  f32) -> SimpleResult<String> {
-        bail!("Floating point values cannot be displayed as octal")
-    }
-
-    fn to_s_f64(&self, _v:  f64) -> SimpleResult<String> {
-        bail!("Floating point values cannot be displayed as octal")
+        Ok(s)
     }
 }
 
@@ -114,7 +68,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::sized_number::{Context, Endian, SizedDisplay, SizedDefinition};
+    use crate::sized_number::{Context, Endian, SizedDefinition};
 
     #[test]
     fn test_octal_u8() -> SimpleResult<()> {
@@ -148,16 +102,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U8.to_string(
-                    context,
-                    SizedDisplay::Octal(OctalOptions {
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                OctalOptions::new(prefix, padded).to_string(number)?,
             );
         }
 
@@ -192,16 +141,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U16(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Octal(OctalOptions {
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                OctalOptions::new(prefix, padded).to_string(number)?,
             );
         }
 
@@ -236,16 +180,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U32(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Octal(OctalOptions {
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                OctalOptions::new(prefix, padded).to_string(number)?,
             );
         }
 
@@ -277,16 +216,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U64(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Octal(OctalOptions {
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                OctalOptions::new(prefix, padded).to_string(number)?,
             );
         }
 

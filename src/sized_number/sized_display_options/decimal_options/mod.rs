@@ -1,11 +1,17 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::sized_number::SizedOptions;
+use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
 
 /// Configure display options for [`SizedDisplay::Decimal`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct DecimalOptions {
+}
+
+impl DecimalOptions {
+    pub fn new() -> SizedDisplay {
+        SizedDisplay::Decimal(Self { })
+    }
 }
 
 impl Default for DecimalOptions {
@@ -16,62 +22,34 @@ impl Default for DecimalOptions {
 }
 
 impl SizedOptions for DecimalOptions {
-    fn to_s_i8(&self, v:   i8)   -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
+    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+        match number {
+            GenericNumber::U8(v)   => Ok(format!("{}", v)),
+            GenericNumber::U16(v)  => Ok(format!("{}", v)),
+            GenericNumber::U32(v)  => Ok(format!("{}", v)),
+            GenericNumber::U64(v)  => Ok(format!("{}", v)),
+            GenericNumber::U128(v) => Ok(format!("{}", v)),
 
-    fn to_s_i16(&self, v:  i16)  -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
+            GenericNumber::I8(v)   => Ok(format!("{}", v)),
+            GenericNumber::I16(v)  => Ok(format!("{}", v)),
+            GenericNumber::I32(v)  => Ok(format!("{}", v)),
+            GenericNumber::I64(v)  => Ok(format!("{}", v)),
+            GenericNumber::I128(v) => Ok(format!("{}", v)),
 
-    fn to_s_i32(&self, v:  i32)  -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_i64(&self, v:  i64)  -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_i128(&self, v: i128) -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-
-    fn to_s_u8(&self, v:   u8)   -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_u16(&self, v:  u16)  -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_u32(&self, v:  u32)  -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_u64(&self, v:  u64)  -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_u128(&self, v: u128) -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_f32(&self, v:  f32) -> SimpleResult<String> {
-        Ok(format!("{}", v))
-    }
-
-    fn to_s_f64(&self, v:  f64) -> SimpleResult<String> {
-        Ok(format!("{}", v))
+            GenericNumber::F32(v)  => Ok(format!("{}", v)),
+            GenericNumber::F64(v)  => Ok(format!("{}", v)),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::sized_number::{Context, Endian, SizedDisplay, SizedDefinition};
+    use crate::sized_number::{Context, Endian, SizedDefinition};
 
     #[test]
     fn test_decimal_u8() -> SimpleResult<()> {
@@ -87,13 +65,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U8.to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -114,13 +90,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::I8.read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::I8.to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -141,13 +115,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U16(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -168,13 +140,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U32(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -195,13 +165,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::I32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::I32(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -222,13 +190,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::I64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::I64(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -247,13 +213,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U128(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U128(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -272,13 +236,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::I128(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::I128(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -299,13 +261,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::F32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::F32(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -325,13 +285,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::F64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::F64(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 
@@ -351,13 +309,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::F64(Endian::Little).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::F64(Endian::Little).to_string(
-                    context,
-                    SizedDisplay::Decimal(Default::default())
-                )?
+                DecimalOptions::new().to_string(number)?,
             );
         }
 

@@ -2340,26 +2340,26 @@ pub enum WindowsError {
     ERROR_FTP_NO_PASSIVE_MODE = 12112, // Passive mode is not available on the server.
     ERROR_FTP_TRANSFER_IN_PROGRESS = 12110, // The requested operation cannot be made on the FTP session handle because an operation is already in progress.
     ERROR_GOPHER_ATTRIBUTE_NOT_FOUND = 12137, // The requested attribute could not be located.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_DATA_ERROR = 12132, // An error was detected while receiving data from the Gopher server.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_END_OF_DATA = 12133, // The end of the data has been reached.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_INCORRECT_LOCATOR_TYPE = 12135, // The type of the locator is not correct for this operation.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_INVALID_LOCATOR = 12134, // The supplied locator is not valid.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_NOT_FILE = 12131, // The request must be made for a file locator.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_NOT_GOPHER_PLUS = 12136, // The requested operation can be made only against a Gopher+ server, or with a locator that specifies a Gopher+ operation.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_PROTOCOL_ERROR = 12130, // An error was detected while parsing data returned from the Gopher server.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_GOPHER_UNKNOWN_LOCATOR = 12138, // The locator type is unknown.
-    // Note  Windows XP and Windows Server 2003 R2 and earlier only.  
+    // Note  Windows XP and Windows Server 2003 R2 and earlier only.
     ERROR_HTTP_COOKIE_DECLINED = 12162, // The HTTP cookie was declined by the server.
     ERROR_HTTP_COOKIE_NEEDS_CONFIRMATION = 12161, // The HTTP cookie requires confirmation.
-    // Note  Windows Vista and Windows Server 2008 and earlier only.  
+    // Note  Windows Vista and Windows Server 2008 and earlier only.
     ERROR_HTTP_DOWNLEVEL_SERVER = 12151, // The server did not return any headers.
     ERROR_HTTP_HEADER_ALREADY_EXISTS = 12155, // The header could not be added because it already exists.
     ERROR_HTTP_HEADER_NOT_FOUND = 12150, // The requested header could not be located.
@@ -2396,7 +2396,7 @@ pub enum WindowsError {
     ERROR_INTERNET_INCORRECT_PASSWORD = 12014, // The request to connect and log on to an FTP server could not be completed because the supplied password is incorrect.
     ERROR_INTERNET_INCORRECT_USER_NAME = 12013, // The request to connect and log on to an FTP server could not be completed because the supplied user name is incorrect.
     ERROR_INTERNET_INSERT_CDROM = 12053, // The request requires a CD-ROM to be inserted in the CD-ROM drive to locate the resource requested.
-    // Note  Windows Vista and Windows Server 2008 and earlier only.  
+    // Note  Windows Vista and Windows Server 2008 and earlier only.
     ERROR_INTERNET_INTERNAL_ERROR = 12004, // An internal error has occurred.
     ERROR_INTERNET_INVALID_CA = 12045, // The function is unfamiliar with the Certificate Authority that generated the server's certificate.
     ERROR_INTERNET_INVALID_OPERATION = 12016, // The requested operation is invalid.
@@ -2410,7 +2410,7 @@ pub enum WindowsError {
     ERROR_INTERNET_NAME_NOT_RESOLVED = 12007, // The server name could not be resolved.
     ERROR_INTERNET_NEED_MSN_SSPI_PKG = 12173, // Not currently implemented.
     ERROR_INTERNET_NEED_UI = 12034, // A user interface or other blocking operation has been requested.
-    // Note  Windows Vista and Windows Server 2008 and earlier only.  
+    // Note  Windows Vista and Windows Server 2008 and earlier only.
     ERROR_INTERNET_NO_CALLBACK = 12025, // An asynchronous request could not be made because a callback function has not been set.
     ERROR_INTERNET_NO_CONTEXT = 12024, // An asynchronous request could not be made because a zero context value was supplied.
     ERROR_INTERNET_NO_DIRECT_ACCESS = 12023, // Direct network access cannot be made at this time.

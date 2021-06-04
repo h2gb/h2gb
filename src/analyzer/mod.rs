@@ -7,7 +7,7 @@ use crate::actions::*;
 //use crate::project::h2project::H2Project;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Type, H2Number, LPString, ASCII, StrictASCII, ResolvedType};
-use crate::sized_number::{SizedDefinition, SizedDisplay, Endian, EnumType};
+use crate::sized_number::{SizedDefinition, Endian, EnumOptions, EnumType, DecimalOptions};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
@@ -49,7 +49,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         record,
         buffer,
         "default",
-        H2Number::new(SizedDefinition::U16(Endian::Little), SizedDisplay::Enum(EnumType::TerrariaVersion)),
+        H2Number::new(SizedDefinition::U16(Endian::Little), EnumOptions::new(EnumType::TerrariaVersion)),
         0x00, // Offset
         Some("Version number"),
     );
@@ -63,7 +63,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         buffer,
         "default",
         LPString::new(
-            H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal(Default::default())),
+            H2Number::new(SizedDefinition::U8, DecimalOptions::new()),
             ASCII::new(StrictASCII::Permissive),
         )?,
         0x18, // Offset
@@ -75,7 +75,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         record,
         buffer,
         "default",
-        H2Number::new(SizedDefinition::U8, SizedDisplay::Enum(EnumType::TerrariaGameMode)),
+        H2Number::new(SizedDefinition::U8, EnumOptions::new(EnumType::TerrariaGameMode)),
         name.actual_range.end as usize, // Offset
         Some("Game mode"),
     )?;

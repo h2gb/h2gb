@@ -58,32 +58,17 @@
 //! assert_eq!(0x0102030405060708, SizedDefinition::U64(Endian::Big).to_u64(context).unwrap());
 //! ```
 
-mod sized_display;
-pub use sized_display::*;
+mod context;
+pub use context::*;
 
 mod sized_definition;
 pub use sized_definition::*;
 
-mod context;
-pub use context::*;
+mod sized_display;
+pub use sized_display::*;
 
-mod sized_options;
-pub use sized_options::*;
+mod sized_display_options;
+pub use sized_display_options::*;
 
-mod binary_options;
-pub use binary_options::*;
-
-mod enum_options;
-pub use enum_options::*;
-
-mod scientific_options;
-pub use scientific_options::*;
-
-mod hex_options;
-pub use hex_options::*;
-
-mod octal_options;
-pub use octal_options::*;
-
-mod decimal_options;
-pub use decimal_options::*;
+mod generic_number;
+pub use generic_number::*;

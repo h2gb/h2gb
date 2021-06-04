@@ -1,6 +1,7 @@
+use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 
-use crate::sized_number::{SizedOptions, BinaryOptions, DecimalOptions, EnumType, HexOptions, OctalOptions, ScientificOptions};
+use crate::sized_number::{GenericNumber, SizedOptions, BinaryOptions, DecimalOptions, EnumOptions, HexOptions, OctalOptions, ScientificOptions};
 
 /// Display options with their associated configurations.
 ///
@@ -98,7 +99,7 @@ pub enum SizedDisplay {
     ///
     /// Example: XXX
     ///
-    Enum(EnumType),
+    Enum(EnumOptions),
 }
 
 impl SizedDisplay {
@@ -111,5 +112,9 @@ impl SizedDisplay {
             Self::Octal(o)      => Box::new(*o),
             Self::Scientific(o) => Box::new(*o),
         }
+    }
+
+    pub fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+        self.to_options().to_string(number)
     }
 }

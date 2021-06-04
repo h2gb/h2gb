@@ -1,10 +1,7 @@
-use std::fmt::LowerHex;
-use std::mem;
-
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::sized_number::SizedOptions;
+use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
 
 /// Configure display options for [`SizedDisplay::Hex`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -19,103 +16,62 @@ pub struct HexOptions {
     pub padded: bool,
 }
 
-impl Default for HexOptions {
-    fn default() -> Self {
-        Self {
-            uppercase: false,
-            prefix: true,
-            padded: true,
-        }
-    }
-}
 
 impl HexOptions {
-    /// An internal function to help with displaying hex.
-    ///
-    /// Unfortunately, I don't know of a way to require both [`UpperHex`] and
-    /// [`LowerHex`] traits, so I do some manual formatting :-/
-    fn to_s(self, v: Box<dyn LowerHex>) -> String {
-        let v = v.as_ref();
+    pub fn new(uppercase: bool, prefix: bool, padded: bool) -> SizedDisplay {
+        SizedDisplay::Hex(Self {
+            uppercase: uppercase,
+            prefix: prefix,
+            padded: padded,
+        })
+    }
 
-        let mut h = match self.padded {
-            // No padding is easy
-            false => format!("{:x}",   v),
-
-            // Padding requires a bit more tinkering to do dynamically
-            true => {
-                match (self.padded, mem::size_of_val(v) * 2) {
-                    (true, 2)   => format!(  "{:02x}",  v),
-                    (true, 4)   => format!(  "{:04x}",  v),
-                    (true, 8)   => format!(  "{:08x}",  v),
-                    (true, 16)  => format!(  "{:016x}", v),
-                    (true, 32)  => format!(  "{:032x}", v),
-
-                    // When not padded, or in doubt about length, just print normally
-                    (_, _)      => format!(  "{:x}",     v),
-                }
-            }
-        };
-
-        // There's no way to make the parameter both LowerHex and UpperHex
-        if self.uppercase {
-            h = h.to_uppercase();
-        }
-
-        if self.prefix {
-            h = format!("0x{}", h);
-        }
-
-        h
+    pub fn pretty() -> SizedDisplay {
+        Self::new(false, true, true)
     }
 }
 
 impl SizedOptions for HexOptions {
-    fn to_s_i8(&self, v:   i8)   -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
+    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+        let mut s = match (self.padded, number) {
+            (true, GenericNumber::U8(v))   => format!("{:02x}", v),
+            (true, GenericNumber::U16(v))  => format!("{:04x}", v),
+            (true, GenericNumber::U32(v))  => format!("{:08x}", v),
+            (true, GenericNumber::U64(v))  => format!("{:016x}", v),
+            (true, GenericNumber::U128(v)) => format!("{:032x}", v),
+            (true, GenericNumber::I8(v))   => format!("{:02x}", v),
+            (true, GenericNumber::I16(v))  => format!("{:04x}", v),
+            (true, GenericNumber::I32(v))  => format!("{:08x}", v),
+            (true, GenericNumber::I64(v))  => format!("{:016x}", v),
+            (true, GenericNumber::I128(v)) => format!("{:032x}", v),
+            (true, GenericNumber::F32(_v)) => bail!("Cannot display floating point as hex"),
+            (true, GenericNumber::F64(_v)) => bail!("Cannot display floating point as hex"),
 
-    fn to_s_i16(&self, v:  i16)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
+            (false, GenericNumber::U8(v))   => format!("{:x}", v),
+            (false, GenericNumber::U16(v))  => format!("{:x}", v),
+            (false, GenericNumber::U32(v))  => format!("{:x}", v),
+            (false, GenericNumber::U64(v))  => format!("{:x}", v),
+            (false, GenericNumber::U128(v)) => format!("{:x}", v),
+            (false, GenericNumber::I8(v))   => format!("{:x}", v),
+            (false, GenericNumber::I16(v))  => format!("{:x}", v),
+            (false, GenericNumber::I32(v))  => format!("{:x}", v),
+            (false, GenericNumber::I64(v))  => format!("{:x}", v),
+            (false, GenericNumber::I128(v)) => format!("{:x}", v),
+            (false, GenericNumber::F32(_v)) => bail!("Cannot display floating point as hex"),
+            (false, GenericNumber::F64(_v)) => bail!("Cannot display floating point as hex"),
+        };
 
-    fn to_s_i32(&self, v:  i32)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
+        // Do uppercase after for simplicity
+        if self.uppercase {
+            s = s.to_uppercase();
+        }
 
-    fn to_s_i64(&self, v:  i64)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
+        // Likewise, do the prefix after
+        if self.prefix {
+            s = format!("0x{}", s);
+        }
 
-    fn to_s_i128(&self, v: i128) -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u8(&self, v:   u8)   -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u16(&self, v:  u16)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u32(&self, v:  u32)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u64(&self, v:  u64)  -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_u128(&self, v: u128) -> SimpleResult<String> {
-        Ok(self.to_s(Box::new(v)))
-    }
-
-    fn to_s_f32(&self, _v:  f32) -> SimpleResult<String> {
-        bail!("Floating point values cannot be displayed as hex")
-    }
-
-    fn to_s_f64(&self, _v:  f64) -> SimpleResult<String> {
-        bail!("Floating point values cannot be displayed as hex")
+        Ok(s)
     }
 }
 
@@ -125,7 +81,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, Endian, SizedDisplay, SizedDefinition};
+    use crate::sized_number::{Context, Endian, SizedDefinition};
 
     #[test]
     fn test_hex_u8() -> SimpleResult<()> {
@@ -164,17 +120,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U8.to_string(
-                    context,
-                    SizedDisplay::Hex(HexOptions {
-                        uppercase: uppercase,
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -210,17 +160,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U16(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Hex(HexOptions {
-                        uppercase: uppercase,
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -249,17 +193,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U32(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Hex(HexOptions {
-                        uppercase: uppercase,
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -281,17 +219,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U64(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Hex(HexOptions {
-                        uppercase: uppercase,
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -313,17 +245,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U64(Endian::Little).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U64(Endian::Little).to_string(
-                    context,
-                    SizedDisplay::Hex(HexOptions {
-                        uppercase: uppercase,
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -352,17 +278,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
+            let number = SizedDefinition::U128(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                SizedDefinition::U128(Endian::Big).to_string(
-                    context,
-                    SizedDisplay::Hex(HexOptions {
-                        uppercase: uppercase,
-                        prefix: prefix,
-                        padded: padded,
-                    })
-                )?
+                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
