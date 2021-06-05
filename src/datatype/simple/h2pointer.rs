@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::sized_number::{GenericReader, SizedDisplay};
+use crate::generic_number::{GenericReader, GenericFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -13,13 +13,13 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Pointer {
     definition: GenericReader,
-    display: SizedDisplay,
+    display: GenericFormatter,
 
     target_type: Box<H2Type>,
 }
 
 impl H2Pointer {
-    pub fn new_aligned(alignment: Alignment, definition: GenericReader, display: SizedDisplay, target_type: H2Type) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, definition: GenericReader, display: GenericFormatter, target_type: H2Type) -> H2Type {
         // TODO: Ensure the definition can be a u64
         H2Type::new(alignment, H2Types::H2Pointer(Self {
             definition: definition,
@@ -28,7 +28,7 @@ impl H2Pointer {
         }))
     }
 
-    pub fn new(definition: GenericReader, display: SizedDisplay, target_type: H2Type) -> H2Type {
+    pub fn new(definition: GenericReader, display: GenericFormatter, target_type: H2Type) -> H2Type {
         Self::new_aligned(Alignment::None, definition, display, target_type)
     }
 }
@@ -76,7 +76,7 @@ impl H2TypeTrait for H2Pointer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, Endian, HexOptions};
+    use crate::generic_number::{Context, Endian, HexFormatter};
 
     use crate::datatype::simple::H2Number;
 
@@ -89,12 +89,12 @@ mod tests {
         // 16-bit big-endian pointer (0x0008) that displays as hex
         let t = H2Pointer::new(
             GenericReader::U16(Endian::Big),
-            HexOptions::pretty(),
+            HexFormatter::pretty(),
 
             // ...pointing to a 32-bit big-endian number (0x00010203)
             H2Number::new(
                 GenericReader::U32(Endian::Big),
-                HexOptions::pretty(),
+                HexFormatter::pretty(),
             )
         );
 
@@ -119,10 +119,10 @@ mod tests {
         let s_offset = Offset::Static(0);
         let d_offset = Offset::Dynamic(Context::new(&data));
 
-        let t = H2Pointer::new(GenericReader::U8, HexOptions::pretty(), // P1
-            H2Pointer::new(GenericReader::U16(Endian::Big), HexOptions::pretty(), // P2
-                H2Pointer::new(GenericReader::U32(Endian::Little), HexOptions::pretty(), // P3
-                    H2Number::new(GenericReader::U64(Endian::Big), HexOptions::pretty()),
+        let t = H2Pointer::new(GenericReader::U8, HexFormatter::pretty(), // P1
+            H2Pointer::new(GenericReader::U16(Endian::Big), HexFormatter::pretty(), // P2
+                H2Pointer::new(GenericReader::U32(Endian::Little), HexFormatter::pretty(), // P3
+                    H2Number::new(GenericReader::U64(Endian::Big), HexFormatter::pretty()),
                 )
             )
         );

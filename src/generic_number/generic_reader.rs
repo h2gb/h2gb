@@ -1,7 +1,7 @@
 use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 
-use crate::sized_number::{Context, Endian, GenericNumber};
+use crate::generic_number::{Context, Endian, GenericNumber};
 
 /// Define how data is read from a Context.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -38,14 +38,14 @@ pub enum GenericReader {
 
     /// Signed 32-bit (aka, single precision) floating point.
     ///
-    /// Note: floats can only be displayed as `SizedDisplay::Decimal` or
-    /// `SizedDisplay::Scientific`.
+    /// Note: floats can only be displayed as `GenericFormatter::Decimal` or
+    /// `GenericFormatter::Scientific`.
     F32(Endian),
 
     /// Signed 64-bit (aka, double precision) floating point
     ///
-    /// Note: floats can only be displayed as `SizedDisplay::Decimal` or
-    /// `SizedDisplay::Scientific`.
+    /// Note: floats can only be displayed as `GenericFormatter::Decimal` or
+    /// `GenericFormatter::Scientific`.
     F64(Endian),
 }
 
@@ -137,19 +137,19 @@ impl GenericReader {
 //     #[test]
 //     fn test_buffer_too_short() -> SimpleResult<()> {
 //         let data = b"".to_vec();
-//         assert!(GenericReader::I8.to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
+//         assert!(GenericReader::I8.to_string(Context::new(&data), GenericFormatter::Decimal(Default::default())).is_err());
 
 //         let data = b"A".to_vec();
-//         assert!(GenericReader::I16(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
+//         assert!(GenericReader::I16(Endian::Big).to_string(Context::new(&data), GenericFormatter::Decimal(Default::default())).is_err());
 
 //         let data = b"AAA".to_vec();
-//         assert!(GenericReader::I32(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
+//         assert!(GenericReader::I32(Endian::Big).to_string(Context::new(&data), GenericFormatter::Decimal(Default::default())).is_err());
 
 //         let data = b"AAAAAAA".to_vec();
-//         assert!(GenericReader::I64(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
+//         assert!(GenericReader::I64(Endian::Big).to_string(Context::new(&data), GenericFormatter::Decimal(Default::default())).is_err());
 
 //         let data = b"AAAAAAAAAAAAAAA".to_vec();
-//         assert!(GenericReader::I128(Endian::Big).to_string(Context::new(&data), SizedDisplay::Decimal(Default::default())).is_err());
+//         assert!(GenericReader::I128(Endian::Big).to_string(Context::new(&data), GenericFormatter::Decimal(Default::default())).is_err());
 
 //         Ok(())
 //     }

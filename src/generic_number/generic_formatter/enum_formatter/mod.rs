@@ -2,7 +2,7 @@ use num_traits::FromPrimitive;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
+use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
 mod terraria_game_mode;
 pub use terraria_game_mode::TerrariaGameMode;
@@ -30,19 +30,19 @@ pub enum EnumType {
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct EnumOptions {
+pub struct EnumFormatter {
     enum_type: EnumType,
 }
 
-impl EnumOptions {
-    pub fn new(enum_type: EnumType) -> SizedDisplay {
-        SizedDisplay::Enum(Self {
+impl EnumFormatter {
+    pub fn new(enum_type: EnumType) -> GenericFormatter {
+        GenericFormatter::Enum(Self {
             enum_type: enum_type,
         })
     }
 }
 
-impl SizedOptions for EnumOptions {
+impl GenericFormatterImpl for EnumFormatter {
     fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
         let s = if number.can_be_u64() {
             let v = number.as_u64()?;
@@ -87,7 +87,7 @@ mod tests {
         for (number, expected) in tests {
             assert_eq!(
                 expected,
-                EnumOptions::new(EnumType::TestEnum).to_string(number)?,
+                EnumFormatter::new(EnumType::TestEnum).to_string(number)?,
             );
         }
 

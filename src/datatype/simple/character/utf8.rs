@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::sized_number::Context;
+use crate::generic_number::Context;
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 use crate::datatype::simple::character::common;
@@ -64,7 +64,7 @@ impl H2TypeTrait for UTF8 {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::Context;
+    use crate::generic_number::Context;
 
     #[test]
     fn test_utf8_size() -> SimpleResult<()> {

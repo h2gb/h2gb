@@ -14,7 +14,7 @@
 //! calculate its size, how to convert it to a string, and so on. To calculate
 //! any of those, an [`Offset`] is required. An [`Offset`] can either be
 //! abstract (a numeric offset value) or concrete (a buffer of bytes in the form
-//! of a [`sized_number::Context`]). Some types require a concrete buffer to do
+//! of a [`generic_number::Context`]). Some types require a concrete buffer to do
 //! anything useful (for example, while the length of an IPv4 value doesn't
 //! change, the length of a UTF-8 character is based on the data).
 //!
@@ -75,7 +75,7 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer
 //! let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
@@ -84,7 +84,7 @@
 //! let offset = Offset::Dynamic(Context::new(&data));
 //!
 //! // Create the abstract type - this is an H2Type
-//! let t = H2Number::new(GenericReader::I16(Endian::Big), DecimalOptions::new());
+//! let t = H2Number::new(GenericReader::I16(Endian::Big), DecimalFormatter::new());
 //!
 //! // It takes up two bytes of memory, including aligned (it's not aligned)
 //! assert_eq!(2, t.actual_size(offset).unwrap());
@@ -102,7 +102,7 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
 //! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -113,7 +113,7 @@
 //! // Create the abstract type - this is an H2Type
 //! let t = H2Number::new_aligned(
 //!   Alignment::Loose(4), GenericReader::U16(Endian::Big),
-//!   HexOptions::pretty(),
+//!   HexFormatter::pretty(),
 //! );
 //!
 //! // It takes up two bytes of memory normally...
@@ -135,7 +135,7 @@
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
 //! use libh2gb::datatype::composite::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
 //! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -146,7 +146,7 @@
 //! // Create an array of 4 elements, each of which is padded to 4 bytes
 //! let t = H2Array::new(4, H2Number::new_aligned(
 //!   Alignment::Loose(4), GenericReader::U16(Endian::Big),
-//!   HexOptions::pretty(),
+//!   HexFormatter::pretty(),
 //! )).unwrap();
 //!
 //! // The array takes up 16 bytes of memory, aligned and not
@@ -168,7 +168,7 @@
 //! use libh2gb::datatype::simple::character::*;
 //! use libh2gb::datatype::composite::*;
 //! use libh2gb::datatype::composite::string::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - three strings with a one-byte length prefix
 //! let data = b"\x02hi\x03bye\x04test".to_vec();
@@ -180,7 +180,7 @@
 //! // byte length
 //! let t = H2Array::new(3, LPString::new(
 //!   // The length field is an 8-bit unsigned integer
-//!   H2Number::new(GenericReader::U8, HexOptions::pretty()),
+//!   H2Number::new(GenericReader::U8, HexFormatter::pretty()),
 //!
 //!   // The character type is just simple ascii
 //!   ASCII::new(StrictASCII::Strict),

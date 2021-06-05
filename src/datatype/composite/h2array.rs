@@ -64,7 +64,7 @@ impl H2TypeTrait for H2Array {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::Context;
+    use crate::generic_number::Context;
 
     use crate::datatype::simple::character::{ASCII, UTF8, StrictASCII};
 

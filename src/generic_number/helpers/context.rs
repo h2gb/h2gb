@@ -1,24 +1,15 @@
 use std::io::{Cursor, Read};
 
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
-use serde::{Serialize, Deserialize};
 use simple_error::{SimpleError, SimpleResult, bail};
+
+use crate::generic_number::helpers::Endian;
 
 /// The maximum size of a UTF8 character
 pub const MAX_UTF8_BYTES: usize = 4;
 
 /// The maximum number of 2-byte words in a UTF16 character
 pub const MAX_UTF16_WORDS: usize = 2;
-
-/// Define the endianness for reading multi-byte integers
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum Endian {
-    /// Most significant byte is first (eg, `0x1234` -> `12 34`)
-    Big,
-
-    /// Most significant byte is last (eg, `0x1234` -> `34 12`)
-    Little,
-}
 
 /// A structure to hold a data structure and a position while reading the data.
 ///

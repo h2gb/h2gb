@@ -1,7 +1,29 @@
 use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 
-use crate::sized_number::{GenericNumber, SizedOptions, BinaryOptions, DecimalOptions, EnumOptions, HexOptions, OctalOptions, ScientificOptions};
+use crate::generic_number::GenericNumber;
+
+mod binary_formatter;
+pub use binary_formatter::*;
+
+mod decimal_formatter;
+pub use decimal_formatter::*;
+
+mod enum_formatter;
+pub use enum_formatter::*;
+
+mod hex_formatter;
+pub use hex_formatter::*;
+
+mod octal_formatter;
+pub use octal_formatter::*;
+
+mod scientific_formatter;
+pub use scientific_formatter::*;
+
+pub trait GenericFormatterImpl {
+    fn to_string(&self, number: GenericNumber) -> SimpleResult<String>;
+}
 
 /// Display options with their associated configurations.
 ///
@@ -10,94 +32,94 @@ use crate::sized_number::{GenericNumber, SizedOptions, BinaryOptions, DecimalOpt
 /// example, it's padded to the exact width of the field, no matter what that
 /// is.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum SizedDisplay {
+pub enum GenericFormatter {
     /// Display in hexadecimal.
     ///
     /// Example:
     /// ```
-    /// use libh2gb::sized_number::*;
+    /// use libh2gb::generic_number::*;
     ///
     /// let buffer = b"\x00\xab".to_vec();
     /// let d = GenericReader::U16(Endian::Big);
     /// let number = d.read(Context::new_at(&buffer, 0)).unwrap();
     ///
-    /// assert_eq!("0x00ab", HexOptions::pretty().to_string(number).unwrap());
-    /// assert_eq!("00AB", HexOptions::new(true,  false, true ).to_string(number).unwrap());
-    /// assert_eq!("0xab", HexOptions::new(false, true,  false).to_string(number).unwrap());
+    /// assert_eq!("0x00ab", HexFormatter::pretty().to_string(number).unwrap());
+    /// assert_eq!("00AB", HexFormatter::new(true,  false, true ).to_string(number).unwrap());
+    /// assert_eq!("0xab", HexFormatter::new(false, true,  false).to_string(number).unwrap());
     ///
     /// ```
-    Hex(HexOptions),
+    Hex(HexFormatter),
 
     /// Display in decimal. Whether the display is signed or not depends on the
     /// `GenericReader` type chosen.
     ///
     /// Example:
     /// ```
-    /// use libh2gb::sized_number::*;
+    /// use libh2gb::generic_number::*;
     ///
     /// let buffer = b"\xFF\xFF".to_vec();
     /// let unsigned = GenericReader::U8.read(Context::new_at(&buffer, 0)).unwrap();
-    /// assert_eq!("255", DecimalOptions::new().to_string(unsigned).unwrap());
+    /// assert_eq!("255", DecimalFormatter::new().to_string(unsigned).unwrap());
     ///
     /// let signed   = GenericReader::I8.read(Context::new_at(&buffer, 0)).unwrap();
-    /// assert_eq!("-1", DecimalOptions::new().to_string(signed).unwrap());
+    /// assert_eq!("-1", DecimalFormatter::new().to_string(signed).unwrap());
     ///
     /// ```
-    Decimal(DecimalOptions),
+    Decimal(DecimalFormatter),
 
     /// Display in octal.
     ///
     /// Example:
     /// ```
-    /// use libh2gb::sized_number::*;
+    /// use libh2gb::generic_number::*;
     ///
     /// let buffer = b"\x20".to_vec();
     /// let context = Context::new_at(&buffer, 0);
     /// let number = GenericReader::U8.read(context).unwrap();
     ///
-    /// assert_eq!("0o40", OctalOptions::pretty().to_string(number).unwrap());
+    /// assert_eq!("0o40", OctalFormatter::pretty().to_string(number).unwrap());
     ///
     /// ```
-    Octal(OctalOptions),
+    Octal(OctalFormatter),
 
-    /// Display in binary. Padding can be enabled with `BinaryOptions`
+    /// Display in binary. Padding can be enabled with `BinaryFormatter`
     ///
     /// Example:
     /// ```
-    /// use libh2gb::sized_number::*;
+    /// use libh2gb::generic_number::*;
     ///
     /// let buffer = b"\x01".to_vec();
     /// let context = Context::new_at(&buffer, 0);
     /// let number = GenericReader::U8.read(context).unwrap();
     ///
-    /// assert_eq!("0b00000001", BinaryOptions::pretty().to_string(number).unwrap());
+    /// assert_eq!("0b00000001", BinaryFormatter::pretty().to_string(number).unwrap());
     /// ```
-    Binary(BinaryOptions),
+    Binary(BinaryFormatter),
 
     /// Display in scientific / exponent notation. The case of `e` can be
-    /// changed with `ScientificOptions`.
+    /// changed with `ScientificFormatter`.
     ///
     /// Example:
     /// ```
-    /// use libh2gb::sized_number::*;
+    /// use libh2gb::generic_number::*;
     ///
     /// let buffer = b"\x64".to_vec();
     /// let context = Context::new_at(&buffer, 0);
     /// let number = GenericReader::U8.read(context).unwrap();
     ///
-    /// assert_eq!("1e2", ScientificOptions::pretty().to_string(number).unwrap());
+    /// assert_eq!("1e2", ScientificFormatter::pretty().to_string(number).unwrap());
     /// ```
-    Scientific(ScientificOptions),
+    Scientific(ScientificFormatter),
 
     /// Display as an 'enum' - a value selected from a list of common values.
     ///
     /// Example: XXX
     ///
-    Enum(EnumOptions),
+    Enum(EnumFormatter),
 }
 
-impl SizedDisplay {
-    pub fn to_options(&self) -> Box<dyn SizedOptions> {
+impl GenericFormatter {
+    pub fn to_formatter(&self) -> Box<dyn GenericFormatterImpl> {
         match self {
             Self::Binary(o)     => Box::new(*o),
             Self::Decimal(o)    => Box::new(*o),
@@ -109,6 +131,6 @@ impl SizedDisplay {
     }
 
     pub fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
-        self.to_options().to_string(number)
+        self.to_formatter().to_string(number)
     }
 }

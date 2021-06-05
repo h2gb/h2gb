@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::sized_number::{GenericReader, SizedDisplay};
+use crate::generic_number::{GenericReader, GenericFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -9,7 +9,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 ///
 /// This represents any standard numerical value - [`u8`], [`i32`], stuff like
 /// that. The way it's defined, read, and displayed heavily leverages the
-/// [`sized_number`] package.
+/// [`generic_number`] package.
 ///
 /// The size a given numeric type is always known in advance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,20 +17,20 @@ pub struct H2Number {
     /// The sign, signedness, and endianness of the value.
     definition: GenericReader,
 
-    /// How the value is to be displayed - [`SizedDisplay::Hex`],
-    /// [`SizedDisplay::Octal`], and so on.
-    display: SizedDisplay,
+    /// How the value is to be displayed - [`GenericFormatter::Hex`],
+    /// [`GenericFormatter::Octal`], and so on.
+    display: GenericFormatter,
 }
 
 impl H2Number {
-    pub fn new_aligned(alignment: Alignment, definition: GenericReader, display: SizedDisplay) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, definition: GenericReader, display: GenericFormatter) -> H2Type {
         H2Type::new(alignment, H2Types::H2Number(Self {
             definition: definition,
             display: display,
         }))
     }
 
-    pub fn new(definition: GenericReader, display: SizedDisplay) -> H2Type {
+    pub fn new(definition: GenericReader, display: GenericFormatter) -> H2Type {
         Self::new_aligned(Alignment::None, definition, display)
     }
 }
@@ -74,7 +74,7 @@ impl H2TypeTrait for H2Number {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, Endian, GenericReader, HexOptions, DecimalOptions};
+    use crate::generic_number::{Context, Endian, GenericReader, HexFormatter, DecimalFormatter};
 
     #[test]
     fn test_u8_hex() -> SimpleResult<()> {
@@ -84,7 +84,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::U8,
-            HexOptions::pretty(),
+            HexFormatter::pretty(),
         );
 
         assert_eq!(1, t.actual_size(s_offset).unwrap());
@@ -109,7 +109,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::I16(Endian::Big),
-            DecimalOptions::new(),
+            DecimalFormatter::new(),
         );
 
         assert_eq!(2, t.actual_size(s_offset).unwrap());
@@ -134,7 +134,7 @@ mod tests {
         let t = H2Number::new_aligned(
             Alignment::Loose(8),
             GenericReader::I16(Endian::Big),
-            DecimalOptions::new(),
+            DecimalFormatter::new(),
         );
 
         // Starting at 0
@@ -177,7 +177,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::I16(Endian::Big),
-            DecimalOptions::new(),
+            DecimalFormatter::new(),
         );
 
         assert_eq!(0,      t.to_i64(offset.at(0))?);
@@ -195,7 +195,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::U16(Endian::Big),
-            DecimalOptions::new(),
+            DecimalFormatter::new(),
         );
 
         assert_eq!(0,     t.to_u64(offset.at(0))?);

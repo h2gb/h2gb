@@ -56,7 +56,7 @@ impl H2TypeTrait for MacAddress {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::Context;
+    use crate::generic_number::Context;
 
     #[test]
     fn test_mac() -> SimpleResult<()> {

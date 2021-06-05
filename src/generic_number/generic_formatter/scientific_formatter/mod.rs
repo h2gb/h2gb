@@ -1,29 +1,29 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
+use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`SizedDisplay::Scientific`]
+/// Configure display format for [`GenericFormatter::Scientific`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct ScientificOptions {
+pub struct ScientificFormatter {
     /// Print the `e` in the scientific notation will be uppercase (`1E0`
     /// instead of `1e0`).
     pub uppercase: bool,
 }
 
-impl ScientificOptions {
-    pub fn new(uppercase: bool) -> SizedDisplay {
-        SizedDisplay::Scientific(Self {
+impl ScientificFormatter {
+    pub fn new(uppercase: bool) -> GenericFormatter {
+        GenericFormatter::Scientific(Self {
             uppercase: uppercase
         })
     }
 
-    pub fn pretty() -> SizedDisplay {
+    pub fn pretty() -> GenericFormatter {
         Self::new(false)
     }
 }
 
-impl SizedOptions for ScientificOptions {
+impl GenericFormatterImpl for ScientificFormatter {
     fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
         Ok(match (self.uppercase, number) {
             (true, GenericNumber::U8(v))   => format!("{:E}", v),
@@ -62,7 +62,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::sized_number::{Context, Endian, GenericReader};
+    use crate::generic_number::{Context, Endian, GenericReader};
 
     #[test]
     fn test_scientific_u32() -> SimpleResult<()> {
@@ -86,7 +86,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificOptions::new(uppercase).to_string(number)?,
+                ScientificFormatter::new(uppercase).to_string(number)?,
             );
         }
 
@@ -115,7 +115,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificOptions::new(uppercase).to_string(number)?,
+                ScientificFormatter::new(uppercase).to_string(number)?,
             );
         }
 
@@ -141,7 +141,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificOptions::new(uppercase).to_string(number)?,
+                ScientificFormatter::new(uppercase).to_string(number)?,
             );
         }
 

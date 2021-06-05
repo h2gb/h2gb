@@ -13,28 +13,28 @@
 //! [`Endian`]:
 //!
 //! ```
-//! use libh2gb::sized_number::{GenericReader, Endian};
+//! use libh2gb::generic_number::{GenericReader, Endian};
 //!
 //! let d = GenericReader::U32(Endian::Big);
 //! ```
 //!
 //! Once you have an instance of [`GenericReader`], it can convert a
-//! [`Context`] into a string in a variety of formats - use `SizedDisplay` to
+//! [`Context`] into a string in a variety of formats - use `GenericFormatter` to
 //! configure how it should convert:
 //!
 //! ```
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! let buffer = b"ABCD".to_vec();
 //! let context = Context::new_at(&buffer, 0);
 //! let d = GenericReader::U32(Endian::Big);
 //! let number = d.read(context).unwrap();
 //!
-//! assert_eq!("0x41424344", HexOptions::pretty().to_string(number).unwrap());
-//! assert_eq!("1094861636", DecimalOptions::new().to_string(number).unwrap());
-//! assert_eq!("0o10120441504", OctalOptions::pretty().to_string(number).unwrap());
-//! assert_eq!("0b01000001010000100100001101000100", BinaryOptions::pretty().to_string(number).unwrap());
-//! assert_eq!("1.094861636e9", ScientificOptions::pretty().to_string(number).unwrap());
+//! assert_eq!("0x41424344", HexFormatter::pretty().to_string(number).unwrap());
+//! assert_eq!("1094861636", DecimalFormatter::new().to_string(number).unwrap());
+//! assert_eq!("0o10120441504", OctalFormatter::pretty().to_string(number).unwrap());
+//! assert_eq!("0b01000001010000100100001101000100", BinaryFormatter::pretty().to_string(number).unwrap());
+//! assert_eq!("1.094861636e9", ScientificFormatter::pretty().to_string(number).unwrap());
 //! ```
 //!
 //! The string conversion is designed to be "stamp"-able - you can define the
@@ -47,7 +47,7 @@
 //! integers:
 //!
 //! ```
-//! use libh2gb::sized_number::{Context, GenericReader, Endian, SizedDisplay, HexOptions, BinaryOptions, ScientificOptions};
+//! use libh2gb::generic_number::{Context, GenericReader, Endian, GenericFormatter, HexFormatter, BinaryFormatter, ScientificFormatter};
 //!
 //! let buffer = b"\x01\x02\x03\x04\x05\x06\x07\x08".to_vec();
 //! let context = Context::new_at(&buffer, 0);
@@ -59,17 +59,14 @@
 //! assert_eq!(0x0102030405060708, GenericReader::U64(Endian::Big).read(context).unwrap().as_u64().unwrap());
 //! ```
 
-mod context;
-pub use context::*;
+mod helpers;
+pub use helpers::*;
 
 mod generic_reader;
 pub use generic_reader::*;
 
-mod sized_display;
-pub use sized_display::*;
-
-mod sized_display_options;
-pub use sized_display_options::*;
+mod generic_formatter;
+pub use generic_formatter::*;
 
 mod generic_number;
 pub use generic_number::*;

@@ -1,27 +1,27 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
+use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`SizedDisplay::Decimal`]
+/// Configure display options for [`GenericFormatter::Decimal`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct DecimalOptions {
+pub struct DecimalFormatter {
 }
 
-impl DecimalOptions {
-    pub fn new() -> SizedDisplay {
-        SizedDisplay::Decimal(Self { })
+impl DecimalFormatter {
+    pub fn new() -> GenericFormatter {
+        GenericFormatter::Decimal(Self { })
     }
 }
 
-impl Default for DecimalOptions {
+impl Default for DecimalFormatter {
     fn default() -> Self {
         Self {
         }
     }
 }
 
-impl SizedOptions for DecimalOptions {
+impl GenericFormatterImpl for DecimalFormatter {
     fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
         match number {
             GenericNumber::U8(v)   => Ok(format!("{}", v)),
@@ -49,7 +49,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::sized_number::{Context, Endian, GenericReader};
+    use crate::generic_number::{Context, Endian, GenericReader};
 
     #[test]
     fn test_decimal_u8() -> SimpleResult<()> {
@@ -69,7 +69,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -94,7 +94,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -119,7 +119,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -144,7 +144,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -169,7 +169,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -194,7 +194,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -217,7 +217,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -240,7 +240,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -265,7 +265,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -289,7 +289,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 
@@ -313,7 +313,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalOptions::new().to_string(number)?,
+                DecimalFormatter::new().to_string(number)?,
             );
         }
 

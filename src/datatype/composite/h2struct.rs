@@ -60,7 +60,7 @@ impl H2TypeTrait for H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, GenericReader, Endian, HexOptions, OctalOptions, DecimalOptions};
+    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DecimalFormatter};
 
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
@@ -77,7 +77,7 @@ mod tests {
                 "field_u32".to_string(),
                 H2Number::new(
                     GenericReader::U32(Endian::Big),
-                    HexOptions::pretty(),
+                    HexFormatter::pretty(),
                 )
             ),
             (
@@ -85,7 +85,7 @@ mod tests {
                 H2Number::new_aligned(
                     Alignment::Loose(3),
                     GenericReader::U16(Endian::Big),
-                    HexOptions::pretty(),
+                    HexFormatter::pretty(),
                 )
             ),
             (
@@ -93,14 +93,14 @@ mod tests {
                 H2Number::new_aligned(
                     Alignment::Loose(4),
                     GenericReader::U8,
-                    OctalOptions::new(true, false),
+                    OctalFormatter::new(true, false),
                 )
             ),
             (
                 "field_u32_little".to_string(),
                 H2Number::new(
                     GenericReader::U32(Endian::Little),
-                    DecimalOptions::new(),
+                    DecimalFormatter::new(),
                 )
             ),
         ])?;
@@ -162,7 +162,7 @@ mod tests {
                 H2Number::new_aligned(
                     Alignment::Loose(4),
                     GenericReader::U16(Endian::Big),
-                    HexOptions::pretty(),
+                    HexFormatter::pretty(),
                 )
             ),
             (
@@ -172,21 +172,21 @@ mod tests {
                         "A".to_string(),
                         H2Number::new(
                             GenericReader::U8,
-                            HexOptions::pretty(),
+                            HexFormatter::pretty(),
                         )
                     ),
                     (
                         "B".to_string(),
                         H2Number::new(
                             GenericReader::U8,
-                            HexOptions::pretty(),
+                            HexFormatter::pretty(),
                         )
                     ),
                     (
                         "C".to_string(),
                         H2Number::new(
                             GenericReader::U16(Endian::Big),
-                            HexOptions::pretty(),
+                            HexFormatter::pretty(),
                         )
                     ),
                     (

@@ -1,11 +1,11 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
+use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`SizedDisplay::Binary`]
+/// Configure display options for [`GenericFormatter::Binary`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct BinaryOptions {
+pub struct BinaryFormatter {
     /// Prefix binary strings with `0b`
     pub prefix: bool,
 
@@ -13,20 +13,20 @@ pub struct BinaryOptions {
     pub padded: bool,
 }
 
-impl BinaryOptions {
-    pub fn new(prefix: bool, padded: bool) -> SizedDisplay {
-        SizedDisplay::Binary(Self {
+impl BinaryFormatter {
+    pub fn new(prefix: bool, padded: bool) -> GenericFormatter {
+        GenericFormatter::Binary(Self {
             prefix: prefix,
             padded: padded,
         })
     }
 
-    pub fn pretty() -> SizedDisplay {
+    pub fn pretty() -> GenericFormatter {
         Self::new(true, true)
     }
 }
 
-impl SizedOptions for BinaryOptions {
+impl GenericFormatterImpl for BinaryFormatter {
     fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
         let mut s = match (self.padded, number) {
             (true, GenericNumber::U8(v))   => format!("{:08b}", v),
@@ -71,7 +71,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, GenericReader};
+    use crate::generic_number::{Context, GenericReader};
 
     #[test]
     fn test_binary_i8() -> SimpleResult<()> {
@@ -100,7 +100,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                BinaryOptions::new(prefix, padded).to_string(number)?,
+                BinaryFormatter::new(prefix, padded).to_string(number)?,
             );
         }
 

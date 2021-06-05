@@ -1,11 +1,11 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::sized_number::{GenericNumber, SizedOptions, SizedDisplay};
+use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`SizedDisplay::Hex`]
+/// Configure display options for [`GenericFormatter::Hex`]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct HexOptions {
+pub struct HexFormatter {
     /// Print hex characters uppercase - `1A2B` vs `1a2b`.
     pub uppercase: bool,
 
@@ -17,21 +17,21 @@ pub struct HexOptions {
 }
 
 
-impl HexOptions {
-    pub fn new(uppercase: bool, prefix: bool, padded: bool) -> SizedDisplay {
-        SizedDisplay::Hex(Self {
+impl HexFormatter {
+    pub fn new(uppercase: bool, prefix: bool, padded: bool) -> GenericFormatter {
+        GenericFormatter::Hex(Self {
             uppercase: uppercase,
             prefix: prefix,
             padded: padded,
         })
     }
 
-    pub fn pretty() -> SizedDisplay {
+    pub fn pretty() -> GenericFormatter {
         Self::new(false, true, true)
     }
 }
 
-impl SizedOptions for HexOptions {
+impl GenericFormatterImpl for HexFormatter {
     fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
         let mut s = match (self.padded, number) {
             (true, GenericNumber::U8(v))   => format!("{:02x}", v),
@@ -81,7 +81,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, Endian, GenericReader};
+    use crate::generic_number::{Context, Endian, GenericReader};
 
     #[test]
     fn test_hex_u8() -> SimpleResult<()> {
@@ -124,7 +124,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -164,7 +164,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -197,7 +197,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -223,7 +223,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -249,7 +249,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
@@ -282,7 +282,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexOptions::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
             );
         }
 
