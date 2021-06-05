@@ -48,7 +48,7 @@ impl H2TypeTrait for H2Pointer {
             Offset::Dynamic(context) => {
                 // Read the current value
                 let target_offset = self.definition.read(context)?;
-                let pointer_display = self.display.to_string(target_offset)?;
+                let pointer_display = self.display.render(target_offset)?;
 
                 // Read the target from a separate context
                 let target = Offset::from(context.at(target_offset.as_u64()?));

@@ -22,7 +22,7 @@ impl Default for DecimalFormatter {
 }
 
 impl GenericFormatterImpl for DecimalFormatter {
-    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         match number {
             GenericNumber::U8(v)   => Ok(format!("{}", v)),
             GenericNumber::U16(v)  => Ok(format!("{}", v)),
@@ -69,7 +69,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -94,7 +94,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -119,7 +119,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -144,7 +144,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -169,7 +169,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -194,7 +194,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -217,7 +217,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -240,7 +240,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -265,7 +265,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -289,7 +289,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 
@@ -313,7 +313,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().to_string(number)?,
+                DecimalFormatter::new().render(number)?,
             );
         }
 

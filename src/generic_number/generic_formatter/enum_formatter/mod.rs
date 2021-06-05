@@ -43,7 +43,7 @@ impl EnumFormatter {
 }
 
 impl GenericFormatterImpl for EnumFormatter {
-    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         let s = if number.can_be_u64() {
             let v = number.as_u64()?;
 
@@ -87,7 +87,7 @@ mod tests {
         for (number, expected) in tests {
             assert_eq!(
                 expected,
-                EnumFormatter::new(EnumType::TestEnum).to_string(number)?,
+                EnumFormatter::new(EnumType::TestEnum).render(number)?,
             );
         }
 

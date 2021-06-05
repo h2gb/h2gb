@@ -25,7 +25,7 @@ License: MIT
 
 * [./src/analyzer](./src/analyzer/README.md) - Some good info should go here!
 
-* [./src/sized_number](./src/sized_number/README.md) - A simple library for reading differently-sized integers and floats.
-
 * [./src/transformation](./src/transformation/README.md) - A library for transforming raw data between encodings.
+
+* [./src/generic_number](./src/generic_number/README.md) - A simple library for reading differently-sized integers and floats.
 

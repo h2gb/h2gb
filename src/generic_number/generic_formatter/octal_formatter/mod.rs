@@ -27,7 +27,7 @@ impl OctalFormatter {
 }
 
 impl GenericFormatterImpl for OctalFormatter {
-    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         let mut s = match (self.padded, number) {
             (true, GenericNumber::U8(v))   => format!("{:03o}", v),
             (true, GenericNumber::U16(v))  => format!("{:06o}", v),
@@ -110,7 +110,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).to_string(number)?,
+                OctalFormatter::new(prefix, padded).render(number)?,
             );
         }
 
@@ -149,7 +149,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).to_string(number)?,
+                OctalFormatter::new(prefix, padded).render(number)?,
             );
         }
 
@@ -188,7 +188,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).to_string(number)?,
+                OctalFormatter::new(prefix, padded).render(number)?,
             );
         }
 
@@ -224,7 +224,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).to_string(number)?,
+                OctalFormatter::new(prefix, padded).render(number)?,
             );
         }
 

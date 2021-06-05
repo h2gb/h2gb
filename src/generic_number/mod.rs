@@ -30,11 +30,11 @@
 //! let d = GenericReader::U32(Endian::Big);
 //! let number = d.read(context).unwrap();
 //!
-//! assert_eq!("0x41424344", HexFormatter::pretty().to_string(number).unwrap());
-//! assert_eq!("1094861636", DecimalFormatter::new().to_string(number).unwrap());
-//! assert_eq!("0o10120441504", OctalFormatter::pretty().to_string(number).unwrap());
-//! assert_eq!("0b01000001010000100100001101000100", BinaryFormatter::pretty().to_string(number).unwrap());
-//! assert_eq!("1.094861636e9", ScientificFormatter::pretty().to_string(number).unwrap());
+//! assert_eq!("0x41424344", HexFormatter::pretty().render(number).unwrap());
+//! assert_eq!("1094861636", DecimalFormatter::new().render(number).unwrap());
+//! assert_eq!("0o10120441504", OctalFormatter::pretty().render(number).unwrap());
+//! assert_eq!("0b01000001010000100100001101000100", BinaryFormatter::pretty().render(number).unwrap());
+//! assert_eq!("1.094861636e9", ScientificFormatter::pretty().render(number).unwrap());
 //! ```
 //!
 //! The string conversion is designed to be "stamp"-able - you can define the

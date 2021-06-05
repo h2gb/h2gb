@@ -27,7 +27,7 @@ impl BinaryFormatter {
 }
 
 impl GenericFormatterImpl for BinaryFormatter {
-    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         let mut s = match (self.padded, number) {
             (true, GenericNumber::U8(v))   => format!("{:08b}", v),
             (true, GenericNumber::U16(v))  => format!("{:016b}", v),
@@ -100,7 +100,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                BinaryFormatter::new(prefix, padded).to_string(number)?,
+                BinaryFormatter::new(prefix, padded).render(number)?,
             );
         }
 

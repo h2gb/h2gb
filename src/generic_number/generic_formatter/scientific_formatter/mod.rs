@@ -24,7 +24,7 @@ impl ScientificFormatter {
 }
 
 impl GenericFormatterImpl for ScientificFormatter {
-    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         Ok(match (self.uppercase, number) {
             (true, GenericNumber::U8(v))   => format!("{:E}", v),
             (true, GenericNumber::U16(v))  => format!("{:E}", v),
@@ -86,7 +86,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificFormatter::new(uppercase).to_string(number)?,
+                ScientificFormatter::new(uppercase).render(number)?,
             );
         }
 
@@ -115,7 +115,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificFormatter::new(uppercase).to_string(number)?,
+                ScientificFormatter::new(uppercase).render(number)?,
             );
         }
 
@@ -141,7 +141,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificFormatter::new(uppercase).to_string(number)?,
+                ScientificFormatter::new(uppercase).render(number)?,
             );
         }
 

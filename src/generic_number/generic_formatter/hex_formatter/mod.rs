@@ -32,7 +32,7 @@ impl HexFormatter {
 }
 
 impl GenericFormatterImpl for HexFormatter {
-    fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
+    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         let mut s = match (self.padded, number) {
             (true, GenericNumber::U8(v))   => format!("{:02x}", v),
             (true, GenericNumber::U16(v))  => format!("{:04x}", v),
@@ -124,7 +124,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).render(number)?,
             );
         }
 
@@ -164,7 +164,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).render(number)?,
             );
         }
 
@@ -197,7 +197,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).render(number)?,
             );
         }
 
@@ -223,7 +223,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).render(number)?,
             );
         }
 
@@ -249,7 +249,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).render(number)?,
             );
         }
 
@@ -282,7 +282,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).to_string(number)?,
+                HexFormatter::new(uppercase, prefix, padded).render(number)?,
             );
         }
 

@@ -22,7 +22,7 @@ mod scientific_formatter;
 pub use scientific_formatter::*;
 
 pub trait GenericFormatterImpl {
-    fn to_string(&self, number: GenericNumber) -> SimpleResult<String>;
+    fn render(&self, number: GenericNumber) -> SimpleResult<String>;
 }
 
 /// Display options with their associated configurations.
@@ -43,9 +43,9 @@ pub enum GenericFormatter {
     /// let d = GenericReader::U16(Endian::Big);
     /// let number = d.read(Context::new_at(&buffer, 0)).unwrap();
     ///
-    /// assert_eq!("0x00ab", HexFormatter::pretty().to_string(number).unwrap());
-    /// assert_eq!("00AB", HexFormatter::new(true,  false, true ).to_string(number).unwrap());
-    /// assert_eq!("0xab", HexFormatter::new(false, true,  false).to_string(number).unwrap());
+    /// assert_eq!("0x00ab", HexFormatter::pretty().render(number).unwrap());
+    /// assert_eq!("00AB", HexFormatter::new(true,  false, true ).render(number).unwrap());
+    /// assert_eq!("0xab", HexFormatter::new(false, true,  false).render(number).unwrap());
     ///
     /// ```
     Hex(HexFormatter),
@@ -59,10 +59,10 @@ pub enum GenericFormatter {
     ///
     /// let buffer = b"\xFF\xFF".to_vec();
     /// let unsigned = GenericReader::U8.read(Context::new_at(&buffer, 0)).unwrap();
-    /// assert_eq!("255", DecimalFormatter::new().to_string(unsigned).unwrap());
+    /// assert_eq!("255", DecimalFormatter::new().render(unsigned).unwrap());
     ///
     /// let signed   = GenericReader::I8.read(Context::new_at(&buffer, 0)).unwrap();
-    /// assert_eq!("-1", DecimalFormatter::new().to_string(signed).unwrap());
+    /// assert_eq!("-1", DecimalFormatter::new().render(signed).unwrap());
     ///
     /// ```
     Decimal(DecimalFormatter),
@@ -77,7 +77,7 @@ pub enum GenericFormatter {
     /// let context = Context::new_at(&buffer, 0);
     /// let number = GenericReader::U8.read(context).unwrap();
     ///
-    /// assert_eq!("0o40", OctalFormatter::pretty().to_string(number).unwrap());
+    /// assert_eq!("0o40", OctalFormatter::pretty().render(number).unwrap());
     ///
     /// ```
     Octal(OctalFormatter),
@@ -92,7 +92,7 @@ pub enum GenericFormatter {
     /// let context = Context::new_at(&buffer, 0);
     /// let number = GenericReader::U8.read(context).unwrap();
     ///
-    /// assert_eq!("0b00000001", BinaryFormatter::pretty().to_string(number).unwrap());
+    /// assert_eq!("0b00000001", BinaryFormatter::pretty().render(number).unwrap());
     /// ```
     Binary(BinaryFormatter),
 
@@ -107,7 +107,7 @@ pub enum GenericFormatter {
     /// let context = Context::new_at(&buffer, 0);
     /// let number = GenericReader::U8.read(context).unwrap();
     ///
-    /// assert_eq!("1e2", ScientificFormatter::pretty().to_string(number).unwrap());
+    /// assert_eq!("1e2", ScientificFormatter::pretty().render(number).unwrap());
     /// ```
     Scientific(ScientificFormatter),
 
@@ -130,7 +130,7 @@ impl GenericFormatter {
         }
     }
 
-    pub fn to_string(&self, number: GenericNumber) -> SimpleResult<String> {
-        self.to_formatter().to_string(number)
+    pub fn render(&self, number: GenericNumber) -> SimpleResult<String> {
+        self.to_formatter().render(number)
     }
 }

@@ -48,7 +48,7 @@ impl H2TypeTrait for H2Number {
         match offset {
             Offset::Static(_) => Ok("Number".to_string()),
             Offset::Dynamic(context) => {
-                self.display.to_string(self.definition.read(context)?)
+                self.display.render(self.definition.read(context)?)
             }
         }
     }
