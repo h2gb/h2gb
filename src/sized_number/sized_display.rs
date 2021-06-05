@@ -18,7 +18,7 @@ pub enum SizedDisplay {
     /// use libh2gb::sized_number::*;
     ///
     /// let buffer = b"\x00\xab".to_vec();
-    /// let d = SizedDefinition::U16(Endian::Big);
+    /// let d = GenericReader::U16(Endian::Big);
     /// let number = d.read(Context::new_at(&buffer, 0)).unwrap();
     ///
     /// assert_eq!("0x00ab", HexOptions::pretty().to_string(number).unwrap());
@@ -29,17 +29,17 @@ pub enum SizedDisplay {
     Hex(HexOptions),
 
     /// Display in decimal. Whether the display is signed or not depends on the
-    /// `SizedDefinition` type chosen.
+    /// `GenericReader` type chosen.
     ///
     /// Example:
     /// ```
     /// use libh2gb::sized_number::*;
     ///
     /// let buffer = b"\xFF\xFF".to_vec();
-    /// let unsigned = SizedDefinition::U8.read(Context::new_at(&buffer, 0)).unwrap();
+    /// let unsigned = GenericReader::U8.read(Context::new_at(&buffer, 0)).unwrap();
     /// assert_eq!("255", DecimalOptions::new().to_string(unsigned).unwrap());
     ///
-    /// let signed   = SizedDefinition::I8.read(Context::new_at(&buffer, 0)).unwrap();
+    /// let signed   = GenericReader::I8.read(Context::new_at(&buffer, 0)).unwrap();
     /// assert_eq!("-1", DecimalOptions::new().to_string(signed).unwrap());
     ///
     /// ```
@@ -53,7 +53,7 @@ pub enum SizedDisplay {
     ///
     /// let buffer = b"\x20".to_vec();
     /// let context = Context::new_at(&buffer, 0);
-    /// let number = SizedDefinition::U8.read(context).unwrap();
+    /// let number = GenericReader::U8.read(context).unwrap();
     ///
     /// assert_eq!("0o40", OctalOptions::pretty().to_string(number).unwrap());
     ///
@@ -68,7 +68,7 @@ pub enum SizedDisplay {
     ///
     /// let buffer = b"\x01".to_vec();
     /// let context = Context::new_at(&buffer, 0);
-    /// let number = SizedDefinition::U8.read(context).unwrap();
+    /// let number = GenericReader::U8.read(context).unwrap();
     ///
     /// assert_eq!("0b00000001", BinaryOptions::pretty().to_string(number).unwrap());
     /// ```
@@ -83,7 +83,7 @@ pub enum SizedDisplay {
     ///
     /// let buffer = b"\x64".to_vec();
     /// let context = Context::new_at(&buffer, 0);
-    /// let number = SizedDefinition::U8.read(context).unwrap();
+    /// let number = GenericReader::U8.read(context).unwrap();
     ///
     /// assert_eq!("1e2", ScientificOptions::pretty().to_string(number).unwrap());
     /// ```

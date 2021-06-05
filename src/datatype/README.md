@@ -84,7 +84,7 @@ let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create the abstract type - this is an H2Type
-let t = H2Number::new(SizedDefinition::I16(Endian::Big), DecimalOptions::new());
+let t = H2Number::new(GenericReader::I16(Endian::Big), DecimalOptions::new());
 
 // It takes up two bytes of memory, including aligned (it's not aligned)
 assert_eq!(2, t.actual_size(offset).unwrap());
@@ -112,7 +112,7 @@ let offset = Offset::Dynamic(Context::new(&data));
 
 // Create the abstract type - this is an H2Type
 let t = H2Number::new_aligned(
-  Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
+  Alignment::Loose(4), GenericReader::U16(Endian::Big),
   HexOptions::pretty(),
 );
 
@@ -145,7 +145,7 @@ let offset = Offset::Dynamic(Context::new(&data));
 
 // Create an array of 4 elements, each of which is padded to 4 bytes
 let t = H2Array::new(4, H2Number::new_aligned(
-  Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
+  Alignment::Loose(4), GenericReader::U16(Endian::Big),
   HexOptions::pretty(),
 )).unwrap();
 
@@ -180,7 +180,7 @@ let offset = Offset::Dynamic(Context::new(&data));
 // byte length
 let t = H2Array::new(3, LPString::new(
   // The length field is an 8-bit unsigned integer
-  H2Number::new(SizedDefinition::U8, HexOptions::pretty()),
+  H2Number::new(GenericReader::U8, HexOptions::pretty()),
 
   // The character type is just simple ascii
   ASCII::new(StrictASCII::Strict),

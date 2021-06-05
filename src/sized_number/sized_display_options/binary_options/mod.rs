@@ -71,7 +71,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, SizedDefinition};
+    use crate::sized_number::{Context, GenericReader};
 
     #[test]
     fn test_binary_i8() -> SimpleResult<()> {
@@ -96,7 +96,7 @@ mod tests {
 
         for (index, padded, prefix, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U8.read(context)?;
+            let number = GenericReader::U8.read(context)?;
 
             assert_eq!(
                 expected,

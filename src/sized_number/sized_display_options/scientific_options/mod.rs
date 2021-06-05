@@ -62,7 +62,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::sized_number::{Context, Endian, SizedDefinition};
+    use crate::sized_number::{Context, Endian, GenericReader};
 
     #[test]
     fn test_scientific_u32() -> SimpleResult<()> {
@@ -82,7 +82,7 @@ mod tests {
 
         for (index, uppercase, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U32(Endian::Big).read(context)?;
+            let number = GenericReader::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
@@ -111,7 +111,7 @@ mod tests {
 
         for (index, uppercase, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::I32(Endian::Big).read(context)?;
+            let number = GenericReader::I32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
@@ -137,7 +137,7 @@ mod tests {
 
         for (index, uppercase, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::F64(Endian::Big).read(context)?;
+            let number = GenericReader::F64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,

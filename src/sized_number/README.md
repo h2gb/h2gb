@@ -9,16 +9,16 @@ This library defines a [`Context`] type, which is just a thin wrapper for a
 needed.
 
 To create an instance, you need to first define how the number will be
-defined. Using the [`SizedDefinition`] enum, choose a size and a
+defined. Using the [`GenericReader`] enum, choose a size and a
 [`Endian`]:
 
 ```rust
-use libh2gb::sized_number::{SizedDefinition, Endian};
+use libh2gb::sized_number::{GenericReader, Endian};
 
-let d = SizedDefinition::U32(Endian::Big);
+let d = GenericReader::U32(Endian::Big);
 ```
 
-Once you have an instance of [`SizedDefinition`], it can convert a
+Once you have an instance of [`GenericReader`], it can convert a
 [`Context`] into a string in a variety of formats - use `SizedDisplay` to
 configure how it should convert:
 
@@ -27,7 +27,7 @@ use libh2gb::sized_number::*;
 
 let buffer = b"ABCD".to_vec();
 let context = Context::new_at(&buffer, 0);
-let d = SizedDefinition::U32(Endian::Big);
+let d = GenericReader::U32(Endian::Big);
 let number = d.read(context).unwrap();
 
 assert_eq!("0x41424344", HexOptions::pretty().to_string(number).unwrap());
@@ -42,21 +42,21 @@ format once, then apply it in multiple places or with multiple formats! No
 context or data is stored as part of the type.
 
 In addition to formatting a string, 64-bit and smaller unsigned instances
-of [`SizedDefinition`] can be converted into [`u64`] (unsigned) integers, and
+of [`GenericReader`] can be converted into [`u64`] (unsigned) integers, and
 64-bit and smaller signed instances can be converted into [`i64`] (signed)
 integers:
 
 ```rust
-use libh2gb::sized_number::{Context, SizedDefinition, Endian, SizedDisplay, HexOptions, BinaryOptions, ScientificOptions};
+use libh2gb::sized_number::{Context, GenericReader, Endian, SizedDisplay, HexOptions, BinaryOptions, ScientificOptions};
 
 let buffer = b"\x01\x02\x03\x04\x05\x06\x07\x08".to_vec();
 let context = Context::new_at(&buffer, 0);
-let d = SizedDefinition::U32(Endian::Big);
+let d = GenericReader::U32(Endian::Big);
 
-assert_eq!(0x01,               SizedDefinition::U8.read(context).unwrap().as_u64().unwrap());
-assert_eq!(0x0102,             SizedDefinition::U16(Endian::Big).read(context).unwrap().as_u64().unwrap());
-assert_eq!(0x01020304,         SizedDefinition::U32(Endian::Big).read(context).unwrap().as_u64().unwrap());
-assert_eq!(0x0102030405060708, SizedDefinition::U64(Endian::Big).read(context).unwrap().as_u64().unwrap());
+assert_eq!(0x01,               GenericReader::U8.read(context).unwrap().as_u64().unwrap());
+assert_eq!(0x0102,             GenericReader::U16(Endian::Big).read(context).unwrap().as_u64().unwrap());
+assert_eq!(0x01020304,         GenericReader::U32(Endian::Big).read(context).unwrap().as_u64().unwrap());
+assert_eq!(0x0102030405060708, GenericReader::U64(Endian::Big).read(context).unwrap().as_u64().unwrap());
 ```
 
 License: MIT

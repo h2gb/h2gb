@@ -81,7 +81,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, Endian, SizedDefinition};
+    use crate::sized_number::{Context, Endian, GenericReader};
 
     #[test]
     fn test_hex_u8() -> SimpleResult<()> {
@@ -120,7 +120,7 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U8.read(context)?;
+            let number = GenericReader::U8.read(context)?;
 
             assert_eq!(
                 expected,
@@ -160,7 +160,7 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U16(Endian::Big).read(context)?;
+            let number = GenericReader::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
@@ -193,7 +193,7 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U32(Endian::Big).read(context)?;
+            let number = GenericReader::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
@@ -219,7 +219,7 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U64(Endian::Big).read(context)?;
+            let number = GenericReader::U64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
@@ -245,7 +245,7 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U64(Endian::Little).read(context)?;
+            let number = GenericReader::U64(Endian::Little).read(context)?;
 
             assert_eq!(
                 expected,
@@ -278,7 +278,7 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = SizedDefinition::U128(Endian::Big).read(context)?;
+            let number = GenericReader::U128(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,

@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::sized_number::{SizedDefinition, SizedDisplay};
+use crate::sized_number::{GenericReader, SizedDisplay};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -15,7 +15,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Number {
     /// The sign, signedness, and endianness of the value.
-    definition: SizedDefinition,
+    definition: GenericReader,
 
     /// How the value is to be displayed - [`SizedDisplay::Hex`],
     /// [`SizedDisplay::Octal`], and so on.
@@ -23,14 +23,14 @@ pub struct H2Number {
 }
 
 impl H2Number {
-    pub fn new_aligned(alignment: Alignment, definition: SizedDefinition, display: SizedDisplay) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, definition: GenericReader, display: SizedDisplay) -> H2Type {
         H2Type::new(alignment, H2Types::H2Number(Self {
             definition: definition,
             display: display,
         }))
     }
 
-    pub fn new(definition: SizedDefinition, display: SizedDisplay) -> H2Type {
+    pub fn new(definition: GenericReader, display: SizedDisplay) -> H2Type {
         Self::new_aligned(Alignment::None, definition, display)
     }
 }
@@ -74,7 +74,7 @@ impl H2TypeTrait for H2Number {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, Endian, SizedDefinition, HexOptions, DecimalOptions};
+    use crate::sized_number::{Context, Endian, GenericReader, HexOptions, DecimalOptions};
 
     #[test]
     fn test_u8_hex() -> SimpleResult<()> {
@@ -83,7 +83,7 @@ mod tests {
         let d_offset = Offset::Dynamic(Context::new(&data));
 
         let t = H2Number::new(
-            SizedDefinition::U8,
+            GenericReader::U8,
             HexOptions::pretty(),
         );
 
@@ -108,7 +108,7 @@ mod tests {
         let d_offset = Offset::Dynamic(Context::new(&data));
 
         let t = H2Number::new(
-            SizedDefinition::I16(Endian::Big),
+            GenericReader::I16(Endian::Big),
             DecimalOptions::new(),
         );
 
@@ -133,7 +133,7 @@ mod tests {
 
         let t = H2Number::new_aligned(
             Alignment::Loose(8),
-            SizedDefinition::I16(Endian::Big),
+            GenericReader::I16(Endian::Big),
             DecimalOptions::new(),
         );
 
@@ -176,7 +176,7 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let t = H2Number::new(
-            SizedDefinition::I16(Endian::Big),
+            GenericReader::I16(Endian::Big),
             DecimalOptions::new(),
         );
 
@@ -194,7 +194,7 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let t = H2Number::new(
-            SizedDefinition::U16(Endian::Big),
+            GenericReader::U16(Endian::Big),
             DecimalOptions::new(),
         );
 

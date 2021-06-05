@@ -80,7 +80,7 @@ impl H2TypeTrait for H2Union {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, SizedDefinition, Endian, HexOptions, OctalOptions};
+    use crate::sized_number::{Context, GenericReader, Endian, HexOptions, OctalOptions};
 
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::character::{ASCII, StrictASCII};
@@ -96,14 +96,14 @@ mod tests {
                 "u16".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(3),
-                    SizedDefinition::U16(Endian::Big),
+                    GenericReader::U16(Endian::Big),
                     HexOptions::pretty(),
                 )
             ),
             (
                 "u32".to_string(),
                 H2Number::new(
-                    SizedDefinition::U32(Endian::Little),
+                    GenericReader::U32(Endian::Little),
                     HexOptions::pretty(),
                 )
             ),
@@ -119,7 +119,7 @@ mod tests {
                 "u8octal".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(4),
-                    SizedDefinition::U8,
+                    GenericReader::U8,
                     OctalOptions::new(true, false),
                 )
             ),

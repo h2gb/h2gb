@@ -60,7 +60,7 @@ impl H2TypeTrait for H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, SizedDefinition, Endian, HexOptions, OctalOptions, DecimalOptions};
+    use crate::sized_number::{Context, GenericReader, Endian, HexOptions, OctalOptions, DecimalOptions};
 
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
@@ -76,7 +76,7 @@ mod tests {
             (
                 "field_u32".to_string(),
                 H2Number::new(
-                    SizedDefinition::U32(Endian::Big),
+                    GenericReader::U32(Endian::Big),
                     HexOptions::pretty(),
                 )
             ),
@@ -84,7 +84,7 @@ mod tests {
                 "field_u16".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(3),
-                    SizedDefinition::U16(Endian::Big),
+                    GenericReader::U16(Endian::Big),
                     HexOptions::pretty(),
                 )
             ),
@@ -92,14 +92,14 @@ mod tests {
                 "field_u8".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(4),
-                    SizedDefinition::U8,
+                    GenericReader::U8,
                     OctalOptions::new(true, false),
                 )
             ),
             (
                 "field_u32_little".to_string(),
                 H2Number::new(
-                    SizedDefinition::U32(Endian::Little),
+                    GenericReader::U32(Endian::Little),
                     DecimalOptions::new(),
                 )
             ),
@@ -161,7 +161,7 @@ mod tests {
                 "hex".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(4),
-                    SizedDefinition::U16(Endian::Big),
+                    GenericReader::U16(Endian::Big),
                     HexOptions::pretty(),
                 )
             ),
@@ -171,21 +171,21 @@ mod tests {
                     (
                         "A".to_string(),
                         H2Number::new(
-                            SizedDefinition::U8,
+                            GenericReader::U8,
                             HexOptions::pretty(),
                         )
                     ),
                     (
                         "B".to_string(),
                         H2Number::new(
-                            SizedDefinition::U8,
+                            GenericReader::U8,
                             HexOptions::pretty(),
                         )
                     ),
                     (
                         "C".to_string(),
                         H2Number::new(
-                            SizedDefinition::U16(Endian::Big),
+                            GenericReader::U16(Endian::Big),
                             HexOptions::pretty(),
                         )
                     ),
