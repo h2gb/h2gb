@@ -17,6 +17,10 @@ impl ScientificOptions {
             uppercase: uppercase
         })
     }
+
+    pub fn pretty() -> SizedDisplay {
+        Self::new(false)
+    }
 }
 
 impl SizedOptions for ScientificOptions {

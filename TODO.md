@@ -6,3 +6,5 @@
 SizedOptions -> GenericDisplay
 SizedDisplay -> GenericNumber
 SizedDefinition -> GenericReader
+Options.to_String -> any other name
+___Options -> Formatter?

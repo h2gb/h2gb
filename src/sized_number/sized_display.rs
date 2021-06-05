@@ -18,22 +18,12 @@ pub enum SizedDisplay {
     /// use libh2gb::sized_number::*;
     ///
     /// let buffer = b"\x00\xab".to_vec();
-    /// let context = Context::new_at(&buffer, 0);
     /// let d = SizedDefinition::U16(Endian::Big);
+    /// let number = d.read(Context::new_at(&buffer, 0)).unwrap();
     ///
-    /// assert_eq!("0x00ab", d.to_string(context, SizedDisplay::Hex(HexOptions::default())).unwrap());
-    ///
-    /// assert_eq!("00AB", d.to_string(context, SizedDisplay::Hex(HexOptions {
-    ///     uppercase: true,
-    ///     prefix: false,
-    ///     padded: true,
-    /// })).unwrap());
-    ///
-    /// assert_eq!("0xab", d.to_string(context, SizedDisplay::Hex(HexOptions {
-    ///     uppercase: false,
-    ///     prefix: true,
-    ///     padded: false,
-    /// })).unwrap());
+    /// assert_eq!("0x00ab", HexOptions::pretty().to_string(number).unwrap());
+    /// assert_eq!("00AB", HexOptions::new(true,  false, true ).to_string(number).unwrap());
+    /// assert_eq!("0xab", HexOptions::new(false, true,  false).to_string(number).unwrap());
     ///
     /// ```
     Hex(HexOptions),
@@ -46,10 +36,11 @@ pub enum SizedDisplay {
     /// use libh2gb::sized_number::*;
     ///
     /// let buffer = b"\xFF\xFF".to_vec();
-    /// let context = Context::new_at(&buffer, 0);
+    /// let unsigned = SizedDefinition::U8.read(Context::new_at(&buffer, 0)).unwrap();
+    /// assert_eq!("255", DecimalOptions::new().to_string(unsigned).unwrap());
     ///
-    /// assert_eq!("255", SizedDefinition::U8.to_string(context, SizedDisplay::Decimal(Default::default())).unwrap());
-    /// assert_eq!("-1", SizedDefinition::I8.to_string(context, SizedDisplay::Decimal(Default::default())).unwrap());
+    /// let signed   = SizedDefinition::I8.read(Context::new_at(&buffer, 0)).unwrap();
+    /// assert_eq!("-1", DecimalOptions::new().to_string(signed).unwrap());
     ///
     /// ```
     Decimal(DecimalOptions),
@@ -62,8 +53,9 @@ pub enum SizedDisplay {
     ///
     /// let buffer = b"\x20".to_vec();
     /// let context = Context::new_at(&buffer, 0);
+    /// let number = SizedDefinition::U8.read(context).unwrap();
     ///
-    /// assert_eq!("0o40", SizedDefinition::U8.to_string(context, SizedDisplay::Octal(Default::default())).unwrap());
+    /// assert_eq!("0o40", OctalOptions::pretty().to_string(number).unwrap());
     ///
     /// ```
     Octal(OctalOptions),
@@ -76,8 +68,9 @@ pub enum SizedDisplay {
     ///
     /// let buffer = b"\x01".to_vec();
     /// let context = Context::new_at(&buffer, 0);
+    /// let number = SizedDefinition::U8.read(context).unwrap();
     ///
-    /// assert_eq!("0b00000001", SizedDefinition::U8.to_string(context, SizedDisplay::Binary(Default::default())).unwrap());
+    /// assert_eq!("0b00000001", BinaryOptions::pretty().to_string(number).unwrap());
     /// ```
     Binary(BinaryOptions),
 
@@ -90,8 +83,9 @@ pub enum SizedDisplay {
     ///
     /// let buffer = b"\x64".to_vec();
     /// let context = Context::new_at(&buffer, 0);
+    /// let number = SizedDefinition::U8.read(context).unwrap();
     ///
-    /// assert_eq!("1e2", SizedDefinition::U8.to_string(context, SizedDisplay::Scientific(Default::default())).unwrap());
+    /// assert_eq!("1e2", ScientificOptions::pretty().to_string(number).unwrap());
     /// ```
     Scientific(ScientificOptions),
 

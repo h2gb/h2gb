@@ -28,12 +28,13 @@
 //! let buffer = b"ABCD".to_vec();
 //! let context = Context::new_at(&buffer, 0);
 //! let d = SizedDefinition::U32(Endian::Big);
+//! let number = d.read(context).unwrap();
 //!
-//! assert_eq!("0x41424344", d.to_string(context, SizedDisplay::Hex(HexOptions::default())).unwrap());
-//! assert_eq!("1094861636", d.to_string(context, SizedDisplay::Decimal(Default::default())).unwrap());
-//! assert_eq!("0o10120441504", d.to_string(context, SizedDisplay::Octal(Default::default())).unwrap());
-//! assert_eq!("0b01000001010000100100001101000100", d.to_string(context, SizedDisplay::Binary(Default::default())).unwrap());
-//! assert_eq!("1.094861636e9", d.to_string(context, SizedDisplay::Scientific(Default::default())).unwrap());
+//! assert_eq!("0x41424344", HexOptions::pretty().to_string(number).unwrap());
+//! assert_eq!("1094861636", DecimalOptions::new().to_string(number).unwrap());
+//! assert_eq!("0o10120441504", OctalOptions::pretty().to_string(number).unwrap());
+//! assert_eq!("0b01000001010000100100001101000100", BinaryOptions::pretty().to_string(number).unwrap());
+//! assert_eq!("1.094861636e9", ScientificOptions::pretty().to_string(number).unwrap());
 //! ```
 //!
 //! The string conversion is designed to be "stamp"-able - you can define the
@@ -52,10 +53,10 @@
 //! let context = Context::new_at(&buffer, 0);
 //! let d = SizedDefinition::U32(Endian::Big);
 //!
-//! assert_eq!(0x01,               SizedDefinition::U8.to_u64(context).unwrap());
-//! assert_eq!(0x0102,             SizedDefinition::U16(Endian::Big).to_u64(context).unwrap());
-//! assert_eq!(0x01020304,         SizedDefinition::U32(Endian::Big).to_u64(context).unwrap());
-//! assert_eq!(0x0102030405060708, SizedDefinition::U64(Endian::Big).to_u64(context).unwrap());
+//! assert_eq!(0x01,               SizedDefinition::U8.read(context).unwrap().as_u64().unwrap());
+//! assert_eq!(0x0102,             SizedDefinition::U16(Endian::Big).read(context).unwrap().as_u64().unwrap());
+//! assert_eq!(0x01020304,         SizedDefinition::U32(Endian::Big).read(context).unwrap().as_u64().unwrap());
+//! assert_eq!(0x0102030405060708, SizedDefinition::U64(Endian::Big).read(context).unwrap().as_u64().unwrap());
 //! ```
 
 mod context;

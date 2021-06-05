@@ -20,6 +20,10 @@ impl OctalOptions {
             padded: padded,
         })
     }
+
+    pub fn pretty() -> SizedDisplay {
+        Self::new(true, false)
+    }
 }
 
 impl SizedOptions for OctalOptions {

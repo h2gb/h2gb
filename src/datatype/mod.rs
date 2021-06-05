@@ -84,7 +84,7 @@
 //! let offset = Offset::Dynamic(Context::new(&data));
 //!
 //! // Create the abstract type - this is an H2Type
-//! let t = H2Number::new(SizedDefinition::I16(Endian::Big), SizedDisplay::Decimal(Default::default()));
+//! let t = H2Number::new(SizedDefinition::I16(Endian::Big), DecimalOptions::new());
 //!
 //! // It takes up two bytes of memory, including aligned (it's not aligned)
 //! assert_eq!(2, t.actual_size(offset).unwrap());
@@ -113,7 +113,7 @@
 //! // Create the abstract type - this is an H2Type
 //! let t = H2Number::new_aligned(
 //!   Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
-//!   SizedDisplay::Hex(Default::default())
+//!   HexOptions::pretty(),
 //! );
 //!
 //! // It takes up two bytes of memory normally...
@@ -146,7 +146,7 @@
 //! // Create an array of 4 elements, each of which is padded to 4 bytes
 //! let t = H2Array::new(4, H2Number::new_aligned(
 //!   Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
-//!   SizedDisplay::Hex(Default::default())
+//!   HexOptions::pretty(),
 //! )).unwrap();
 //!
 //! // The array takes up 16 bytes of memory, aligned and not
@@ -180,7 +180,7 @@
 //! // byte length
 //! let t = H2Array::new(3, LPString::new(
 //!   // The length field is an 8-bit unsigned integer
-//!   H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())),
+//!   H2Number::new(SizedDefinition::U8, HexOptions::pretty()),
 //!
 //!   // The character type is just simple ascii
 //!   ASCII::new(StrictASCII::Strict),

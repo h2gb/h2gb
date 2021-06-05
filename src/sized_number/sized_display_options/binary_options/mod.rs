@@ -20,6 +20,10 @@ impl BinaryOptions {
             padded: padded,
         })
     }
+
+    pub fn pretty() -> SizedDisplay {
+        Self::new(true, true)
+    }
 }
 
 impl SizedOptions for BinaryOptions {
