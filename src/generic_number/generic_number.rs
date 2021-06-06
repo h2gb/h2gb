@@ -130,3 +130,64 @@ impl GenericNumber {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use pretty_assertions::assert_eq;
+    use simple_error::SimpleResult;
+
+    use crate::generic_number::{Context, GenericReader, Endian};
+
+    #[test]
+    fn test_to_u64() -> SimpleResult<()> {
+        let data = b"\x00\x7F\x80\xFF\x00\x01\x02\x03\x80\x00\x00\x00\x00\x00\x00\x00".to_vec();
+
+        assert_eq!(0u64,   GenericReader::U8.read(Context::new_at(&data, 0))?.as_u64()?);
+        assert_eq!(127u64, GenericReader::U8.read(Context::new_at(&data, 1))?.as_u64()?);
+        assert_eq!(128u64, GenericReader::U8.read(Context::new_at(&data, 2))?.as_u64()?);
+        assert_eq!(255u64, GenericReader::U8.read(Context::new_at(&data, 3))?.as_u64()?);
+
+        assert_eq!(127u64,               GenericReader::U16(Endian::Big).read(Context::new_at(&data, 0))?.as_u64()?);
+        assert_eq!(8356095u64,           GenericReader::U32(Endian::Big).read(Context::new_at(&data, 0))?.as_u64()?);
+        assert_eq!(35889154747335171u64, GenericReader::U64(Endian::Big).read(Context::new_at(&data, 0))?.as_u64()?);
+
+        assert!(GenericReader::I8.read(Context::new_at(&data, 0))?.as_u64().is_err());
+        assert!(GenericReader::I16(Endian::Big ).read(Context::new_at(&data, 0))?.as_u64().is_err());
+        assert!(GenericReader::I32(Endian::Big ).read(Context::new_at(&data, 0))?.as_u64().is_err());
+        assert!(GenericReader::I64(Endian::Big ).read(Context::new_at(&data, 0))?.as_u64().is_err());
+        assert!(GenericReader::F32(Endian::Big ).read(Context::new_at(&data, 0))?.as_u64().is_err());
+        assert!(GenericReader::F64(Endian::Big ).read(Context::new_at(&data, 0))?.as_u64().is_err());
+        assert!(GenericReader::U128(Endian::Big).read(Context::new_at(&data, 0))?.as_u64().is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_to_i64() -> SimpleResult<()> {
+        let data = b"\x00\x7F\x80\xFF\x00\x01\x02\x03\x80\x00\x00\x00\x00\x00\x00\x00".to_vec();
+
+        assert_eq!(0i64,                    GenericReader::I8.read(Context::new_at(&data, 0))?.as_i64()?);
+        assert_eq!(127i64,                  GenericReader::I8.read(Context::new_at(&data, 1))?.as_i64()?);
+        assert_eq!(-128i64,                 GenericReader::I8.read(Context::new_at(&data, 2))?.as_i64()?);
+        assert_eq!(-1i64,                   GenericReader::I8.read(Context::new_at(&data, 3))?.as_i64()?);
+
+        assert_eq!(127i64,                  GenericReader::I16(Endian::Big).read(Context::new_at(&data, 0))?.as_i64()?);
+        assert_eq!(-32768i64,               GenericReader::I16(Endian::Big).read(Context::new_at(&data, 8))?.as_i64()?);
+
+        assert_eq!(8356095i64,              GenericReader::I32(Endian::Big).read(Context::new_at(&data, 0))?.as_i64()?);
+        assert_eq!(-2147483648i64,          GenericReader::I32(Endian::Big).read(Context::new_at(&data, 8))?.as_i64()?);
+
+        assert_eq!(35889154747335171i64,    GenericReader::I64(Endian::Big).read(Context::new_at(&data, 0))?.as_i64()?);
+        assert_eq!(-9223372036854775808i64, GenericReader::I64(Endian::Big).read(Context::new_at(&data, 8))?.as_i64()?);
+
+        assert!(GenericReader::U8.read(Context::new_at(&data, 0))?.as_i64().is_err());
+        assert!(GenericReader::U16(Endian::Big).read(Context::new_at(&data, 0))?.as_i64().is_err());
+        assert!(GenericReader::U32(Endian::Big).read(Context::new_at(&data, 0))?.as_i64().is_err());
+        assert!(GenericReader::U64(Endian::Big).read(Context::new_at(&data, 0))?.as_i64().is_err());
+        assert!(GenericReader::F32(Endian::Big).read(Context::new_at(&data, 0))?.as_i64().is_err());
+        assert!(GenericReader::F64(Endian::Big).read(Context::new_at(&data, 0))?.as_i64().is_err());
+        assert!(GenericReader::I128(Endian::Big).read(Context::new_at(&data, 0))?.as_i64().is_err());
+
+        Ok(())
+    }
+}
