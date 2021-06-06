@@ -44,27 +44,22 @@ impl EnumFormatter {
 
 impl GenericFormatterImpl for EnumFormatter {
     fn render(&self, number: GenericNumber) -> SimpleResult<String> {
-        let s = if number.can_be_u64() {
-            let v = number.as_u64()?;
-
-            match self.enum_type {
-                EnumType::TerrariaGameMode => TerrariaGameMode::from_u64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
-                EnumType::TerrariaVersion  => TerrariaVersion::from_u64(v).map( |v| format!("{:?} ({})", v, v.to_string())),
-                EnumType::TestEnum         => TestEnum::from_u64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
-                EnumType::WindowsError     => WindowsError::from_u64(v).map(    |v| format!("{:?} ({})", v, v.to_string())),
-            }.unwrap_or(format!("unknown_0x{:016x}", v))
+        // Always treat the number as a 64-bit unsigned (signed values will work
+        // correctly)
+        let number = if number.can_be_u64() {
+            number.as_u64()?
         } else if number.can_be_i64() {
-            let v = number.as_i64()?;
-
-            match self.enum_type {
-                EnumType::TerrariaGameMode => TerrariaGameMode::from_i64(v).map(|v| format!("{:?} ({})", v, v.to_string())),
-                EnumType::TerrariaVersion  => TerrariaVersion::from_i64(v).map( |v| format!("{:?} ({})", v, v.to_string())),
-                EnumType::TestEnum         => TestEnum::from_i64(v).map(        |v| format!("{:?} ({})", v, v.to_string())),
-                EnumType::WindowsError     => WindowsError::from_i64(v).map(    |v| format!("{:?} ({})", v, v.to_string())),
-            }.unwrap_or(format!("unknown_0x{:016x}", v))
+            number.as_i64()? as u64
         } else {
             bail!("The type is not compatible with enumerations (must be an integer with a maximum size of 64 bits");
         };
+
+        let s = match self.enum_type {
+            EnumType::TestEnum         =>         TestEnum::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
+            EnumType::TerrariaGameMode => TerrariaGameMode::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
+            EnumType::TerrariaVersion  =>  TerrariaVersion::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
+            EnumType::WindowsError     =>     WindowsError::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
+        }.unwrap_or(format!("unknown_0x{:016x}", number));
 
         Ok(format!("{:?}::{}", self.enum_type, s))
     }
@@ -79,9 +74,24 @@ mod tests {
     #[test]
     fn test_enum() -> SimpleResult<()> {
         let tests = vec![
-          // number                              expected
-            (GenericNumber::from(0u32),          "TestEnum::Zero (Zero)"     ),
-            (GenericNumber::from(0xffffffffu32), "TestEnum::U32Max (U32Max)" ),
+          // number                                      expected
+            (GenericNumber::from(0u32),                  "TestEnum::Zero (Zero)"),
+            (GenericNumber::from(0i32),                  "TestEnum::Zero (Zero)"),
+
+            (GenericNumber::from(-1),                    "TestEnum::NegativeOne (NegativeOne)"),
+            (GenericNumber::from(0xffffffffffffffffu64), "TestEnum::NegativeOne (NegativeOne)"),
+
+            (GenericNumber::from(1u32),                  "TestEnum::One (One)"),
+            (GenericNumber::from(1i32),                  "TestEnum::One (One)"),
+
+            (GenericNumber::from(0xffffffffu32),         "TestEnum::U32Max (U32Max)"),
+            (GenericNumber::from(0x00000000ffffffffi64), "TestEnum::U32Max (U32Max)"),
+
+            (GenericNumber::from(0x7fffffffu32),         "TestEnum::I32Max (I32Max)"),
+            (GenericNumber::from(0x7fffffffi32),         "TestEnum::I32Max (I32Max)"),
+
+            (GenericNumber::from(0x7fffffffffffffffi64), "TestEnum::I64Max (I64Max)"),
+            (GenericNumber::from(0x7fffffffffffffffu64), "TestEnum::I64Max (I64Max)"),
         ];
 
         for (number, expected) in tests {

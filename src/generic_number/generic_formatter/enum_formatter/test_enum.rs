@@ -12,7 +12,7 @@ pub enum TestEnum {
     I64Max = 0x7FFFFFFFFFFFFFFF,
 
     // This is the same as -1
-    //u64_max = 0x7FFFFFFFFFFFFFFF,
+    //u64_max = 0xFFFFFFFFFFFFFFFF,
 }
 
 impl fmt::Display for TestEnum {
