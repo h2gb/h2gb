@@ -14,9 +14,9 @@
 //! calculate its size, how to convert it to a string, and so on. To calculate
 //! any of those, an [`Offset`] is required. An [`Offset`] can either be
 //! abstract (a numeric offset value) or concrete (a buffer of bytes in the form
-//! of a [`generic_number::Context`]). Some types require a concrete buffer to do
-//! anything useful (for example, while the length of an IPv4 value doesn't
-//! change, the length of a UTF-8 character is based on the data).
+//! of a [`crate::generic_number::Context`]). Some types require a concrete
+//! buffer to do anything useful (for example, while the length of an IPv4 value
+//! doesn't change, the length of a UTF-8 character is based on the data).
 //!
 //! Pretty much all operations on an [`H2Type`] require an [`Offset`], but
 //! whether can work with a [`Offset::Static`] or [`Offset::Dynamic`] depends on
@@ -43,13 +43,13 @@
 //! A composite type is made up of other types. For example, a
 //! [`composite::H2Array`] is a series of the same type, a
 //! [`composite::H2Struct`] is a series of different types (with names), and a
-//! [`composite::H2Enum`] is a choice of overlapping values. These can be fully
+//! [`composite::H2Union`] is a choice of overlapping values. These can be fully
 //! recursive - an array can contain a struct which can contain an array and so
 //! on, for as long as you like.
 //!
 //! ### String types
 //!
-//! A string type, which are defined in [`composite::strings`], are a special
+//! A string type, which are defined in [`composite::string`], are a special
 //! composite type. They're really just arrays of a value that can consume a
 //! character type in some way to become a String.
 //!
