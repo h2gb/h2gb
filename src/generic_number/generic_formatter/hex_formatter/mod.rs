@@ -3,7 +3,25 @@ use serde::{Serialize, Deserialize};
 
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`GenericFormatter::Hex`]
+/// Render a [`GenericNumber`] as a hexadecimal value.
+///
+/// # Example
+///
+/// ```
+/// use libh2gb::generic_number::*;
+///
+/// // Create a GenericNumber directly - normally you'd use a GenericReader
+/// let number = GenericNumber::from(0xaa2233u32);
+///
+/// // Default 'pretty' formatter
+/// assert_eq!("0x00aa2233", HexFormatter::pretty().render(number).unwrap());
+///
+/// // Specify options: uppercase, no prefix, zero-padded
+/// assert_eq!("00AA2233", HexFormatter::new(true,  false, true ).render(number).unwrap());
+///
+/// // Specify different options: lowercase, '0x' prefix, not padded
+/// assert_eq!("0xaa2233", HexFormatter::new(false, true,  false).render(number).unwrap());
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct HexFormatter {
     /// Print hex characters uppercase - `1A2B` vs `1a2b`.

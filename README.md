@@ -27,5 +27,5 @@ License: MIT
 
 * [./src/transformation](./src/transformation/README.md) - A library for transforming raw data between encodings.
 
-* [./src/generic_number](./src/generic_number/README.md) - A simple library for reading differently-sized integers and floats.
+* [./src/generic_number](./src/generic_number/README.md) - A library for reading and formatting differently-sized integers and floats.
 

@@ -3,7 +3,23 @@ use simple_error::SimpleResult;
 
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display format for [`GenericFormatter::Scientific`]
+/// Render a [`GenericNumber`] as a scientific (exponential) value.
+///
+/// # Example
+///
+/// ```
+/// use libh2gb::generic_number::*;
+///
+/// // Create a GenericNumber directly - normally you'd use a GenericReader
+/// let number = GenericNumber::from(100u64);
+///
+/// // Default 'pretty' formatter
+/// assert_eq!("1e2", ScientificFormatter::pretty().render(number).unwrap());
+///
+/// // Also works on floating point
+/// let number = GenericNumber::from(314.159f32);
+/// assert_eq!("3.14159e2", ScientificFormatter::pretty().render(number).unwrap());
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ScientificFormatter {
     /// Print the `e` in the scientific notation will be uppercase (`1E0`

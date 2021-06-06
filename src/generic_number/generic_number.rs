@@ -1,6 +1,14 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
+/// A number that can be any of the primitive types.
+///
+/// The goal of creating this enum is to wrap around *any* generic type, with
+/// serialize, deserialize, and transparent conversion to [`u64`] and [`i64`].
+///
+/// Typically, you'd use a [`GenericReader`] to create a [`GenericNumber`], then
+/// a [`GenericFormatter`] to render it. All three of those classes can be
+/// serialized, so this operation is always repeatable!
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum GenericNumber {
     U8(u8),
@@ -19,7 +27,8 @@ pub enum GenericNumber {
     F64(f64),
 }
 
-// Simplify converting from various basic types
+// Simplify converting from various basic types - generally, these shouldn't be
+// used directly except for testing!
 impl From<u8>   for GenericNumber { fn from(o: u8)   -> Self { Self::U8(o)   } }
 impl From<u16>  for GenericNumber { fn from(o: u16)  -> Self { Self::U16(o)  } }
 impl From<u32>  for GenericNumber { fn from(o: u32)  -> Self { Self::U32(o)  } }
@@ -34,6 +43,7 @@ impl From<f32>  for GenericNumber { fn from(o: f32)  -> Self { Self::F32(o)  } }
 impl From<f64>  for GenericNumber { fn from(o: f64)  -> Self { Self::F64(o)  } }
 
 impl GenericNumber {
+    /// The size - in bytes - of the type.
     pub fn size(self) -> usize {
         match self {
             Self::U8(_)   => 1,
@@ -53,6 +63,9 @@ impl GenericNumber {
         }
     }
 
+    /// Is the type compatible with [`u64`]?
+    ///
+    /// That is, unsigned and no larger than 64 bits.
     pub fn can_be_u64(self) -> bool {
         match self {
             Self::U8(_)   => true,
@@ -72,6 +85,7 @@ impl GenericNumber {
         }
     }
 
+    /// Attempt to convert to a [`u64`].
     pub fn as_u64(self) -> SimpleResult<u64> {
         match self {
             Self::U8(v)        => Ok(v as u64),
@@ -91,6 +105,9 @@ impl GenericNumber {
         }
     }
 
+    /// Is the type compatible with [`i64`]?
+    ///
+    /// That is, signed and no larger than 64 bits.
     pub fn can_be_i64(self) -> bool {
         match self {
             Self::U8(_)   => false,
@@ -110,6 +127,7 @@ impl GenericNumber {
         }
     }
 
+    /// Attempt to convert to a [`i64`].
     pub fn as_i64(self) -> SimpleResult<i64> {
         match self {
             Self::I8(v)        => Ok(v as i64),

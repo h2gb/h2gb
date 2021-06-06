@@ -3,7 +3,19 @@ use serde::{Serialize, Deserialize};
 
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`GenericFormatter::Binary`]
+/// Render a [`GenericNumber`] as a binary value.
+///
+/// # Example
+///
+/// ```
+/// use libh2gb::generic_number::*;
+///
+/// // Create a GenericNumber directly - normally you'd use a GenericReader
+/// let number = GenericNumber::from(15u8);
+///
+/// // Default 'pretty' formatter
+/// assert_eq!("0b00001111", BinaryFormatter::pretty().render(number).unwrap());
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct BinaryFormatter {
     /// Prefix binary strings with `0b`

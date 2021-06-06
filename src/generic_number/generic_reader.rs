@@ -3,7 +3,10 @@ use serde::{Serialize, Deserialize};
 
 use crate::generic_number::{Context, Endian, GenericNumber};
 
-/// Define how data is read from a Context.
+/// Defines how data is read from a [`Context`] to produce a [`GenericNumber`].
+///
+/// Importantly, this can be serialized, which means it can be stored and
+/// re-used in the future.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum GenericReader {
     /// Unsigned 8-bit integer
@@ -50,6 +53,13 @@ pub enum GenericReader {
 }
 
 impl GenericReader {
+    /// Read the chosen value at the given [`Context`].
+    ///
+    /// The `Context` has the offset embedded, and the [`GenericReader`] has the
+    /// [`Endian`] built-in.
+    ///
+    /// If successful, this creates a [`GenericNumber`], whose datatype will
+    /// match the type that we chose in this struct.
     pub fn read(self, context: Context) -> SimpleResult<GenericNumber> {
         match self {
             Self::I8           => Ok(GenericNumber::from(context.read_i8()?)),
@@ -69,6 +79,7 @@ impl GenericReader {
         }
     }
 
+    /// The size - in bytes - that will be read by [`read`].
     pub fn size(self) -> usize {
         match self {
             Self::I8      => 1,
@@ -88,6 +99,11 @@ impl GenericReader {
         }
     }
 
+    /// Will the resulting [`GenericNumber`] be compatible with a [`u64`]?
+    ///
+    /// This is mostly a convenience function, so datatypes we define can
+    /// verify that a proper [`GenericReader`] is being used before it actually
+    /// reads anything.
     pub fn can_be_u64(self) -> bool {
         match self {
             Self::I8      => false,
@@ -107,6 +123,11 @@ impl GenericReader {
         }
     }
 
+    /// Will the resulting [`GenericNumber`] be compatible with a [`i64`]?
+    ///
+    /// This is mostly a convenience function, so datatypes we define can
+    /// verify that a proper [`GenericReader`] is being used before it actually
+    /// reads anything.
     pub fn can_be_i64(self) -> bool {
         match self {
             Self::I8      => true,

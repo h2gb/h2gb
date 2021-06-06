@@ -23,13 +23,16 @@ let buffer = b"\x01\x23\x45\x67".to_vec();
 // Create a context that points to the start of the buffer
 let context = Context::new_at(&buffer, 0);
 
-// Create a reader that knows how to read a U32 big endian value
+// Create a reader that knows how to read a U32 big endian value - this
+// reader can be serialized and used later!
 let reader = GenericReader::U32(Endian::Big);
 
-// Read from the context into a generic number
+// Read from the context into a generic number - this number can be
+// serialized and used later!
 let number = reader.read(context).unwrap();
 
-// Display it using different formatters (these use the pretty defaults)
+// Display it using different formatters (these use the pretty defaults) -
+// these formatters can also be serialized!
 assert_eq!("0x01234567",                         HexFormatter::pretty().render(number).unwrap());
 assert_eq!("19088743",                           DecimalFormatter::new().render(number).unwrap());
 assert_eq!("0o110642547",                        OctalFormatter::pretty().render(number).unwrap());

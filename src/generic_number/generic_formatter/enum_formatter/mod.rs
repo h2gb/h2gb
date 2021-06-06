@@ -29,6 +29,29 @@ pub enum EnumType {
     //Custom(CustomEnumType),
 }
 
+/// Render a [`GenericNumber`] as an enumeration.
+///
+/// An enumeration, in this case, is a set of unique named values grouped under
+/// an [`EnumType`]. I add different [`EnumType`] values as I need them, they
+/// are all under this same module.
+///
+/// I plan to do custom enums as well, though I'm not sure what that'll look
+/// like.
+///
+/// # Example
+///
+/// ```
+/// use libh2gb::generic_number::*;
+///
+/// // Create a GenericNumber directly - normally you'd use a GenericReader
+/// let number = GenericNumber::from(2);
+///
+/// // As a Windows error, 2 is file not found
+/// assert_eq!("WindowsError::ERROR_FILE_NOT_FOUND (ERROR_FILE_NOT_FOUND)", EnumFormatter::new(EnumType::WindowsError).render(number).unwrap());
+///
+/// // As a Terraria game mode, 2 is Hardcore
+/// assert_eq!("TerrariaGameMode::HardCore (Hard Core)", EnumFormatter::new(EnumType::TerrariaGameMode).render(number).unwrap());
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EnumFormatter {
     enum_type: EnumType,

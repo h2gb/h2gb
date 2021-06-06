@@ -3,7 +3,27 @@ use simple_error::SimpleResult;
 
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`GenericFormatter::Decimal`]
+/// Render a [`GenericNumber`] as a decimal value.
+///
+/// # Example
+///
+/// ```
+/// use libh2gb::generic_number::*;
+///
+/// // Create a GenericNumber directly - normally you'd use a GenericReader
+/// let number = GenericNumber::from(1234u32);
+///
+/// // DecimalFormatter has no special options
+/// assert_eq!("1234", DecimalFormatter::new().render(number).unwrap());
+///
+/// // Also handles signed values correctly, using the GenericNumber's type
+/// let number = GenericNumber::from(-1234i32);
+/// assert_eq!("-1234", DecimalFormatter::new().render(number).unwrap());
+///
+/// // Handles floating point correctly, as well
+/// let number = GenericNumber::from(314.159f32);
+/// assert_eq!("314.159", DecimalFormatter::new().render(number).unwrap());
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct DecimalFormatter {
 }

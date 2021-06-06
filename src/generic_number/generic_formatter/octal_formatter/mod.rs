@@ -3,7 +3,19 @@ use simple_error::{SimpleResult, bail};
 
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Configure display options for [`GenericFormatter::Octal`]
+/// Render a [`GenericNumber`] as an octal value.
+///
+/// # Example
+///
+/// ```
+/// use libh2gb::generic_number::*;
+///
+/// // Create a GenericNumber directly - normally you'd use a GenericReader
+/// let number = GenericNumber::from(32u8);
+///
+/// // Default 'pretty' formatter
+/// assert_eq!("0o40", OctalFormatter::pretty().render(number).unwrap());
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct OctalFormatter {
     /// Prefix octal strings with `0o`
