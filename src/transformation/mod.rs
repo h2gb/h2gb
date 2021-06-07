@@ -52,6 +52,9 @@ pub use transformer_trait::TransformerTrait;
 mod helpers;
 
 /// Which transformation to perform.
+///
+/// In general, don't create this enum directly - use the initializer methods
+/// from the different transformations, which returns this enum.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum Transformation {
     /// No transformation - simply returns the same value. Mostly here for
@@ -122,7 +125,7 @@ pub enum Transformation {
 
     /// Base64 decode the buffer.
     ///
-    /// [`Base64Transform`] has a number of constructors to configure the
+    /// [`TransformBase64`] has a number of constructors to configure the
     /// padding, character set, and strictness.
     ///
     /// The validation, padding, and ability to do a two-way conversation
@@ -292,7 +295,7 @@ pub enum Transformation {
     ///
     /// Block ciphers have a lot of knobs, such as the algorithm, the key,
     /// the IV, mode of operation, and so on. These options are all included
-    /// in the [`BlockCipherSettings`] struct.
+    /// in the [`TransformBlockCipher`] struct.
     ///
     /// # Example
     ///

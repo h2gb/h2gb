@@ -47,8 +47,8 @@ pub enum H2Types {
 /// In general, when consuming this crate, you probably won't be creating an
 /// `H2Type` directly; rather, use the `new()` or `new_aligned()` function of
 /// any of the various types defined in [`crate::datatype::simple`],
-/// [`crate::datatype::composite`], or [`crate::datatype::composite::strings`]. Those `new()`
-/// functions return an `H2Type`.
+/// [`crate::datatype::composite`], or [`crate::datatype::composite::string`].
+/// Those `new()` functions return an `H2Type`.
 ///
 /// Please note that many of the functions here are very expensive, because
 /// they have to read the object and iterate every time they're called. If you

@@ -10,7 +10,7 @@ use crate::datatype::composite::H2Array;
 ///
 /// The length (in characters) is chosen when creating the type. The length in
 /// bytes may be longer if the character type is non-ASCII, however. See
-/// [`crate::datatype::simple::Character`] for a list of possible character types.
+/// [`crate::datatype::simple::character`] for a list of possible character types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2String {
     length: u64,

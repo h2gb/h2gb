@@ -11,7 +11,7 @@ use crate::datatype::composite::H2Array;
 /// This is a string with a numerical prefix that denotes the length of the
 /// string (in *characters*). The length is any numerical value as defined in
 /// [`crate::datatype::simple::H2Number`] (or other numeric types if we add any), and
-/// the character type is any type defined in [`crate::datatype::simple::Character`].
+/// the character type is any type defined in [`crate::datatype::simple::character`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
     length: Box<H2Type>,

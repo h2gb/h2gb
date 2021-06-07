@@ -6,9 +6,10 @@ use simple_error::{SimpleResult, bail};
 /// The goal of creating this enum is to wrap around *any* generic type, with
 /// serialize, deserialize, and transparent conversion to [`u64`] and [`i64`].
 ///
-/// Typically, you'd use a [`GenericReader`] to create a [`GenericNumber`], then
-/// a [`GenericFormatter`] to render it. All three of those classes can be
-/// serialized, so this operation is always repeatable!
+/// Typically, you'd use a [`crate::generic_number::GenericReader`] to create a
+/// [`GenericNumber`], then a [`crate::generic_number::GenericFormatter`] to
+/// render it. All three of those classes can be serialized, so this operation
+/// is always repeatable!
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum GenericNumber {
     U8(u8),

@@ -16,7 +16,7 @@ use crate::datatype::{Alignment, Offset, ResolvedType, H2Type};
 /// As a type developer, some of the traits must be implemented (obviously),
 /// while others have sane defaults that you can rely on. In some cases, if the
 /// default behaviour doesn't make sense for you (for example,
-/// [`crate::datatype::composite::h2union`] doesn't have sequential children),
+/// [`crate::datatype::composite::H2Union`] doesn't have sequential children),
 /// or if you can implement it faster, feel free to override it.
 ///
 /// The `actual_size` function is particularly to implement for any types that
@@ -175,7 +175,7 @@ pub trait H2TypeTrait {
     /// Convert to a [`char`], if it's sensible for this type.
     ///
     /// Types that can become a [`char`] can be used as part of one of the
-    /// various [`crate::datatype::composite::strings`] types.
+    /// various [`crate::datatype::composite::string`] types.
     fn to_char(&self, _offset: Offset) -> SimpleResult<char> {
         bail!("This type cannot be converted to a character");
     }

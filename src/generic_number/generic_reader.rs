@@ -79,7 +79,7 @@ impl GenericReader {
         }
     }
 
-    /// The size - in bytes - that will be read by [`read`].
+    /// The size - in bytes - that will be read by [`Self::read`].
     pub fn size(self) -> usize {
         match self {
             Self::I8      => 1,

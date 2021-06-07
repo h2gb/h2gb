@@ -9,7 +9,7 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 ///
 /// This represents any standard numerical value - [`u8`], [`i32`], stuff like
 /// that. The way it's defined, read, and displayed heavily leverages the
-/// [`generic_number`] package.
+/// [`crate::generic_number`] module.
 ///
 /// The size a given numeric type is always known in advance.
 #[derive(Debug, Clone, Serialize, Deserialize)]

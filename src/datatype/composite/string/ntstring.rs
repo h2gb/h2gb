@@ -9,7 +9,7 @@ use crate::datatype::composite::H2Array;
 /// Defines a null-terminated string.
 ///
 /// This is a string with a NUL byte at the end (`'\0'`). The character type can
-/// be any type defined in [`crate::datatype::simple::Character`].
+/// be any type defined in [`crate::datatype::simple::character`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NTString {
     character: Box<H2Type>,
