@@ -11,7 +11,7 @@ use crate::datatype::composite::H2Array;
 /// This is a string with a numerical prefix that denotes the length of the
 /// string (in *characters*). The length is any numerical value as defined in
 /// [`crate::datatype::simple::H2Number`] (or other numeric types if we add any), and
-/// the character type is any type defined in [`crate::datatype::simple::Character`].
+/// the character type is any type defined in [`crate::datatype::simple::character`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
     length: Box<H2Type>,
@@ -99,7 +99,7 @@ impl H2TypeTrait for LPString {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
+    use crate::generic_number::{Context, GenericReader, Endian, DecimalFormatter, HexFormatter};
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
     use crate::datatype::simple::character::{UTF8, ASCII, StrictASCII};
@@ -111,7 +111,7 @@ mod tests {
         let data = b"\x00\x07\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(SizedDefinition::U16(Endian::Big), SizedDisplay::Decimal);
+        let size_type = H2Number::new(GenericReader::U16(Endian::Big), DecimalFormatter::new());
 
         let a = LPString::new(size_type, UTF8::new())?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
@@ -124,7 +124,7 @@ mod tests {
         let data = b"\x00\x41".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal);
+        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
         let a = LPString::new(size_type, UTF8::new())?;
         assert_eq!("\"\"", a.to_display(offset)?);
 
@@ -136,7 +136,7 @@ mod tests {
         let data = b"".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal);
+        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
         let a = LPString::new(size_type, UTF8::new())?;
         assert!(a.to_display(offset).is_err());
 
@@ -148,7 +148,7 @@ mod tests {
         let data = b"\x00\x07PPPPPP\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new_aligned(Alignment::Loose(8), SizedDefinition::U16(Endian::Big), SizedDisplay::Decimal);
+        let size_type = H2Number::new_aligned(Alignment::Loose(8), GenericReader::U16(Endian::Big), DecimalFormatter::new());
 
         let a = LPString::new(size_type, UTF8::new())?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
@@ -162,7 +162,7 @@ mod tests {
         let data = b"\x07\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal);
+        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
         let a: H2Type = LPString::new(size_type, UTF8::new())?;
         let array = a.resolve(offset, None)?;
 
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_bad_type() -> SimpleResult<()> {
-        let size_type = H2Number::new(SizedDefinition::U8, SizedDisplay::Decimal);
+        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
         assert!(LPString::new(size_type, IPv4::new(Endian::Big)).is_err());
 
         let size_type = IPv4::new(Endian::Big);
@@ -196,7 +196,7 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let t = H2Array::new(3, LPString::new(
-          H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())),
+          H2Number::new(GenericReader::U8, HexFormatter::pretty()),
           ASCII::new(StrictASCII::Strict),
         )?)?;
 

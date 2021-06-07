@@ -285,7 +285,7 @@ impl<'a, T> BumpyVector<T> {
         }
 
         if entry.range.end > self.max_size {
-            bail!("Invalid entry: entry exceeds max size");
+            bail!("Invalid entry: entry exceeds max size (entry ends @ {:x}, max size is {:x})", entry.range.end, self.max_size);
         }
 
         // Check if there's a conflict on the left
@@ -1054,13 +1054,13 @@ mod tests {
         struct Test {
             size: usize,
             index: usize,
-        };
+        }
 
         impl AutoBumpyEntry for Test {
             fn range(&self) -> Range<usize> {
                 self.index..(self.index+self.size)
             }
-        };
+        }
 
         let good_entry1 = Test {
             index: 0,

@@ -14,21 +14,15 @@
 //! by running [./install-hooks.sh](/install-hooks.sh) in the root folder.
 #![allow(dead_code)] // TODO: Disable this
 
-// Enable char::from_u32()
-#![feature(assoc_char_funcs)]
-#![feature(range_is_empty)]
-
-pub mod action;
-pub mod h2project;
-pub mod h2buffer;
-pub mod h2layer;
-pub mod h2entry;
-
+pub mod analyzer;
 pub mod bumpy_vector;
 pub mod datatype;
 pub mod multi_vector;
-pub mod sized_number;
+pub mod generic_number;
 pub mod transformation;
+
+pub mod project;
+pub mod actions;
 
 // Actions we need:
 // * load data as buffer

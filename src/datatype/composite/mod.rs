@@ -6,10 +6,11 @@
 mod h2array;
 pub use h2array::*;
 
-mod h2enum;
-pub use h2enum::*;
+mod h2union;
+pub use h2union::*;
 
 mod h2struct;
 pub use h2struct::*;
 
 pub mod string;
+pub use string::*;

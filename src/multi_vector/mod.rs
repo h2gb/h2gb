@@ -541,6 +541,19 @@ where
         self.vectors.get(vector)?.get(index)
     }
 
+    /// Get a single mutable entry at the requested index.
+    ///
+    /// # Return
+    ///
+    /// On success, returns a reference to a `BumpyEntry` that wraps the data
+    /// in a `MultiEntry`. I decided to return `MultiEntry` to give easier
+    /// access to the `vector` and `references` information.
+    ///
+    /// If no element exists there, return `None`.
+    pub fn get_entry_mut(&mut self, vector: &N, index: usize) -> Option<&mut BumpyEntry<MultiEntry<N, T>>> {
+        self.vectors.get_mut(vector)?.get_mut(index)
+    }
+
     /// Get the group of entries, starting at the requested one.
     ///
     /// # Return
@@ -677,6 +690,10 @@ where
 
         Ok(results)
     }
+
+    //pub fn remove_entries_range(&mut self, vector: &N, range: Range<usize>) {
+        // TODO: Implement remove_entries_range for deleting entries (later)
+    //}
 
     /// Returns the number of vectors in the `MultiVector`.
     pub fn vector_count(&self) -> usize {

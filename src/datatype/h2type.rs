@@ -33,7 +33,7 @@ pub enum H2Types {
 
     // Composite
     H2Array(H2Array),
-    H2Enum(H2Enum),
+    H2Union(H2Union),
     H2Struct(H2Struct),
 
     // Strings
@@ -47,8 +47,8 @@ pub enum H2Types {
 /// In general, when consuming this crate, you probably won't be creating an
 /// `H2Type` directly; rather, use the `new()` or `new_aligned()` function of
 /// any of the various types defined in [`crate::datatype::simple`],
-/// [`crate::datatype::composite`], or [`crate::datatype::composite::strings`]. Those `new()`
-/// functions return an `H2Type`.
+/// [`crate::datatype::composite`], or [`crate::datatype::composite::string`].
+/// Those `new()` functions return an `H2Type`.
 ///
 /// Please note that many of the functions here are very expensive, because
 /// they have to read the object and iterate every time they're called. If you
@@ -92,7 +92,7 @@ impl H2Type {
 
             // Complex
             H2Types::H2Array(t)   => t,
-            H2Types::H2Enum(t)    => t,
+            H2Types::H2Union(t)   => t,
             H2Types::H2Struct(t)  => t,
 
             // Strings
@@ -127,7 +127,7 @@ impl H2Type {
         self.field_type().range(offset, Alignment::None)
     }
 
-    /// Get the [`Range<u64`] that the type will cover, with padding.
+    /// Get the [`Range<u64>`] that the type will cover, with padding.
     pub fn aligned_range(&self, offset: Offset) -> SimpleResult<Range<u64>> {
         self.field_type().range(offset, self.alignment)
     }

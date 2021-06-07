@@ -23,7 +23,9 @@ License: MIT
 
 * [./src/multi_vector](./src/multi_vector/README.md) - An object that holds multiple `BumpyVector`s, and can manage linked entries
 
-* [./src/sized_number](./src/sized_number/README.md) - A simple library for reading differently-sized integers and floats.
+* [./src/analyzer](./src/analyzer/README.md) - Some good info should go here!
 
 * [./src/transformation](./src/transformation/README.md) - A library for transforming raw data between encodings.
+
+* [./src/generic_number](./src/generic_number/README.md) - A library for reading and formatting differently-sized integers and floats.
 

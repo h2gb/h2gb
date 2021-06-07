@@ -60,7 +60,7 @@ impl H2TypeTrait for H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, SizedDefinition, SizedDisplay, Endian};
+    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DecimalFormatter};
 
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
@@ -76,31 +76,31 @@ mod tests {
             (
                 "field_u32".to_string(),
                 H2Number::new(
-                    SizedDefinition::U32(Endian::Big),
-                    SizedDisplay::Hex(Default::default()),
+                    GenericReader::U32(Endian::Big),
+                    HexFormatter::pretty(),
                 )
             ),
             (
                 "field_u16".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(3),
-                    SizedDefinition::U16(Endian::Big),
-                    SizedDisplay::Hex(Default::default()),
+                    GenericReader::U16(Endian::Big),
+                    HexFormatter::pretty(),
                 )
             ),
             (
                 "field_u8".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(4),
-                    SizedDefinition::U8,
-                    SizedDisplay::Octal(Default::default()),
+                    GenericReader::U8,
+                    OctalFormatter::new(true, false),
                 )
             ),
             (
                 "field_u32_little".to_string(),
                 H2Number::new(
-                    SizedDefinition::U32(Endian::Little),
-                    SizedDisplay::Decimal,
+                    GenericReader::U32(Endian::Little),
+                    DecimalFormatter::new(),
                 )
             ),
         ])?;
@@ -161,8 +161,8 @@ mod tests {
                 "hex".to_string(),
                 H2Number::new_aligned(
                     Alignment::Loose(4),
-                    SizedDefinition::U16(Endian::Big),
-                    SizedDisplay::Hex(Default::default()),
+                    GenericReader::U16(Endian::Big),
+                    HexFormatter::pretty(),
                 )
             ),
             (
@@ -170,15 +170,24 @@ mod tests {
                 H2Struct::new(vec![
                     (
                         "A".to_string(),
-                        H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())).into()
+                        H2Number::new(
+                            GenericReader::U8,
+                            HexFormatter::pretty(),
+                        )
                     ),
                     (
                         "B".to_string(),
-                        H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())).into()
+                        H2Number::new(
+                            GenericReader::U8,
+                            HexFormatter::pretty(),
+                        )
                     ),
                     (
                         "C".to_string(),
-                        H2Number::new(SizedDefinition::U16(Endian::Big), SizedDisplay::Hex(Default::default())).into()
+                        H2Number::new(
+                            GenericReader::U16(Endian::Big),
+                            HexFormatter::pretty(),
+                        )
                     ),
                     (
                         "char_array".to_string(),

@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::sized_number::{SizedDefinition, SizedDisplay};
+use crate::generic_number::{GenericReader, GenericFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -12,14 +12,15 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 /// pointer points to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Pointer {
-    definition: SizedDefinition,
-    display: SizedDisplay,
+    definition: GenericReader,
+    display: GenericFormatter,
 
     target_type: Box<H2Type>,
 }
 
 impl H2Pointer {
-    pub fn new_aligned(alignment: Alignment, definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, definition: GenericReader, display: GenericFormatter, target_type: H2Type) -> H2Type {
+        // TODO: Ensure the definition can be a u64
         H2Type::new(alignment, H2Types::H2Pointer(Self {
             definition: definition,
             display: display,
@@ -27,7 +28,7 @@ impl H2Pointer {
         }))
     }
 
-    pub fn new(definition: SizedDefinition, display: SizedDisplay, target_type: H2Type) -> H2Type {
+    pub fn new(definition: GenericReader, display: GenericFormatter, target_type: H2Type) -> H2Type {
         Self::new_aligned(Alignment::None, definition, display, target_type)
     }
 }
@@ -38,7 +39,7 @@ impl H2TypeTrait for H2Pointer {
     }
 
     fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
-        Ok(self.definition.size())
+        Ok(self.definition.size() as u64)
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
@@ -46,11 +47,11 @@ impl H2TypeTrait for H2Pointer {
             Offset::Static(_) => Ok(format!("Pointer to {}", self.target_type.to_display(offset)?)),
             Offset::Dynamic(context) => {
                 // Read the current value
-                let target_offset = self.definition.to_u64(context)?;
-                let pointer_display = self.definition.to_string(context, self.display)?;
+                let target_offset = self.definition.read(context)?;
+                let pointer_display = self.display.render(target_offset)?;
 
                 // Read the target from a separate context
-                let target = Offset::from(context.at(target_offset));
+                let target = Offset::from(context.at(target_offset.as_u64()?));
                 let target_display = match self.target_type.to_display(target) {
                     Ok(v) => v,
                     Err(e) => format!("Invalid pointer target: {}", e),
@@ -63,9 +64,10 @@ impl H2TypeTrait for H2Pointer {
 
     fn related(&self, offset: Offset) -> SimpleResult<Vec<(u64, H2Type)>> {
         let context = offset.get_dynamic()?;
+        let target = self.definition.read(context)?;
 
         Ok(vec![
-            (self.definition.to_u64(context)?, *self.target_type.clone())
+            (target.as_u64()?, *self.target_type.clone())
         ])
     }
 }
@@ -74,7 +76,7 @@ impl H2TypeTrait for H2Pointer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::{Context, Endian};
+    use crate::generic_number::{Context, Endian, HexFormatter};
 
     use crate::datatype::simple::H2Number;
 
@@ -86,13 +88,13 @@ mod tests {
 
         // 16-bit big-endian pointer (0x0008) that displays as hex
         let t = H2Pointer::new(
-            SizedDefinition::U16(Endian::Big),
-            SizedDisplay::Hex(Default::default()),
+            GenericReader::U16(Endian::Big),
+            HexFormatter::pretty(),
 
             // ...pointing to a 32-bit big-endian number (0x00010203)
             H2Number::new(
-                SizedDefinition::U32(Endian::Big),
-                SizedDisplay::Hex(Default::default()),
+                GenericReader::U32(Endian::Big),
+                HexFormatter::pretty(),
             )
         );
 
@@ -117,12 +119,10 @@ mod tests {
         let s_offset = Offset::Static(0);
         let d_offset = Offset::Dynamic(Context::new(&data));
 
-        let hex_display = SizedDisplay::Hex(Default::default());
-
-        let t = H2Pointer::new(SizedDefinition::U8, hex_display, // P1
-            H2Pointer::new(SizedDefinition::U16(Endian::Big), hex_display, // P2
-                H2Pointer::new(SizedDefinition::U32(Endian::Little), hex_display, // P3
-                    H2Number::new(SizedDefinition::U64(Endian::Big), hex_display),
+        let t = H2Pointer::new(GenericReader::U8, HexFormatter::pretty(), // P1
+            H2Pointer::new(GenericReader::U16(Endian::Big), HexFormatter::pretty(), // P2
+                H2Pointer::new(GenericReader::U32(Endian::Little), HexFormatter::pretty(), // P3
+                    H2Number::new(GenericReader::U64(Endian::Big), HexFormatter::pretty()),
                 )
             )
         );

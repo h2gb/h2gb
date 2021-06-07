@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::sized_number::Endian;
+use crate::generic_number::Endian;
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 use crate::datatype::simple::character::common;
@@ -60,7 +60,7 @@ impl H2TypeTrait for UTF32 {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::sized_number::Context;
+    use crate::generic_number::Context;
 
     #[test]
     fn test_utf32_to_display_big_endian() -> SimpleResult<()> {

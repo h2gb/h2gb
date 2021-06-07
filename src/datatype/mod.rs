@@ -14,9 +14,9 @@
 //! calculate its size, how to convert it to a string, and so on. To calculate
 //! any of those, an [`Offset`] is required. An [`Offset`] can either be
 //! abstract (a numeric offset value) or concrete (a buffer of bytes in the form
-//! of a [`sized_number::Context`]). Some types require a concrete buffer to do
-//! anything useful (for example, while the length of an IPv4 value doesn't
-//! change, the length of a UTF-8 character is based on the data).
+//! of a [`crate::generic_number::Context`]). Some types require a concrete
+//! buffer to do anything useful (for example, while the length of an IPv4 value
+//! doesn't change, the length of a UTF-8 character is based on the data).
 //!
 //! Pretty much all operations on an [`H2Type`] require an [`Offset`], but
 //! whether can work with a [`Offset::Static`] or [`Offset::Dynamic`] depends on
@@ -43,13 +43,13 @@
 //! A composite type is made up of other types. For example, a
 //! [`composite::H2Array`] is a series of the same type, a
 //! [`composite::H2Struct`] is a series of different types (with names), and a
-//! [`composite::H2Enum`] is a choice of overlapping values. These can be fully
+//! [`composite::H2Union`] is a choice of overlapping values. These can be fully
 //! recursive - an array can contain a struct which can contain an array and so
 //! on, for as long as you like.
 //!
 //! ### String types
 //!
-//! A string type, which are defined in [`composite::strings`], are a special
+//! A string type, which are defined in [`composite::string`], are a special
 //! composite type. They're really just arrays of a value that can consume a
 //! character type in some way to become a String.
 //!
@@ -75,7 +75,7 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer
 //! let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
@@ -84,7 +84,7 @@
 //! let offset = Offset::Dynamic(Context::new(&data));
 //!
 //! // Create the abstract type - this is an H2Type
-//! let t = H2Number::new(SizedDefinition::I16(Endian::Big), SizedDisplay::Decimal);
+//! let t = H2Number::new(GenericReader::I16(Endian::Big), DecimalFormatter::new());
 //!
 //! // It takes up two bytes of memory, including aligned (it's not aligned)
 //! assert_eq!(2, t.actual_size(offset).unwrap());
@@ -102,7 +102,7 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
 //! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -112,8 +112,8 @@
 //!
 //! // Create the abstract type - this is an H2Type
 //! let t = H2Number::new_aligned(
-//!   Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
-//!   SizedDisplay::Hex(Default::default())
+//!   Alignment::Loose(4), GenericReader::U16(Endian::Big),
+//!   HexFormatter::pretty(),
 //! );
 //!
 //! // It takes up two bytes of memory normally...
@@ -135,7 +135,7 @@
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
 //! use libh2gb::datatype::composite::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
 //! let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -145,8 +145,8 @@
 //!
 //! // Create an array of 4 elements, each of which is padded to 4 bytes
 //! let t = H2Array::new(4, H2Number::new_aligned(
-//!   Alignment::Loose(4), SizedDefinition::U16(Endian::Big),
-//!   SizedDisplay::Hex(Default::default())
+//!   Alignment::Loose(4), GenericReader::U16(Endian::Big),
+//!   HexFormatter::pretty(),
 //! )).unwrap();
 //!
 //! // The array takes up 16 bytes of memory, aligned and not
@@ -168,7 +168,7 @@
 //! use libh2gb::datatype::simple::character::*;
 //! use libh2gb::datatype::composite::*;
 //! use libh2gb::datatype::composite::string::*;
-//! use libh2gb::sized_number::*;
+//! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - three strings with a one-byte length prefix
 //! let data = b"\x02hi\x03bye\x04test".to_vec();
@@ -180,7 +180,7 @@
 //! // byte length
 //! let t = H2Array::new(3, LPString::new(
 //!   // The length field is an 8-bit unsigned integer
-//!   H2Number::new(SizedDefinition::U8, SizedDisplay::Hex(Default::default())),
+//!   H2Number::new(GenericReader::U8, HexFormatter::pretty()),
 //!
 //!   // The character type is just simple ascii
 //!   ASCII::new(StrictASCII::Strict),
@@ -224,4 +224,7 @@ mod h2type;
 pub use h2type::{H2Types, H2Type};
 
 pub mod simple;
+pub use simple::*;
+
 pub mod composite;
+pub use composite::*;

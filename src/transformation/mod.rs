@@ -39,38 +39,22 @@
 //! ```
 
 use simple_error::{SimpleResult, bail};
+use std::fmt;
 
 use serde::{Serialize, Deserialize};
 
-mod transform_null;
-pub use transform_null::TransformNull;
+mod transform;
+pub use transform::*;
 
-mod transform_base64;
-pub use transform_base64::TransformBase64;
-
-mod transform_base32;
-pub use transform_base32::TransformBase32;
-
-mod transform_xor_by_constant;
-pub use transform_xor_by_constant::TransformXorByConstant;
-pub use transform_xor_by_constant::XorSettings;
-
-mod transform_deflate;
-pub use transform_deflate::TransformDeflate;
-
-mod transform_hex;
-pub use transform_hex::TransformHex;
-
-mod transform_block_cipher;
-pub use transform_block_cipher::{TransformBlockCipher, BlockCipherPadding, BlockCipherType, BlockCipherMode};
-
-mod transform_stream_cipher;
-pub use transform_stream_cipher::{TransformStreamCipher, StreamCipherType};
+mod transformer_trait;
+pub use transformer_trait::TransformerTrait;
 
 mod helpers;
-use helpers::transformer_trait::TransformerTrait;
 
 /// Which transformation to perform.
+///
+/// In general, don't create this enum directly - use the initializer methods
+/// from the different transformations, which returns this enum.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub enum Transformation {
     /// No transformation - simply returns the same value. Mostly here for
@@ -141,7 +125,7 @@ pub enum Transformation {
 
     /// Base64 decode the buffer.
     ///
-    /// [`Base64Transform`] has a number of constructors to configure the
+    /// [`TransformBase64`] has a number of constructors to configure the
     /// padding, character set, and strictness.
     ///
     /// The validation, padding, and ability to do a two-way conversation
@@ -311,7 +295,7 @@ pub enum Transformation {
     ///
     /// Block ciphers have a lot of knobs, such as the algorithm, the key,
     /// the IV, mode of operation, and so on. These options are all included
-    /// in the [`BlockCipherSettings`] struct.
+    /// in the [`TransformBlockCipher`] struct.
     ///
     /// # Example
     ///
@@ -372,9 +356,15 @@ pub enum Transformation {
     FromStreamCipher(TransformStreamCipher),
 }
 
+impl fmt::Display for Transformation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.get_transformer())
+    }
+}
+
 impl Transformation {
     fn get_transformer(&self) -> Box<dyn TransformerTrait> {
-        match self {
+        match self { // TODO: I think I can simplify this by moving the *
             Self::Null(s)             => Box::new(*s),
             Self::XorByConstant(s)    => Box::new(*s),
             Self::FromBase64(s)       => Box::new(*s),
