@@ -47,13 +47,13 @@ impl H2TypeTrait for UTF32 {
         offset.get_dynamic()?.read_utf32(self.endian)
     }
 
-    fn can_be_u64(&self) -> bool {
-        true
-    }
+    // fn can_be_u64(&self) -> bool {
+    //     true
+    // }
 
-    fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
-        Ok(self.to_char(offset)? as u64)
-    }
+    // fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
+    //     Ok(self.to_char(offset)? as u64)
+    // }
 }
 
 #[cfg(test)]

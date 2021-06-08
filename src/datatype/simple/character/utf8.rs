@@ -51,13 +51,13 @@ impl H2TypeTrait for UTF8 {
         Ok(Self::read_utf8(offset.get_dynamic()?)?.1)
     }
 
-    fn can_be_u64(&self) -> bool {
-        true
-    }
+    // fn can_be_u64(&self) -> bool {
+    //     true
+    // }
 
-    fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
-        Ok(self.to_char(offset)? as u64)
-    }
+    // fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
+    //     Ok(self.to_char(offset)? as u64)
+    // }
 }
 
 #[cfg(test)]

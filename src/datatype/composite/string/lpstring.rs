@@ -20,8 +20,8 @@ pub struct LPString {
 
 impl LPString {
     pub fn new_aligned(alignment: Alignment, length: H2Type, character: H2Type) -> SimpleResult<H2Type> {
-        if !length.can_be_u64() {
-            bail!("Length type can't become a u64");
+        if !length.can_be_number() {
+            bail!("Length type isn't numeric!");
         }
 
         if !character.can_be_char() {
@@ -39,7 +39,8 @@ impl LPString {
     }
 
     fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<char>)> {
-        let length = self.length.to_u64(offset)?;
+        // TODO: This should be usize
+        let length = self.length.to_number(offset)?.as_u64()?;
 
         let mut position = offset.position() + self.length.aligned_size(offset)?;
 
@@ -83,7 +84,7 @@ impl H2TypeTrait for LPString {
     }
 
     fn children(&self, offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        let length = self.length.to_u64(offset)?;
+        let length = self.length.to_number(offset)?.as_u64()?;
 
         Ok(vec![
             // The size field

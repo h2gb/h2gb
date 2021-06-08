@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::generic_number::{GenericReader, GenericFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -53,20 +53,15 @@ impl H2TypeTrait for H2Number {
         }
     }
 
-    fn can_be_u64(&self) -> bool {
-        self.definition.can_be_u64()
+    /// Numbers can always be numbers!
+    fn can_be_number(&self) -> bool {
+        true
     }
 
-    fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
-        self.definition.read(offset.get_dynamic()?)?.as_u64()
-    }
-
-    fn can_be_i64(&self) -> bool {
-        self.definition.can_be_i64()
-    }
-
-    fn to_i64(&self, offset: Offset) -> SimpleResult<i64> {
-        self.definition.read(offset.get_dynamic()?)?.as_i64()
+    /// Convert to a [`GenericNumber`]. This lets the type represent any
+    /// fixed-length primitive type, basically.
+    fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
+        self.definition.read(offset.get_dynamic()?)
     }
 }
 
@@ -180,10 +175,10 @@ mod tests {
             DecimalFormatter::new(),
         );
 
-        assert_eq!(0,      t.to_i64(offset.at(0))?);
-        assert_eq!(32767,  t.to_i64(offset.at(2))?);
-        assert_eq!(-32768, t.to_i64(offset.at(4))?);
-        assert_eq!(-1,     t.to_i64(offset.at(6))?);
+        assert_eq!(0,      t.to_number(offset.at(0))?.as_i64()?);
+        assert_eq!(32767,  t.to_number(offset.at(2))?.as_i64()?);
+        assert_eq!(-32768, t.to_number(offset.at(4))?.as_i64()?);
+        assert_eq!(-1,     t.to_number(offset.at(6))?.as_i64()?);
 
         Ok(())
     }
@@ -198,10 +193,10 @@ mod tests {
             DecimalFormatter::new(),
         );
 
-        assert_eq!(0,     t.to_u64(offset.at(0))?);
-        assert_eq!(32767, t.to_u64(offset.at(2))?);
-        assert_eq!(32768, t.to_u64(offset.at(4))?);
-        assert_eq!(65535, t.to_u64(offset.at(6))?);
+        assert_eq!(0,     t.to_number(offset.at(0))?.as_u64()?);
+        assert_eq!(32767, t.to_number(offset.at(2))?.as_u64()?);
+        assert_eq!(32768, t.to_number(offset.at(4))?.as_u64()?);
+        assert_eq!(65535, t.to_number(offset.at(6))?.as_u64()?);
 
         Ok(())
     }

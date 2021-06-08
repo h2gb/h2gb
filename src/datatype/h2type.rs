@@ -9,6 +9,7 @@ use crate::datatype::simple::character::*;
 use crate::datatype::simple::network::*;
 use crate::datatype::composite::*;
 use crate::datatype::composite::string::*;
+use crate::generic_number::GenericNumber;
 
 /// An enum used to multiplex between the various types.
 ///
@@ -180,23 +181,13 @@ impl H2Type {
         self.field_type().to_string(offset)
     }
 
-    /// Can this value represent a [`u64`]?
-    pub fn can_be_u64(&self) -> bool {
-        self.field_type().can_be_u64()
+    /// Can this value represent a [`GenericNumber`]?
+    pub fn can_be_number(&self) -> bool {
+        self.field_type().can_be_number()
     }
 
-    /// Try to convert to a [`u64`]?
-    pub fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
-        self.field_type().to_u64(offset)
-    }
-
-    /// Can this value represent a [`i64`]?
-    pub fn to_i64(&self, offset: Offset) -> SimpleResult<i64> {
-        self.field_type().to_i64(offset)
-    }
-
-    /// Try to convert to a [`i64`]?
-    pub fn can_be_i64(&self) -> bool {
-        self.field_type().can_be_i64()
+    /// Try to convert to a [`GenericNumber`]?
+    pub fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
+        self.field_type().to_number(offset)
     }
 }

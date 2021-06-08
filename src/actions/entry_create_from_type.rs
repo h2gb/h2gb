@@ -130,12 +130,12 @@ mod tests {
 
         // Make sure it's there
         let entry = record.target().entry_get("buffer", "default", 0).unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_u64.unwrap());
+        assert_eq!(0x01020304, entry.resolved().as_number.unwrap().as_u64().unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Retrieve it from the other side to make sure that works
         let entry = record.target().entry_get("buffer", "default", 3).unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_u64.unwrap());
+        assert_eq!(0x01020304, entry.resolved().as_number.unwrap().as_u64().unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Create a string type

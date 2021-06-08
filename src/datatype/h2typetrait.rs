@@ -2,6 +2,7 @@ use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
 use crate::datatype::{Alignment, Offset, ResolvedType, H2Type};
+use crate::generic_number::GenericNumber;
 
 /// The core trait that makes a type into a type. All types must implement this.
 ///
@@ -159,8 +160,7 @@ pub trait H2TypeTrait {
 
             as_char:   self.to_char(offset).ok(),
             as_string: self.to_string(offset).ok(),
-            as_u64:    self.to_u64(offset).ok(),
-            as_i64:    self.to_i64(offset).ok(),
+            as_number: self.to_number(offset).ok(),
         })
     }
 
@@ -192,29 +192,14 @@ pub trait H2TypeTrait {
         bail!("This type cannot be converted to a string");
     }
 
-    /// Can this type output a [`u64`] value?
-    ///
-    /// Like [`#can_be_char`], this doesn't have to be perfect.
-    fn can_be_u64(&self) -> bool {
+    /// Can this type output a [`GenericNumber`] (in general)?
+    fn can_be_number(&self) -> bool {
         false
     }
 
-    /// Convert to a [`u64`]. This lets a type be usable for string lengths,
-    /// pointer offsets, stuff like that.
-    fn to_u64(&self, _offset: Offset) -> SimpleResult<u64> {
-        bail!("This type cannot be converted to a u64");
-    }
-
-    /// Can this type output a [`i64`] value?
-    ///
-    /// Like [`#can_be_char`], this doesn't have to be perfect.
-    fn can_be_i64(&self) -> bool {
-        false
-    }
-
-    /// Convert to an [`i64`]. Currently, nothing consumes this, but I imagine
-    /// that relative offsets and stuff will want to use this.
-    fn to_i64(&self, _offset: Offset) -> SimpleResult<i64> {
-        bail!("This type cannot be converted to a i64");
+    /// Convert to a [`GenericNumber`]. This lets the type represent any
+    /// fixed-length primitive type, basically.
+    fn to_number(&self, _offset: Offset) -> SimpleResult<GenericNumber> {
+        bail!("This type cannot be converted to a number");
     }
 }
