@@ -3,4 +3,5 @@
   * Add different display types for characters
   * Write tests for character types
 
-* Search for use.*::.*::.*:: (to collapse some simplified hierarchies)
+* Search for `use.*::.*::.*::` (to collapse some simplified hierarchies)
+* Eliminate u64 as much as possible, in favour of usize
