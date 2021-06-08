@@ -84,7 +84,7 @@
 //! let offset = Offset::Dynamic(Context::new(&data));
 //!
 //! // Create the abstract type - this is an H2Type
-//! let t = H2Number::new(GenericReader::I16(Endian::Big), DecimalFormatter::new());
+//! let t = H2Number::new(GenericReader::I16(Endian::Big), DefaultFormatter::new());
 //!
 //! // It takes up two bytes of memory, including aligned (it's not aligned)
 //! assert_eq!(2, t.actual_size(offset).unwrap());
