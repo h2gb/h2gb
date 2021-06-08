@@ -6,7 +6,7 @@ use simple_error::{SimpleResult, bail};
 use crate::actions::*;
 //use crate::project::h2project::H2Project;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
-use crate::datatype::{H2Type, H2Number, LPString, ASCII, StrictASCII, ResolvedType};
+use crate::datatype::{H2Type, H2Number, LPString, ResolvedType};
 use crate::generic_number::{GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
@@ -64,7 +64,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         "default",
         LPString::new(
             H2Number::new(GenericReader::U8, DefaultFormatter::new()),
-            ASCII::new(StrictASCII::Permissive),
+            H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
         )?,
         0x18, // Offset
         Some("Character name"),

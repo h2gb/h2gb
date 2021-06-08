@@ -166,6 +166,47 @@ impl GenericNumber {
             Self::Char(_, _) => bail!("Can't convert character into i64"),
         }
     }
+
+    /// Is the type compatible with [`char`]?
+    pub fn can_be_char(self) -> bool {
+        match self {
+            Self::U8(_)      => false,
+            Self::U16(_)     => false,
+            Self::U32(_)     => false,
+            Self::U64(_)     => false,
+            Self::U128(_)    => false,
+
+            Self::I8(_)      => false,
+            Self::I16(_)     => false,
+            Self::I32(_)     => false,
+            Self::I64(_)     => false,
+            Self::I128(_)    => false,
+
+            Self::F32(_)     => false,
+            Self::F64(_)     => false,
+
+            Self::Char(_, _) => true,
+        }
+    }
+
+    pub fn as_char(self) -> SimpleResult<char> {
+        match self {
+            Self::I8(_)      => bail!("Can't convert i8 into char"),
+            Self::I16(_)     => bail!("Can't convert i16 into char"),
+            Self::I32(_)     => bail!("Can't convert i32 into char"),
+            Self::I64(_)     => bail!("Can't convert i64 into char"),
+            Self::I128(_)    => bail!("Can't convert i128 into char"),
+            Self::U8(_)      => bail!("Can't convert u8 (unsigned) into char"),
+            Self::U16(_)     => bail!("Can't convert u16 (unsigned) into char"),
+            Self::U32(_)     => bail!("Can't convert u32 (unsigned) into char"),
+            Self::U64(_)     => bail!("Can't convert u64 (unsigned) into char"),
+            Self::U128(_)    => bail!("Can't convert u128 into char"),
+            Self::F32(_)     => bail!("Can't convert floating point into char"),
+            Self::F64(_)     => bail!("Can't convert floating point into char"),
+
+            Self::Char(c, _) => Ok(c),
+        }
+    }
 }
 
 #[cfg(test)]

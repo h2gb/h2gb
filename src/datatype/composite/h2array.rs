@@ -64,9 +64,9 @@ impl H2TypeTrait for H2Array {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::Context;
+    use crate::generic_number::{GenericReader, DefaultFormatter, Context};
 
-    use crate::datatype::simple::character::{ASCII, UTF8, StrictASCII};
+    use crate::datatype::H2Number;
 
     #[test]
     fn test_array_type() -> SimpleResult<()> {
@@ -74,7 +74,7 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         // Check the basics
-        let a = H2Array::new(4, ASCII::new(StrictASCII::Permissive))?;
+        let a = H2Array::new(4, H2Number::new_ascii())?;
         assert_eq!(true, a.is_static());
         assert_eq!(4, a.actual_size(offset)?);
         assert_eq!(4, a.aligned_size(offset)?);
@@ -115,7 +115,7 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         // Check the basics
-        let a = H2Array::new_aligned(Alignment::Loose(8), 4, ASCII::new(StrictASCII::Permissive))?;
+        let a = H2Array::new_aligned(Alignment::Loose(8), 4, H2Number::new_ascii())?;
         assert_eq!(true, a.is_static());
         assert_eq!(4, a.actual_size(offset)?);
         assert_eq!(8, a.aligned_size(offset)?);
@@ -156,7 +156,14 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         // Check the basics
-        let a = H2Array::new(4, ASCII::new_aligned(Alignment::Loose(4), StrictASCII::Permissive))?;
+        let a = H2Array::new(
+            4,
+            H2Number::new_aligned(
+                Alignment::Loose(4),
+                GenericReader::ASCII,
+                DefaultFormatter::new(),
+            ),
+        )?;
         assert_eq!(true, a.is_static());
         assert_eq!(16,  a.actual_size(offset)?);
         assert_eq!(16, a.aligned_size(offset)?);
@@ -203,7 +210,15 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         // Check the basics (align to 5, which is awkward but easy to check)
-        let a = H2Array::new_aligned(Alignment::Loose(5), 4, ASCII::new_aligned(Alignment::Loose(4), StrictASCII::Permissive))?;
+        let a = H2Array::new_aligned(
+            Alignment::Loose(5),
+            4,
+            H2Number::new_aligned(
+                Alignment::Loose(4),
+                GenericReader::ASCII,
+                DefaultFormatter::new(),
+            ),
+        )?;
         assert_eq!(true, a.is_static());
         assert_eq!(16,  a.actual_size(offset)?);
         assert_eq!(20, a.aligned_size(offset)?);
@@ -249,7 +264,14 @@ mod tests {
         let data = b"xAxxxBxxxCxxxDxx".to_vec();
         let offset = Offset::Dynamic(Context::new(&data).at(1));
 
-        let a = H2Array::new(4, ASCII::new_aligned(Alignment::Loose(4), StrictASCII::Permissive))?;
+        let a = H2Array::new(
+            4,
+            H2Number::new_aligned(
+                Alignment::Loose(4),
+                GenericReader::ASCII,
+                DefaultFormatter::new(),
+            ),
+        )?;
         assert_eq!(true, a.is_static());
         assert_eq!(16,  a.actual_size(offset)?);
         assert_eq!(16, a.aligned_size(offset)?);
@@ -296,7 +318,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = H2Array::new(7, UTF8::new())?;
+        let a = H2Array::new(7, H2Number::new_utf8())?;
         assert_eq!(18, a.actual_size(offset)?);
         assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", a.to_display(offset)?);
 

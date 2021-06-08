@@ -59,7 +59,23 @@ impl GenericFormatterImpl for DefaultFormatter {
             GenericNumber::F32(v)     => Ok(format!("{}", v)),
             GenericNumber::F64(v)     => Ok(format!("{}", v)),
 
-            GenericNumber::Char(v, _) => Ok(format!("{}", v)),
+            // TODO: I need to do a better formatter for characters, but for now this will do
+            GenericNumber::Char(v, _) => {
+                Ok(match v as u32 {
+                    0x00        => "'\\0'".to_string(),
+                    0x01..=0x06 => format!("'\\x{:02x}'", v as u32),
+                    0x07        => "'\\a'".to_string(),
+                    0x08        => "'\\b'".to_string(),
+                    0x09        => "'\\t'".to_string(),
+                    0x0a        => "'\\n'".to_string(),
+                    0x0b        => "'\\v'".to_string(),
+                    0x0c        => "'\\f'".to_string(),
+                    0x0d        => "'\\r'".to_string(),
+                    0x0e..=0x1f => format!("'\\x{:02x}'", v as u32),
+
+                    _ => format!("'{}'", v)
+                })
+            }
         }
     }
 }

@@ -9,8 +9,5 @@ pub use h2number::*;
 mod h2pointer;
 pub use h2pointer::*;
 
-pub mod character;
-pub use character::*;
-
 pub mod network;
 pub use network::*;

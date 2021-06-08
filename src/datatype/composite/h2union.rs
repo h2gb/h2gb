@@ -80,11 +80,9 @@ impl H2TypeTrait for H2Union {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter};
 
-    use crate::datatype::simple::H2Number;
-    use crate::datatype::simple::character::{ASCII, StrictASCII};
-    use crate::datatype::composite::H2Array;
+    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter};
+    use crate::datatype::{H2Number, H2Array};
 
     #[test]
     fn test_union() -> SimpleResult<()> {
@@ -112,7 +110,7 @@ mod tests {
                 H2Array::new_aligned(
                     Alignment::Loose(12),
                     8,
-                    ASCII::new(StrictASCII::Permissive),
+                    H2Number::new_ascii(),
                 )?,
             ),
             (

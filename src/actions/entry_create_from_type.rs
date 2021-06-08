@@ -110,7 +110,7 @@ mod tests {
 
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
-    use crate::datatype::{H2Number, LPString, ASCII, StrictASCII};
+    use crate::datatype::{H2Number, LPString};
     use crate::generic_number::{GenericReader, Endian, DefaultFormatter};
 
     #[test]
@@ -139,7 +139,10 @@ mod tests {
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Create a string type
-        let datatype = LPString::new(H2Number::new(GenericReader::U8, DefaultFormatter::new()), ASCII::new(StrictASCII::Strict))?;
+        let datatype = LPString::new(
+            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+            H2Number::new_ascii(),
+        )?;
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 4);
         record.apply(action)?;
 

@@ -158,7 +158,6 @@ pub trait H2TypeTrait {
 
             related: self.related(offset)?,
 
-            as_char:   self.to_char(offset).ok(),
             as_string: self.to_string(offset).ok(),
             as_number: self.to_number(offset).ok(),
         })
@@ -176,8 +175,8 @@ pub trait H2TypeTrait {
     ///
     /// Types that can become a [`char`] can be used as part of one of the
     /// various [`crate::datatype::composite::string`] types.
-    fn to_char(&self, _offset: Offset) -> SimpleResult<char> {
-        bail!("This type cannot be converted to a character");
+    fn to_char(&self, offset: Offset) -> SimpleResult<char> {
+        self.to_number(offset)?.as_char()
     }
 
     /// Can this type output a [`String`] (in general)?

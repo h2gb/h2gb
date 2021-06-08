@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter, DefaultFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -32,6 +32,16 @@ impl H2Number {
 
     pub fn new(definition: GenericReader, display: GenericFormatter) -> H2Type {
         Self::new_aligned(Alignment::None, definition, display)
+    }
+
+    /// Convenience function to pre-set a definition
+    pub fn new_ascii() -> H2Type {
+        Self::new(GenericReader::ASCII, DefaultFormatter::new())
+    }
+
+    /// Convenience function to pre-set a definition
+    pub fn new_utf8() -> H2Type {
+        Self::new(GenericReader::UTF8, DefaultFormatter::new())
     }
 }
 
@@ -66,6 +76,11 @@ impl H2TypeTrait for H2Number {
     /// fixed-length primitive type, basically.
     fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
         self.definition.read(offset.get_dynamic()?)
+    }
+
+    /// Can this type output a [`char`]?
+    fn can_be_char(&self) -> bool {
+        self.definition.can_be_char()
     }
 }
 
