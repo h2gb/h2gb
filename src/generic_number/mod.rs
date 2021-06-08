@@ -34,7 +34,7 @@
 //! // Display it using different formatters (these use the pretty defaults) -
 //! // these formatters can also be serialized!
 //! assert_eq!("0x01234567",                         HexFormatter::pretty().render(number).unwrap());
-//! assert_eq!("19088743",                           DecimalFormatter::new().render(number).unwrap());
+//! assert_eq!("19088743",                           DefaultFormatter::new().render(number).unwrap());
 //! assert_eq!("0o110642547",                        OctalFormatter::pretty().render(number).unwrap());
 //! assert_eq!("0b00000001001000110100010101100111", BinaryFormatter::pretty().render(number).unwrap());
 //! assert_eq!("1.9088743e7",                        ScientificFormatter::pretty().render(number).unwrap());

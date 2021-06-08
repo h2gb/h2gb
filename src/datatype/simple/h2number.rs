@@ -69,7 +69,7 @@ impl H2TypeTrait for H2Number {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, Endian, GenericReader, HexFormatter, DecimalFormatter};
+    use crate::generic_number::{Context, Endian, GenericReader, HexFormatter, DefaultFormatter};
 
     #[test]
     fn test_u8_hex() -> SimpleResult<()> {
@@ -104,7 +104,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::I16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(2, t.actual_size(s_offset).unwrap());
@@ -129,7 +129,7 @@ mod tests {
         let t = H2Number::new_aligned(
             Alignment::Loose(8),
             GenericReader::I16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
         // Starting at 0
@@ -172,7 +172,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::I16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(0,      t.to_number(offset.at(0))?.as_i64()?);
@@ -190,7 +190,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::U16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(0,     t.to_number(offset.at(0))?.as_u64()?);

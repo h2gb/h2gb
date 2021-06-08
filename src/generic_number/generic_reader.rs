@@ -41,13 +41,13 @@ pub enum GenericReader {
 
     /// Signed 32-bit (aka, single precision) floating point.
     ///
-    /// Note: floats can only be displayed as `GenericFormatter::Decimal` or
+    /// Note: floats can only be displayed as `GenericFormatter::Default` or
     /// `GenericFormatter::Scientific`.
     F32(Endian),
 
     /// Signed 64-bit (aka, double precision) floating point
     ///
-    /// Note: floats can only be displayed as `GenericFormatter::Decimal` or
+    /// Note: floats can only be displayed as `GenericFormatter::Default` or
     /// `GenericFormatter::Scientific`.
     F64(Endian),
 }

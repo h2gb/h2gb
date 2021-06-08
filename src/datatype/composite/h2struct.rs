@@ -60,7 +60,7 @@ impl H2TypeTrait for H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DecimalFormatter};
+    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DefaultFormatter};
 
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
@@ -100,7 +100,7 @@ mod tests {
                 "field_u32_little".to_string(),
                 H2Number::new(
                     GenericReader::U32(Endian::Little),
-                    DecimalFormatter::new(),
+                    DefaultFormatter::new(),
                 )
             ),
         ])?;

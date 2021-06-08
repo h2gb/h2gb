@@ -111,7 +111,7 @@ mod tests {
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
     use crate::datatype::{H2Number, LPString, ASCII, StrictASCII};
-    use crate::generic_number::{GenericReader, GenericFormatter, Endian};
+    use crate::generic_number::{GenericReader, Endian, DefaultFormatter};
 
     #[test]
     fn test_action_create_entry() -> SimpleResult<()> {
@@ -124,7 +124,7 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create a numeric type
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
         record.apply(action)?;
 
@@ -139,7 +139,7 @@ mod tests {
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Create a string type
-        let datatype = LPString::new(H2Number::new(GenericReader::U8, GenericFormatter::Decimal(Default::default())), ASCII::new(StrictASCII::Strict))?;
+        let datatype = LPString::new(H2Number::new(GenericReader::U8, DefaultFormatter::new()), ASCII::new(StrictASCII::Strict))?;
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 4);
         record.apply(action)?;
 
@@ -181,29 +181,29 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create an entry
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
         record.apply(action)?;
 
         // Make sure we can't overlap it
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
 
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 1)).is_err());
 
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 2)).is_err());
 
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 3)).is_err());
 
         // Going off the end should also be an error
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 5)).is_err());
 
         // But 4, like the third bed, should be jussst right
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 4)).is_ok());
 
         Ok(())
@@ -221,12 +221,12 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default2"))?;
 
         // Create an entry
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
         record.apply(action)?;
 
         // Make sure we can't overlap it
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), GenericFormatter::Decimal(Default::default()));
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
         assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
 
         Ok(())
