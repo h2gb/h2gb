@@ -62,8 +62,6 @@ impl GenericFormatterImpl for HexFormatter {
             (true, GenericNumber::I32(v))  => format!("{:08x}", v),
             (true, GenericNumber::I64(v))  => format!("{:016x}", v),
             (true, GenericNumber::I128(v)) => format!("{:032x}", v),
-            (true, GenericNumber::F32(_v)) => bail!("Cannot display floating point as hex"),
-            (true, GenericNumber::F64(_v)) => bail!("Cannot display floating point as hex"),
 
             (false, GenericNumber::U8(v))   => format!("{:x}", v),
             (false, GenericNumber::U16(v))  => format!("{:x}", v),
@@ -75,8 +73,10 @@ impl GenericFormatterImpl for HexFormatter {
             (false, GenericNumber::I32(v))  => format!("{:x}", v),
             (false, GenericNumber::I64(v))  => format!("{:x}", v),
             (false, GenericNumber::I128(v)) => format!("{:x}", v),
-            (false, GenericNumber::F32(_v)) => bail!("Cannot display floating point as hex"),
-            (false, GenericNumber::F64(_v)) => bail!("Cannot display floating point as hex"),
+
+            (_, GenericNumber::F32(_))      => bail!("Cannot display floating point as hex"),
+            (_, GenericNumber::F64(_))      => bail!("Cannot display floating point as hex"),
+            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as hex"),
         };
 
         // Do uppercase after for simplicity

@@ -40,8 +40,12 @@ impl H2TypeTrait for H2Number {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
-        Ok(self.definition.size() as u64)
+    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
+        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
+        match self.definition.size() {
+            Some(v) => Ok(v as u64),
+            None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),
+        }
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {

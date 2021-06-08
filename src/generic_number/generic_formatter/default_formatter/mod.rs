@@ -44,20 +44,22 @@ impl Default for DefaultFormatter {
 impl GenericFormatterImpl for DefaultFormatter {
     fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         match number {
-            GenericNumber::U8(v)   => Ok(format!("{}", v)),
-            GenericNumber::U16(v)  => Ok(format!("{}", v)),
-            GenericNumber::U32(v)  => Ok(format!("{}", v)),
-            GenericNumber::U64(v)  => Ok(format!("{}", v)),
-            GenericNumber::U128(v) => Ok(format!("{}", v)),
+            GenericNumber::U8(v)      => Ok(format!("{}", v)),
+            GenericNumber::U16(v)     => Ok(format!("{}", v)),
+            GenericNumber::U32(v)     => Ok(format!("{}", v)),
+            GenericNumber::U64(v)     => Ok(format!("{}", v)),
+            GenericNumber::U128(v)    => Ok(format!("{}", v)),
 
-            GenericNumber::I8(v)   => Ok(format!("{}", v)),
-            GenericNumber::I16(v)  => Ok(format!("{}", v)),
-            GenericNumber::I32(v)  => Ok(format!("{}", v)),
-            GenericNumber::I64(v)  => Ok(format!("{}", v)),
-            GenericNumber::I128(v) => Ok(format!("{}", v)),
+            GenericNumber::I8(v)      => Ok(format!("{}", v)),
+            GenericNumber::I16(v)     => Ok(format!("{}", v)),
+            GenericNumber::I32(v)     => Ok(format!("{}", v)),
+            GenericNumber::I64(v)     => Ok(format!("{}", v)),
+            GenericNumber::I128(v)    => Ok(format!("{}", v)),
 
-            GenericNumber::F32(v)  => Ok(format!("{}", v)),
-            GenericNumber::F64(v)  => Ok(format!("{}", v)),
+            GenericNumber::F32(v)     => Ok(format!("{}", v)),
+            GenericNumber::F64(v)     => Ok(format!("{}", v)),
+
+            GenericNumber::Char(v, _) => Ok(format!("{}", v)),
         }
     }
 }

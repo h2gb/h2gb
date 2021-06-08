@@ -26,6 +26,10 @@ pub enum GenericNumber {
 
     F32(f32),
     F64(f64),
+
+    // Explicitly store the size of the character, because the source (whether
+    // it was UTF8, UTF16, ASCII, etc.) is lost
+    Char(char, usize),
 }
 
 // Simplify converting from various basic types - generally, these shouldn't be
@@ -42,6 +46,8 @@ impl From<i64>  for GenericNumber { fn from(o: i64)  -> Self { Self::I64(o)  } }
 impl From<i128> for GenericNumber { fn from(o: i128) -> Self { Self::I128(o) } }
 impl From<f32>  for GenericNumber { fn from(o: f32)  -> Self { Self::F32(o)  } }
 impl From<f64>  for GenericNumber { fn from(o: f64)  -> Self { Self::F64(o)  } }
+
+impl From<(char, usize)> for GenericNumber { fn from(o: (char, usize)) -> Self { Self::Char(o.0, o.1) } }
 
 impl GenericNumber {
     /// The size - in bytes - of the type.
@@ -61,6 +67,9 @@ impl GenericNumber {
 
             Self::F32(_)  => 4,
             Self::F64(_)  => 8,
+
+            // Characters know their own size
+            Self::Char(_, n) => n,
         }
     }
 
@@ -69,20 +78,22 @@ impl GenericNumber {
     /// That is, unsigned and no larger than 64 bits.
     pub fn can_be_u64(self) -> bool {
         match self {
-            Self::U8(_)   => true,
-            Self::U16(_)  => true,
-            Self::U32(_)  => true,
-            Self::U64(_)  => true,
-            Self::U128(_) => false,
+            Self::U8(_)      => true,
+            Self::U16(_)     => true,
+            Self::U32(_)     => true,
+            Self::U64(_)     => true,
+            Self::U128(_)    => false,
 
-            Self::I8(_)   => false,
-            Self::I16(_)  => false,
-            Self::I32(_)  => false,
-            Self::I64(_)  => false,
-            Self::I128(_) => false,
+            Self::I8(_)      => false,
+            Self::I16(_)     => false,
+            Self::I32(_)     => false,
+            Self::I64(_)     => false,
+            Self::I128(_)    => false,
 
-            Self::F32(_)  => false,
-            Self::F64(_)  => false,
+            Self::F32(_)     => false,
+            Self::F64(_)     => false,
+
+            Self::Char(_, _) => true,
         }
     }
 
@@ -103,6 +114,9 @@ impl GenericNumber {
             Self::I128(_) => bail!("Can't convert i128 (signed) into u64"),
             Self::F32(_)  => bail!("Can't convert floating point into u64"),
             Self::F64(_)  => bail!("Can't convert floating point into u64"),
+
+            // Let a character be a u64, I don't see why not?
+            Self::Char(v, _)   => Ok(v as u64),
         }
     }
 
@@ -111,20 +125,22 @@ impl GenericNumber {
     /// That is, signed and no larger than 64 bits.
     pub fn can_be_i64(self) -> bool {
         match self {
-            Self::U8(_)   => false,
-            Self::U16(_)  => false,
-            Self::U32(_)  => false,
-            Self::U64(_)  => false,
-            Self::U128(_) => false,
+            Self::U8(_)      => false,
+            Self::U16(_)     => false,
+            Self::U32(_)     => false,
+            Self::U64(_)     => false,
+            Self::U128(_)    => false,
 
-            Self::I8(_)   => true,
-            Self::I16(_)  => true,
-            Self::I32(_)  => true,
-            Self::I64(_)  => true,
-            Self::I128(_) => false,
+            Self::I8(_)      => true,
+            Self::I16(_)     => true,
+            Self::I32(_)     => true,
+            Self::I64(_)     => true,
+            Self::I128(_)    => false,
 
-            Self::F32(_)  => false,
-            Self::F64(_)  => false,
+            Self::F32(_)     => false,
+            Self::F64(_)     => false,
+
+            Self::Char(_, _) => false,
         }
     }
 
@@ -136,16 +152,18 @@ impl GenericNumber {
             Self::I32(v)       => Ok(v as i64),
             Self::I64(v)       => Ok(v as i64),
 
-            // None of these can become i32
-            Self::I128(_) => bail!("Can't convert i128 into i64"),
+            // None of these can become i64
+            Self::I128(_)    => bail!("Can't convert i128 into i64"),
 
-            Self::U8(_)   => bail!("Can't convert u8 (unsigned) into i64"),
-            Self::U16(_)  => bail!("Can't convert u16 (unsigned) into i64"),
-            Self::U32(_)  => bail!("Can't convert u32 (unsigned) into i64"),
-            Self::U64(_)  => bail!("Can't convert u64 (unsigned) into i64"),
-            Self::U128(_) => bail!("Can't convert u128 into i64"),
-            Self::F32(_)  => bail!("Can't convert floating point into i64"),
-            Self::F64(_)  => bail!("Can't convert floating point into i64"),
+            Self::U8(_)      => bail!("Can't convert u8 (unsigned) into i64"),
+            Self::U16(_)     => bail!("Can't convert u16 (unsigned) into i64"),
+            Self::U32(_)     => bail!("Can't convert u32 (unsigned) into i64"),
+            Self::U64(_)     => bail!("Can't convert u64 (unsigned) into i64"),
+            Self::U128(_)    => bail!("Can't convert u128 into i64"),
+            Self::F32(_)     => bail!("Can't convert floating point into i64"),
+            Self::F64(_)     => bail!("Can't convert floating point into i64"),
+
+            Self::Char(_, _) => bail!("Can't convert character into i64"),
         }
     }
 }

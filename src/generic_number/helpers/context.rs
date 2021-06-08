@@ -237,6 +237,13 @@ impl<'a> Context<'a> {
         }
     }
 
+    /// Read an 8-bit ASCII character.
+    pub fn read_ascii(self) -> SimpleResult<char> {
+        self.cursor().read_u8()
+            .map(|b| b as char)
+            .map_err(|e| SimpleError::from(e))
+    }
+
     /// Read a UTF-8 character, and return the size (in bytes) and character.
     ///
     /// A UTF-8 character is between 1 and [`MAX_UTF8_BYTES`] bytes long. The
