@@ -64,9 +64,9 @@ impl H2TypeTrait for H2Array {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{GenericReader, DefaultFormatter, Context};
 
-    use crate::datatype::H2Number;
+    use crate::generic_number::{GenericReader, DefaultFormatter, Context};
+    use crate::datatype::simple::H2Number;
 
     #[test]
     fn test_array_type() -> SimpleResult<()> {

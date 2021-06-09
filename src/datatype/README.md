@@ -75,6 +75,8 @@ and will be padded to end on 4, 8, 12, ...
 ```rust
 use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
+use libh2gb::datatype::composite::*;
+use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
 
 // This is our buffer
@@ -102,6 +104,8 @@ assert_eq!("-1",     t.to_display(offset.at(6)).unwrap());
 ```rust
 use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
+use libh2gb::datatype::composite::*;
+use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
@@ -135,6 +139,7 @@ assert_eq!("0xffff", t.to_display(offset.at(12)).unwrap());
 use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
 use libh2gb::datatype::composite::*;
+use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
@@ -164,6 +169,9 @@ sized elements, like length-prefixed strings.
 
 ```rust
 use libh2gb::datatype::*;
+use libh2gb::datatype::simple::*;
+use libh2gb::datatype::composite::*;
+use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
 
 // This is our buffer - three strings with a one-byte length prefix

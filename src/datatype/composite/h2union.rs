@@ -82,7 +82,8 @@ mod tests {
     use simple_error::SimpleResult;
 
     use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter};
-    use crate::datatype::{H2Number, H2Array};
+    use crate::datatype::simple::H2Number;
+    use crate::datatype::composite::H2Array;
 
     #[test]
     fn test_union() -> SimpleResult<()> {

@@ -7,7 +7,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};
 
-use crate::project::h2project::H2Project;
+use crate::project::H2Project;
 
 // Still needed:
 // * Layers
@@ -28,25 +28,25 @@ use crate::project::h2project::H2Project;
 // * Are references separate?
 // * What about pointers / structs / arrays / etc?
 
-pub mod buffer_create_empty;
+mod buffer_create_empty;
 pub use buffer_create_empty::ActionBufferCreateEmpty;
 
-pub mod buffer_create_from_bytes;
+mod buffer_create_from_bytes;
 pub use buffer_create_from_bytes::ActionBufferCreateFromBytes;
 
-pub mod buffer_transform;
+mod buffer_transform;
 pub use buffer_transform::ActionBufferTransform;
 
-pub mod null;
+mod null;
 pub use null::NullAction;
 
-pub mod layer_create;
+mod layer_create;
 pub use layer_create::ActionLayerCreate;
 
-pub mod entry_create_from_type;
+mod entry_create_from_type;
 pub use entry_create_from_type::ActionEntryCreateFromType;
 
-pub mod entry_set_comment;
+mod entry_set_comment;
 pub use entry_set_comment::ActionEntrySetComment;
 
 // Don't create this directly - use the actions' new() functions

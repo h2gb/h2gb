@@ -10,7 +10,8 @@ use crate::datatype::composite::H2Array;
 ///
 /// The length (in characters) is chosen when creating the type. The length in
 /// bytes may be longer if the character type is non-ASCII, however. See
-/// [`crate::datatype::simple::character`] for a list of possible character types.
+/// [`crate::generic_number::GenericReader`] for a list of possible character
+/// types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2String {
     length: u64,
@@ -92,7 +93,8 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use crate::generic_number::{Context, Endian};
-    use crate::datatype::{H2Number, IPv4};
+    use crate::datatype::simple::H2Number;
+    use crate::datatype::simple::network::IPv4;
 
     #[test]
     fn test_utf8_lstring() -> SimpleResult<()> {

@@ -1,15 +1,14 @@
 use serde::{Serialize, Deserialize};
-
 use simple_error::SimpleResult;
-use crate::generic_number::{GenericReader, GenericFormatter};
 
+use crate::generic_number::{GenericReader, GenericFormatter};
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
 /// Defines a pointer type - a numeric type that points to another location.
 ///
-/// This is defined very similarly to [`crate::datatype::simple::H2Number`], with one
-/// additional field: the `target_type`, which is the type of the value that the
-/// pointer points to.
+/// This is defined very similarly to [`crate::datatype::simple::H2Number`],
+/// with one additional field: the `target_type`, which is the type of the value
+/// that the pointer points to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Pointer {
     definition: GenericReader,
@@ -80,8 +79,8 @@ impl H2TypeTrait for H2Pointer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, Endian, HexFormatter};
 
+    use crate::generic_number::{Context, Endian, HexFormatter};
     use crate::datatype::simple::H2Number;
 
     #[test]

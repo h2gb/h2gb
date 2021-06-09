@@ -1,12 +1,13 @@
 use libh2gb::*;
 
+use std::fs;
+use std::path::PathBuf;
+
 use redo::Record;
 use simple_error::SimpleResult;
 
 use crate::actions::*;
-use std::fs;
-use std::path::PathBuf;
-use crate::project::h2project::H2Project;
+use crate::project::H2Project;
 use crate::analyzer::analyze_terraria;
 
 fn main() -> SimpleResult<()> {

@@ -10,8 +10,7 @@ use chacha20::ChaCha20Legacy;
 use nettle::cipher::Salsa20_128;
 use nettle::cipher::insecure_do_not_use::ArcFour;
 
-use crate::transformation::{Transformation, TransformerTrait};
-use crate::transformation::helpers::key_or_iv::KeyOrIV;
+use crate::transformation::{Transformation, TransformerTrait, KeyOrIV};
 
 /// Which stream cipher should we use?
 #[allow(non_camel_case_types)]

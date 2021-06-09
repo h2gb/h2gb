@@ -61,7 +61,9 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DefaultFormatter};
-    use crate::datatype::{H2Number, IPv4, H2Array};
+    use crate::datatype::simple::H2Number;
+    use crate::datatype::simple::network::IPv4;
+    use crate::datatype::composite::H2Array;
 
     #[test]
     fn test_struct() -> SimpleResult<()> {

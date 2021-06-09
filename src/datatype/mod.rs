@@ -75,6 +75,8 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
+//! use libh2gb::datatype::composite::*;
+//! use libh2gb::datatype::composite::string::*;
 //! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer
@@ -102,6 +104,8 @@
 //! ```
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
+//! use libh2gb::datatype::composite::*;
+//! use libh2gb::datatype::composite::string::*;
 //! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
@@ -135,6 +139,7 @@
 //! use libh2gb::datatype::*;
 //! use libh2gb::datatype::simple::*;
 //! use libh2gb::datatype::composite::*;
+//! use libh2gb::datatype::composite::string::*;
 //! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
@@ -164,6 +169,9 @@
 //!
 //! ```
 //! use libh2gb::datatype::*;
+//! use libh2gb::datatype::simple::*;
+//! use libh2gb::datatype::composite::*;
+//! use libh2gb::datatype::composite::string::*;
 //! use libh2gb::generic_number::*;
 //!
 //! // This is our buffer - three strings with a one-byte length prefix
@@ -220,7 +228,4 @@ mod h2type;
 pub use h2type::{H2Types, H2Type};
 
 pub mod simple;
-pub use simple::*;
-
 pub mod composite;
-pub use composite::*;

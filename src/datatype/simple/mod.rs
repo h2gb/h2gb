@@ -10,4 +10,3 @@ mod h2pointer;
 pub use h2pointer::*;
 
 pub mod network;
-pub use network::*;
