@@ -9,9 +9,6 @@ pub use binary_formatter::*;
 mod default_formatter;
 pub use default_formatter::*;
 
-mod enum_formatter;
-pub use enum_formatter::*;
-
 mod hex_formatter;
 pub use hex_formatter::*;
 
@@ -20,6 +17,12 @@ pub use octal_formatter::*;
 
 mod scientific_formatter;
 pub use scientific_formatter::*;
+
+mod character_formatter;
+pub use character_formatter::*;
+
+mod enum_formatter;
+pub use enum_formatter::*;
 
 /// A trait to simplify rendering.
 ///
@@ -55,6 +58,7 @@ pub enum GenericFormatter {
     Octal(OctalFormatter),
     Binary(BinaryFormatter),
     Scientific(ScientificFormatter),
+    Character(CharacterFormatter),
     Enum(EnumFormatter),
 }
 
@@ -64,10 +68,11 @@ impl GenericFormatter {
         match self {
             Self::Binary(o)     => Box::new(*o),
             Self::Default(o)    => Box::new(*o),
-            Self::Enum(o)       => Box::new(*o),
             Self::Hex(o)        => Box::new(*o),
             Self::Octal(o)      => Box::new(*o),
             Self::Scientific(o) => Box::new(*o),
+            Self::Character(o)  => Box::new(*o),
+            Self::Enum(o)       => Box::new(*o),
         }
     }
 
