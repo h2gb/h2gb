@@ -6,10 +6,19 @@ use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImp
 /// Format options for unprintable characters
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum CharacterUnprintableOption {
-    /// Encode like a C array - '\xYY' or '\n'.
+    /// Encode unprintable characters as hex, - `'\xYY'`
     ///
     /// This uses UTF-8, which isn't necessarily the same as the original.
-    BackslashEncode,
+    HexEncode,
+
+    /// Encode like a C string.
+    ///
+    /// When possible, control characters (such as `\n`) are used, but
+    /// otherwise hex-encode - `'\xYY'`.
+    ///
+    /// This uses UTF-8, which isn't necessarily the same as the original.
+    CString,
+
 
     /// Replace with the Unicode Replacement character - '�'
     UnicodeReplacementCharacter,
@@ -59,8 +68,8 @@ pub enum CharacterReplacementPolicy {
 /// assert_eq!("☃", CharacterFormatter::pretty_str().render(othernumber).unwrap());
 ///
 /// // Specify options: replace everything with hex encoding
-/// assert_eq!("\\x61", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::BackslashEncode).render(number).unwrap());
-/// assert_eq!("\\xe2\\x98\\x83", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::BackslashEncode).render(othernumber).unwrap());
+/// assert_eq!("\\x61", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(number).unwrap());
+/// assert_eq!("\\xe2\\x98\\x83", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(othernumber).unwrap());
 ///
 /// // Specify different options: replace non-ascii characters with URL encoding
 /// assert_eq!("a", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render(number).unwrap());
@@ -92,23 +101,44 @@ impl CharacterFormatter {
 
     /// Choose decent options to look nice
     pub fn pretty() -> GenericFormatter {
-        Self::new(true, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::BackslashEncode)
+        Self::new(true, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
     }
 
     /// Choose decent options to look nice (as part of a string)
     pub fn pretty_str() -> GenericFormatter {
-        Self::new(false, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::BackslashEncode)
+        Self::new(false, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
     }
 
     fn handle_unprintable(self, c: char) -> String {
         match self.unprintable_option {
-            CharacterUnprintableOption::BackslashEncode => {
+            CharacterUnprintableOption::HexEncode => {
                 // Create a buffer (mandatory) - this function literally panics
                 // if the buffer is too small, but maximum ever needed is 4
                 // bytes
                 let mut b = [0; 4];
                 let result = c.encode_utf8(&mut b);
                 result.as_bytes().into_iter().map(|b| format!("\\x{:02x}", b)).collect()
+            },
+
+            CharacterUnprintableOption::CString => {
+                // Create a buffer (mandatory) - this function literally panics
+                // if the buffer is too small, but maximum ever needed is 4
+                // bytes
+                let mut b = [0; 4];
+                let result = c.encode_utf8(&mut b);
+                result.bytes().into_iter().map(|b| {
+                    match b {
+                        0x00   => "\\0".to_string(),
+                        0x07   => "\\a".to_string(),
+                        0x08   => "\\b".to_string(),
+                        0x09   => "\\t".to_string(),
+                        0x0a   => "\\n".to_string(),
+                        0x0b   => "\\v".to_string(),
+                        0x0c   => "\\f".to_string(),
+                        0x0d   => "\\r".to_string(),
+                        _      => format!("\\x{:02x}", b),
+                    }
+                }).collect()
             },
 
             CharacterUnprintableOption::UnicodeReplacementCharacter => "�".to_string(),
@@ -193,7 +223,7 @@ mod tests {
     use crate::generic_number::GenericNumber;
 
     #[test]
-    fn test_char() -> SimpleResult<()> {
+    fn test_char_formatter() -> SimpleResult<()> {
         let tests = vec![
             // character  single_quotes   replacement_policy                           unprintable_option                                          expected
 
@@ -219,10 +249,10 @@ mod tests {
             (  '\x7f',    false,          CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::UnicodeReplacementCharacter,  "�" ),
             (  '💣',      false,          CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::UnicodeReplacementCharacter,  "💣" ),
 
-            // Test BackslashEncode
-            (  'a',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::BackslashEncode,  "\\x61" ),
-            (  '\n',      false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::BackslashEncode,  "\\x0a" ),
-            (  '💣',      false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::BackslashEncode,  "\\xf0\\x9f\\x92\\xa3" ),
+            // Test HexEncode
+            (  'a',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode,  "\\x61" ),
+            (  '\n',      false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode,  "\\x0a" ),
+            (  '💣',      false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode,  "\\xf0\\x9f\\x92\\xa3" ),
 
             // Test UrlEncode
             (  'a',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::URLEncode,  "%61" ),
@@ -230,6 +260,13 @@ mod tests {
             (  '💣',      false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::URLEncode,  "%f0%9f%92%a3" ),
             (  ' ',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::URLEncode,  "+" ),
             (  '%',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::URLEncode,  "%25" ),
+
+            // Test CString
+            (  'a',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::CString,  "\\x61" ),
+            (  '\n',      false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::CString,  "\\n" ),
+            (  '💣',      false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::CString,  "\\xf0\\x9f\\x92\\xa3" ),
+            (  ' ',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::CString,  "\\x20" ),
+            (  '%',       false,          CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::CString,  "\\x25" ),
         ];
 
         for (c, show_quotes, replacement_policy, unprintable, expected) in tests {

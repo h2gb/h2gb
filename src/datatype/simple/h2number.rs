@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter, DefaultFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter, CharacterFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -34,14 +34,44 @@ impl H2Number {
         Self::new_aligned(Alignment::None, definition, display)
     }
 
-    /// Convenience function to pre-set a definition
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as ASCII, formats the characters in the style of `'a'`.
     pub fn new_ascii() -> H2Type {
-        Self::new(GenericReader::ASCII, DefaultFormatter::new())
+        Self::new(
+            GenericReader::ASCII,
+            CharacterFormatter::pretty(),
+        )
     }
 
-    /// Convenience function to pre-set a definition
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as ASCII, formats as just a letter, like `a`.
+    pub fn new_ascii_string() -> H2Type {
+        Self::new(
+            GenericReader::ASCII,
+            CharacterFormatter::pretty_str(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as UTF8, formats the characters in the style of `'a'`.
     pub fn new_utf8() -> H2Type {
-        Self::new(GenericReader::UTF8, DefaultFormatter::new())
+        Self::new(
+            GenericReader::UTF8,
+            CharacterFormatter::pretty(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as UTF8, formats the characters in the style of `a`.
+    pub fn new_utf8_string() -> H2Type {
+        Self::new(
+            GenericReader::UTF8,
+            CharacterFormatter::pretty_str(),
+        )
     }
 }
 
