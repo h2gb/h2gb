@@ -65,7 +65,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::generic_number::{GenericReader, DefaultFormatter, Context};
+    use crate::generic_number::{GenericReader, CharacterFormatter, Context};
     use crate::datatype::simple::H2Number;
 
     #[test]
@@ -161,7 +161,7 @@ mod tests {
             H2Number::new_aligned(
                 Alignment::Loose(4),
                 GenericReader::ASCII,
-                DefaultFormatter::new(),
+                CharacterFormatter::pretty(),
             ),
         )?;
         assert_eq!(true, a.is_static());
@@ -216,7 +216,7 @@ mod tests {
             H2Number::new_aligned(
                 Alignment::Loose(4),
                 GenericReader::ASCII,
-                DefaultFormatter::new(),
+                CharacterFormatter::pretty(),
             ),
         )?;
         assert_eq!(true, a.is_static());
@@ -269,7 +269,7 @@ mod tests {
             H2Number::new_aligned(
                 Alignment::Loose(4),
                 GenericReader::ASCII,
-                DefaultFormatter::new(),
+                CharacterFormatter::pretty(),
             ),
         )?;
         assert_eq!(true, a.is_static());
