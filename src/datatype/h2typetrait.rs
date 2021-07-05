@@ -85,9 +85,7 @@ pub trait H2TypeTrait {
     /// Convert to a String.
     ///
     /// This String value is ultimately what is displayed by users, and should
-    /// have any formatting that a user would want to see (for example, a
-    /// [`crate::datatype::simple::character`] renders as `'A'` or `'\t'` or
-    /// `'\x01'`.
+    /// have any formatting that a user would want to see.
     fn to_display(&self, offset: Offset) -> SimpleResult<String>;
 
     /// Get "related" values - ie, what a pointer points to.
@@ -110,8 +108,8 @@ pub trait H2TypeTrait {
     ///   child (with possible alignment).
     ///
     /// The one type that breaks this rule is
-    /// [`crate::datatype::composite::H2Union`], where all values overlap
-    /// (since that's how a union works).
+    /// [`crate::datatype::composite::H2Union`], where all values overlap (since
+    /// that's how a union works).
     ///
     /// Provided your children follow those rules, [`#actual_size`] and
     /// [`#children_with_range`] and [`#resolve`] will work with their default
@@ -158,7 +156,6 @@ pub trait H2TypeTrait {
 
             related: self.related(offset)?,
 
-            as_char:   self.to_char(offset).ok(),
             as_string: self.to_string(offset).ok(),
             as_number: self.to_number(offset).ok(),
         })
@@ -176,8 +173,8 @@ pub trait H2TypeTrait {
     ///
     /// Types that can become a [`char`] can be used as part of one of the
     /// various [`crate::datatype::composite::string`] types.
-    fn to_char(&self, _offset: Offset) -> SimpleResult<char> {
-        bail!("This type cannot be converted to a character");
+    fn to_char(&self, offset: Offset) -> SimpleResult<char> {
+        self.to_number(offset)?.as_char()
     }
 
     /// Can this type output a [`String`] (in general)?

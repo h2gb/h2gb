@@ -75,6 +75,8 @@ and will be padded to end on 4, 8, 12, ...
 ```rust
 use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
+use libh2gb::datatype::composite::*;
+use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
 
 // This is our buffer
@@ -102,6 +104,8 @@ assert_eq!("-1",     t.to_display(offset.at(6)).unwrap());
 ```rust
 use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
+use libh2gb::datatype::composite::*;
+use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
@@ -135,6 +139,7 @@ assert_eq!("0xffff", t.to_display(offset.at(12)).unwrap());
 use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
 use libh2gb::datatype::composite::*;
+use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
@@ -165,7 +170,6 @@ sized elements, like length-prefixed strings.
 ```rust
 use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
-use libh2gb::datatype::simple::character::*;
 use libh2gb::datatype::composite::*;
 use libh2gb::datatype::composite::string::*;
 use libh2gb::generic_number::*;
@@ -182,8 +186,8 @@ let t = H2Array::new(3, LPString::new(
   // The length field is an 8-bit unsigned integer
   H2Number::new(GenericReader::U8, HexFormatter::pretty()),
 
-  // The character type is just simple ascii
-  ASCII::new(StrictASCII::Strict),
+  // The character type is also a number, but this time ASCII
+  H2Number::new_ascii(),
 ).unwrap()).unwrap();
 
 // The array takes up 12 bytes of memory, all-in

@@ -51,8 +51,6 @@ impl GenericFormatterImpl for BinaryFormatter {
             (true, GenericNumber::I32(v))  => format!("{:032b}", v),
             (true, GenericNumber::I64(v))  => format!("{:064b}", v),
             (true, GenericNumber::I128(v)) => format!("{:0128b}", v),
-            (true, GenericNumber::F32(_v)) => bail!("Cannot display floating point as binary"),
-            (true, GenericNumber::F64(_v)) => bail!("Cannot display floating point as binary"),
 
             (false, GenericNumber::U8(v))   => format!("{:b}", v),
             (false, GenericNumber::U16(v))  => format!("{:b}", v),
@@ -64,8 +62,10 @@ impl GenericFormatterImpl for BinaryFormatter {
             (false, GenericNumber::I32(v))  => format!("{:b}", v),
             (false, GenericNumber::I64(v))  => format!("{:b}", v),
             (false, GenericNumber::I128(v)) => format!("{:b}", v),
-            (false, GenericNumber::F32(_v)) => bail!("Cannot display floating point as binary"),
-            (false, GenericNumber::F64(_v)) => bail!("Cannot display floating point as binary"),
+
+            (_, GenericNumber::F32(_))      => bail!("Cannot display floating point as binary"),
+            (_, GenericNumber::F64(_))      => bail!("Cannot display floating point as binary"),
+            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as binary"),
         };
 
         // Add the prefix after for simplicity

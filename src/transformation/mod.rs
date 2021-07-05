@@ -50,6 +50,7 @@ mod transformer_trait;
 pub use transformer_trait::TransformerTrait;
 
 mod helpers;
+pub use helpers::*;
 
 /// Which transformation to perform.
 ///

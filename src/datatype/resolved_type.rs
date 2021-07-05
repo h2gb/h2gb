@@ -23,7 +23,6 @@ pub struct ResolvedType {
     pub children: Vec<ResolvedType>,
     pub related: Vec<(u64, H2Type)>,
 
-    pub as_char:   Option<char>,
     pub as_string: Option<String>,
     pub as_number: Option<GenericNumber>,
 }

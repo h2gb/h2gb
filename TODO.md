@@ -1,2 +1,3 @@
 * Move around modules in transformation/ so the transforms are in transform/
-* Add type 'char' to GenericNumber
+* Write tests for character types in GenericNumber
+* Eliminate u64 as much as possible, in favour of usize

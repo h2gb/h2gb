@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter, CharacterFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -33,6 +33,46 @@ impl H2Number {
     pub fn new(definition: GenericReader, display: GenericFormatter) -> H2Type {
         Self::new_aligned(Alignment::None, definition, display)
     }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as ASCII, formats the characters in the style of `'a'`.
+    pub fn new_ascii() -> H2Type {
+        Self::new(
+            GenericReader::ASCII,
+            CharacterFormatter::pretty(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as ASCII, formats as just a letter, like `a`.
+    pub fn new_ascii_string() -> H2Type {
+        Self::new(
+            GenericReader::ASCII,
+            CharacterFormatter::pretty_str(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as UTF8, formats the characters in the style of `'a'`.
+    pub fn new_utf8() -> H2Type {
+        Self::new(
+            GenericReader::UTF8,
+            CharacterFormatter::pretty(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as UTF8, formats the characters in the style of `a`.
+    pub fn new_utf8_string() -> H2Type {
+        Self::new(
+            GenericReader::UTF8,
+            CharacterFormatter::pretty_str(),
+        )
+    }
 }
 
 impl H2TypeTrait for H2Number {
@@ -40,8 +80,12 @@ impl H2TypeTrait for H2Number {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
-        Ok(self.definition.size() as u64)
+    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
+        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
+        match self.definition.size() {
+            Some(v) => Ok(v as u64),
+            None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),
+        }
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
@@ -62,6 +106,11 @@ impl H2TypeTrait for H2Number {
     /// fixed-length primitive type, basically.
     fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
         self.definition.read(offset.get_dynamic()?)
+    }
+
+    /// Can this type output a [`char`]?
+    fn can_be_char(&self) -> bool {
+        self.definition.can_be_char()
     }
 }
 

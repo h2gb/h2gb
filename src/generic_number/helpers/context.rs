@@ -3,7 +3,7 @@ use std::io::{Cursor, Read};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use simple_error::{SimpleError, SimpleResult, bail};
 
-use crate::generic_number::helpers::Endian;
+use crate::generic_number::Endian;
 
 /// The maximum size of a UTF8 character
 pub const MAX_UTF8_BYTES: usize = 4;
@@ -235,6 +235,13 @@ impl<'a> Context<'a> {
             }
             Err(e) => Err(SimpleError::from(e)),
         }
+    }
+
+    /// Read an 8-bit ASCII character.
+    pub fn read_ascii(self) -> SimpleResult<char> {
+        self.cursor().read_u8()
+            .map(|b| b as char)
+            .map_err(|e| SimpleError::from(e))
     }
 
     /// Read a UTF-8 character, and return the size (in bytes) and character.

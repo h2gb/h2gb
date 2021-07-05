@@ -3,13 +3,13 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
 
-use crate::datatype::{Alignment, H2TypeTrait, Offset, ResolvedType};
+use crate::generic_number::GenericNumber;
+
+use crate::datatype::{H2TypeTrait, Offset, Alignment, ResolvedType};
 use crate::datatype::simple::*;
-use crate::datatype::simple::character::*;
 use crate::datatype::simple::network::*;
 use crate::datatype::composite::*;
 use crate::datatype::composite::string::*;
-use crate::generic_number::GenericNumber;
 
 /// An enum used to multiplex between the various types.
 ///
@@ -25,12 +25,6 @@ pub enum H2Types {
     IPv6(IPv6),
     MacAddress(MacAddress),
     MacAddress8(MacAddress8),
-
-    // Characters
-    ASCII(ASCII),
-    UTF8(UTF8),
-    UTF16(UTF16),
-    UTF32(UTF32),
 
     // Composite
     H2Array(H2Array),
@@ -85,12 +79,6 @@ impl H2Type {
             H2Types::MacAddress(t)  => t,
             H2Types::MacAddress8(t) => t,
 
-            // Characters
-            H2Types::ASCII(t) => t,
-            H2Types::UTF8(t)  => t,
-            H2Types::UTF16(t) => t,
-            H2Types::UTF32(t) => t,
-
             // Complex
             H2Types::H2Array(t)   => t,
             H2Types::H2Union(t)   => t,
@@ -111,8 +99,8 @@ impl H2Type {
     /// Get the size of just the field - no alignment included.
     ///
     /// Note that if the type has children (such as a
-    /// [`crate::datatype::composite::H2Array`], the alignment on THAT is included
-    /// since that's part of the actual object.
+    /// [`crate::datatype::composite::H2Array`], the alignment on THAT is
+    /// included since that's part of the actual object.
     pub fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
         self.field_type().actual_size(offset)
     }
