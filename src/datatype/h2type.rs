@@ -3,9 +3,10 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
 
-use crate::datatype::{Alignment, H2TypeTrait, Offset, ResolvedType};
+use crate::generic_number::GenericNumber;
+
+use crate::datatype::{H2TypeTrait, Offset, Alignment, ResolvedType};
 use crate::datatype::simple::*;
-use crate::datatype::simple::character::*;
 use crate::datatype::simple::network::*;
 use crate::datatype::composite::*;
 use crate::datatype::composite::string::*;
@@ -24,12 +25,6 @@ pub enum H2Types {
     IPv6(IPv6),
     MacAddress(MacAddress),
     MacAddress8(MacAddress8),
-
-    // Characters
-    ASCII(ASCII),
-    UTF8(UTF8),
-    UTF16(UTF16),
-    UTF32(UTF32),
 
     // Composite
     H2Array(H2Array),
@@ -84,12 +79,6 @@ impl H2Type {
             H2Types::MacAddress(t)  => t,
             H2Types::MacAddress8(t) => t,
 
-            // Characters
-            H2Types::ASCII(t) => t,
-            H2Types::UTF8(t)  => t,
-            H2Types::UTF16(t) => t,
-            H2Types::UTF32(t) => t,
-
             // Complex
             H2Types::H2Array(t)   => t,
             H2Types::H2Union(t)   => t,
@@ -110,8 +99,8 @@ impl H2Type {
     /// Get the size of just the field - no alignment included.
     ///
     /// Note that if the type has children (such as a
-    /// [`crate::datatype::composite::H2Array`], the alignment on THAT is included
-    /// since that's part of the actual object.
+    /// [`crate::datatype::composite::H2Array`], the alignment on THAT is
+    /// included since that's part of the actual object.
     pub fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
         self.field_type().actual_size(offset)
     }
@@ -180,23 +169,13 @@ impl H2Type {
         self.field_type().to_string(offset)
     }
 
-    /// Can this value represent a [`u64`]?
-    pub fn can_be_u64(&self) -> bool {
-        self.field_type().can_be_u64()
+    /// Can this value represent a [`GenericNumber`]?
+    pub fn can_be_number(&self) -> bool {
+        self.field_type().can_be_number()
     }
 
-    /// Try to convert to a [`u64`]?
-    pub fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
-        self.field_type().to_u64(offset)
-    }
-
-    /// Can this value represent a [`i64`]?
-    pub fn to_i64(&self, offset: Offset) -> SimpleResult<i64> {
-        self.field_type().to_i64(offset)
-    }
-
-    /// Try to convert to a [`i64`]?
-    pub fn can_be_i64(&self) -> bool {
-        self.field_type().can_be_i64()
+    /// Try to convert to a [`GenericNumber`]?
+    pub fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
+        self.field_type().to_number(offset)
     }
 }

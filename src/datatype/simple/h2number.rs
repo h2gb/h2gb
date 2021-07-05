@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::generic_number::{GenericReader, GenericFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, GenericFormatter, CharacterFormatter};
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -33,6 +33,46 @@ impl H2Number {
     pub fn new(definition: GenericReader, display: GenericFormatter) -> H2Type {
         Self::new_aligned(Alignment::None, definition, display)
     }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as ASCII, formats the characters in the style of `'a'`.
+    pub fn new_ascii() -> H2Type {
+        Self::new(
+            GenericReader::ASCII,
+            CharacterFormatter::pretty(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as ASCII, formats as just a letter, like `a`.
+    pub fn new_ascii_string() -> H2Type {
+        Self::new(
+            GenericReader::ASCII,
+            CharacterFormatter::pretty_str(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as UTF8, formats the characters in the style of `'a'`.
+    pub fn new_utf8() -> H2Type {
+        Self::new(
+            GenericReader::UTF8,
+            CharacterFormatter::pretty(),
+        )
+    }
+
+    /// Convenience function to pre-set a definition.
+    ///
+    /// Reads a character as UTF8, formats the characters in the style of `a`.
+    pub fn new_utf8_string() -> H2Type {
+        Self::new(
+            GenericReader::UTF8,
+            CharacterFormatter::pretty_str(),
+        )
+    }
 }
 
 impl H2TypeTrait for H2Number {
@@ -40,8 +80,12 @@ impl H2TypeTrait for H2Number {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
-        Ok(self.definition.size() as u64)
+    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
+        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
+        match self.definition.size() {
+            Some(v) => Ok(v as u64),
+            None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),
+        }
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
@@ -53,20 +97,20 @@ impl H2TypeTrait for H2Number {
         }
     }
 
-    fn can_be_u64(&self) -> bool {
-        self.definition.can_be_u64()
+    /// Numbers can always be numbers!
+    fn can_be_number(&self) -> bool {
+        true
     }
 
-    fn to_u64(&self, offset: Offset) -> SimpleResult<u64> {
-        self.definition.read(offset.get_dynamic()?)?.as_u64()
+    /// Convert to a [`GenericNumber`]. This lets the type represent any
+    /// fixed-length primitive type, basically.
+    fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
+        self.definition.read(offset.get_dynamic()?)
     }
 
-    fn can_be_i64(&self) -> bool {
-        self.definition.can_be_i64()
-    }
-
-    fn to_i64(&self, offset: Offset) -> SimpleResult<i64> {
-        self.definition.read(offset.get_dynamic()?)?.as_i64()
+    /// Can this type output a [`char`]?
+    fn can_be_char(&self) -> bool {
+        self.definition.can_be_char()
     }
 }
 
@@ -74,7 +118,7 @@ impl H2TypeTrait for H2Number {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, Endian, GenericReader, HexFormatter, DecimalFormatter};
+    use crate::generic_number::{Context, Endian, GenericReader, HexFormatter, DefaultFormatter};
 
     #[test]
     fn test_u8_hex() -> SimpleResult<()> {
@@ -109,7 +153,7 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::I16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(2, t.actual_size(s_offset).unwrap());
@@ -134,7 +178,7 @@ mod tests {
         let t = H2Number::new_aligned(
             Alignment::Loose(8),
             GenericReader::I16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
         // Starting at 0
@@ -177,13 +221,13 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::I16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
-        assert_eq!(0,      t.to_i64(offset.at(0))?);
-        assert_eq!(32767,  t.to_i64(offset.at(2))?);
-        assert_eq!(-32768, t.to_i64(offset.at(4))?);
-        assert_eq!(-1,     t.to_i64(offset.at(6))?);
+        assert_eq!(0,      t.to_number(offset.at(0))?.as_i64()?);
+        assert_eq!(32767,  t.to_number(offset.at(2))?.as_i64()?);
+        assert_eq!(-32768, t.to_number(offset.at(4))?.as_i64()?);
+        assert_eq!(-1,     t.to_number(offset.at(6))?.as_i64()?);
 
         Ok(())
     }
@@ -195,13 +239,13 @@ mod tests {
 
         let t = H2Number::new(
             GenericReader::U16(Endian::Big),
-            DecimalFormatter::new(),
+            DefaultFormatter::new(),
         );
 
-        assert_eq!(0,     t.to_u64(offset.at(0))?);
-        assert_eq!(32767, t.to_u64(offset.at(2))?);
-        assert_eq!(32768, t.to_u64(offset.at(4))?);
-        assert_eq!(65535, t.to_u64(offset.at(6))?);
+        assert_eq!(0,     t.to_number(offset.at(0))?.as_u64()?);
+        assert_eq!(32767, t.to_number(offset.at(2))?.as_u64()?);
+        assert_eq!(32768, t.to_number(offset.at(4))?.as_u64()?);
+        assert_eq!(65535, t.to_number(offset.at(6))?.as_u64()?);
 
         Ok(())
     }

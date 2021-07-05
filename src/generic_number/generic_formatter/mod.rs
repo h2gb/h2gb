@@ -6,11 +6,8 @@ use crate::generic_number::GenericNumber;
 mod binary_formatter;
 pub use binary_formatter::*;
 
-mod decimal_formatter;
-pub use decimal_formatter::*;
-
-mod enum_formatter;
-pub use enum_formatter::*;
+mod default_formatter;
+pub use default_formatter::*;
 
 mod hex_formatter;
 pub use hex_formatter::*;
@@ -20,6 +17,12 @@ pub use octal_formatter::*;
 
 mod scientific_formatter;
 pub use scientific_formatter::*;
+
+mod character_formatter;
+pub use character_formatter::*;
+
+mod enum_formatter;
+pub use enum_formatter::*;
 
 /// A trait to simplify rendering.
 ///
@@ -42,8 +45,8 @@ pub trait GenericFormatterImpl {
 /// // Create a GenericNumber directly - normally you'd read from a buffer
 /// let number = GenericNumber::from(1234u32);
 ///
-/// // Create a decimal formatter
-/// let formatter = DecimalFormatter::new();
+/// // Create a formatter
+/// let formatter = DefaultFormatter::new();
 ///
 /// // Render the number
 /// assert_eq!("1234", formatter.render(number).unwrap());
@@ -51,10 +54,11 @@ pub trait GenericFormatterImpl {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum GenericFormatter {
     Hex(HexFormatter),
-    Decimal(DecimalFormatter),
+    Default(DefaultFormatter),
     Octal(OctalFormatter),
     Binary(BinaryFormatter),
     Scientific(ScientificFormatter),
+    Character(CharacterFormatter),
     Enum(EnumFormatter),
 }
 
@@ -63,11 +67,12 @@ impl GenericFormatter {
     fn to_formatter(&self) -> Box<dyn GenericFormatterImpl> {
         match self {
             Self::Binary(o)     => Box::new(*o),
-            Self::Decimal(o)    => Box::new(*o),
-            Self::Enum(o)       => Box::new(*o),
+            Self::Default(o)    => Box::new(*o),
             Self::Hex(o)        => Box::new(*o),
             Self::Octal(o)      => Box::new(*o),
             Self::Scientific(o) => Box::new(*o),
+            Self::Character(o)  => Box::new(*o),
+            Self::Enum(o)       => Box::new(*o),
         }
     }
 

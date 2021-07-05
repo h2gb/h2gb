@@ -16,13 +16,14 @@
 //!
 //! In other words: DON'T USE THESE DIRECTLY, unless you're writing actions.
 
-use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
 use std::ops::Range;
 use std::collections::HashMap;
 
+use serde::{Serialize, Deserialize};
+use simple_error::{SimpleResult, bail};
+
 use crate::bumpy_vector::BumpyVector;
-use crate::project::h2entry::H2Entry;
+use crate::project::H2Entry;
 
 /// Hold information for a layer - basically, a bunch of entires in a
 /// [`BumpyVector`].

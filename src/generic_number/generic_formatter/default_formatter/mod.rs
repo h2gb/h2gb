@@ -3,7 +3,7 @@ use simple_error::SimpleResult;
 
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Render a [`GenericNumber`] as a decimal value.
+/// Render a [`GenericNumber`] as whatever the default for the datatype is.
 ///
 /// # Example
 ///
@@ -13,51 +13,53 @@ use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImp
 /// // Create a GenericNumber directly - normally you'd use a GenericReader
 /// let number = GenericNumber::from(1234u32);
 ///
-/// // DecimalFormatter has no special options
-/// assert_eq!("1234", DecimalFormatter::new().render(number).unwrap());
+/// // DefaultFormatter has no special options
+/// assert_eq!("1234", DefaultFormatter::new().render(number).unwrap());
 ///
 /// // Also handles signed values correctly, using the GenericNumber's type
 /// let number = GenericNumber::from(-1234i32);
-/// assert_eq!("-1234", DecimalFormatter::new().render(number).unwrap());
+/// assert_eq!("-1234", DefaultFormatter::new().render(number).unwrap());
 ///
 /// // Handles floating point correctly, as well
 /// let number = GenericNumber::from(314.159f32);
-/// assert_eq!("314.159", DecimalFormatter::new().render(number).unwrap());
+/// assert_eq!("314.159", DefaultFormatter::new().render(number).unwrap());
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct DecimalFormatter {
+pub struct DefaultFormatter {
 }
 
-impl DecimalFormatter {
+impl DefaultFormatter {
     pub fn new() -> GenericFormatter {
-        GenericFormatter::Decimal(Self { })
+        GenericFormatter::Default(Self { })
     }
 }
 
-impl Default for DecimalFormatter {
+impl Default for DefaultFormatter {
     fn default() -> Self {
         Self {
         }
     }
 }
 
-impl GenericFormatterImpl for DecimalFormatter {
+impl GenericFormatterImpl for DefaultFormatter {
     fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         match number {
-            GenericNumber::U8(v)   => Ok(format!("{}", v)),
-            GenericNumber::U16(v)  => Ok(format!("{}", v)),
-            GenericNumber::U32(v)  => Ok(format!("{}", v)),
-            GenericNumber::U64(v)  => Ok(format!("{}", v)),
-            GenericNumber::U128(v) => Ok(format!("{}", v)),
+            GenericNumber::U8(v)      => Ok(format!("{}", v)),
+            GenericNumber::U16(v)     => Ok(format!("{}", v)),
+            GenericNumber::U32(v)     => Ok(format!("{}", v)),
+            GenericNumber::U64(v)     => Ok(format!("{}", v)),
+            GenericNumber::U128(v)    => Ok(format!("{}", v)),
 
-            GenericNumber::I8(v)   => Ok(format!("{}", v)),
-            GenericNumber::I16(v)  => Ok(format!("{}", v)),
-            GenericNumber::I32(v)  => Ok(format!("{}", v)),
-            GenericNumber::I64(v)  => Ok(format!("{}", v)),
-            GenericNumber::I128(v) => Ok(format!("{}", v)),
+            GenericNumber::I8(v)      => Ok(format!("{}", v)),
+            GenericNumber::I16(v)     => Ok(format!("{}", v)),
+            GenericNumber::I32(v)     => Ok(format!("{}", v)),
+            GenericNumber::I64(v)     => Ok(format!("{}", v)),
+            GenericNumber::I128(v)    => Ok(format!("{}", v)),
 
-            GenericNumber::F32(v)  => Ok(format!("{}", v)),
-            GenericNumber::F64(v)  => Ok(format!("{}", v)),
+            GenericNumber::F32(v)     => Ok(format!("{}", v)),
+            GenericNumber::F64(v)     => Ok(format!("{}", v)),
+
+            GenericNumber::Char(v, _) => Ok(format!("{}", v)),
         }
     }
 }
@@ -72,7 +74,7 @@ mod tests {
     use crate::generic_number::{Context, Endian, GenericReader};
 
     #[test]
-    fn test_decimal_u8() -> SimpleResult<()> {
+    fn test_default_u8() -> SimpleResult<()> {
         let data = b"\x00\x7F\x80\xFF".to_vec();
 
         let tests = vec![
@@ -89,7 +91,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -97,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_i8() -> SimpleResult<()> {
+    fn test_default_i8() -> SimpleResult<()> {
         let data = b"\x00\x7F\x80\xFF".to_vec();
 
         let tests = vec![
@@ -114,7 +116,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -122,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_u16() -> SimpleResult<()> {
+    fn test_default_u16() -> SimpleResult<()> {
         let data = b"\x00\xFF\x00\x01\x00\x00\xFF\xFF".to_vec();
 
         let tests = vec![
@@ -139,7 +141,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -147,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_u32() -> SimpleResult<()> {
+    fn test_default_u32() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\xff\xff\xff\xff\x7f\xff\xff\xff\x80\x00\x00\x00".to_vec();
 
         let tests = vec![
@@ -164,7 +166,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -172,7 +174,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_i32() -> SimpleResult<()> {
+    fn test_default_i32() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\xff\xff\xff\xff\x7f\xff\xff\xff\x80\x00\x00\x00".to_vec();
 
         let tests = vec![
@@ -189,7 +191,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -197,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_i64() -> SimpleResult<()> {
+    fn test_default_i64() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x7f\xff\xff\xff\xff\xff\xff\xff\x80\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff".to_vec();
 
         let tests = vec![
@@ -214,7 +216,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -222,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_u128() -> SimpleResult<()> {
+    fn test_default_u128() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF".to_vec();
 
         let tests = vec![
@@ -237,7 +239,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -245,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_i128() -> SimpleResult<()> {
+    fn test_default_i128() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF".to_vec();
 
         let tests = vec![
@@ -260,7 +262,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -268,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_f32() -> SimpleResult<()> {
+    fn test_default_f32() -> SimpleResult<()> {
         let data = b"\x00\x00\x00\x00\xff\xff\xff\xff\x41\xc8\x00\x00\x40\x48\xf5\xc3".to_vec();
 
         let tests = vec![
@@ -285,7 +287,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -293,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_f64_big_endian() -> SimpleResult<()> {
+    fn test_default_f64_big_endian() -> SimpleResult<()> {
         // I wrote and disassembled a simple C program to get these strings.. double is hard
         let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f\x40\x09\x33\x33\x33\x33\x33\x33".to_vec();
 
@@ -309,7 +311,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 
@@ -317,7 +319,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decimal_f64_little_endian() -> SimpleResult<()> {
+    fn test_default_f64_little_endian() -> SimpleResult<()> {
         // I wrote and disassembled a simple C program to get these strings.. double is hard
         let data = b"\x1F\x85\xEB\x51\xB8\x1E\x09\x40\x33\x33\x33\x33\x33\x33\x09\x40".to_vec();
 
@@ -333,7 +335,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DecimalFormatter::new().render(number)?,
+                DefaultFormatter::new().render(number)?,
             );
         }
 

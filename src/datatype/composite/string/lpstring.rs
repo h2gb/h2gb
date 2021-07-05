@@ -10,8 +10,8 @@ use crate::datatype::composite::H2Array;
 ///
 /// This is a string with a numerical prefix that denotes the length of the
 /// string (in *characters*). The length is any numerical value as defined in
-/// [`crate::datatype::simple::H2Number`] (or other numeric types if we add any), and
-/// the character type is any type defined in [`crate::datatype::simple::character`].
+/// [`crate::generic_number::GenericReader`] that `can_be_u64()`, and the
+/// character type is from the same module, but `can_be_char()`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
     length: Box<H2Type>,
@@ -20,11 +20,11 @@ pub struct LPString {
 
 impl LPString {
     pub fn new_aligned(alignment: Alignment, length: H2Type, character: H2Type) -> SimpleResult<H2Type> {
-        if !length.can_be_u64() {
-            bail!("Length type can't become a u64");
+        if !length.can_be_number() {
+            bail!("Length type isn't numeric!");
         }
 
-        if !character.can_be_char() {
+        if !character.can_be_number() {
             bail!("Character type can't become a character");
         }
 
@@ -39,7 +39,8 @@ impl LPString {
     }
 
     fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<char>)> {
-        let length = self.length.to_u64(offset)?;
+        // TODO: This should be usize
+        let length = self.length.to_number(offset)?.as_u64()?;
 
         let mut position = offset.position() + self.length.aligned_size(offset)?;
 
@@ -47,7 +48,7 @@ impl LPString {
         for _ in 0..length {
             let this_offset = offset.at(position);
             let this_size = self.character.actual_size(this_offset)?;
-            let this_character = self.character.to_char(this_offset)?;
+            let this_character = self.character.to_number(this_offset)?.as_char()?;
 
             result.push(this_character);
             position = position + this_size;
@@ -83,7 +84,7 @@ impl H2TypeTrait for LPString {
     }
 
     fn children(&self, offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        let length = self.length.to_u64(offset)?;
+        let length = self.length.to_number(offset)?.as_u64()?;
 
         Ok(vec![
             // The size field
@@ -99,11 +100,9 @@ impl H2TypeTrait for LPString {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader, Endian, DecimalFormatter, HexFormatter};
+    use crate::generic_number::{Context, GenericReader, Endian, DefaultFormatter, HexFormatter};
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
-    use crate::datatype::simple::character::{UTF8, ASCII, StrictASCII};
-    use crate::datatype::Alignment;
 
     #[test]
     fn test_utf8_lpstring() -> SimpleResult<()> {
@@ -111,9 +110,11 @@ mod tests {
         let data = b"\x00\x07\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(GenericReader::U16(Endian::Big), DecimalFormatter::new());
 
-        let a = LPString::new(size_type, UTF8::new())?;
+        let a = LPString::new(
+            H2Number::new(GenericReader::U16(Endian::Big), DefaultFormatter::new()),
+            H2Number::new_utf8(),
+        )?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
@@ -124,8 +125,10 @@ mod tests {
         let data = b"\x00\x41".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
-        let a = LPString::new(size_type, UTF8::new())?;
+        let a = LPString::new(
+            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+            H2Number::new_utf8(),
+        )?;
         assert_eq!("\"\"", a.to_display(offset)?);
 
         Ok(())
@@ -136,8 +139,10 @@ mod tests {
         let data = b"".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
-        let a = LPString::new(size_type, UTF8::new())?;
+        let a = LPString::new(
+            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+            H2Number::new_utf8(),
+        )?;
         assert!(a.to_display(offset).is_err());
 
         Ok(())
@@ -148,9 +153,11 @@ mod tests {
         let data = b"\x00\x07PPPPPP\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new_aligned(Alignment::Loose(8), GenericReader::U16(Endian::Big), DecimalFormatter::new());
 
-        let a = LPString::new(size_type, UTF8::new())?;
+        let a = LPString::new(
+            H2Number::new_aligned(Alignment::Loose(8), GenericReader::U16(Endian::Big), DefaultFormatter::new()),
+            H2Number::new_utf8(),
+        )?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
@@ -162,8 +169,10 @@ mod tests {
         let data = b"\x07\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
-        let a: H2Type = LPString::new(size_type, UTF8::new())?;
+        let a: H2Type = LPString::new(
+            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+            H2Number::new_utf8(),
+        )?;
         let array = a.resolve(offset, None)?;
 
         // Should just have two children - the length and the array
@@ -181,11 +190,16 @@ mod tests {
 
     #[test]
     fn test_bad_type() -> SimpleResult<()> {
-        let size_type = H2Number::new(GenericReader::U8, DecimalFormatter::new());
+        let size_type = H2Number::new(GenericReader::U8, DefaultFormatter::new());
         assert!(LPString::new(size_type, IPv4::new(Endian::Big)).is_err());
 
         let size_type = IPv4::new(Endian::Big);
-        assert!(LPString::new(size_type, UTF8::new()).is_err());
+        assert!(
+            LPString::new(
+                size_type,
+                H2Number::new_utf8(),
+            ).is_err()
+        );
 
         Ok(())
     }
@@ -197,11 +211,10 @@ mod tests {
 
         let t = H2Array::new(3, LPString::new(
           H2Number::new(GenericReader::U8, HexFormatter::pretty()),
-          ASCII::new(StrictASCII::Strict),
+          H2Number::new_ascii(),
         )?)?;
 
         assert_eq!(12, t.actual_size(offset)?);
-
         assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset)?);
 
         Ok(())

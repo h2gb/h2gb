@@ -1,15 +1,14 @@
 use serde::{Serialize, Deserialize};
-
 use simple_error::SimpleResult;
-use crate::generic_number::{GenericReader, GenericFormatter};
 
+use crate::generic_number::{GenericReader, GenericFormatter};
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
 /// Defines a pointer type - a numeric type that points to another location.
 ///
-/// This is defined very similarly to [`crate::datatype::simple::H2Number`], with one
-/// additional field: the `target_type`, which is the type of the value that the
-/// pointer points to.
+/// This is defined very similarly to [`crate::datatype::simple::H2Number`],
+/// with one additional field: the `target_type`, which is the type of the value
+/// that the pointer points to.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Pointer {
     definition: GenericReader,
@@ -38,8 +37,12 @@ impl H2TypeTrait for H2Pointer {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
-        Ok(self.definition.size() as u64)
+    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
+        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
+        match self.definition.size() {
+            Some(v) => Ok(v as u64),
+            None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),
+        }
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
@@ -76,8 +79,8 @@ impl H2TypeTrait for H2Pointer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, Endian, HexFormatter};
 
+    use crate::generic_number::{Context, Endian, HexFormatter};
     use crate::datatype::simple::H2Number;
 
     #[test]

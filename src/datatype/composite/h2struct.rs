@@ -60,11 +60,9 @@ impl H2TypeTrait for H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DecimalFormatter};
-
+    use crate::generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DefaultFormatter};
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
-    use crate::datatype::simple::character::{ASCII, StrictASCII};
     use crate::datatype::composite::H2Array;
 
     #[test]
@@ -100,7 +98,7 @@ mod tests {
                 "field_u32_little".to_string(),
                 H2Number::new(
                     GenericReader::U32(Endian::Little),
-                    DecimalFormatter::new(),
+                    DefaultFormatter::new(),
                 )
             ),
         ])?;
@@ -194,7 +192,7 @@ mod tests {
                         H2Array::new_aligned(
                             Alignment::Loose(8),
                             5,
-                            ASCII::new(StrictASCII::Permissive),
+                            H2Number::new_ascii(),
                         )?,
                     )
                 ])?,

@@ -4,8 +4,8 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::project::h2project::H2Project;
-use crate::project::h2buffer::H2Buffer;
+use crate::project::H2Project;
+use crate::project::H2Buffer;
 use crate::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -93,7 +93,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::project::h2project::H2Project;
+    use crate::project::H2Project;
     use redo::Record;
     use pretty_assertions::assert_eq;
 

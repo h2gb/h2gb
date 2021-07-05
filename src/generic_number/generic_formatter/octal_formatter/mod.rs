@@ -51,8 +51,6 @@ impl GenericFormatterImpl for OctalFormatter {
             (true, GenericNumber::I32(v))  => format!("{:011o}", v),
             (true, GenericNumber::I64(v))  => format!("{:022o}", v),
             (true, GenericNumber::I128(v)) => format!("{:043o}", v),
-            (true, GenericNumber::F32(_v)) => bail!("Cannot display floating point as octal"),
-            (true, GenericNumber::F64(_v)) => bail!("Cannot display floating point as octal"),
 
             (false, GenericNumber::U8(v))   => format!("{:o}", v),
             (false, GenericNumber::U16(v))  => format!("{:o}", v),
@@ -64,8 +62,10 @@ impl GenericFormatterImpl for OctalFormatter {
             (false, GenericNumber::I32(v))  => format!("{:o}", v),
             (false, GenericNumber::I64(v))  => format!("{:o}", v),
             (false, GenericNumber::I128(v)) => format!("{:o}", v),
-            (false, GenericNumber::F32(_v)) => bail!("Cannot display floating point as octal"),
-            (false, GenericNumber::F64(_v)) => bail!("Cannot display floating point as octal"),
+
+            (_, GenericNumber::F32(_))      => bail!("Cannot display floating point as octal"),
+            (_, GenericNumber::F64(_))      => bail!("Cannot display floating point as octal"),
+            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as octal"),
         };
 
         // Do the prefix after for simplicity

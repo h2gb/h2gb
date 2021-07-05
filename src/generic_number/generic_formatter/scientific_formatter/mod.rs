@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, bail};
 
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
@@ -67,6 +67,8 @@ impl GenericFormatterImpl for ScientificFormatter {
             (false, GenericNumber::I128(v)) => format!("{:e}", v),
             (false, GenericNumber::F32(v))  => format!("{:e}", v),
             (false, GenericNumber::F64(v))  => format!("{:e}", v),
+
+            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as scientific"),
         })
     }
 }

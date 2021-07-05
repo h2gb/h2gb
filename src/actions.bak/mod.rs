@@ -30,32 +30,44 @@ use crate::project::h2project::H2Project;
 // * Are references separate?
 // * What about pointers / structs / arrays / etc?
 
-pub mod buffer_clone_partial;
-pub mod buffer_clone_shallow;
-pub mod buffer_create_empty;
-pub mod buffer_create_from_bytes;
-pub mod buffer_delete;
-pub mod buffer_edit;
-pub mod buffer_rebase;
-pub mod buffer_rename;
-pub mod buffer_split;
-pub mod buffer_transform;
-pub mod buffer_untransform;
-pub mod null;
-pub mod project_rename;
+mod buffer_clone_partial;
+pub use buffer_clone_partial::*;
 
-use buffer_clone_partial::{ActionBufferClonePartial, ActionBufferClonePartialForward};
-use buffer_clone_shallow::{ActionBufferCloneShallow, ActionBufferCloneShallowForward};
-use buffer_create_empty::{ActionBufferCreateEmpty, ActionBufferCreateEmptyForward};
-use buffer_create_from_bytes::{ActionBufferCreateFromBytes, ActionBufferCreateFromBytesForward};
-use buffer_delete::{ActionBufferDelete, ActionBufferDeleteForward};
-use buffer_edit::{ActionBufferEdit, ActionBufferEditForward};
-use buffer_rebase::{ActionBufferRebase, ActionBufferRebaseForward};
-use buffer_rename::{ActionBufferRename, ActionBufferRenameForward};
-use buffer_split::{ActionBufferSplit, ActionBufferSplitForward, Split};
-use buffer_transform::{ActionBufferTransform, ActionBufferTransformForward};
-use buffer_untransform::{ActionBufferUntransform, ActionBufferUntransformForward};
-use project_rename::{ActionProjectRename, ActionProjectRenameForward};
+mod buffer_clone_shallow;
+pub use buffer_clone_shallow::*;
+
+mod buffer_create_empty;
+pub use buffer_create_empty::*;
+
+mod buffer_create_from_bytes;
+pub use buffer_create_from_bytes::*;
+
+mod buffer_delete;
+pub use buffer_delete::*;
+
+mod buffer_edit;
+pub use buffer_edit::*;
+
+mod buffer_rebase;
+pub use buffer_rebase::*;
+
+mod buffer_rename;
+pub use buffer_rename::*;
+
+mod buffer_split;
+pub use buffer_split::*;
+
+mod buffer_transform;
+pub use buffer_transform::*;
+
+mod buffer_untransform;
+pub use buffer_untransform::*;
+
+mod null;
+pub use null::*;
+
+mod project_rename;
+pub use project_rename::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
