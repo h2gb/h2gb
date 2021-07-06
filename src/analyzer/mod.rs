@@ -7,11 +7,14 @@ use crate::actions::*;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::H2Number;
+use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::LPString;
 use crate::generic_number::{GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
+
+const OFFSET_SPAWN_POINTS: usize = 0x99c;
 
 pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
     // Create the entry
@@ -80,6 +83,31 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         name.actual_range.end as usize, // Offset
         Some("Game mode"),
     )?;
+
+    // Get the offset to research data, which is a static offset from the end
+    // of name
+    let spawn_offset = name.actual_range.end as usize + OFFSET_SPAWN_POINTS;
+
+    loop {
+        create_entry(
+            record,
+            buffer,
+            "default",
+            H2Struct::new(vec![
+                ("x".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+                ("y".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+                ("seed".to_string(),  H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+                ("world".to_string(), LPString::new(
+                    H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+                    H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
+                )?),
+            ])?,
+            spawn_offset,
+            Some("Spawn point"),
+        )?;
+
+        break;
+    }
 
     // Create entries:
     // -> Version -> 16 bits little endian

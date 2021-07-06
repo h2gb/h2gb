@@ -86,13 +86,20 @@ impl H2TypeTrait for LPString {
     fn children(&self, offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
         let length = self.length.to_number(offset)?.as_u64()?;
 
-        Ok(vec![
-            // The size field
-            ( Some("size".to_string()), self.length.as_ref().clone() ),
+        // Always start with the size
+        let mut result = vec![
+            ( Some("size".to_string()), self.length.as_ref().clone() )
+        ];
 
-            // The data field
-            ( None,                     H2Array::new(length, self.character.as_ref().clone())? ),
-        ])
+        // Only create the array if the length is non-zero (since we can't have
+        // an empty array)
+        if length > 0 {
+            result.push(
+                (None, H2Array::new(length, self.character.as_ref().clone())?)
+            );
+        }
+
+        Ok(result)
     }
 }
 
@@ -129,7 +136,13 @@ mod tests {
             H2Number::new(GenericReader::U8, DefaultFormatter::new()),
             H2Number::new_utf8(),
         )?;
+
+        // Ensure it can display
         assert_eq!("\"\"", a.to_display(offset)?);
+
+        // Ensure it can resolve (this was breaking due to the string being an
+        // empty array)
+        a.resolve(offset, None)?;
 
         Ok(())
     }
