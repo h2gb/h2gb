@@ -10,7 +10,7 @@ use simple_error::{SimpleResult, bail};
 /// [`GenericNumber`], then a [`crate::generic_number::GenericFormatter`] to
 /// render it. All three of those classes can be serialized, so this operation
 /// is always repeatable!
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum GenericNumber {
     U8(u8),
     U16(u16),

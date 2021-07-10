@@ -9,7 +9,7 @@ use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::H2Number;
 use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::LPString;
-use crate::generic_number::{GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter};
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
@@ -86,10 +86,10 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
 
     // Get the offset to research data, which is a static offset from the end
     // of name
-    let spawn_offset = name.actual_range.end as usize + OFFSET_SPAWN_POINTS;
+    let mut current_spawn_offset = name.actual_range.end as usize + OFFSET_SPAWN_POINTS;
 
     loop {
-        create_entry(
+        let spawn_point = create_entry(
             record,
             buffer,
             "default",
@@ -102,11 +102,28 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
                     H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
                 )?),
             ])?,
-            spawn_offset,
+            current_spawn_offset,
             Some("Spawn point"),
         )?;
 
-        break;
+        // Grab the first child (the 'x' coordinate) and look for the terminator
+        match spawn_point.children.first() {
+            Some(s) => {
+                 match s.as_number {
+                     Some(n) => {
+                         // Look for the terminator
+                         if n == GenericNumber::from(0xffffffffu32) {
+                             break;
+                         }
+                     },
+                     None => bail!("Spawn point x coordinate was not a number"), // Shouldn't be possible
+                 }
+            },
+            None => bail!("No spawn point"), // This shouldn't be able to happen
+        }
+
+        // Update to the next spawn offset
+        current_spawn_offset = spawn_point.actual_range.end as usize;
     }
 
     // Create entries:
