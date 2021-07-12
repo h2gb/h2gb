@@ -1,4 +1,3 @@
-* Displaying the binary needs to be WAY more efficient - MultipleSpawnPoints.plr (46kb) is slowwwww and slows down as it goes
 * Add some way to 'peek' rather than actually creating an entry
 * Print out structs better (like, each field gets its own thing)
 * Can we somehow do comments on struct fields? :-/
