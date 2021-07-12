@@ -110,6 +110,13 @@ pub struct BumpyEntry<T> {
     pub range: Range<usize>,
 }
 
+// Lets us store an entry, but also store a pointer to a non-entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MetaBumpyEntry<T> {
+    Something(BumpyEntry<T>),
+    NearlySomething(usize),
+}
+
 /// Implemented by a type that knows how to be a BumpyEntry.
 ///
 /// That is to say, a type that has a built-in index and size, which can be
@@ -183,7 +190,7 @@ where
 pub struct BumpyVector<T> {
     /// The data is represented by a HashMap, where the index is the key and
     /// a BumpyEntry is the object.
-    data: HashMap<usize, BumpyEntry<T>>,
+    data: HashMap<usize, MetaBumpyEntry<T>>,
 
     /// The maximum size.
     max_size: usize,
@@ -211,38 +218,22 @@ impl<'a, T> BumpyVector<T> {
     /// The initial implementation is somewhat naive: loop from the
     /// `starting_index` to 0, searching for an object. If found, check the
     /// object's size to ensure it overlaps the `starting_index`.
-    ///
-    /// This will be a good place to optimize later.
     fn get_entry_start(&self, starting_index: usize) -> Option<usize> {
-        // Keep a handle to the starting index
-        let mut index = starting_index;
+        // Get the meta-entry
+        match self.data.get(&starting_index) {
+            // If there's no meta-entry, nothing to do
+            None => None,
 
-        // Loop right to zero
-        loop {
-            // Check if we have data at the index
-            match self.data.get(&index) {
-                // If there's a value, we're set!
-                Some(d) => {
-                    // If we've found a value that doesn't overlap with the
-                    // index we're looking for, that means the original index
-                    // had nothing
-                    if !d.range.contains(&starting_index) {
-                        return None;
-                    }
+            // If there IS a meta entry...
+            Some(d) => {
+                match d {
+                    // Either we're exactly on the entry, and we can say so
+                    MetaBumpyEntry::Something(_) => Some(starting_index),
 
-                    // Otherwise, we have the real index!
-                    return Some(index);
-                },
-
-                // If there's no value, we keep going
-                None => {
-                    if index == 0 {
-                        return None;
-                    }
-
-                    index -= 1;
-                },
-            };
+                    // .. or we're just past it and can return the actual result
+                    MetaBumpyEntry::NearlySomething(i) => Some(*i),
+                }
+            },
         }
     }
 
@@ -289,7 +280,7 @@ impl<'a, T> BumpyVector<T> {
         }
 
         // Check if there's a conflict on the left
-        if self.get_entry_start(entry.range.start).is_some() {
+        if self.data.get(&entry.range.start).is_some() {
             bail!("Invalid entry: overlaps another object");
         }
 
@@ -300,8 +291,13 @@ impl<'a, T> BumpyVector<T> {
             }
         }
 
-        // We're good, so create an entry!
-        self.data.insert(entry.range.start, entry);
+        // Create meta-entries for the full range starting at the first
+        for i in (entry.range.start + 1)..(entry.range.end) {
+            self.data.insert(i, MetaBumpyEntry::NearlySomething(entry.range.start));
+        }
+
+        // Insert the actual entry
+        self.data.insert(entry.range.start, MetaBumpyEntry::Something(entry));
 
         Ok(())
     }
@@ -350,6 +346,9 @@ impl<'a, T> BumpyVector<T> {
     /// Note that the entry doesn't necessarily need to *start* at `index`,
     /// just overlap it.
     ///
+    /// This does a lot of validation; if the array ever gets corrupted such
+    /// that the start and middle entries are wrong, this is where it'll crash
+    ///
     /// # Example
     ///
     /// ```
@@ -370,17 +369,24 @@ impl<'a, T> BumpyVector<T> {
     /// ```
     pub fn remove(&mut self, index: usize) -> Option<BumpyEntry<T>> {
         // Try to get the real offset
-        let real_offset = self.get_entry_start(index);
+        let real_offset = self.get_entry_start(index)?;
 
-        // If there's no element, return none
-        if let Some(o) = real_offset {
-            // Remove it!
-            if let Some(d) = self.data.remove(&o) {
-                return Some(d);
+        // Get the entry from the starting location
+        let actual_entry = match self.data.remove(&real_offset)? {
+            MetaBumpyEntry::Something(e)       => e,
+            MetaBumpyEntry::NearlySomething(_) => panic!("Something went wrong in our BumpyVector: found a middle entry where a starting entry belongs (at index {})", real_offset),
+        };
+
+        // Remove the NearlySomething entries associated with it
+        for i in (actual_entry.range.start + 1)..(actual_entry.range.end) {
+            match self.data.remove(&i) {
+                None                                     => panic!("Something went wrong in our BumpyVector: missing an entry where there should be an entry (at index {}, starting range {:?})", i, actual_entry.range),
+                Some(MetaBumpyEntry::Something(_))       => panic!("Something went wrong in our BumpyVector: found a starting entry where a middle entry belongs (at index {}, range {:?})", i, actual_entry.range),
+                Some(MetaBumpyEntry::NearlySomething(_)) => (),
             }
         }
 
-        None
+        Some(actual_entry)
     }
 
     /// Remove and return a range of entries.
@@ -444,15 +450,13 @@ impl<'a, T> BumpyVector<T> {
     /// ```
     pub fn get(&self, index: usize) -> Option<&BumpyEntry<T>> {
         // Try to get the real offset
-        let real_offset = self.get_entry_start(index);
+        let real_offset = self.get_entry_start(index)?;
 
         // If there's no element, return none
-        if let Some(o) = real_offset {
-            // Get the entry itself from the address
-            return self.data.get(&o);
+        match self.data.get(&real_offset)? {
+            MetaBumpyEntry::Something(e) => Some(e),
+            MetaBumpyEntry::NearlySomething(_) => panic!("Something went wrong in BumpyVector: get_entry_start() returned a body entry instead of starting entry @ index {}", index),
         }
-
-        None
     }
 
     /// Return a mutable reference to an entry at the given index.
@@ -482,15 +486,13 @@ impl<'a, T> BumpyVector<T> {
     /// ```
     pub fn get_mut(&mut self, index: usize) -> Option<&mut BumpyEntry<T>> {
         // Try to get the real offset
-        let real_offset = self.get_entry_start(index);
+        let real_offset = self.get_entry_start(index)?;
 
         // If there's no element, return none
-        if let Some(o) = real_offset {
-            // Get the entry itself from the address
-            return self.data.get_mut(&o);
+        match self.data.get_mut(&real_offset)? {
+            MetaBumpyEntry::Something(e) => Some(e),
+            MetaBumpyEntry::NearlySomething(_) => panic!("Something went wrong in BumpyVector: get_entry_start() returned a body entry instead of starting entry @ index {}", index),
         }
-
-        None
     }
 
     /// Return a reference to an entry that *starts at* the given index.
@@ -516,7 +518,11 @@ impl<'a, T> BumpyVector<T> {
     /// assert_eq!("hello", v.get_exact(0).unwrap().entry);
     /// ```
     pub fn get_exact(&self, index: usize) -> Option<&BumpyEntry<T>> {
-        self.data.get(&index)
+        // Just drop NearlySomething entries here
+        match self.data.get(&index)? {
+            MetaBumpyEntry::Something(e) => Some(e),
+            MetaBumpyEntry::NearlySomething(_) => None,
+        }
     }
 
     /// Return a mutable reference to an entry at exactly the given index.
@@ -545,7 +551,11 @@ impl<'a, T> BumpyVector<T> {
     /// assert!(h.get_exact(1).is_none());
     /// ```
     pub fn get_exact_mut(&mut self, index: usize) -> Option<&mut BumpyEntry<T>> {
-        self.data.get_mut(&index)
+        // Just drop NearlySomething entries here
+        match self.data.get_mut(&index)? {
+            MetaBumpyEntry::Something(e) => Some(e),
+            MetaBumpyEntry::NearlySomething(_) => None,
+        }
     }
 
     /// Return a vector of entries within the given range.
@@ -588,22 +598,23 @@ impl<'a, T> BumpyVector<T> {
             None    => range.start,
         };
 
-        // Loop up to <length> bytes after the starting index
+        // From here on, `i` should never point at a "body" entry
         while i < range.end && i < self.max_size {
-            // Pull the entry out, if it exists
-            if let Some(e) = self.data.get(&i) {
-                // Add the entry to the vector, and jump over it
-                result.push(e);
+            match self.data.get(&i) {
+                None => {
+                    i += 1;
+                },
+                Some(MetaBumpyEntry::Something(e)) => {
+                    if e.range.is_empty() {
+                        panic!("Something went wrong in BumpyVector: an entry in get_range had an empty range, which is bad news (index {}, overall range {:?})", i, range);
+                    }
 
-                // Prevent an infinite loop
-                if e.range.is_empty() {
-                    panic!("Entry cannot be empty!");
-                }
-
-                // Skip to the next range
-                i = e.range.end;
-            } else {
-                i += 1;
+                    result.push(e);
+                    i = e.range.end;
+                },
+                Some(MetaBumpyEntry::NearlySomething(_)) => {
+                    panic!("Ran into a middle entry where a start entry expected in get_range (index {}, range {:?})", i, range);
+                },
             }
         }
 
@@ -611,9 +622,11 @@ impl<'a, T> BumpyVector<T> {
     }
 
     /// Returns the number of entries.
+    ///
+    /// This isn't the most efficient operation, unfortunately; we can probably
+    /// improve if we need to
     pub fn len(&self) -> usize {
-        // Return the number of entries
-        return self.data.len();
+        self.get_range(0..self.max_size()).len()
     }
 
     pub fn max_size(&self) -> usize {
