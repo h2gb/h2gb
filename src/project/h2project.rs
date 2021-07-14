@@ -175,13 +175,29 @@ impl H2Project {
         self.buffer_get_mut(buffer)?.layer_get_mut(layer)
     }
 
-    pub fn entry_create_from_type(&mut self, buffer: &str, layer: &str, abstract_type: H2Type, offset: usize) -> SimpleResult<()> {
+    // Does not validate whether it could actually be inserted
+    pub fn entry_create(&self, buffer: &str, abstract_type: H2Type, offset: usize) -> SimpleResult<H2Entry> {
+        let buffer = match self.buffer_get(buffer) {
+            Some(b) => b,
+            None => bail!("Couldn't find buffer {}", buffer),
+        };
+
+        buffer.entry_create(abstract_type, offset)
+    }
+
+    pub fn entry_insert(&mut self, buffer: &str, layer: &str, entry: H2Entry) -> SimpleResult<()> {
         let buffer = match self.buffer_get_mut(buffer) {
             Some(b) => b,
             None => bail!("Couldn't find buffer {}", buffer),
         };
 
-        buffer.entry_insert_from_type(layer, abstract_type, offset)
+        buffer.entry_insert(layer, entry)
+    }
+
+    pub fn entry_create_and_insert(&mut self, buffer: &str, layer: &str, abstract_type: H2Type, offset: usize) -> SimpleResult<()> {
+        let entry = self.entry_create(buffer, abstract_type, offset)?;
+
+        self.entry_insert(buffer, layer, entry)
     }
 
     pub fn entry_get(&self, buffer: &str, layer: &str, offset: usize) -> Option<&H2Entry> {

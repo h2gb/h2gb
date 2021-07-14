@@ -18,7 +18,7 @@ const OFFSET_SPAWN_POINTS: usize = 0x99c;
 
 pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
     // Create the entry
-    let create_action = ActionEntryCreateFromType::new(buffer, layer, datatype, offset);
+    let create_action = ActionEntryCreateAndInsert::new(buffer, layer, datatype, offset);
     record.apply(create_action)?;
 
     // Add a comment
@@ -32,6 +32,10 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
         Some(entry) => Ok(entry.resolved().clone()),
         None => bail!("Entry didn't correctly insert"),
     }
+}
+
+pub fn peek_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
+    bail!("Not implemented");
 }
 
 pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {

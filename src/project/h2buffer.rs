@@ -403,7 +403,7 @@ impl H2Buffer {
         self.layers.get_mut(layer)
     }
 
-    pub fn entry_insert_from_type(&mut self, layer: &str, abstract_type: H2Type, offset: usize) -> SimpleResult<()> {
+    pub fn entry_create(&self, abstract_type: H2Type, offset: usize) -> SimpleResult<H2Entry> {
         // Resolve from our data
         let offset = Offset::Dynamic(Context::new(&self.data).at(offset as u64)); // TODO: I don't like this cast
         let concrete_type = abstract_type.resolve(offset, None)?;
@@ -413,8 +413,10 @@ impl H2Buffer {
         }
 
         // Create the entry object
-        let entry = H2Entry::new(concrete_type.clone(), Some(abstract_type));
+        Ok(H2Entry::new(concrete_type, Some(abstract_type)))
+    }
 
+    pub fn entry_insert(&mut self, layer: &str, entry: H2Entry) -> SimpleResult<()> {
         // Insert it into the layer
         let layer = match self.layers.get_mut(layer) {
             Some(l) => l,

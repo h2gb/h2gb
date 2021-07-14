@@ -2,16 +2,15 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::datatype::H2Type;
-use crate::project::H2Project;
+use crate::bumpy_vector::AutoBumpyEntry; // So we can use 'range()'
+use crate::project::{H2Project, H2Entry};
 use crate::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Forward {
     buffer: String,
     layer: String,
-    abstract_type: H2Type,
-    offset: usize,
+    entry: H2Entry,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -28,24 +27,23 @@ enum State {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ActionEntryCreateFromType(State);
+pub struct ActionEntryInsert(State);
 
-impl ActionEntryCreateFromType {
-    pub fn new(buffer: &str, layer: &str, abstract_type: H2Type, offset: usize) -> Action {
-        Action::EntryCreateFromType(
-            ActionEntryCreateFromType(
+impl ActionEntryInsert {
+    pub fn new(buffer: &str, layer: &str, entry: H2Entry) -> Action {
+        Action::EntryInsert(
+            ActionEntryInsert(
                 State::Forward(Forward {
                     buffer: buffer.to_string(),
                     layer: layer.to_string(),
-                    abstract_type: abstract_type,
-                    offset: offset,
+                    entry: entry,
                 })
             )
         )
     }
 }
 
-impl Command for ActionEntryCreateFromType {
+impl Command for ActionEntryInsert {
     type Target = H2Project;
     type Error = SimpleError;
 
@@ -57,14 +55,14 @@ impl Command for ActionEntryCreateFromType {
         };
 
         // Create the entry and saved the ResolvedType
-        project.entry_create_from_type(&forward.buffer, &forward.layer, forward.abstract_type.clone(), forward.offset)?;
+        project.entry_insert(&forward.buffer, &forward.layer, forward.entry.clone())?;
 
         // Save the backward struct
         // Gotta save enough to know where to find it
         self.0 = State::Backward(Backward {
             buffer: forward.buffer.clone(),
             layer: forward.layer.clone(),
-            offset: forward.offset,
+            offset: forward.entry.range().start,
         });
 
         Ok(())
@@ -84,17 +82,11 @@ impl Command for ActionEntryCreateFromType {
             None => bail!("Could not remove entry: not found"),
         };
 
-        let abstract_type = match entry.creator() {
-            Some(a) => a,
-            None => bail!("We undid the entry, but it did not contain the type we expected: {:?}", &entry),
-        };
-
         // Save the backward struct
         self.0 = State::Forward(Forward {
             buffer: backward.buffer.clone(),
             layer: backward.layer.clone(),
-            abstract_type: abstract_type,
-            offset: backward.offset,
+            entry: entry,
         });
 
         Ok(())
@@ -126,7 +118,8 @@ mod tests {
 
         // Create a numeric type
         let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
+        let entry = record.target().entry_create("buffer", datatype, 0)?;
+        let action = ActionEntryInsert::new("buffer", "default", entry);
         record.apply(action)?;
 
         // Make sure it's there
@@ -144,7 +137,8 @@ mod tests {
             H2Number::new(GenericReader::U8, DefaultFormatter::new()),
             H2Number::new_ascii(),
         )?;
-        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 4);
+        let entry = record.target().entry_create("buffer", datatype, 4)?;
+        let action = ActionEntryInsert::new("buffer", "default", entry);
         record.apply(action)?;
 
         // Retrieve it
@@ -186,29 +180,36 @@ mod tests {
 
         // Create an entry
         let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
+
+        // Create an entry that starts at the beginning
+        let entry = record.target().entry_create("buffer", datatype.clone(), 0)?;
+        let action = ActionEntryInsert::new("buffer", "default", entry);
         record.apply(action)?;
 
         // Make sure we can't overlap it
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
+        let entry = record.target().entry_create("buffer", datatype.clone(), 0)?;
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default", entry)).is_err());
 
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 1)).is_err());
+        let entry = record.target().entry_create("buffer", datatype.clone(), 1)?;
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default", entry)).is_err());
 
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 2)).is_err());
+        let entry = record.target().entry_create("buffer", datatype.clone(), 2)?;
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default", entry)).is_err());
 
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 3)).is_err());
+        let entry = record.target().entry_create("buffer", datatype.clone(), 3)?;
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default", entry)).is_err());
 
         // Going off the end should also be an error
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 5)).is_err());
+        // I need a bigger buffer to test this
+        record.apply(ActionBufferCreateFromBytes::new("longbuffer", &b"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_vec(), 0))?;
+        // Create the entry with the new, longer buffer
+        let entry = record.target().entry_create("longbuffer", datatype.clone(), 5)?;
+        // And insert it into the old buffer
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default", entry)).is_err());
 
         // But 4, like the third bed, should be jussst right
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 4)).is_ok());
+        let entry = record.target().entry_create("buffer", datatype.clone(), 4)?;
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default", entry)).is_ok());
 
         Ok(())
     }
@@ -226,12 +227,19 @@ mod tests {
 
         // Create an entry
         let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        let action = ActionEntryCreateFromType::new("buffer", "default", datatype, 0);
+        let entry = record.target().entry_create("buffer", datatype, 0)?;
+        let action = ActionEntryInsert::new("buffer", "default", entry);
         record.apply(action)?;
 
-        // Make sure we can't overlap it
+        // Make sure we can't overlap it on the same layer
         let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
-        assert!(record.apply(ActionEntryCreateFromType::new("buffer", "default", datatype, 0)).is_err());
+        let entry = record.target().entry_create("buffer", datatype, 0)?;
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default", entry)).is_err());
+
+        // But we can on the other
+        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
+        let entry = record.target().entry_create("buffer", datatype, 0)?;
+        assert!(record.apply(ActionEntryInsert::new("buffer", "default2", entry)).is_ok());
 
         Ok(())
     }
