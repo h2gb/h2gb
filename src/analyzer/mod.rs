@@ -15,6 +15,7 @@ const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 
 const OFFSET_SPAWN_POINTS: usize = 0x99c;
+const OFFSET_JOURNEY_DATA: usize = 0x6b;
 
 pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
     // Create the entry
@@ -34,8 +35,8 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
     }
 }
 
-pub fn peek_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
-    bail!("Not implemented");
+pub fn peek_entry(record: &mut Record<Action>, buffer: &str, datatype: H2Type, offset: usize) -> SimpleResult<ResolvedType> {
+    Ok(record.target().entry_create(buffer, datatype, offset)?.resolved().to_owned())
 }
 
 pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
@@ -61,9 +62,6 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         0x00, // Offset
         Some("Version number"),
     );
-
-    // Add a comment to the version
-    record.apply(ActionEntrySetComment::new(buffer, "default", 0, Some("Version number".to_string())))?;
 
     // Create an entry for the name
     let name = create_entry(
@@ -92,50 +90,76 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     // of name
     let mut current_spawn_offset = name.actual_range.end as usize + OFFSET_SPAWN_POINTS;
 
+    // This defines a spawnpoint entry, and is used for each spawnpoint
+    let spawn_entry = H2Struct::new(vec![
+        ("x".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+        ("y".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+        ("seed".to_string(),  H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+        ("world".to_string(), LPString::new(
+            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+            H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
+        )?),
+    ])?;
+
     loop {
+        // Check for the terminator
+        let terminator_type = H2Number::new(GenericReader::I32(Endian::Little), DefaultFormatter::new());
+        let possible_terminator = peek_entry(record, buffer, terminator_type.clone(), current_spawn_offset)?;
+        if let Some(n) = possible_terminator.as_number {
+            if n == GenericNumber::from(-1) {
+                create_entry(record, buffer, "default", terminator_type, current_spawn_offset, Some("Spawn point sentinel value (terminator)"))?;
+                break;
+            }
+        }
+        // if let Some(possible_terminator.as_number) == GenericNumber::from(-1) {
+        // }
+
         let spawn_point = create_entry(
             record,
             buffer,
             "default",
-            H2Struct::new(vec![
-                ("x".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-                ("y".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-                ("seed".to_string(),  H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-                ("world".to_string(), LPString::new(
-                    H2Number::new(GenericReader::U8, DefaultFormatter::new()),
-                    H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
-                )?),
-            ])?,
+            spawn_entry.clone(),
             current_spawn_offset,
             Some("Spawn point"),
         )?;
-
-        // Grab the first child (the 'x' coordinate) and look for the terminator
-        match spawn_point.children.first() {
-            Some(s) => {
-                 match s.as_number {
-                     Some(n) => {
-                         // Look for the terminator
-                         if n == GenericNumber::from(0xffffffffu32) {
-                             break;
-                         }
-                     },
-                     None => bail!("Spawn point x coordinate was not a number"), // Shouldn't be possible
-                 }
-            },
-            None => bail!("No spawn point"), // This shouldn't be able to happen
-        }
 
         // Update to the next spawn offset
         current_spawn_offset = spawn_point.actual_range.end as usize;
     }
 
-    // Create entries:
-    // -> Version -> 16 bits little endian
-    //    -> Check if it's a version we can handle
-    // -> Name -> length-prefixed string from NAME_OFFSET
-    // -> Game mode -> 8 bits right after name
-    // ... other stuff
+    let journeymode_item_entry = H2Struct::new(vec![
+        ("item".to_string(), LPString::new(
+            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+            H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
+        )?),
+
+        ("quantity".to_string(),  H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+    ])?;
+
+    // TODO: Is journey mode?
+    let mut current_journey_offset = current_spawn_offset + OFFSET_JOURNEY_DATA;
+    loop {
+        let terminator_type = H2Number::new(GenericReader::U8, DefaultFormatter::new());
+        let possible_terminator = peek_entry(record, buffer, terminator_type.clone(), current_journey_offset)?;
+        if let Some(n) = possible_terminator.as_number {
+            if n == GenericNumber::from(0u8) {
+                create_entry(record, buffer, "default", terminator_type, current_journey_offset, Some("Journey mode entry sentinel value (terminator)"))?;
+                break;
+            }
+        }
+
+        let journey_item = create_entry(
+            record,
+            buffer,
+            "default",
+            journeymode_item_entry.clone(),
+            current_journey_offset,
+            Some("Journeymode item"),
+        )?;
+
+        // Update to the next journey offset
+        current_journey_offset = journey_item.actual_range.end as usize;
+    }
 
     Ok(())
 }
