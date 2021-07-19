@@ -13,13 +13,8 @@ struct Forward {
     comment: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Backward {
-    buffer: String,
-    layer: String,
-    offset: usize,
-    old_comment: Option<String>,
-}
+// Backward is identical to forward
+type Backward = Forward;
 
 #[derive(Serialize, Deserialize, Debug)]
 enum State {
@@ -56,7 +51,10 @@ impl Command for ActionEntrySetComment {
             _                 => bail!("Failed to apply: action ended up in a broken undo/redo state"),
         };
 
-        let old_comment = project.comment_set(&forward.buffer, &forward.layer, forward.offset, forward.comment.clone())?;
+        let old_comment = project
+            .buffer_get_mut_or_err(&forward.buffer)?
+            .layer_get_mut_or_err(&forward.layer)?
+            .comment_set(forward.offset, forward.comment.clone())?;
 
         // Save the backward struct
         // Gotta save enough to know where to find it
@@ -64,7 +62,7 @@ impl Command for ActionEntrySetComment {
             buffer: forward.buffer.clone(),
             layer: forward.layer.clone(),
             offset: forward.offset,
-            old_comment: old_comment,
+            comment: old_comment,
         });
 
         Ok(())
@@ -78,7 +76,10 @@ impl Command for ActionEntrySetComment {
         };
 
         // Do stuff with it
-        let original_comment = project.comment_set(&backward.buffer, &backward.layer, backward.offset, backward.old_comment.clone())?;
+        let original_comment = project
+            .buffer_get_mut_or_err(&backward.buffer)?
+            .layer_get_mut_or_err(&backward.layer)?
+            .comment_set(backward.offset, backward.comment.clone())?;
 
         // Save the backward struct
         self.0 = State::Forward(Forward {

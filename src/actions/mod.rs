@@ -43,11 +43,11 @@ pub use null::NullAction;
 mod layer_create;
 pub use layer_create::ActionLayerCreate;
 
-mod entry_create_and_insert;
-pub use entry_create_and_insert::ActionEntryCreateAndInsert;
+// mod entry_create_and_insert;
+// pub use entry_create_and_insert::ActionEntryCreateAndInsert;
 
-mod entry_insert;
-pub use entry_insert::ActionEntryInsert;
+mod entry_create;
+pub use entry_create::ActionEntryCreate;
 
 mod entry_set_comment;
 pub use entry_set_comment::ActionEntrySetComment;
@@ -60,8 +60,8 @@ pub enum Action {
     BufferCreateFromBytes(ActionBufferCreateFromBytes),
     BufferTransform(ActionBufferTransform),
     LayerCreate(ActionLayerCreate),
-    EntryCreateAndInsert(ActionEntryCreateAndInsert),
-    EntryInsert(ActionEntryInsert),
+    // EntryCreateAndInsert(ActionEntryCreateAndInsert),
+    EntryCreate(ActionEntryCreate),
     EntrySetComment(ActionEntrySetComment),
 }
 
@@ -76,8 +76,8 @@ impl Command for Action {
             Action::BufferCreateFromBytes(a) => a.apply(project),
             Action::BufferTransform(a)       => a.apply(project),
             Action::LayerCreate(a)           => a.apply(project),
-            Action::EntryCreateAndInsert(a)  => a.apply(project),
-            Action::EntryInsert(a)           => a.apply(project),
+            // Action::EntryCreateAndInsert(a)  => a.apply(project),
+            Action::EntryCreate(a)           => a.apply(project),
             Action::EntrySetComment(a)       => a.apply(project),
         }
     }
@@ -89,8 +89,8 @@ impl Command for Action {
             Action::BufferCreateFromBytes(a) => a.undo(project),
             Action::BufferTransform(a)       => a.undo(project),
             Action::LayerCreate(a)           => a.undo(project),
-            Action::EntryCreateAndInsert(a)  => a.undo(project),
-            Action::EntryInsert(a)           => a.undo(project),
+            // Action::EntryCreateAndInsert(a)  => a.undo(project),
+            Action::EntryCreate(a)           => a.undo(project),
             Action::EntrySetComment(a)       => a.undo(project),
         }
     }

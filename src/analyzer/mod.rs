@@ -1,7 +1,7 @@
 //! Some good info should go here!
 
 use redo::Record;
-use simple_error::{SimpleResult, bail};
+use simple_error::SimpleResult;
 
 use crate::actions::*;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
@@ -18,25 +18,27 @@ const OFFSET_SPAWN_POINTS: usize = 0x99c;
 const OFFSET_JOURNEY_DATA: usize = 0x6b;
 
 pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
+    // Resolve the entry
+    let resolved = record.target().buffer_get_or_err(buffer)?.peek(&datatype, offset)?;
+
     // Create the entry
-    let create_action = ActionEntryCreateAndInsert::new(buffer, layer, datatype, offset);
+    let create_action = ActionEntryCreate::new(buffer, layer, resolved.clone(), Some(datatype));
     record.apply(create_action)?;
 
-    // Add a comment
+    // Add a comment if one was given
     if let Some(c) = comment {
         let comment_action = ActionEntrySetComment::new(buffer, layer, offset, Some(c.to_string()));
         record.apply(comment_action)?;
     }
 
     // Retrieve and return the entry
-    match record.target().entry_get(buffer, layer, offset) {
-        Some(entry) => Ok(entry.resolved().clone()),
-        None => bail!("Entry didn't correctly insert"),
-    }
+    // This has to be cloned, because we can't keep a handle to record or the
+    // borrow checker gets angry
+    Ok(resolved)
 }
 
-pub fn peek_entry(record: &mut Record<Action>, buffer: &str, datatype: H2Type, offset: usize) -> SimpleResult<ResolvedType> {
-    Ok(record.target().entry_create(buffer, datatype, offset)?.resolved().to_owned())
+pub fn peek_entry(record: &mut Record<Action>, buffer: &str, datatype: &H2Type, offset: usize) -> SimpleResult<ResolvedType> {
+    record.target().buffer_get_or_err(buffer)?.peek(&datatype, offset)
 }
 
 pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
@@ -104,7 +106,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     loop {
         // Check for the terminator
         let terminator_type = H2Number::new(GenericReader::I32(Endian::Little), DefaultFormatter::new());
-        let possible_terminator = peek_entry(record, buffer, terminator_type.clone(), current_spawn_offset)?;
+        let possible_terminator = peek_entry(record, buffer, &terminator_type, current_spawn_offset)?;
         if let Some(n) = possible_terminator.as_number {
             if n == GenericNumber::from(-1) {
                 create_entry(record, buffer, "default", terminator_type, current_spawn_offset, Some("Spawn point sentinel value (terminator)"))?;
@@ -140,7 +142,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     let mut current_journey_offset = current_spawn_offset + OFFSET_JOURNEY_DATA;
     loop {
         let terminator_type = H2Number::new(GenericReader::U8, DefaultFormatter::new());
-        let possible_terminator = peek_entry(record, buffer, terminator_type.clone(), current_journey_offset)?;
+        let possible_terminator = peek_entry(record, buffer, &terminator_type, current_journey_offset)?;
         if let Some(n) = possible_terminator.as_number {
             if n == GenericNumber::from(0u8) {
                 create_entry(record, buffer, "default", terminator_type, current_journey_offset, Some("Journey mode entry sentinel value (terminator)"))?;
@@ -181,7 +183,7 @@ mod tests {
     fn test_analyze() -> SimpleResult<()> {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/terraria/ManySpawnPoints.plr");
+        d.push("testdata/terraria/TestChar.plr");
 
         // Create a fresh record
         let mut record: Record<Action> = Record::new(

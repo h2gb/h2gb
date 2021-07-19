@@ -23,3 +23,20 @@ Entry create + insert...
 * Idea: Code the buffer name into the entry
 * Idea: Deal in resolved entries instead of abstract entries?
 
+
+
+Responsibilities...
+
+* Project
+
+* Buffer
+** Transform / Untransform
+** Add / remove layer
+** Stuff that uses the underlying data
+*** Peek (H2Type -> Resolvedtype)
+*** Create an entry in a layer
+*** Edit
+
+* Layer
+
+* Entry

@@ -4,12 +4,11 @@
 //! quite ready for detailed comments just yet. :)
 
 use serde::{Serialize, Deserialize};
-use simple_error::{bail, SimpleResult};
+use simple_error::{bail, SimpleResult, SimpleError};
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::datatype::H2Type;
-use crate::project::{H2Buffer, H2Layer, H2Entry};
+use crate::project::H2Buffer;
 
 // H2Project is the very core, and the root of undo. All actions will be taken
 // via this object.
@@ -33,21 +32,12 @@ impl H2Project {
         }
     }
 
-    fn multi_key(buffer: &str, layer: &str) -> (String, String) {
-        (buffer.to_string(), layer.to_string())
-    }
+    // fn multi_key(buffer: &str, layer: &str) -> (String, String) {
+    //     (buffer.to_string(), layer.to_string())
+    // }
 
     pub fn buffers(&self) -> &HashMap<String, H2Buffer> {
         return &self.buffers;
-    }
-
-    // TODO: Should this return an Option?
-    pub fn buffer_get(&self, buffer: &str) -> Option<&H2Buffer> {
-        self.buffers.get(buffer)
-    }
-
-    pub fn buffer_get_mut(&mut self, buffer: &str) -> Option<&mut H2Buffer> {
-        self.buffers.get_mut(buffer)
     }
 
     pub fn buffer_exists(&self, buffer: &str) -> bool {
@@ -71,23 +61,6 @@ impl H2Project {
         Ok(())
     }
 
-    // Guarantees either all or none are inserted
-    // pub fn buffer_insert_multiple(&mut self, mut buffers: HashMap<String, H2Buffer>) -> SimpleResult<()> {
-    //     // Validate first
-    //     for name in buffers.keys() {
-    //         if self.buffer_exists(name) {
-    //             bail!("Buffer already exists: {}", name);
-    //         }
-    //     }
-
-    //     // Then insert
-    //     for (name, buffer) in buffers.drain() {
-    //         self.buffers.insert(name, buffer);
-    //     }
-
-    //     Ok(())
-    // }
-
     // Note: In the future, we should check for references to this buffer to
     // ensure we aren't breaking anything else
     pub fn buffer_can_be_removed(&self, buffer: &str) -> SimpleResult<bool> {
@@ -109,6 +82,43 @@ impl H2Project {
             None => bail!("Buffer not found"),
         }
     }
+
+    pub fn buffer_get(&self, buffer: &str) -> Option<&H2Buffer> {
+        self.buffers.get(buffer)
+    }
+
+    pub fn buffer_get_or_err(&self, buffer: &str) -> SimpleResult<&H2Buffer> {
+        self.buffer_get(buffer).ok_or(
+            SimpleError::new(format!("Could not find buffer {}", buffer))
+        )
+    }
+
+    pub fn buffer_get_mut(&mut self, buffer: &str) -> Option<&mut H2Buffer> {
+        self.buffers.get_mut(buffer)
+    }
+
+    pub fn buffer_get_mut_or_err(&mut self, buffer: &str) -> SimpleResult<&mut H2Buffer> {
+        self.buffer_get_mut(buffer).ok_or(
+            SimpleError::new(format!("Could not find buffer {}", buffer))
+        )
+    }
+
+    // Guarantees either all or none are inserted
+    // pub fn buffer_insert_multiple(&mut self, mut buffers: HashMap<String, H2Buffer>) -> SimpleResult<()> {
+    //     // Validate first
+    //     for name in buffers.keys() {
+    //         if self.buffer_exists(name) {
+    //             bail!("Buffer already exists: {}", name);
+    //         }
+    //     }
+
+    //     // Then insert
+    //     for (name, buffer) in buffers.drain() {
+    //         self.buffers.insert(name, buffer);
+    //     }
+
+    //     Ok(())
+    // }
 
     // pub fn buffer_rename(&mut self, from: &str, to: &str) -> SimpleResult<()> {
     //     let buffer = self.buffer_get(from)?;
@@ -140,86 +150,6 @@ impl H2Project {
 
     //     Ok(())
     // }
-
-    pub fn layer_add(&mut self, buffer: &str, layer: &str) -> SimpleResult<()> {
-        // Get the size (from a read-only version of the buffer)
-        match self.buffer_get_mut(buffer) {
-            Some(buffer) => buffer.layer_add(layer)?,
-            None => bail!("Can't add layer: no such buffer {}", buffer),
-        };
-
-        Ok(())
-    }
-
-    pub fn layer_remove(&mut self, buffer: &str, layer: &str) -> SimpleResult<()> {
-        match self.buffer_get_mut(buffer) {
-            Some(b) => b.layer_remove(layer)?,
-            None => bail!("Can't remove layer: no such buffer '{}'", buffer),
-        };
-
-        Ok(())
-    }
-
-    pub fn layer_exists(&self, buffer: &str, layer: &str) -> bool {
-        match self.buffer_get(buffer) {
-            Some(b) => b.layer_exists(layer),
-            None => false,
-        }
-    }
-
-    pub fn layer_get(&self, buffer: &str, layer: &str) -> Option<&H2Layer> {
-        self.buffer_get(buffer)?.layer_get(layer)
-    }
-
-    pub fn layer_get_mut(&mut self, buffer: &str, layer: &str) -> Option<&mut H2Layer> {
-        self.buffer_get_mut(buffer)?.layer_get_mut(layer)
-    }
-
-    // Does not validate whether it could actually be inserted
-    pub fn entry_create(&self, buffer: &str, abstract_type: H2Type, offset: usize) -> SimpleResult<H2Entry> {
-        let buffer = match self.buffer_get(buffer) {
-            Some(b) => b,
-            None => bail!("Couldn't find buffer {}", buffer),
-        };
-
-        buffer.entry_create(abstract_type, offset)
-    }
-
-    pub fn entry_insert(&mut self, buffer: &str, layer: &str, entry: H2Entry) -> SimpleResult<()> {
-        let buffer = match self.buffer_get_mut(buffer) {
-            Some(b) => b,
-            None => bail!("Couldn't find buffer {}", buffer),
-        };
-
-        buffer.entry_insert(layer, entry)
-    }
-
-    pub fn entry_create_and_insert(&mut self, buffer: &str, layer: &str, abstract_type: H2Type, offset: usize) -> SimpleResult<()> {
-        let entry = self.entry_create(buffer, abstract_type, offset)?;
-
-        self.entry_insert(buffer, layer, entry)
-    }
-
-    pub fn entry_get(&self, buffer: &str, layer: &str, offset: usize) -> Option<&H2Entry> {
-        self.layer_get(buffer, layer)?.entry_get(offset)
-    }
-
-    pub fn entry_get_mut(&mut self, buffer: &str, layer: &str, offset: usize) -> Option<&mut H2Entry> {
-        self.layer_get_mut(buffer, layer)?.entry_get_mut(offset)
-    }
-
-    pub fn entry_remove(&mut self, buffer: &str, layer: &str, offset: usize) -> Option<H2Entry> {
-        self.buffer_get_mut(buffer)?.entry_remove(layer, offset)
-    }
-
-    pub fn comment_set(&mut self, buffer: &str, layer: &str, offset: usize, comment: Option<String>) -> SimpleResult<Option<String>> {
-        let buffer = match self.buffer_get_mut(buffer) {
-            Some(l) => l,
-            None => bail!("Couldn't find buffer {} to add comment", buffer),
-        };
-
-        buffer.comment_set(layer, offset, comment)
-    }
 
     // Remove an entry, and any others that were inserted along with it
     // pub fn entry_remove(&mut self, buffer: &str, layer: &str, offset: usize) -> SimpleResult<Vec<(String, String, Option<H2Type>, usize)>> {

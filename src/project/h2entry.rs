@@ -12,52 +12,44 @@ use crate::datatype::{H2Type, ResolvedType};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Entry {
-    datatype: ResolvedType,
-    creator: Option<H2Type>,
-
-    // pub creations: Option<Vec<()>>,
-    // pub references: Option<Vec<()>>,
-    //pub datatype: H2Type,
-    //pub transformations: Transformation
+    resolved_type: ResolvedType,
+    origin: Option<H2Type>,
 }
 
 impl fmt::Display for H2Entry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.datatype)
+        write!(f, "{}", self.resolved_type)
     }
 }
 
 impl AutoBumpyEntry for H2Entry {
     fn range(&self) -> Range<usize> {
         // TODO: Converting like this is bad news
-        (self.datatype.aligned_range.start as usize)..(self.datatype.aligned_range.end as usize)
+        (self.resolved_type.aligned_range.start as usize)..(self.resolved_type.aligned_range.end as usize)
     }
 }
 
 impl H2Entry {
-    pub fn new(datatype: ResolvedType, creator: Option<H2Type>) -> Self {
+    pub fn new(resolved_type: ResolvedType, origin: Option<H2Type>) -> Self {
         Self {
-            datatype: datatype,
-            creator: creator,
+            resolved_type: resolved_type,
+            origin: origin,
         }
     }
 
     pub fn resolved(&self) -> &ResolvedType {
-        &self.datatype
+        &self.resolved_type
     }
 
-    pub fn creator(&self) -> Option<H2Type> {
-        self.creator.clone()
+    pub fn origin(&self) -> &Option<H2Type> {
+        &self.origin
+    }
+
+    pub fn split_up(self) -> (ResolvedType, Option<H2Type>) {
+        (self.resolved_type, self.origin)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
-    use simple_error::SimpleResult;
-
-    #[test]
-    fn test_() -> SimpleResult<()> {
-        Ok(())
-    }
 }

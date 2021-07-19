@@ -19,14 +19,13 @@
 use std::mem;
 
 use serde::{Serialize, Deserialize};
-use simple_error::{bail, SimpleResult};
+use simple_error::{bail, SimpleResult, SimpleError};
 use std::collections::HashMap;
-use std::ops::Range;
 use std::fmt;
 
 use crate::transformation::Transformation;
-use crate::project::{H2Layer, H2Entry};
-use crate::datatype::{Offset, H2Type};
+use crate::project::H2Layer;
+use crate::datatype::{Offset, H2Type, ResolvedType};
 use crate::generic_number::Context;
 
 // H2Buffer holds the actual data, as well as its layers
@@ -63,7 +62,15 @@ impl fmt::Display for H2Buffer {
 
             while offset < self.data.len() {
                 match layer.entry_get(offset) {
-                    Some(entry) => {
+                    Err(e) => {
+                        write!(f, " 0x{:08x} - 0x{:08x}    Error getting entry: {:?}",
+                                 offset,
+                                 offset + 1,
+                                 e,
+                        )?;
+                        offset += 1;
+                    },
+                    Ok(Some(entry)) => {
                         // Deal with the entry
                         let resolved = entry.resolved();
                         let actual_range = (resolved.actual_range.start as usize)..(resolved.actual_range.end as usize);
@@ -112,7 +119,7 @@ impl fmt::Display for H2Buffer {
                         // Move to the next entry
                         offset = resolved.aligned_range.end as usize;
                     },
-                    None => {
+                    Ok(None) => {
                         if self.display_empty_addresses {
                             // Handle the case where there are no entries here
                             write!(f, " 0x{:08x} - 0x{:08x}    {:02x}",
@@ -180,15 +187,15 @@ impl H2Buffer {
     ///
     /// * This will raise an error if the length of the original buffer is zero
     ///   (which obviously shouldn't be possible)
-    pub fn clone_shallow(&self, new_base_address: Option<usize>) -> SimpleResult<Self> {
-        // Create the basics (use Self::new for consistent error checks)
-        let mut cloned = Self::new(&self.name, self.data.clone(), new_base_address.unwrap_or(self.base_address))?;
+    // pub fn clone_shallow(&self, new_base_address: Option<usize>) -> SimpleResult<Self> {
+    //     // Create the basics (use Self::new for consistent error checks)
+    //     let mut cloned = Self::new(&self.name, self.data.clone(), new_base_address.unwrap_or(self.base_address))?;
 
-        // Preserve the transformations
-        cloned.transformations = self.transformations.clone();
+    //     // Preserve the transformations
+    //     cloned.transformations = self.transformations.clone();
 
-        Ok(cloned)
-    }
+    //     Ok(cloned)
+    // }
 
     // // Not sure whether I want this...
     // pub fn clone_deep(&self) -> SimpleResult<()> {
@@ -207,23 +214,23 @@ impl H2Buffer {
     ///
     /// * The `range` must not go off the end of the buffer
     /// * The `range` must not work out to zero bytes
-    pub fn clone_partial(&self, range: Range<usize>, new_base_address: Option<usize>) -> SimpleResult<Self> {
-        // Sanity check
-        if range.end > self.data.len() {
-            bail!("Editing data into buffer is too long");
-        }
+    // pub fn clone_partial(&self, range: Range<usize>, new_base_address: Option<usize>) -> SimpleResult<Self> {
+    //     // Sanity check
+    //     if range.end > self.data.len() {
+    //         bail!("Editing data into buffer is too long");
+    //     }
 
-        if range.is_empty() {
-            bail!("Clone range cannot be empty");
-        }
+    //     if range.is_empty() {
+    //         bail!("Clone range cannot be empty");
+    //     }
 
-        let base_address = match new_base_address {
-            Some(b) => b,
-            None => self.base_address + range.start,
-        };
+    //     let base_address = match new_base_address {
+    //         Some(b) => b,
+    //         None => self.base_address + range.start,
+    //     };
 
-        Self::new(&self.name, self.data[range].into(), base_address)
-    }
+    //     Self::new(&self.name, self.data[range].into(), base_address)
+    // }
 
     /// Returns true if the buffer contains layers, entries, or any changes
     /// that could prevent it from being cleanly removed.
@@ -338,29 +345,33 @@ impl H2Buffer {
         Ok(())
     }
 
-    pub fn edit(&mut self, data: Vec<u8>, offset: usize) -> SimpleResult<Vec<u8>> {
-        // Get a handle to the buffer's data
-        let buffer_data = &mut self.data;
+    // pub fn edit(&mut self, data: Vec<u8>, offset: usize) -> SimpleResult<Vec<u8>> {
+    //     // Get a handle to the buffer's data
+    //     let buffer_data = &mut self.data;
 
-        // Sanity check
-        if offset + data.len() > buffer_data.len() {
-            bail!("Editing data into buffer is too long");
-        }
+    //     // Sanity check
+    //     if offset + data.len() > buffer_data.len() {
+    //         bail!("Editing data into buffer is too long");
+    //     }
 
-        if data.len() == 0 {
-            bail!("Can't edit zero bytes");
-        }
+    //     if data.len() == 0 {
+    //         bail!("Can't edit zero bytes");
+    //     }
 
-        // Splice in our data, get the original data back
-        Ok(buffer_data.splice(offset..(offset+data.len()), data).collect())
-    }
+    //     // Splice in our data, get the original data back
+    //     Ok(buffer_data.splice(offset..(offset+data.len()), data).collect())
+    // }
 
-    pub fn rebase(&mut self, new_base_address: usize) -> SimpleResult<usize> {
-        let old_base_address = self.base_address;
-        self.base_address = new_base_address;
+    // pub fn rebase(&mut self, new_base_address: usize) -> SimpleResult<usize> {
+    //     let old_base_address = self.base_address;
+    //     self.base_address = new_base_address;
 
-        Ok(old_base_address)
-    }
+    //     Ok(old_base_address)
+    // }
+
+    // ** Everything below here is basically to operate on layers - create and
+    //    remove, then a bunch of simple proxies to make it more ergonomic to
+    //    deal with layers!
 
     pub fn layer_add(&mut self, layer: &str) -> SimpleResult<()> {
         // Get this up front, we won't be able to once we borrow self in the match
@@ -399,47 +410,26 @@ impl H2Buffer {
         self.layers.get(layer)
     }
 
+    pub fn layer_get_or_err(&self, layer: &str) -> SimpleResult<&H2Layer> {
+        self.layer_get(layer).ok_or(
+            SimpleError::new(format!("Could not find layer {}", layer))
+        )
+    }
+
     pub fn layer_get_mut(&mut self, layer: &str) -> Option<&mut H2Layer> {
         self.layers.get_mut(layer)
     }
 
-    pub fn entry_create(&self, abstract_type: H2Type, offset: usize) -> SimpleResult<H2Entry> {
-        // Resolve from our data
+    pub fn layer_get_mut_or_err(&mut self, layer: &str) -> SimpleResult<&mut H2Layer> {
+        self.layer_get_mut(layer).ok_or(
+            SimpleError::new(format!("Could not find layer {}", layer))
+        )
+    }
+
+    pub fn peek(&self, abstract_type: &H2Type, offset: usize) -> SimpleResult<ResolvedType> {
         let offset = Offset::Dynamic(Context::new(&self.data).at(offset as u64)); // TODO: I don't like this cast
-        let concrete_type = abstract_type.resolve(offset, None)?;
 
-        if !concrete_type.related.is_empty() {
-            bail!("Tried to insert an entry with 'related' data.. we don't know how to handle that (yet?)");
-        }
-
-        // Create the entry object
-        Ok(H2Entry::new(concrete_type, Some(abstract_type)))
-    }
-
-    pub fn entry_insert(&mut self, layer: &str, entry: H2Entry) -> SimpleResult<()> {
-        // Insert it into the layer
-        let layer = match self.layers.get_mut(layer) {
-            Some(l) => l,
-            None => bail!("Couldn't find layer {} in buffer {}", layer, self.name()),
-        };
-
-        layer.entry_insert(entry)?;
-
-        Ok(())
-    }
-
-    pub fn entry_remove(&mut self, layer: &str, offset: usize) -> Option<H2Entry> {
-        let layer = self.layers.get_mut(layer)?;
-        layer.entry_remove(offset)
-    }
-
-    pub fn comment_set(&mut self, layer: &str, offset: usize, comment: Option<String>) -> SimpleResult<Option<String>> {
-        let layer = match self.layer_get_mut(layer) {
-            Some(l) => l,
-            None => bail!("Couldn't find layer {} in buffer {} to add comment", layer, self.name()),
-        };
-
-        layer.comment_set(offset, comment)
+        abstract_type.resolve(offset, None)
     }
 }
 
@@ -465,74 +455,74 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_clone_shallow_same_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x4000)?;
-        let buffer = buffer.clone_shallow(None)?;
-        assert_eq!(b"ABCD".to_vec(), buffer.data);
-        assert_eq!(0x4000, buffer.base_address);
+    // #[test]
+    // fn test_clone_shallow_same_base_address() -> SimpleResult<()> {
+    //     let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x4000)?;
+    //     let buffer = buffer.clone_shallow(None)?;
+    //     assert_eq!(b"ABCD".to_vec(), buffer.data);
+    //     assert_eq!(0x4000, buffer.base_address);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    #[test]
-    fn test_clone_shallow_new_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x4000)?;
-        let buffer = buffer.clone_shallow(Some(0x8000))?;
-        assert_eq!(b"ABCD".to_vec(), buffer.data);
-        assert_eq!(0x8000, buffer.base_address);
+    // #[test]
+    // fn test_clone_shallow_new_base_address() -> SimpleResult<()> {
+    //     let buffer = H2Buffer::new("name", b"ABCD".to_vec(), 0x4000)?;
+    //     let buffer = buffer.clone_shallow(Some(0x8000))?;
+    //     assert_eq!(b"ABCD".to_vec(), buffer.data);
+    //     assert_eq!(0x8000, buffer.base_address);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    #[test]
-    fn test_clone_partial_same_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
+    // #[test]
+    // fn test_clone_partial_same_base_address() -> SimpleResult<()> {
+    //     let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
 
-        let buffer_start = buffer.clone_partial(0..4, None)?;
-        assert_eq!(b"ABCD".to_vec(), buffer_start.data);
-        assert_eq!(0x4000, buffer_start.base_address);
+    //     let buffer_start = buffer.clone_partial(0..4, None)?;
+    //     assert_eq!(b"ABCD".to_vec(), buffer_start.data);
+    //     assert_eq!(0x4000, buffer_start.base_address);
 
-        let buffer_middle = buffer.clone_partial(2..10, None)?;
-        assert_eq!(b"CDEFGHIJ".to_vec(), buffer_middle.data);
-        assert_eq!(0x4002, buffer_middle.base_address);
+    //     let buffer_middle = buffer.clone_partial(2..10, None)?;
+    //     assert_eq!(b"CDEFGHIJ".to_vec(), buffer_middle.data);
+    //     assert_eq!(0x4002, buffer_middle.base_address);
 
-        let buffer_end = buffer.clone_partial(8..12, None)?;
-        assert_eq!(b"IJKL".to_vec(), buffer_end.data);
-        assert_eq!(0x4008, buffer_end.base_address);
+    //     let buffer_end = buffer.clone_partial(8..12, None)?;
+    //     assert_eq!(b"IJKL".to_vec(), buffer_end.data);
+    //     assert_eq!(0x4008, buffer_end.base_address);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    #[test]
-    fn test_clone_partial_new_base_address() -> SimpleResult<()> {
-        let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
+    // #[test]
+    // fn test_clone_partial_new_base_address() -> SimpleResult<()> {
+    //     let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
 
-        let buffer_start = buffer.clone_partial(0..4, Some(0x8000))?;
-        assert_eq!(b"ABCD".to_vec(), buffer_start.data);
-        assert_eq!(0x8000, buffer_start.base_address);
+    //     let buffer_start = buffer.clone_partial(0..4, Some(0x8000))?;
+    //     assert_eq!(b"ABCD".to_vec(), buffer_start.data);
+    //     assert_eq!(0x8000, buffer_start.base_address);
 
-        let buffer_middle = buffer.clone_partial(2..10, Some(0x8000))?;
-        assert_eq!(b"CDEFGHIJ".to_vec(), buffer_middle.data);
-        assert_eq!(0x8000, buffer_middle.base_address);
+    //     let buffer_middle = buffer.clone_partial(2..10, Some(0x8000))?;
+    //     assert_eq!(b"CDEFGHIJ".to_vec(), buffer_middle.data);
+    //     assert_eq!(0x8000, buffer_middle.base_address);
 
-        let buffer_end = buffer.clone_partial(8..12, Some(0x8000))?;
-        assert_eq!(b"IJKL".to_vec(), buffer_end.data);
-        assert_eq!(0x8000, buffer_end.base_address);
+    //     let buffer_end = buffer.clone_partial(8..12, Some(0x8000))?;
+    //     assert_eq!(b"IJKL".to_vec(), buffer_end.data);
+    //     assert_eq!(0x8000, buffer_end.base_address);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    #[test]
-    fn test_clone_partial_bad_range() -> SimpleResult<()> {
-        let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
+    // #[test]
+    // fn test_clone_partial_bad_range() -> SimpleResult<()> {
+    //     let buffer = H2Buffer::new("name", b"ABCDEFGHIJKL".to_vec(), 0x4000)?;
 
-        assert!(buffer.clone_partial(0..0, None).is_err()); // Zero length
-        assert!(buffer.clone_partial(4..0, None).is_err()); // Negative length
-        assert!(buffer.clone_partial(0..100, None).is_err()); // Way off the end
+    //     assert!(buffer.clone_partial(0..0, None).is_err()); // Zero length
+    //     assert!(buffer.clone_partial(4..0, None).is_err()); // Negative length
+    //     assert!(buffer.clone_partial(0..100, None).is_err()); // Way off the end
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     #[test]
     fn test_is_populated() -> SimpleResult<()> {
@@ -615,46 +605,46 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_edit() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
-        assert_eq!(b"41424344".to_vec(), buffer.data);
+    // #[test]
+    // fn test_edit() -> SimpleResult<()> {
+    //     let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
+    //     assert_eq!(b"41424344".to_vec(), buffer.data);
 
-        let original = buffer.edit(b"ZZ".to_vec(), 0)?;
-        assert_eq!(b"41".to_vec(), original);
-        assert_eq!(b"ZZ424344".to_vec(), buffer.data);
+    //     let original = buffer.edit(b"ZZ".to_vec(), 0)?;
+    //     assert_eq!(b"41".to_vec(), original);
+    //     assert_eq!(b"ZZ424344".to_vec(), buffer.data);
 
-        let original = buffer.edit(b"YY".to_vec(), 1)?;
-        assert_eq!(b"Z4".to_vec(), original);
-        assert_eq!(b"ZYY24344".to_vec(), buffer.data);
+    //     let original = buffer.edit(b"YY".to_vec(), 1)?;
+    //     assert_eq!(b"Z4".to_vec(), original);
+    //     assert_eq!(b"ZYY24344".to_vec(), buffer.data);
 
-        let original = buffer.edit(b"~".to_vec(), 7)?;
-        assert_eq!(b"4".to_vec(), original);
-        assert_eq!(b"ZYY2434~".to_vec(), buffer.data);
+    //     let original = buffer.edit(b"~".to_vec(), 7)?;
+    //     assert_eq!(b"4".to_vec(), original);
+    //     assert_eq!(b"ZYY2434~".to_vec(), buffer.data);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    #[test]
-    fn test_edit_errors() -> SimpleResult<()> {
-        let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
-        assert_eq!(b"41424344".to_vec(), buffer.data);
+    // #[test]
+    // fn test_edit_errors() -> SimpleResult<()> {
+    //     let mut buffer = H2Buffer::new("name", b"41424344".to_vec(), 0x4000)?;
+    //     assert_eq!(b"41424344".to_vec(), buffer.data);
 
-        // Zero length
-        assert!(buffer.edit(b"".to_vec(), 0).is_err());
+    //     // Zero length
+    //     assert!(buffer.edit(b"".to_vec(), 0).is_err());
 
-        // Just overlaps the end
-        assert!(buffer.edit(b"AAAA".to_vec(), 5).is_err());
+    //     // Just overlaps the end
+    //     assert!(buffer.edit(b"AAAA".to_vec(), 5).is_err());
 
-        // Just overlaps the end
-        assert!(buffer.edit(b"AAAAAAAAA".to_vec(), 0).is_err());
+    //     // Just overlaps the end
+    //     assert!(buffer.edit(b"AAAAAAAAA".to_vec(), 0).is_err());
 
-        // Starts off the end
-        assert!(buffer.edit(b"A".to_vec(), 9).is_err());
+    //     // Starts off the end
+    //     assert!(buffer.edit(b"A".to_vec(), 9).is_err());
 
-        // Starts way off the end
-        assert!(buffer.edit(b"A".to_vec(), 1000).is_err());
+    //     // Starts way off the end
+    //     assert!(buffer.edit(b"A".to_vec(), 1000).is_err());
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }

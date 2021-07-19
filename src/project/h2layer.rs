@@ -20,9 +20,10 @@ use std::ops::Range;
 use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
+use simple_error::{SimpleResult, bail, SimpleError};
 
 use crate::bumpy_vector::BumpyVector;
+use crate::datatype::{H2Type, ResolvedType};
 use crate::project::H2Entry;
 
 /// Hold information for a layer - basically, a bunch of entires in a
@@ -62,35 +63,67 @@ impl H2Layer {
         &self.name
     }
 
-    pub fn entry_insert(&mut self, entry: H2Entry) -> SimpleResult<()> {
-        self.entries.insert_auto(entry)
+    pub fn entry_create(&mut self, resolved_type: ResolvedType, origin: Option<H2Type>) -> SimpleResult<()> {
+        self.entries.insert_auto(H2Entry::new(resolved_type, origin))
     }
 
-    pub fn entry_remove(&mut self, offset: usize) -> Option<H2Entry> {
-        self.entries.remove(offset).map(|entry| {
-            entry.entry
-        })
+    pub fn entry_remove(&mut self, offset: usize) -> SimpleResult<Option<(ResolvedType, Option<H2Type>)>> {
+        if offset >= self.entries.max_size() {
+            bail!("Tried to remove entry at illegal offset {}", offset);
+        }
+
+        Ok(self.entries.remove(offset).map(|entry| {
+            entry.entry.split_up()
+        }))
     }
 
-    pub fn entry_remove_range(&mut self, range: Range<usize>) -> Vec<H2Entry> {
-        self.entries.remove_range(range).into_iter().map(|entry| entry.entry).collect()
+    pub fn entry_remove_range(&mut self, range: Range<usize>) -> SimpleResult<Vec<(ResolvedType, Option<H2Type>)>> {
+        if range.is_empty() || range.end >= self.entries.max_size() {
+            bail!("Tried to remove entries at illegal range {:?}", range);
+        }
+
+        Ok(self.entries.remove_range(range).into_iter().map(|entry| entry.entry.split_up()).collect())
     }
 
-    pub fn entry_get(&self, offset: usize) -> Option<&H2Entry> {
-        self.entries.get(offset).map(|entry| &entry.entry)
+    pub fn entry_get(&self, offset: usize) -> SimpleResult<Option<H2Entry>> {
+        if offset >= self.entries.max_size() {
+            bail!("Tried to get entry at illegal offset {}", offset);
+        }
+
+        Ok(self.entries.get(offset).map(|entry| entry.entry.clone()))
     }
 
-    pub fn entry_get_mut(&mut self, offset: usize) -> Option<&mut H2Entry> {
-        self.entries.get_mut(offset).map(|entry| &mut entry.entry)
+    pub fn entry_get_or_err(&self, offset: usize) -> SimpleResult<H2Entry> {
+        self.entry_get(offset)?.ok_or(
+            SimpleError::new(format!("No entry at offset {}", offset))
+        )
     }
 
-    pub fn entries_get(&self, range: Range<usize>) -> Vec<&H2Entry> {
-        self.entries.get_range(range).into_iter().map(|entry| &entry.entry).collect()
+    pub fn entry_get_mut(&mut self, offset: usize) -> SimpleResult<Option<&mut H2Entry>> {
+        if offset >= self.entries.max_size() {
+            bail!("Tried to get entry at illegal offset {}", offset);
+        }
+
+        Ok(self.entries.get_mut(offset).map(|entry| &mut entry.entry))
     }
 
-    pub fn entries(&self) -> &BumpyVector<H2Entry> {
-        &self.entries
+    pub fn entry_get_mut_or_err(&mut self, offset: usize) -> SimpleResult<&mut H2Entry> {
+        self.entry_get_mut(offset)?.ok_or(
+            SimpleError::new(format!("No entry at offset {}", offset))
+        )
     }
+
+    pub fn entries_get(&self, range: Range<usize>) -> SimpleResult<Vec<&H2Entry>> {
+        if range.is_empty() || range.end >= self.entries.max_size() {
+            bail!("Tried to get entries at illegal range {:?}", range);
+        }
+
+        Ok(self.entries.get_range(range).into_iter().map(|entry| &entry.entry).collect())
+    }
+
+    // pub fn entries(&self) -> &BumpyVector<H2Entry> {
+    //     &self.entries
+    // }
 
     pub fn len(&self) -> usize {
         self.entries.len()
@@ -102,13 +135,17 @@ impl H2Layer {
 
     pub fn comment_get(&self, offset: usize) -> SimpleResult<Option<&String>> {
         if offset >= self.entries.max_size() {
-            bail!("Tried to put comment at illegal offset");
+            bail!("Tried to put comment at illegal offset {}", offset);
         }
 
         Ok(self.comments.get(&offset))
     }
 
     pub fn comments_get(&self, range: Range<usize>) -> SimpleResult<Vec<&String>> {
+        if range.end >= self.entries.max_size() {
+            bail!("Tried to get comment at illegal range {:?}", range);
+        }
+
         let mut out = Vec::new();
 
         for offset in range {
@@ -123,7 +160,7 @@ impl H2Layer {
 
     pub fn comment_set(&mut self, offset: usize, comment: Option<String>) -> SimpleResult<Option<String>> {
         if offset >= self.entries.max_size() {
-            bail!("Tried to put comment at illegal offset");
+            bail!("Tried to put comment at illegal offset {}", offset);
         }
 
         match comment {

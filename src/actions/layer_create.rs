@@ -50,7 +50,10 @@ impl Command for ActionLayerCreate {
         };
 
         // Do stuff with it
-        project.layer_add(&forward.buffer, &forward.name)?;
+        let buffer = project.buffer_get_mut(&forward.buffer).ok_or(
+            SimpleError::new(format!("Could not find buffer {}", forward.buffer))
+        )?;
+        buffer.layer_add(&forward.name)?;
 
         // Save the backward struct
         self.0 = State::Backward(Backward {
@@ -69,7 +72,10 @@ impl Command for ActionLayerCreate {
         };
 
         // Do stuff with it
-        project.layer_remove(&backward.buffer, &backward.name)?;
+        let buffer = project.buffer_get_mut(&backward.buffer).ok_or(
+            SimpleError::new(format!("Could not find buffer {}", backward.buffer))
+        )?;
+        buffer.layer_remove(&backward.name)?;
 
         // Save the forward struct
         self.0 = State::Forward(Forward {
@@ -108,11 +114,11 @@ mod tests {
         record.apply(action)?;
 
         // Ensure the layer exists, and undo/redo works
-        assert!(record.target().layer_exists("buffer", "layer"));
+        assert!(record.target().buffer_get("buffer").unwrap().layer_exists("layer"));
         record.undo()?;
-        assert!(!record.target().layer_exists("buffer", "layer"));
+        assert!(!record.target().buffer_get("buffer").unwrap().layer_exists("layer"));
         record.redo()?;
-        assert!(record.target().layer_exists("buffer", "layer"));
+        assert!(record.target().buffer_get("buffer").unwrap().layer_exists("layer"));
 
         Ok(())
     }
