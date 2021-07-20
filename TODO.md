@@ -14,4 +14,4 @@
 * Write tests for character types in GenericNumber
 * Eliminate u64 as much as possible, in favour of usize
 
-* Semvar?
+* Find a new home for Enums that can be parsed

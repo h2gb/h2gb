@@ -243,13 +243,19 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     let base_offset = name.actual_range.end as usize;
 
     // Create an entry for the game mode
-    let game_mode = parse_game_mode(record, buffer, base_offset + offsets.game_mode)?;
+    let game_mode = parse_game_mode(record, buffer, base_offset + offsets.game_mode)?.as_number.ok_or(
+        SimpleError::new("Game mode could not be parsed properly (could not be represented as a number)")
+    )?.as_u64().map_err( |e| SimpleError::new(format!("Game mode could not be parsed properly (could not be interpreted as a u64): {:?}", e)))?;
 
     // Parse the spawnpoints
     let new_base_offset = parse_spawnpoints(record, buffer, base_offset + offsets.spawnpoints)?;
 
-    if let Some(offset) = offsets.journey_data {
-        parse_journeymode(record, buffer, new_base_offset + offset)?;
+    // game_mode 3 == Journey Mode
+    if game_mode == 3 {
+        // Make sure we have the correct offset
+        if let Some(offset) = offsets.journey_data {
+            parse_journeymode(record, buffer, new_base_offset + offset)?;
+        }
     }
 
     Ok(())
@@ -273,7 +279,7 @@ mod tests {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/terraria/TestChar.plr");
-        //d.push("testdata/terraria/TestChar.plr");
+        //d.push("testdata/terraria/ManySpawnPoints.plr");
 
         // Create a fresh record
         let mut record: Record<Action> = Record::new(
