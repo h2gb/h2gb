@@ -5,11 +5,13 @@ use simple_error::SimpleResult;
 
 use crate::actions::*;
 use crate::transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
-use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::H2Number;
 use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::LPString;
 use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter};
+
+mod helpers;
+use helpers::*;
 
 const TERRARIA_KEY: &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
@@ -17,29 +19,15 @@ const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const OFFSET_SPAWN_POINTS: usize = 0x99c;
 const OFFSET_JOURNEY_DATA: usize = 0x6b;
 
-pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
-    // Resolve the entry
-    let resolved = record.target().buffer_get_or_err(buffer)?.peek(&datatype, offset)?;
-
-    // Create the entry
-    let create_action = ActionEntryCreate::new(buffer, layer, resolved.clone(), Some(datatype));
-    record.apply(create_action)?;
-
-    // Add a comment if one was given
-    if let Some(c) = comment {
-        let comment_action = ActionEntrySetComment::new(buffer, layer, offset, Some(c.to_string()));
-        record.apply(comment_action)?;
-    }
-
-    // Retrieve and return the entry
-    // This has to be cloned, because we can't keep a handle to record or the
-    // borrow checker gets angry
-    Ok(resolved)
+struct TerrariaOffsets {
+    inventory: usize,
+    coin: usize,
+    col: usize,
+    pig: usize,
+    safe: usize,
+    buffs: bool,
 }
 
-pub fn peek_entry(record: &mut Record<Action>, buffer: &str, datatype: &H2Type, offset: usize) -> SimpleResult<ResolvedType> {
-    record.target().buffer_get_or_err(buffer)?.peek(&datatype, offset)
-}
 
 pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
     // Transform -> decrypt
@@ -56,14 +44,16 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     record.apply(ActionLayerCreate::new(buffer, "default"))?;
 
     // Create an entry for the version
-    let _version = create_entry(
+    let version = create_entry(
         record,
         buffer,
         "default",
         H2Number::new(GenericReader::U16(Endian::Little), EnumFormatter::new(EnumType::TerrariaVersion)),
         0x00, // Offset
         Some("Version number"),
-    );
+    )?;
+
+    // Get the offset configurations
 
     // Create an entry for the name
     let name = create_entry(
