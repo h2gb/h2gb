@@ -1,4 +1,3 @@
-* Add some way to 'peek' rather than actually creating an entry
 * Print out structs better (like, each field gets its own thing)
 * Can we somehow do comments on struct fields? :-/
 * Print unallocated addresses
@@ -15,3 +14,4 @@
 * Eliminate u64 as much as possible, in favour of usize
 
 * Find a new home for Enums that can be parsed
+* Get rid of the weird "static" offsets in H2Type, I don't think it's buying anything except complication
