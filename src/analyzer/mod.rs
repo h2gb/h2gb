@@ -68,6 +68,9 @@ lazy_static! {
 
 struct TerrariaOffsets {
     name:         usize,
+
+    // Relative to name
+    game_mode:    usize,
     col:          usize,
     inventory:    usize,
     coin:         usize,
@@ -75,6 +78,8 @@ struct TerrariaOffsets {
     safe:         usize,
     spawnpoints:  usize,
     buffs:        Option<usize>,
+
+    // Relative to end of spawnpoints
     journey_data: Option<usize>,
 }
 
@@ -85,6 +90,7 @@ fn get_terraria_offsets(version: u64) -> TerrariaOffsets {
             name:        0x18,
 
             // Offset from end of name
+            game_mode:   0x00,
             col:         0x28,
             inventory:   0xd3,
             coin:        0x2c7,
@@ -102,6 +108,7 @@ fn get_terraria_offsets(version: u64) -> TerrariaOffsets {
             name:        0x18,
 
             // Offset from end of name
+            game_mode:   0x00,
             col:         0x2a,
             inventory:   0xd5,
             coin:        0x2c9,
@@ -142,44 +149,19 @@ fn parse_name(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simpl
     )
 }
 
-pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
-    // Decrypt the buffer
-    transform_decrypt(record, buffer)?;
-
-    // Create a layer
-    record.apply(ActionLayerCreate::new(buffer, LAYER))?;
-
-    // Create an entry for the version
-    let version = parse_version_number(record, buffer)?;
-    let version_number = version.as_number.ok_or(
-        SimpleError::new("Could not parse the Terraria version number as a number")
-    )?.as_u64()?;
-
-    // Get the offsets for later
-    let offsets = get_terraria_offsets(version_number);
-
-    // Create an entry for the name
-    let name = parse_name(record, buffer, offsets.name)?;
-
-    // Get the offsets' base (end of name)
-    let base_offset = name.actual_range.end as usize;
-
-    // Create an entry for the game mode
-    let _game_mode = create_entry(
+fn parse_game_mode(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<ResolvedType> {
+    create_entry(
         record,
         buffer,
         LAYER,
         &H2Number::new(GenericReader::U8, EnumFormatter::new(EnumType::TerrariaGameMode)),
-        base_offset, // Offset
+        offset,
         Some("Game mode"),
-    )?;
+    )
+}
 
-    // Get the offset to research data, which is a static offset from the end
-    // of name
-    let mut current_spawn_offset = base_offset + offsets.spawnpoints;
-
-    // This defines a spawnpoint entry, and is used for each spawnpoint
-
+fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<usize> {
+    let mut current_spawn_offset = starting_offset;
     loop {
         // Check for the terminator
         let terminator_type = H2Number::new(GenericReader::I32(Endian::Little), DefaultFormatter::new());
@@ -206,8 +188,12 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         current_spawn_offset = spawn_point.actual_range.end as usize;
     }
 
-    // TODO: Is journey mode?
-    let mut current_journey_offset = current_spawn_offset + OFFSET_JOURNEY_DATA;
+    Ok(current_spawn_offset)
+}
+
+fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<()> {
+    let mut current_journey_offset = starting_offset;
+
     loop {
         let terminator_type = H2Number::new(GenericReader::U8, DefaultFormatter::new());
         let possible_terminator = peek_entry(record, buffer, &terminator_type, current_journey_offset)?;
@@ -234,6 +220,41 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     Ok(())
 }
 
+pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
+    // Decrypt the buffer
+    transform_decrypt(record, buffer)?;
+
+    // Create a layer
+    record.apply(ActionLayerCreate::new(buffer, LAYER))?;
+
+    // Create an entry for the version
+    let version = parse_version_number(record, buffer)?;
+    let version_number = version.as_number.ok_or(
+        SimpleError::new("Could not parse the Terraria version number as a number")
+    )?.as_u64()?;
+
+    // Get the offsets for later
+    let offsets = get_terraria_offsets(version_number);
+
+    // Create an entry for the name
+    let name = parse_name(record, buffer, offsets.name)?;
+
+    // Get the offsets' base (end of name)
+    let base_offset = name.actual_range.end as usize;
+
+    // Create an entry for the game mode
+    let game_mode = parse_game_mode(record, buffer, base_offset + offsets.game_mode)?;
+
+    // Parse the spawnpoints
+    let new_base_offset = parse_spawnpoints(record, buffer, base_offset + offsets.spawnpoints)?;
+
+    if let Some(offset) = offsets.journey_data {
+        parse_journeymode(record, buffer, new_base_offset + offset)?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -252,6 +273,7 @@ mod tests {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/terraria/TestChar.plr");
+        //d.push("testdata/terraria/TestChar.plr");
 
         // Create a fresh record
         let mut record: Record<Action> = Record::new(
