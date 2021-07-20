@@ -25,12 +25,12 @@ pub fn commit_entry(record: &mut Record<Action>, buffer: &str, layer: &str, reso
     Ok(())
 }
 
-pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
+pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
     // Resolve the entry
-    let resolved = peek_entry(record, buffer, &datatype, offset)?;
+    let resolved = peek_entry(record, buffer, datatype, offset)?;
 
     // Commit it
-    commit_entry(record, buffer, layer, resolved.clone(), Some(datatype), comment)?;
+    commit_entry(record, buffer, layer, resolved.clone(), Some(datatype.clone()), comment)?;
 
     Ok(resolved)
 }

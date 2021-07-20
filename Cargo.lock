@@ -292,6 +292,7 @@ dependencies = [
  "des",
  "hex",
  "inflate",
+ "lazy_static",
  "macaddr",
  "nettle",
  "num-derive",
