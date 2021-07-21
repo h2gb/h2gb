@@ -24,6 +24,9 @@ pub use character_formatter::*;
 mod enum_formatter;
 pub use enum_formatter::*;
 
+mod boolean_formatter;
+pub use boolean_formatter::*;
+
 /// A trait to simplify rendering.
 ///
 /// I'm not convinced this is actually useful (yet), but it's mostly hidden
@@ -60,6 +63,7 @@ pub enum GenericFormatter {
     Scientific(ScientificFormatter),
     Character(CharacterFormatter),
     Enum(EnumFormatter),
+    Boolean(BooleanFormatter),
 }
 
 impl GenericFormatter {
@@ -73,6 +77,7 @@ impl GenericFormatter {
             Self::Scientific(o) => Box::new(*o),
             Self::Character(o)  => Box::new(*o),
             Self::Enum(o)       => Box::new(*o),
+            Self::Boolean(o)    => Box::new(*o),
         }
     }
 

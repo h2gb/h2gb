@@ -8,9 +8,9 @@ use crate::actions::*;
 use crate::transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::H2Number;
-use crate::datatype::composite::H2Struct;
+use crate::datatype::composite::{H2Struct, H2Array};
 use crate::datatype::composite::string::LPString;
-use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter, HexFormatter, BooleanFormatter};
 
 mod helpers;
 use helpers::*;
@@ -67,58 +67,58 @@ lazy_static! {
 }
 
 struct TerrariaOffsets {
-    name:         usize,
+    name:           usize,
 
     // Relative to name
-    game_mode:    usize,
-    col:          usize,
-    inventory:    usize,
-    coin:         usize,
-    piggy_bank:   usize,
-    safe:         usize,
-    spawnpoints:  usize,
-    buffs:        Option<usize>,
+    game_mode:      usize,
+    col:            usize,
+    inventory:      usize,
+    coins_and_ammo: usize,
+    piggy_bank:     usize,
+    safe:           usize,
+    spawnpoints:    usize,
+    buffs:          Option<usize>,
 
     // Relative to end of spawnpoints
-    journey_data: Option<usize>,
+    journey_data:   Option<usize>,
 }
 
 fn get_terraria_offsets(version: u64) -> TerrariaOffsets {
     if version < 230 {
         TerrariaOffsets {
             // Offset from start of file
-            name:        0x18,
+            name:           0x18,
 
             // Offset from end of name
-            game_mode:   0x00,
-            col:         0x28,
-            inventory:   0xd3,
-            coin:        0x2c7,
-            piggy_bank:  0x349,
-            safe:        0x4b1,
-            buffs:       None,
-            spawnpoints: 0x99a, // Not tested, likely wrong
+            game_mode:      0x00,
+            col:            0x28,
+            inventory:      0xd3,
+            coins_and_ammo: 0x2c7,
+            piggy_bank:     0x349,
+            safe:           0x4b1,
+            buffs:          None,
+            spawnpoints:    0x99a, // Not tested, likely wrong
 
             // No JourneyMode
-            journey_data: None,
+            journey_data:   None,
         }
     } else {
         TerrariaOffsets {
             // Offset from start of file
-            name:        0x18,
+            name:           0x18,
 
             // Offset from end of name
-            game_mode:   0x00,
-            col:         0x2a,
-            inventory:   0xd5,
-            coin:        0x2c9,
-            piggy_bank:  0x34b,
-            safe:        0x4b3,
-            buffs:       Some(0x8ec),
-            spawnpoints: 0x99c,
+            game_mode:      0x00,
+            col:            0x2a,
+            inventory:      0xd5,
+            coins_and_ammo: 0x2c9,
+            piggy_bank:     0x34b,
+            safe:           0x4b3,
+            buffs:          Some(0x8ec),
+            spawnpoints:    0x99c,
 
             // Offset from the end of spawnpoints
-            journey_data: Some(0x6b),
+            journey_data:   Some(0x6b),
         }
     }
 }
@@ -158,6 +158,32 @@ fn parse_game_mode(record: &mut Record<Action>, buffer: &str, offset: usize) -> 
         offset,
         Some("Game mode"),
     )
+}
+
+fn parse_coins_and_ammo(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    add_comment(record, buffer, LAYER, offset, "Start offset for coins_and_ammo")?;
+
+    for i in (offset..(offset + 80)).step_by(10) {
+        create_entry(
+            record,
+            buffer,
+            LAYER,
+
+            // Item struct
+            &H2Struct::new(vec![
+                ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), HexFormatter::pretty())),
+                ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+                ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
+                ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
+            ])?,
+            i,
+            None,
+        )?;
+    }
+
+    add_comment(record, buffer, LAYER, offset + 80 - 1, "End offset for coins_and_ammo")?;
+
+    Ok(())
 }
 
 fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<usize> {
@@ -247,6 +273,18 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         SimpleError::new("Game mode could not be parsed properly (could not be represented as a number)")
     )?.as_u64().map_err( |e| SimpleError::new(format!("Game mode could not be parsed properly (could not be interpreted as a u64): {:?}", e)))?;
 
+    // Comment the other offsets because I don't know how to parse them yet
+    add_comment(record, buffer, LAYER, base_offset + offsets.col,        "Offset for 'col' (I'm not actually sure what that is.. maybe ammo?)")?;
+    add_comment(record, buffer, LAYER, base_offset + offsets.inventory,  "Offset for inventory")?;
+
+    parse_coins_and_ammo(record, buffer, base_offset + offsets.coins_and_ammo)?;
+    add_comment(record, buffer, LAYER, base_offset + offsets.piggy_bank, "Offset for piggy bank")?;
+    add_comment(record, buffer, LAYER, base_offset + offsets.safe,       "Offset for safe")?;
+
+    if let Some(offset_buffs) = offsets.buffs {
+        add_comment(record, buffer, LAYER, base_offset + offset_buffs,  "Offset for buffs")?;
+    }
+
     // Parse the spawnpoints
     let new_base_offset = parse_spawnpoints(record, buffer, base_offset + offsets.spawnpoints)?;
 
@@ -278,8 +316,8 @@ mod tests {
     fn test_analyze() -> SimpleResult<()> {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/terraria/TestChar.plr");
-        //d.push("testdata/terraria/ManySpawnPoints.plr");
+        // d.push("testdata/terraria/TestChar.plr");
+        d.push("testdata/terraria/ManySpawnPoints.plr");
 
         // Create a fresh record
         let mut record: Record<Action> = Record::new(
