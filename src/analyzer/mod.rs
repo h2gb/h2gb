@@ -8,7 +8,7 @@ use crate::actions::*;
 use crate::transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::H2Number;
-use crate::datatype::composite::{H2Struct, H2Array};
+use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::LPString;
 use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter, HexFormatter, BooleanFormatter};
 
@@ -171,7 +171,7 @@ fn parse_coins_and_ammo(record: &mut Record<Action>, buffer: &str, offset: usize
 
             // Item struct
             &H2Struct::new(vec![
-                ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), HexFormatter::pretty())),
+                ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaItem))),
                 ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
                 ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
                 ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
