@@ -64,6 +64,22 @@ lazy_static! {
         ]).unwrap()
     };
 
+    static ref INVENTORY_ITEM: H2Type = {
+        H2Struct::new(vec![
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaItem))),
+            ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
+            ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
+        ]).unwrap()
+    };
+
+    static ref STORED_ITEM: H2Type = {
+        H2Struct::new(vec![
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaItem))),
+            ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
+        ]).unwrap()
+    };
 }
 
 struct TerrariaOffsets {
@@ -160,6 +176,24 @@ fn parse_game_mode(record: &mut Record<Action>, buffer: &str, offset: usize) -> 
     )
 }
 
+fn parse_inventory(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    add_comment(record, buffer, LAYER, offset,  "Start offset for inventory")?;
+    // Technically this is an array, but we don't really handle arrays well enough to use one
+    for i in (offset..(offset + 500)).step_by(10) {
+        create_entry(
+            record,
+            buffer,
+            LAYER,
+            &*INVENTORY_ITEM,
+            i,
+            None,
+        )?;
+    }
+    add_comment(record, buffer, LAYER, offset + 500 - 1, "End offset for inventory")?;
+
+    Ok(())
+}
+
 fn parse_coins_and_ammo(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
     add_comment(record, buffer, LAYER, offset, "Start offset for coins_and_ammo")?;
 
@@ -168,20 +202,49 @@ fn parse_coins_and_ammo(record: &mut Record<Action>, buffer: &str, offset: usize
             record,
             buffer,
             LAYER,
-
-            // Item struct
-            &H2Struct::new(vec![
-                ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaItem))),
-                ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-                ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
-                ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
-            ])?,
+            &*INVENTORY_ITEM,
             i,
             None,
         )?;
     }
 
     add_comment(record, buffer, LAYER, offset + 80 - 1, "End offset for coins_and_ammo")?;
+
+    Ok(())
+}
+
+fn parse_piggy_bank(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    add_comment(record, buffer, LAYER, offset,  "Start offset for piggy bank")?;
+    // Technically this is an array, but we don't really handle arrays well enough to use one
+    for i in (offset..(offset + 360)).step_by(9) {
+        create_entry(
+            record,
+            buffer,
+            LAYER,
+            &*STORED_ITEM,
+            i,
+            None,
+        )?;
+    }
+    add_comment(record, buffer, LAYER, offset + 360 - 1, "End offset for piggy bank")?;
+
+    Ok(())
+}
+
+fn parse_safe(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    add_comment(record, buffer, LAYER, offset,  "Start offset for safe")?;
+    // Technically this is an array, but we don't really handle arrays well enough to use one
+    for i in (offset..(offset + 360)).step_by(9) {
+        create_entry(
+            record,
+            buffer,
+            LAYER,
+            &*STORED_ITEM,
+            i,
+            None,
+        )?;
+    }
+    add_comment(record, buffer, LAYER, offset + 360 - 1, "End offset for safe")?;
 
     Ok(())
 }
@@ -275,11 +338,10 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
 
     // Comment the other offsets because I don't know how to parse them yet
     add_comment(record, buffer, LAYER, base_offset + offsets.col,        "Offset for 'col' (I'm not actually sure what that is.. maybe ammo?)")?;
-    add_comment(record, buffer, LAYER, base_offset + offsets.inventory,  "Offset for inventory")?;
-
+    parse_inventory(record, buffer, base_offset + offsets.inventory)?;
     parse_coins_and_ammo(record, buffer, base_offset + offsets.coins_and_ammo)?;
-    add_comment(record, buffer, LAYER, base_offset + offsets.piggy_bank, "Offset for piggy bank")?;
-    add_comment(record, buffer, LAYER, base_offset + offsets.safe,       "Offset for safe")?;
+    parse_piggy_bank(record, buffer, base_offset + offsets.piggy_bank)?;
+    parse_safe(record, buffer, base_offset + offsets.safe)?;
 
     if let Some(offset_buffs) = offsets.buffs {
         add_comment(record, buffer, LAYER, base_offset + offset_buffs,  "Offset for buffs")?;
