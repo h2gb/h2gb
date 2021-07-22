@@ -13,6 +13,9 @@ pub use terraria_version::TerrariaVersion;
 mod terraria_item;
 pub use terraria_item::TerrariaItem;
 
+mod terraria_buff;
+pub use terraria_buff::TerrariaBuff;
+
 mod windows_error;
 pub use windows_error::WindowsError;
 
@@ -28,6 +31,7 @@ pub enum EnumType {
     TerrariaGameMode,
     TerrariaVersion,
     TerrariaItem,
+    TerrariaBuff,
     WindowsError,
     TestEnum,
     //Custom(CustomEnumType),
@@ -86,6 +90,7 @@ impl GenericFormatterImpl for EnumFormatter {
             EnumType::TerrariaGameMode => TerrariaGameMode::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
             EnumType::TerrariaVersion  =>  TerrariaVersion::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
             EnumType::TerrariaItem     =>     TerrariaItem::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
+            EnumType::TerrariaBuff     =>     TerrariaBuff::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
             EnumType::WindowsError     =>     WindowsError::from_u64(number).map(|v| format!("{:?} ({})", v, v.to_string())),
         }.unwrap_or(format!("unknown_0x{:016x}", number));
 

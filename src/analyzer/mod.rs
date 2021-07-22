@@ -8,7 +8,7 @@ use crate::actions::*;
 use crate::transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::H2Number;
-use crate::datatype::composite::H2Struct;
+use crate::datatype::composite::{H2Struct, H2Array};
 use crate::datatype::composite::string::LPString;
 use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter, HexFormatter, BooleanFormatter};
 
@@ -78,6 +78,13 @@ lazy_static! {
             ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaItem))),
             ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
             ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
+        ]).unwrap()
+    };
+
+    static ref BUFF: H2Type = {
+        H2Struct::new(vec![
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaBuff))),
+            ("duration".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
         ]).unwrap()
     };
 }
@@ -249,6 +256,24 @@ fn parse_safe(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simpl
     Ok(())
 }
 
+fn parse_buffs(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    add_comment(record, buffer, LAYER, offset,  "Start offset for buffs")?;
+    // Technically this is an array, but we don't really handle arrays well enough to use one
+    for i in (offset..(offset + 176)).step_by(8) {
+        create_entry(
+            record,
+            buffer,
+            LAYER,
+            &*BUFF,
+            i,
+            None,
+        )?;
+    }
+    add_comment(record, buffer, LAYER, offset + 176 - 1, "End offset for buffs")?;
+
+    Ok(())
+}
+
 fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<usize> {
     let mut current_spawn_offset = starting_offset;
     loop {
@@ -344,7 +369,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     parse_safe(record, buffer, base_offset + offsets.safe)?;
 
     if let Some(offset_buffs) = offsets.buffs {
-        add_comment(record, buffer, LAYER, base_offset + offset_buffs,  "Offset for buffs")?;
+        parse_buffs(record, buffer, base_offset + offset_buffs)?;
     }
 
     // Parse the spawnpoints
