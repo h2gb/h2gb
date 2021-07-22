@@ -24,6 +24,8 @@ pub mod transformation;
 pub mod project;
 pub mod actions;
 
+pub mod data;
+
 // Actions we need:
 // * load data as buffer
 // * create layer

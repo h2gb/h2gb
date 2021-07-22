@@ -163,7 +163,7 @@ impl H2Buffer {
             layers: HashMap::new(),
             transformations: Vec::new(),
 
-            display_empty_addresses: false, // TODO: Figure out how to handle empty addresses
+            display_empty_addresses: true, // TODO: Figure out how to handle empty addresses
         })
     }
 

@@ -10,7 +10,7 @@ use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::H2Number;
 use crate::datatype::composite::{H2Struct, H2Array};
 use crate::datatype::composite::string::LPString;
-use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, EnumType, DefaultFormatter, HexFormatter, BooleanFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, HexFormatter, BooleanFormatter};
 
 mod helpers;
 use helpers::*;
@@ -66,7 +66,7 @@ lazy_static! {
 
     static ref INVENTORY_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaItem))),
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
             ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
             ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
             ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
@@ -75,7 +75,7 @@ lazy_static! {
 
     static ref STORED_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaItem))),
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
             ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
             ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
         ]).unwrap()
@@ -83,7 +83,7 @@ lazy_static! {
 
     static ref BUFF: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new(EnumType::TerrariaBuff))),
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaBuff").unwrap())),
             ("duration".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
         ]).unwrap()
     };
@@ -94,7 +94,7 @@ struct TerrariaOffsets {
 
     // Relative to name
     game_mode:      usize,
-    col:            usize,
+    colors:         usize,
     inventory:      usize,
     coins_and_ammo: usize,
     piggy_bank:     usize,
@@ -114,7 +114,7 @@ fn get_terraria_offsets(version: u64) -> TerrariaOffsets {
 
             // Offset from end of name
             game_mode:      0x00,
-            col:            0x28,
+            colors:         0x28,
             inventory:      0xd3,
             coins_and_ammo: 0x2c7,
             piggy_bank:     0x349,
@@ -132,7 +132,7 @@ fn get_terraria_offsets(version: u64) -> TerrariaOffsets {
 
             // Offset from end of name
             game_mode:      0x00,
-            col:            0x2a,
+            colors:         0x2a,
             inventory:      0xd5,
             coins_and_ammo: 0x2c9,
             piggy_bank:     0x34b,
@@ -155,7 +155,7 @@ fn parse_version_number(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         record,
         buffer,
         LAYER,
-        &H2Number::new(GenericReader::U16(Endian::Little), EnumFormatter::new(EnumType::TerrariaVersion)),
+        &H2Number::new(GenericReader::U16(Endian::Little), BetterEnumFormatter::new("TerrariaVersion")?),
         0x00, // Offset
         Some("Version number"),
     )
@@ -177,7 +177,7 @@ fn parse_game_mode(record: &mut Record<Action>, buffer: &str, offset: usize) -> 
         record,
         buffer,
         LAYER,
-        &H2Number::new(GenericReader::U8, EnumFormatter::new(EnumType::TerrariaGameMode)),
+        &H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaGameMode")?),
         offset,
         Some("Game mode"),
     )
@@ -362,7 +362,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     )?.as_u64().map_err( |e| SimpleError::new(format!("Game mode could not be parsed properly (could not be interpreted as a u64): {:?}", e)))?;
 
     // Comment the other offsets because I don't know how to parse them yet
-    add_comment(record, buffer, LAYER, base_offset + offsets.col,        "Offset for 'col' (I'm not actually sure what that is.. maybe ammo?)")?;
+    add_comment(record, buffer, LAYER, base_offset + offsets.colors,     "Offset for 'colors'")?;
     parse_inventory(record, buffer, base_offset + offsets.inventory)?;
     parse_coins_and_ammo(record, buffer, base_offset + offsets.coins_and_ammo)?;
     parse_piggy_bank(record, buffer, base_offset + offsets.piggy_bank)?;

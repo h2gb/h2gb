@@ -44,11 +44,14 @@ chacha20 = { version = "~0.6.0", features = ["legacy"] }
 nettle = "~7.0.1"
 
 # Lets us convert numbers into enums (used for h2enum type)
-num-derive = "~0.3.3"
-num-traits = "~0.2"
+# num-derive = "~0.3.3"
+# num-traits = "~0.2"
 
 # Macro for static initializers
 lazy_static = "~1.4.0"
+
+# Macro for initializing a HashMap
+maplit = "~1.0.2"
 
 [dev-dependencies]
 pretty_assertions = "~0.6.1"
