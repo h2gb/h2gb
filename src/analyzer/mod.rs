@@ -23,7 +23,73 @@ const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const OFFSET_SPAWN_POINTS: usize = 0x99c;
 const OFFSET_JOURNEY_DATA: usize = 0x6b;
 
+#[derive(Debug, Clone, Copy)]
+struct TerrariaOffsets {
+    name:           usize,
+
+    // Relative to name
+    health:         usize,
+    mana:           usize,
+    game_mode:      usize,
+    colors:         usize,
+    equipment:      usize,
+    inventory:      usize,
+    coins_and_ammo: usize,
+    piggy_bank:     usize,
+    safe:           usize,
+    spawnpoints:    usize,
+    buffs:          Option<usize>,
+
+    // Relative to end of spawnpoints
+    journey_data:   Option<usize>,
+}
+
 lazy_static! {
+    static ref TERRARIA_OLD_OFFSETS: TerrariaOffsets = {
+        TerrariaOffsets {
+            name:           0x18,
+
+            // Offset from end of name
+            game_mode:      0x00,
+            health:         0x12,
+            mana:           0x1a,
+            colors:         0x28,
+            equipment:      0x3d,
+            inventory:      0xd3,
+            coins_and_ammo: 0x2c7,
+            piggy_bank:     0x349,
+            safe:           0x4b1,
+            buffs:          None,
+            spawnpoints:    0x831,
+
+            // No JourneyMode
+            journey_data:   None,
+        }
+    };
+
+    static ref TERRARIA_NEW_OFFSETS: TerrariaOffsets = {
+        TerrariaOffsets {
+            // Offset from start of file
+            name:           0x18,
+
+            // Offset from end of name
+            game_mode:      0x00,
+            health:         0x12,
+            mana:           0x1a,
+            colors:         0x2a,
+            equipment:      0x3f,
+            inventory:      0xd5,
+            coins_and_ammo: 0x2c9,
+            piggy_bank:     0x34b,
+            safe:           0x4b3,
+            buffs:          Some(0x8ec),
+            spawnpoints:    0x99c,
+
+            // Offset from the end of spawnpoints
+            journey_data:   Some(0x6b),
+        }
+    };
+
     static ref TRANSFORMATION_DECRYPT: Transformation = {
         TransformBlockCipher::new(
             BlockCipherType::AES,
@@ -68,7 +134,7 @@ lazy_static! {
         H2Struct::new(vec![
             ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
             ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaAffix").unwrap())),
             ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
         ]).unwrap()
     };
@@ -77,7 +143,14 @@ lazy_static! {
         H2Struct::new(vec![
             ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
             ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("affix".to_string(),       H2Number::new(GenericReader::U8, HexFormatter::pretty())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaAffix").unwrap())),
+        ]).unwrap()
+    };
+
+    static ref EQUIPPED_ITEM: H2Type = {
+        H2Struct::new(vec![
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaAffix").unwrap())),
         ]).unwrap()
     };
 
@@ -87,64 +160,28 @@ lazy_static! {
             ("duration".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
         ]).unwrap()
     };
+
+    static ref RGB: H2Type = {
+        H2Struct::new(vec![
+            ("r".to_string(), H2Number::new(GenericReader::U8, DefaultFormatter::new())),
+            ("g".to_string(), H2Number::new(GenericReader::U8, DefaultFormatter::new())),
+            ("b".to_string(), H2Number::new(GenericReader::U8, DefaultFormatter::new())),
+        ]).unwrap()
+    };
+
+    static ref COLORS: H2Type = {
+        H2Struct::new(vec![
+            ("hair".to_string(),       RGB.clone()),
+            ("skin".to_string(),       RGB.clone()),
+            ("eyes".to_string(),       RGB.clone()),
+            ("shirt".to_string(),      RGB.clone()),
+            ("undershirt".to_string(), RGB.clone()),
+            ("pants".to_string(),      RGB.clone()),
+            ("shoes".to_string(),      RGB.clone()),
+        ]).unwrap()
+    };
 }
 
-struct TerrariaOffsets {
-    name:           usize,
-
-    // Relative to name
-    game_mode:      usize,
-    colors:         usize,
-    inventory:      usize,
-    coins_and_ammo: usize,
-    piggy_bank:     usize,
-    safe:           usize,
-    spawnpoints:    usize,
-    buffs:          Option<usize>,
-
-    // Relative to end of spawnpoints
-    journey_data:   Option<usize>,
-}
-
-fn get_terraria_offsets(version: u64) -> TerrariaOffsets {
-    if version < 230 {
-        TerrariaOffsets {
-            // Offset from start of file
-            name:           0x18,
-
-            // Offset from end of name
-            game_mode:      0x00,
-            colors:         0x28,
-            inventory:      0xd3,
-            coins_and_ammo: 0x2c7,
-            piggy_bank:     0x349,
-            safe:           0x4b1,
-            buffs:          None,
-            spawnpoints:    0x99a, // Not tested, likely wrong
-
-            // No JourneyMode
-            journey_data:   None,
-        }
-    } else {
-        TerrariaOffsets {
-            // Offset from start of file
-            name:           0x18,
-
-            // Offset from end of name
-            game_mode:      0x00,
-            colors:         0x2a,
-            inventory:      0xd5,
-            coins_and_ammo: 0x2c9,
-            piggy_bank:     0x34b,
-            safe:           0x4b3,
-            buffs:          Some(0x8ec),
-            spawnpoints:    0x99c,
-
-            // Offset from the end of spawnpoints
-            journey_data:   Some(0x6b),
-        }
-    }
-}
 
 fn transform_decrypt(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
     record.apply(ActionBufferTransform::new(buffer, *TRANSFORMATION_DECRYPT))
@@ -170,6 +207,71 @@ fn parse_name(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simpl
         offset,
         Some("Character name"),
     )
+}
+
+fn parse_health(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new()),
+        offset,
+        Some("Current health"),
+    )?;
+
+    create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new()),
+        offset + 4,
+        Some("Max health"),
+    )?;
+
+    Ok(())
+}
+
+fn parse_equipment(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    add_comment(record, buffer, LAYER, offset,  "Start offset for equipment")?;
+    add_comment(record, buffer, LAYER, offset + (10 * 5),  "Start offset for vanity")?;
+    add_comment(record, buffer, LAYER, offset + (20 * 5),  "Start offset for dyes")?;
+
+    for i in 0..30 {
+        create_entry(
+            record,
+            buffer,
+            LAYER,
+            &*EQUIPPED_ITEM,
+            offset + (i * 5),
+            None,
+        )?;
+    }
+
+    add_comment(record, buffer, LAYER, offset + (30 * 5) - 1,  "End offset for equipment")?;
+
+    Ok(())
+}
+
+fn parse_mana(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new()),
+        offset,
+        Some("Current mana"),
+    )?;
+
+    create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new()),
+        offset + 4,
+        Some("Max mana"),
+    )?;
+
+    Ok(())
 }
 
 fn parse_game_mode(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<ResolvedType> {
@@ -274,6 +376,14 @@ fn parse_buffs(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simp
     Ok(())
 }
 
+fn parse_colors(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    add_comment(record, buffer, LAYER, offset,  "Start offset for colors")?;
+    create_entry(record, buffer, LAYER, &*COLORS, offset, None)?;
+    add_comment(record, buffer, LAYER, offset + 21 - 1,  "End offset for colors")?;
+
+    Ok(())
+}
+
 fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<usize> {
     let mut current_spawn_offset = starting_offset;
     loop {
@@ -305,6 +415,7 @@ fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset:
     Ok(current_spawn_offset)
 }
 
+    // add_comment(record, buffer, LAYER, base_offset + offsets.colors,     "Offset for 'colors'")?;
 fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<()> {
     let mut current_journey_offset = starting_offset;
 
@@ -348,7 +459,11 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     )?.as_u64()?;
 
     // Get the offsets for later
-    let offsets = get_terraria_offsets(version_number);
+    let offsets = if version_number < 230 {
+        *TERRARIA_OLD_OFFSETS
+    } else {
+        *TERRARIA_NEW_OFFSETS
+    };
 
     // Create an entry for the name
     let name = parse_name(record, buffer, offsets.name)?;
@@ -356,13 +471,17 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     // Get the offsets' base (end of name)
     let base_offset = name.actual_range.end as usize;
 
+    parse_health(record, buffer, base_offset + offsets.health)?;
+    parse_mana(record, buffer, base_offset + offsets.mana)?;
+    parse_equipment(record, buffer, base_offset + offsets.equipment)?;
+
     // Create an entry for the game mode
     let game_mode = parse_game_mode(record, buffer, base_offset + offsets.game_mode)?.as_number.ok_or(
         SimpleError::new("Game mode could not be parsed properly (could not be represented as a number)")
     )?.as_u64().map_err( |e| SimpleError::new(format!("Game mode could not be parsed properly (could not be interpreted as a u64): {:?}", e)))?;
 
     // Comment the other offsets because I don't know how to parse them yet
-    add_comment(record, buffer, LAYER, base_offset + offsets.colors,     "Offset for 'colors'")?;
+    parse_colors(record, buffer, base_offset + offsets.colors)?;
     parse_inventory(record, buffer, base_offset + offsets.inventory)?;
     parse_coins_and_ammo(record, buffer, base_offset + offsets.coins_and_ammo)?;
     parse_piggy_bank(record, buffer, base_offset + offsets.piggy_bank)?;

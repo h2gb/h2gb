@@ -16,3 +16,4 @@
 * Find a new home for Enums that can be parsed
 * Get rid of the weird "static" offsets in H2Type, I don't think it's buying anything except complication
 * Time values - "this value is a time in seconds" for example
+* Pixel datatype

@@ -6,6 +6,7 @@ use enums::terraria_game_mode::*;
 use enums::terraria_buff::*;
 use enums::terraria_item::*;
 use enums::terraria_version::*;
+use enums::terraria_affix::*;
 
 lazy_static! {
     pub static ref H2ENUMS: HashMap<String, &'static HashMap<u64, &'static str>> = {
@@ -15,6 +16,7 @@ lazy_static! {
         h.insert("TerrariaBuff".to_string(),     &*TERRARIA_BUFF);
         h.insert("TerrariaItem".to_string(),     &*TERRARIA_ITEM);
         h.insert("TerrariaVersion".to_string(),  &*TERRARIA_VERSION);
+        h.insert("TerrariaAffix".to_string(),    &*TERRARIA_AFFIX);
 
         // h.insert("TestEnum".to_string(),         &*TEST_ENUM);
 
