@@ -53,5 +53,8 @@ lazy_static = "~1.4.0"
 # Macro for initializing a HashMap
 maplit = "~1.0.2"
 
+# Pretty durations
+hhmmss = "0.1"
+
 [dev-dependencies]
 pretty_assertions = "~0.6.1"

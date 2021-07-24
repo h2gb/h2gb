@@ -3,6 +3,8 @@
 use redo::Record;
 use simple_error::{SimpleResult, SimpleError};
 use lazy_static::lazy_static;
+use std::time::Duration;
+use hhmmss::Hhmmss;
 
 use crate::actions::*;
 use crate::transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
@@ -28,6 +30,7 @@ struct TerrariaOffsets {
     name:           usize,
 
     // Relative to name
+    time_played:    usize,
     health:         usize,
     mana:           usize,
     game_mode:      usize,
@@ -51,6 +54,7 @@ lazy_static! {
 
             // Offset from end of name
             game_mode:      0x00,
+            time_played:    0x01,
             health:         0x12,
             mana:           0x1a,
             colors:         0x28,
@@ -74,6 +78,7 @@ lazy_static! {
 
             // Offset from end of name
             game_mode:      0x00,
+            time_played:    0x01,
             health:         0x12,
             mana:           0x1a,
             colors:         0x2a,
@@ -285,6 +290,22 @@ fn parse_game_mode(record: &mut Record<Action>, buffer: &str, offset: usize) -> 
     )
 }
 
+fn parse_time_played(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    let time_played = create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U64(Endian::Little), DefaultFormatter::new()),
+        offset,
+        None,
+    )?;
+
+    let duration = Duration::from_micros(time_played.as_number.unwrap().as_u64().unwrap() / 10);
+    add_comment(record, buffer, LAYER, offset, &duration.hhmmssxxx())?;
+
+    Ok(())
+}
+
 fn parse_inventory(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
     add_comment(record, buffer, LAYER, offset,  "Start offset for inventory")?;
     // Technically this is an array, but we don't really handle arrays well enough to use one
@@ -480,7 +501,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         SimpleError::new("Game mode could not be parsed properly (could not be represented as a number)")
     )?.as_u64().map_err( |e| SimpleError::new(format!("Game mode could not be parsed properly (could not be interpreted as a u64): {:?}", e)))?;
 
-    // Comment the other offsets because I don't know how to parse them yet
+    parse_time_played(record, buffer, base_offset + offsets.time_played)?;
     parse_colors(record, buffer, base_offset + offsets.colors)?;
     parse_inventory(record, buffer, base_offset + offsets.inventory)?;
     parse_coins_and_ammo(record, buffer, base_offset + offsets.coins_and_ammo)?;
