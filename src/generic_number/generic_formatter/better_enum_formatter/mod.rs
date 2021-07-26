@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::data::H2ENUMS;
+use crate::data::ENUMS;
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
 /// Render a [`GenericNumber`] as an enumeration.
@@ -19,7 +19,7 @@ pub struct BetterEnumFormatter {
 impl BetterEnumFormatter {
     pub fn new(enum_type: &str) -> SimpleResult<GenericFormatter> {
         // Make sure the enum type exists
-        if !H2ENUMS.contains_key(enum_type) {
+        if !ENUMS.contains_key(enum_type) {
             bail!("No such Enum: {}", enum_type);
         }
 
@@ -32,8 +32,8 @@ impl BetterEnumFormatter {
 impl GenericFormatterImpl for BetterEnumFormatter {
     fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         let as_u64 = number.as_u64()?;
-        let as_str = match H2ENUMS.get(&self.enum_type).unwrap().get(&as_u64) { // XXX unwrap
-            Some(s) => s.to_string(),
+        let as_str = match ENUMS.get(&self.enum_type).unwrap().get(&as_u64) { // XXX unwrap
+            Some(s) => s.clone(),
             None    => format!("unknown_0x{:016x}", as_u64),
         };
 

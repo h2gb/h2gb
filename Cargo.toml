@@ -56,5 +56,8 @@ maplit = "~1.0.2"
 # Pretty durations
 hhmmss = "0.1"
 
+# For loading enums
+csv = "~1.1.6"
+
 [dev-dependencies]
 pretty_assertions = "~0.6.1"
