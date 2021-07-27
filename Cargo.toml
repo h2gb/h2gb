@@ -59,5 +59,8 @@ hhmmss = "0.1"
 # For loading enums
 csv = "~1.1.6"
 
+# Colors
+colored = "~2.0.0"
+
 [dev-dependencies]
 pretty_assertions = "~0.6.1"

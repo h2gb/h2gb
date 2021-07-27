@@ -168,13 +168,13 @@ lazy_static! {
 
     static ref COLORS: H2Type = {
         H2Struct::new(vec![
-            ("hair".to_string(),       Rgb::new()),
-            ("skin".to_string(),       Rgb::new()),
-            ("eyes".to_string(),       Rgb::new()),
-            ("shirt".to_string(),      Rgb::new()),
-            ("undershirt".to_string(), Rgb::new()),
-            ("pants".to_string(),      Rgb::new()),
-            ("shoes".to_string(),      Rgb::new()),
+            ("hair".to_string(),       Rgb::new(true)),
+            ("skin".to_string(),       Rgb::new(true)),
+            ("eyes".to_string(),       Rgb::new(true)),
+            ("shirt".to_string(),      Rgb::new(true)),
+            ("undershirt".to_string(), Rgb::new(true)),
+            ("pants".to_string(),      Rgb::new(true)),
+            ("shoes".to_string(),      Rgb::new(true)),
         ]).unwrap()
     };
 }
