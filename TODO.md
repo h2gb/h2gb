@@ -1,19 +1,32 @@
-* Print out structs better (like, each field gets its own thing)
-* Can we somehow do comments on struct fields? :-/
-* Print unallocated addresses
-* Figure out better way to report errors
-* Can struct definitions take &str instead of String (for simplicity)
-* On entry creation, can we have a function that is "create copies of this type until we reach a specific terminator"? We're running into that a bunch in Terraria analyzer
-* Fix the error "failed to fill the whole buffer", which happens if you go off the end of the buffer
+* Important things
+  * Print out structs better (like, each field gets its own thing)
+  * Clean up error handling on analyzer (in particular, when you read a bad location)
+  * Write tests for character types in GenericNumber - and basically write tests everywhere
+  * Write documentation everywhere
+  * Figure out Enums better
+  * Get rid of the weird "static" offsets in H2Type, I don't think it's buying anything except complication
+  * Eliminate u64 as much as possible, in favour of usize
 
-* Cross references
-* Named addresses
+* Datatypes
+  * Do a better "duration" type
+  * Do a timestamp type
 
-* Move around modules in transformation/ so the transforms are in transform/
-* Write tests for character types in GenericNumber
-* Eliminate u64 as much as possible, in favour of usize
+* Analyzers
+  * Bitmap
+  * .MPQ
 
-* Find a new home for Enums that can be parsed
-* Get rid of the weird "static" offsets in H2Type, I don't think it's buying anything except complication
-* Time values - "this value is a time in seconds" for example
-* Time / duration datatype
+* Major features
+  * Cross references
+  * Named addresses
+
+* Nice-to-haves
+  * On entry creation, can we have a function that is "create copies of this type until we reach a specific terminator"? We're running into that a bunch in Terraria analyzer
+
+* Probably pipedreams
+  * Can we somehow do comments on struct fields? :-/
+
+* Cleanup
+  * Can struct definitions take &str instead of String (for simplicity)
+
+* Things I forget why they're here
+  * Move around modules in transformation/ so the transforms are in transform/
