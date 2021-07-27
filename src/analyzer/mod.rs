@@ -9,7 +9,7 @@ use hhmmss::Hhmmss;
 use crate::actions::*;
 use crate::transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Type, ResolvedType};
-use crate::datatype::simple::H2Number;
+use crate::datatype::simple::{H2Number, Rgb};
 use crate::datatype::composite::{H2Struct, H2Array};
 use crate::datatype::composite::string::LPString;
 use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, HexFormatter, BooleanFormatter};
@@ -166,23 +166,15 @@ lazy_static! {
         ]).unwrap()
     };
 
-    static ref RGB: H2Type = {
-        H2Struct::new(vec![
-            ("r".to_string(), H2Number::new(GenericReader::U8, DefaultFormatter::new())),
-            ("g".to_string(), H2Number::new(GenericReader::U8, DefaultFormatter::new())),
-            ("b".to_string(), H2Number::new(GenericReader::U8, DefaultFormatter::new())),
-        ]).unwrap()
-    };
-
     static ref COLORS: H2Type = {
         H2Struct::new(vec![
-            ("hair".to_string(),       RGB.clone()),
-            ("skin".to_string(),       RGB.clone()),
-            ("eyes".to_string(),       RGB.clone()),
-            ("shirt".to_string(),      RGB.clone()),
-            ("undershirt".to_string(), RGB.clone()),
-            ("pants".to_string(),      RGB.clone()),
-            ("shoes".to_string(),      RGB.clone()),
+            ("hair".to_string(),       Rgb::new()),
+            ("skin".to_string(),       Rgb::new()),
+            ("eyes".to_string(),       Rgb::new()),
+            ("shirt".to_string(),      Rgb::new()),
+            ("undershirt".to_string(), Rgb::new()),
+            ("pants".to_string(),      Rgb::new()),
+            ("shoes".to_string(),      Rgb::new()),
         ]).unwrap()
     };
 }
@@ -301,7 +293,7 @@ fn parse_time_played(record: &mut Record<Action>, buffer: &str, offset: usize) -
     )?;
 
     let duration = Duration::from_micros(time_played.as_number.unwrap().as_u64().unwrap() / 10);
-    add_comment(record, buffer, LAYER, offset, &duration.hhmmssxxx())?;
+    add_comment(record, buffer, LAYER, offset, &format!("Playtime: {}", duration.hhmmssxxx()))?;
 
     Ok(())
 }

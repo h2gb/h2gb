@@ -19,6 +19,7 @@ pub enum H2Types {
     // Simple
     H2Number(H2Number),
     H2Pointer(H2Pointer),
+    Rgb(Rgb),
 
     // Netework
     IPv4(IPv4),
@@ -72,6 +73,7 @@ impl H2Type {
             // Simple
             H2Types::H2Number(t)  => t,
             H2Types::H2Pointer(t) => t,
+            H2Types::Rgb(t)       => t,
 
             // Network
             H2Types::IPv4(t)        => t,

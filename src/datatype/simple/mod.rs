@@ -9,4 +9,7 @@ pub use h2number::*;
 mod h2pointer;
 pub use h2pointer::*;
 
+mod rgb;
+pub use rgb::*;
+
 pub mod network;
