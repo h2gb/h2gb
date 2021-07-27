@@ -10,9 +10,9 @@ use crate::actions::*;
 use crate::transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::{H2Number, Rgb};
-use crate::datatype::composite::{H2Struct, H2Array};
+use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::LPString;
-use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, HexFormatter, BooleanFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter};
 
 mod helpers;
 use helpers::*;

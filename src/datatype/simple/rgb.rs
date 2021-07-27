@@ -20,7 +20,7 @@ pub struct Rgb {
 impl Rgb {
     pub fn new_aligned(alignment: Alignment, colorize_output: bool) -> H2Type {
         H2Type::new(alignment, H2Types::Rgb(Self {
-            colorize_output: false,
+            colorize_output: colorize_output,
         }))
     }
 
@@ -50,13 +50,16 @@ impl H2TypeTrait for Rgb {
                 let blue = colors[2];
                 let value = ((red as u32) << 16) | ((green as u32) << 8) | (blue as u32);
 
-                println!("{}", (red as u32 + green as u32 + blue as u32) / 3);
-                if ((red as u32 + green as u32 + blue as u32) / 3) > 0x80 {
-                    // Use a light background
-                    Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_black().to_string())
+                if self.colorize_output {
+                    if ((red as u32 + green as u32 + blue as u32) / 3) > 0x80 {
+                        // Use a light background
+                        Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_black().to_string())
+                    } else {
+                        // Use a dark background
+                        Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_white().to_string())
+                    }
                 } else {
-                    // Use a dark background
-                    Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_white().to_string())
+                    Ok(format!("#{:06x}", value))
                 }
             }
         }
