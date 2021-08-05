@@ -1,4 +1,4 @@
-//! Some good info should go here!
+//! So far, this is a simple demonstration of what we can do
 
 use redo::Record;
 use simple_error::{SimpleResult, SimpleError};
@@ -12,7 +12,7 @@ use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::{H2Number, Rgb};
 use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::LPString;
-use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter, BinaryFormatter};
 
 mod helpers;
 use helpers::*;
@@ -25,12 +25,18 @@ const TERRARIA_IV:  &[u8] = b"h\x003\x00y\x00_\x00g\x00U\x00y\x00Z\x00";
 const OFFSET_SPAWN_POINTS: usize = 0x99c;
 const OFFSET_JOURNEY_DATA: usize = 0x6b;
 
+// Things left:
+// Void storage + other weird storage
+
 #[derive(Debug, Clone, Copy)]
 struct TerrariaOffsets {
     name:           usize,
 
     // Relative to name
     time_played:    usize,
+    face:           usize,
+    visibility:     usize,
+    clothing:       usize,
     health:         usize,
     mana:           usize,
     game_mode:      usize,
@@ -48,6 +54,7 @@ struct TerrariaOffsets {
 }
 
 lazy_static! {
+    /// Offsets for Terraria address from pre-1.4
     static ref TERRARIA_OLD_OFFSETS: TerrariaOffsets = {
         TerrariaOffsets {
             name:           0x18,
@@ -55,6 +62,9 @@ lazy_static! {
             // Offset from end of name
             game_mode:      0x00,
             time_played:    0x01,
+            face:           0x09,
+            visibility:     0x0e,
+            clothing:       0x11,
             health:         0x12,
             mana:           0x1a,
             colors:         0x28,
@@ -71,6 +81,7 @@ lazy_static! {
         }
     };
 
+    /// Offsets for Terraria fields from version 1.4 (and up, so far)
     static ref TERRARIA_NEW_OFFSETS: TerrariaOffsets = {
         TerrariaOffsets {
             // Offset from start of file
@@ -79,6 +90,9 @@ lazy_static! {
             // Offset from end of name
             game_mode:      0x00,
             time_played:    0x01,
+            face:           0x09,
+            visibility:     0x0e,
+            clothing:       0x11,
             health:         0x12,
             mana:           0x1a,
             colors:         0x2a,
@@ -95,6 +109,7 @@ lazy_static! {
         }
     };
 
+    /// This transformation will decrypt the Terraria savefile
     static ref TRANSFORMATION_DECRYPT: Transformation = {
         TransformBlockCipher::new(
             BlockCipherType::AES,
@@ -105,6 +120,7 @@ lazy_static! {
         ).unwrap()
     };
 
+    /// Terraria strings are ASCII, prefixed with a U8 length
     static ref TERRARIA_LPSTRING: H2Type = {
         LPString::new(
             H2Number::new(GenericReader::U8, DefaultFormatter::new()),
@@ -206,6 +222,19 @@ fn parse_name(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simpl
     )
 }
 
+fn parse_clothing(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaClothing").unwrap()),
+        offset,
+        Some("Character clothing"),
+    )?;
+
+    Ok(())
+}
+
 fn parse_health(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
     create_entry(
         record,
@@ -294,6 +323,32 @@ fn parse_time_played(record: &mut Record<Action>, buffer: &str, offset: usize) -
 
     let duration = Duration::from_micros(time_played.as_number.unwrap().as_u64().unwrap() / 10);
     add_comment(record, buffer, LAYER, offset, &format!("Playtime: {}", duration.hhmmssxxx()))?;
+
+    Ok(())
+}
+
+fn parse_face(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U8, DefaultFormatter::new()),
+        offset, // Offset
+        Some("Character face"),
+    )?;
+
+    Ok(())
+}
+
+fn parse_visibility(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+    create_entry(
+        record,
+        buffer,
+        LAYER,
+        &H2Number::new(GenericReader::U16(Endian::Little), BinaryFormatter::new_with_min_size(false, 10)),
+        offset, // Offset
+        Some("Equipment visibility (1 = hidden, 0 = visible; rightmost bit = first accessory) "),
+    )?;
 
     Ok(())
 }
@@ -391,7 +446,9 @@ fn parse_buffs(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simp
 
 fn parse_colors(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
     add_comment(record, buffer, LAYER, offset,  "Start offset for colors")?;
+
     create_entry(record, buffer, LAYER, &*COLORS, offset, None)?;
+
     add_comment(record, buffer, LAYER, offset + 21 - 1,  "End offset for colors")?;
 
     Ok(())
@@ -484,6 +541,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     // Get the offsets' base (end of name)
     let base_offset = name.actual_range.end as usize;
 
+    parse_clothing(record, buffer, base_offset + offsets.clothing)?;
     parse_health(record, buffer, base_offset + offsets.health)?;
     parse_mana(record, buffer, base_offset + offsets.mana)?;
     parse_equipment(record, buffer, base_offset + offsets.equipment)?;
@@ -494,6 +552,8 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     )?.as_u64().map_err( |e| SimpleError::new(format!("Game mode could not be parsed properly (could not be interpreted as a u64): {:?}", e)))?;
 
     parse_time_played(record, buffer, base_offset + offsets.time_played)?;
+    parse_face(record, buffer, base_offset + offsets.face)?;
+    parse_visibility(record, buffer, base_offset + offsets.visibility)?;
     parse_colors(record, buffer, base_offset + offsets.colors)?;
     parse_inventory(record, buffer, base_offset + offsets.inventory)?;
     parse_coins_and_ammo(record, buffer, base_offset + offsets.coins_and_ammo)?;

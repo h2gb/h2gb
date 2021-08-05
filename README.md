@@ -23,7 +23,7 @@ License: MIT
 
 * [./src/multi_vector](./src/multi_vector/README.md) - An object that holds multiple `BumpyVector`s, and can manage linked entries
 
-* [./src/analyzer](./src/analyzer/README.md) - Some good info should go here!
+* [./src/analyzer](./src/analyzer/README.md) - So far, this is a simple demonstration of what we can do
 
 * [./src/transformation](./src/transformation/README.md) - A library for transforming raw data between encodings.
 

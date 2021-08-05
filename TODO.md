@@ -6,12 +6,17 @@
   * Figure out Enums better
   * Get rid of the weird "static" offsets in H2Type, I don't think it's buying anything except complication
   * Eliminate u64 as much as possible, in favour of usize
+  * BetterEnum -> Enum
+  * Maybe kill Union?
 
 * Datatypes
   * Do a better "duration" type
   * Do a timestamp type
+  * Bitmap / flags field type
 
 * Analyzers
+  * Think of some way to "diff" two binary files
+  * Think of a way to make analyzing smoother, like automatically doing offsets and stuff
   * Bitmap
   * .MPQ
 
