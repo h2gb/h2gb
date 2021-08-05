@@ -23,6 +23,9 @@ pub struct BinaryFormatter {
 
     /// Zero-pad binary strings to the full width - `00000001` vs `1`
     pub padded: bool,
+
+    /// Print at least this many bits (similar to padded, but user controlled)
+    pub min_digits: usize,
 }
 
 impl BinaryFormatter {
@@ -30,6 +33,15 @@ impl BinaryFormatter {
         GenericFormatter::Binary(Self {
             prefix: prefix,
             padded: padded,
+            min_digits: 0,
+        })
+    }
+
+    pub fn new_with_min_size(prefix: bool, min_digits: usize) -> GenericFormatter {
+        GenericFormatter::Binary(Self {
+            prefix: prefix,
+            padded: false,
+            min_digits: min_digits,
         })
     }
 
@@ -67,6 +79,11 @@ impl GenericFormatterImpl for BinaryFormatter {
             (_, GenericNumber::F64(_))      => bail!("Cannot display floating point as binary"),
             (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as binary"),
         };
+
+        // Pad if needed
+        if self.min_digits > s.len() {
+            s = format!("{}{}", str::repeat("0", self.min_digits - s.len()), s);
+        }
 
         // Add the prefix after for simplicity
         if self.prefix {
@@ -115,6 +132,35 @@ mod tests {
                 BinaryFormatter::new(prefix, padded).render(number)?,
             );
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_minimum_length() -> SimpleResult<()> {
+        // No prefix
+        let number = GenericReader::U8.read(Context::new(&b"\x01".to_vec()))?;
+        assert_eq!("1",                                BinaryFormatter::new_with_min_size(false, 0).render(number)?);
+        assert_eq!("1",                                BinaryFormatter::new_with_min_size(false, 1).render(number)?);
+        assert_eq!("01",                               BinaryFormatter::new_with_min_size(false, 2).render(number)?);
+        assert_eq!("00000001",                         BinaryFormatter::new_with_min_size(false, 8).render(number)?);
+        assert_eq!("00000000000000000000000000000001", BinaryFormatter::new_with_min_size(false, 32).render(number)?);
+
+        // Prefix
+        let number = GenericReader::U8.read(Context::new(&b"\x01".to_vec()))?;
+        assert_eq!("0b1",                                BinaryFormatter::new_with_min_size(true, 0).render(number)?);
+        assert_eq!("0b1",                                BinaryFormatter::new_with_min_size(true, 1).render(number)?);
+        assert_eq!("0b01",                               BinaryFormatter::new_with_min_size(true, 2).render(number)?);
+        assert_eq!("0b00000001",                         BinaryFormatter::new_with_min_size(true, 8).render(number)?);
+        assert_eq!("0b00000000000000000000000000000001", BinaryFormatter::new_with_min_size(true, 32).render(number)?);
+
+        // Zero
+        let number = GenericReader::U8.read(Context::new(&b"\x00".to_vec()))?;
+        assert_eq!("0",                                BinaryFormatter::new_with_min_size(false, 0).render(number)?);
+        assert_eq!("0",                                BinaryFormatter::new_with_min_size(false, 1).render(number)?);
+        assert_eq!("00",                               BinaryFormatter::new_with_min_size(false, 2).render(number)?);
+        assert_eq!("00000000",                         BinaryFormatter::new_with_min_size(false, 8).render(number)?);
+        assert_eq!("00000000000000000000000000000000", BinaryFormatter::new_with_min_size(false, 32).render(number)?);
 
         Ok(())
     }
