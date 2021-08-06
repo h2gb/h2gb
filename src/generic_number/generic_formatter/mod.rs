@@ -27,8 +27,8 @@ pub use character_formatter::*;
 mod better_enum_formatter;
 pub use better_enum_formatter::*;
 
-mod bitmap_formatter;
-pub use bitmap_formatter::*;
+mod bitmask_formatter;
+pub use bitmask_formatter::*;
 
 mod boolean_formatter;
 pub use boolean_formatter::*;
@@ -70,7 +70,7 @@ pub enum GenericFormatter {
     Character(CharacterFormatter),
     // Enum(EnumFormatter),
     BetterEnum(BetterEnumFormatter),
-    Bitmap(BitmapFormatter),
+    Bitmask(BitmaskFormatter),
     Boolean(BooleanFormatter),
 }
 
@@ -90,7 +90,7 @@ impl GenericFormatter {
             // Enums require clone() because they can't implement Copy (although
             // it's a pretty cheap clone)
             Self::BetterEnum(o) => Box::new(o.clone()),
-            Self::Bitmap(o)     => Box::new(o.clone()),
+            Self::Bitmask(o)    => Box::new(o.clone()),
         }
     }
 

@@ -12,7 +12,7 @@ use crate::datatype::H2Type;
 use crate::datatype::simple::{H2Number, Rgb};
 use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::{H2String, LPString};
-use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter, BitmapFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter, BitmaskFormatter};
 
 mod helpers;
 use helpers::*;
@@ -234,7 +234,7 @@ fn parse_visibility(record: &mut Record<Action>, buffer: &str, offset: usize) ->
         record,
         buffer,
         LAYER,
-        &H2Number::new(GenericReader::U16(Endian::Little), BitmapFormatter::new("TerrariaVisibility", false)?),
+        &H2Number::new(GenericReader::U16(Endian::Little), BitmaskFormatter::new("TerrariaVisibility", false)?),
         offset, // Offset
         Some("Equipment visibility"),
     )?;
@@ -501,7 +501,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     create_entry(record, buffer, LAYER, &H2Number::new(GenericReader::U8, DefaultFormatter::new()), base + offsets.face, Some("Character face"))?;
 
     // Equipment visibility is a 10-bit bitmask that we've created a definition for
-    create_entry(record, buffer, LAYER, &H2Number::new(GenericReader::U16(Endian::Little), BitmapFormatter::new("TerrariaVisibility", false)?), base + offsets.visibility, Some("Equipment visibility"))?;
+    create_entry(record, buffer, LAYER, &H2Number::new(GenericReader::U16(Endian::Little), BitmaskFormatter::new("TerrariaVisibility", false)?), base + offsets.visibility, Some("Equipment visibility"))?;
 
     // Clothing is an enumeration (this also includes gender, and oddly enough
     // it's not in the same order as the UI shows)

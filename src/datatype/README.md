@@ -207,7 +207,6 @@ Things I want to add:
 * Maybe split out characters again?
 
 Types needed:
-* Bitmap / flag
 * DNS name
 * Type/length/value
 * x86 / x64 / other assembly languages

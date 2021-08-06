@@ -13,12 +13,11 @@
 * Datatypes
   * Do a better "duration" type
   * Do a timestamp type
-  * Bitmap / flags field type
 
 * Analyzers
   * Think of some way to "diff" two binary files
   * Think of a way to make analyzing smoother, like automatically doing offsets and stuff
-  * Bitmap
+  * Bitmap image
   * .MPQ
 
 * Major features

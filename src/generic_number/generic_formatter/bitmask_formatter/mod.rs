@@ -1,44 +1,44 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::data::{bitmap_exists, from_bitmap};
+use crate::data::{bitmask_exists, from_bitmask};
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
-/// Render a [`GenericNumber`] as a bitmap.
+/// Render a [`GenericNumber`] as a bitmask.
 ///
 /// # Example
 ///
 /// ```
-/// // TODO: Example of a bitmap
+/// // TODO: Example of a bitmask
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BitmapFormatter {
-    bitmap_type: String,
+pub struct BitmaskFormatter {
+    bitmask_type: String,
     show_negative: bool,
 }
 
-impl BitmapFormatter {
-    pub fn new(bitmap_type: &str, show_negative: bool) -> SimpleResult<GenericFormatter> {
-        // Make sure the bitmap type exists
-        if !bitmap_exists(bitmap_type) {
-            bail!("No such Bitmap: {}", bitmap_type);
+impl BitmaskFormatter {
+    pub fn new(bitmask_type: &str, show_negative: bool) -> SimpleResult<GenericFormatter> {
+        // Make sure the bitmask type exists
+        if !bitmask_exists(bitmask_type) {
+            bail!("No such Bitmask: {}", bitmask_type);
         }
 
-        Ok(GenericFormatter::Bitmap(Self {
-            bitmap_type: bitmap_type.to_string(),
+        Ok(GenericFormatter::Bitmask(Self {
+            bitmask_type: bitmask_type.to_string(),
             show_negative: show_negative,
         }))
     }
 }
 
-impl GenericFormatterImpl for BitmapFormatter {
+impl GenericFormatterImpl for BitmaskFormatter {
     fn render(&self, number: GenericNumber) -> SimpleResult<String> {
         let as_u64 = number.as_u64()?;
 
         let mut out: Vec<String> = Vec::new();
 
         // TODO: Add in the remainder
-        let (output, _remainder) = from_bitmap(&self.bitmap_type, as_u64)?;
+        let (output, _remainder) = from_bitmask(&self.bitmask_type, as_u64)?;
 
         output.into_iter().for_each(|(_value, name, present)| {
             match (present, self.show_negative) {
@@ -68,7 +68,7 @@ mod tests {
     use simple_error::SimpleResult;
 
     #[test]
-    fn test_bitmap_formatter() -> SimpleResult<()> {
+    fn test_bitmask_formatter() -> SimpleResult<()> {
         let tests = vec![
           // number                      show_negative  expected
             (GenericNumber::from(0u32),  false,         "(n/a)"),
@@ -82,7 +82,7 @@ mod tests {
         for (number, show_negative, expected) in tests {
             assert_eq!(
                 expected,
-                BitmapFormatter::new("TerrariaVisibility", show_negative)?.render(number)?,
+                BitmaskFormatter::new("TerrariaVisibility", show_negative)?.render(number)?,
             );
         }
 

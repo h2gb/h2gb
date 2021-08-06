@@ -19,6 +19,8 @@ License: MIT
 
 # Other Documentation
 
+* [./src/data](./src/data/README.md) - A library for loading data that analyzers and users can consume.
+
 * [./src/datatype](./src/datatype/README.md) - A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 
 * [./src/multi_vector](./src/multi_vector/README.md) - An object that holds multiple `BumpyVector`s, and can manage linked entries

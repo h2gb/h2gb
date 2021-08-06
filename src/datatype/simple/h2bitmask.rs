@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 
 use simple_error::{SimpleResult, bail};
 
-use crate::data::{bitmap_exists, from_bitmap};
+use crate::data::{bitmask_exists, from_bitmask};
 use crate::generic_number::GenericReader;
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -14,43 +14,43 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 ///
 /// The size a given numeric type is always known in advance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct H2Bitmap {
+pub struct H2Bitmask {
     /// The sign, signedness, and endianness of the value.
     definition: GenericReader,
 
 
-    bitmap_type: String,
+    bitmask_type: String,
     show_negative: bool,
 }
 
-impl H2Bitmap {
-    pub fn new_aligned(alignment: Alignment, definition: GenericReader, bitmap_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
+impl H2Bitmask {
+    pub fn new_aligned(alignment: Alignment, definition: GenericReader, bitmask_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
         if !definition.can_be_u64() {
-            bail!("Bitmap types must be compatible with u64 values");
+            bail!("Bitmask types must be compatible with u64 values");
         }
 
-        // Make sure the bitmap type exists
-        if !bitmap_exists(bitmap_type) {
-            bail!("No such Bitmap: {}", bitmap_type);
+        // Make sure the bitmask type exists
+        if !bitmask_exists(bitmask_type) {
+            bail!("No such Bitmask: {}", bitmask_type);
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Bitmap(Self {
+        Ok(H2Type::new(alignment, H2Types::H2Bitmask(Self {
             definition: definition,
-            bitmap_type: bitmap_type.to_string(),
+            bitmask_type: bitmask_type.to_string(),
             show_negative: show_negative,
         })))
 
     }
 
-    pub fn new(definition: GenericReader, bitmap_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, definition, bitmap_type, show_negative)
+    pub fn new(definition: GenericReader, bitmask_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
+        Self::new_aligned(Alignment::None, definition, bitmask_type, show_negative)
     }
 
     fn render(&self, as_u64: u64) -> SimpleResult<String> {
         let mut out: Vec<String> = Vec::new();
 
         // TODO: Add in the remainder
-        let (output, _remainder) = from_bitmap(&self.bitmap_type, as_u64)?;
+        let (output, _remainder) = from_bitmask(&self.bitmask_type, as_u64)?;
 
         output.into_iter().for_each(|(_value, name, present)| {
             match (present, self.show_negative) {
@@ -73,7 +73,7 @@ impl H2Bitmap {
     }
 }
 
-impl H2TypeTrait for H2Bitmap {
+impl H2TypeTrait for H2Bitmask {
     fn is_static(&self) -> bool {
         true
     }
@@ -88,7 +88,7 @@ impl H2TypeTrait for H2Bitmap {
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
         match offset {
-            Offset::Static(_) => Ok("Bitmap".to_string()),
+            Offset::Static(_) => Ok("Bitmask".to_string()),
             Offset::Dynamic(context) => {
                 self.render(self.definition.read(context)?.as_u64()?)
             }
@@ -104,7 +104,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_bitmap_reader() -> SimpleResult<()> {
+    fn test_bitmask_reader() -> SimpleResult<()> {
         let test_buffer = b"\x00\x01\x02\x03".to_vec();
         let offset = Offset::Dynamic(Context::new(&test_buffer));
 
@@ -119,7 +119,7 @@ mod tests {
         ];
 
         for (o, show_negative, expected) in tests {
-            let t = H2Bitmap::new(
+            let t = H2Bitmask::new(
                 GenericReader::U8,
                 "TerrariaVisibility",
                 show_negative,

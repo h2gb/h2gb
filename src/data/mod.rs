@@ -7,8 +7,8 @@
 mod enums;
 pub use enums::{from_enum, enum_exists};
 
-mod bitmaps;
-pub use bitmaps::{from_bitmap, bitmap_exists};
+mod bitmasks;
+pub use bitmasks::{from_bitmask, bitmask_exists};
 
 // use enums::terraria_game_mode::*;
 // use enums::terraria_buff::*;

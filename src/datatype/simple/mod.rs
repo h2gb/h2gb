@@ -12,7 +12,7 @@ pub use h2pointer::*;
 mod rgb;
 pub use rgb::*;
 
-mod h2bitmap;
-pub use h2bitmap::*;
+mod h2bitmask;
+pub use h2bitmask::*;
 
 pub mod network;

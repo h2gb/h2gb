@@ -33,7 +33,7 @@ fn load_from_csv(data: &str) -> SimpleResult<Vec<(u64, String)>> {
 }
 
 lazy_static! {
-    pub static ref BITMAPS: HashMap<String, Vec<(u64, String)>> = {
+    pub static ref BITMASKS: HashMap<String, Vec<(u64, String)>> = {
         let mut h = HashMap::new();
         h.insert("TerrariaVisibility".to_string(), load_from_csv(include_str!("./terraria_visibility.csv")).unwrap());
 
@@ -41,16 +41,16 @@ lazy_static! {
     };
 }
 
-pub fn bitmap_exists(name: &str) -> bool {
-    BITMAPS.contains_key(name)
+pub fn bitmask_exists(name: &str) -> bool {
+    BITMASKS.contains_key(name)
 }
 
-pub fn from_bitmap(bitmap: &str, mut value: u64) -> SimpleResult<(Vec<(u64, &str, bool)>, u64)> {
-    let bitmap = BITMAPS.get(bitmap).ok_or(
-        SimpleError::new(format!("No such bitmap: {}", bitmap))
+pub fn from_bitmask(bitmask: &str, mut value: u64) -> SimpleResult<(Vec<(u64, &str, bool)>, u64)> {
+    let bitmask = BITMASKS.get(bitmask).ok_or(
+        SimpleError::new(format!("No such bitmask: {}", bitmask))
     )?;
 
-    let out: Vec<(u64, &str, bool)> = bitmap.iter().map(|(bit, name)| {
+    let out: Vec<(u64, &str, bool)> = bitmask.iter().map(|(bit, name)| {
         let line = (value, &name[..], ((1 << bit) & value) != 0);
 
         value = value & !(1 << bit);
