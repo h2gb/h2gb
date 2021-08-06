@@ -1,4 +1,4 @@
-*Note: This file was automatically generated from a mod.rs file*
+***Note: This file was automatically generated from a mod.rs file***
 
 A library for transforming raw data between encodings.
 

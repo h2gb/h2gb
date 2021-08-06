@@ -26,7 +26,7 @@ echo -ne "\n# Other Documentation\n\n" >> README.md
 for i in $(find . -type f -name mod.rs); do
   if (head -n1 $i | grep '^\/\/\!' > /dev/null); then
     DIR=$(dirname "$i")
-    echo "*Note: This file was automatically generated from a mod.rs file*" > "$DIR/README.md"
+    echo "***Note: This file was automatically generated from a mod.rs file***" > "$DIR/README.md"
     echo "" >> "$DIR/README.md"
     cargo readme --no-title -i "$i" >> "$DIR/README.md"
     git add "$DIR/README.md"

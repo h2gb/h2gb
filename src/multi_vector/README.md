@@ -1,4 +1,4 @@
-*Note: This file was automatically generated from a mod.rs file*
+***Note: This file was automatically generated from a mod.rs file***
 
 An object that holds multiple `BumpyVector`s, and can manage linked entries
 
