@@ -8,6 +8,7 @@
   * Eliminate u64 as much as possible, in favour of usize
   * BetterEnum -> Enum
   * Maybe kill Union?
+  * Update the non-Terraria CSV files
 
 * Datatypes
   * Do a better "duration" type

@@ -12,7 +12,7 @@ use crate::datatype::{H2Type, ResolvedType};
 use crate::datatype::simple::{H2Number, Rgb};
 use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::LPString;
-use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter, BinaryFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter, BitmapFormatter};
 
 mod helpers;
 use helpers::*;
@@ -345,9 +345,9 @@ fn parse_visibility(record: &mut Record<Action>, buffer: &str, offset: usize) ->
         record,
         buffer,
         LAYER,
-        &H2Number::new(GenericReader::U16(Endian::Little), BinaryFormatter::new_with_min_size(false, 10)),
+        &H2Number::new(GenericReader::U16(Endian::Little), BitmapFormatter::new("TerrariaVisibility", false)?),
         offset, // Offset
-        Some("Equipment visibility (1 = hidden, 0 = visible; rightmost bit = first accessory) "),
+        Some("Equipment visibility"),
     )?;
 
     Ok(())
