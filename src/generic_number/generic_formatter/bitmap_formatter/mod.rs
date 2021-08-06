@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::data::{BITMAPS, from_bitmap};
+use crate::data::{bitmap_exists, from_bitmap};
 use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
 /// Render a [`GenericNumber`] as a bitmap.
@@ -20,7 +20,7 @@ pub struct BitmapFormatter {
 impl BitmapFormatter {
     pub fn new(bitmap_type: &str, show_negative: bool) -> SimpleResult<GenericFormatter> {
         // Make sure the bitmap type exists
-        if !BITMAPS.contains_key(bitmap_type) {
+        if !bitmap_exists(bitmap_type) {
             bail!("No such Bitmap: {}", bitmap_type);
         }
 
@@ -43,7 +43,7 @@ impl GenericFormatterImpl for BitmapFormatter {
         output.into_iter().for_each(|(_value, name, present)| {
             match (present, self.show_negative) {
                 // The flag is present
-                (true, _) => out.push(name),
+                (true, _) => out.push(name.to_string()),
 
                 // The flag is not present, but we want to see it
                 (false, true) => out.push(format!("~{}", name)),

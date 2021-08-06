@@ -50,3 +50,13 @@ lazy_static! {
         h
     };
 }
+
+pub fn enum_exists(name: &str) -> bool {
+    ENUMS.contains_key(name)
+}
+
+pub fn from_enum(name: &str, value: u64) -> SimpleResult<Option<&str>> {
+    Ok(ENUMS.get(name).ok_or(
+        SimpleError::new(format!("No such enum: {}", name))
+    )?.get(&value).map(|s| &s[..]))
+}

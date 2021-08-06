@@ -41,13 +41,17 @@ lazy_static! {
     };
 }
 
-pub fn from_bitmap(bitmap: &str, mut value: u64) -> SimpleResult<(Vec<(u64, String, bool)>, u64)> {
+pub fn bitmap_exists(name: &str) -> bool {
+    BITMAPS.contains_key(name)
+}
+
+pub fn from_bitmap(bitmap: &str, mut value: u64) -> SimpleResult<(Vec<(u64, &str, bool)>, u64)> {
     let bitmap = BITMAPS.get(bitmap).ok_or(
         SimpleError::new(format!("No such bitmap: {}", bitmap))
     )?;
 
-    let out: Vec<(u64, String, bool)> = bitmap.iter().map(|(bit, name)| {
-        let line = (value, name.clone(), ((1 << bit) & value) != 0);
+    let out: Vec<(u64, &str, bool)> = bitmap.iter().map(|(bit, name)| {
+        let line = (value, &name[..], ((1 << bit) & value) != 0);
 
         value = value & !(1 << bit);
 
