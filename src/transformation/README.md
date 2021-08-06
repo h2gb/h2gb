@@ -1,3 +1,5 @@
+*Note: This file was automatically generated from a mod.rs file*
+
 A library for transforming raw data between encodings.
 
 As part of [h2gb](https://github.com/h2gb), it's common to extract a buffer

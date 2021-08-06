@@ -1,3 +1,5 @@
+*Note: This file was automatically generated from a mod.rs file*
+
 A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 
 ## Overview

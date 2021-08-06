@@ -1,3 +1,5 @@
+*Note: This file was automatically generated from a mod.rs file*
+
 A library for reading and formatting differently-sized integers and floats.
 
 The bulk of functionality is split into a couple parts:
