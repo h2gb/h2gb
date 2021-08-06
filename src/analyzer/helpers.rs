@@ -1,5 +1,5 @@
 use redo::Record;
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::actions::*;
 use crate::datatype::{H2Type, ResolvedType};
@@ -37,4 +37,16 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
     commit_entry(record, buffer, layer, resolved.clone(), Some(datatype.clone()), comment)?;
 
     Ok(resolved)
+}
+
+/// This is a helper function that creates a record, then returns it as a simple
+/// u64 - I found myself doing this a lot.
+pub fn create_entry_u64(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<u64> {
+    if !datatype.can_be_number() {
+        bail!("Attempting to create a numeric entry from a non-numeric datatype");
+    }
+
+    create_entry(record, buffer, layer, datatype, offset, comment)?.as_number.ok_or(
+        SimpleError::new("Could not parse entry as a u64 value")
+    )?.as_u64().map_err( |e| SimpleError::new(format!("Could not u64 interpret entry as a u64: {:?}", e)))
 }

@@ -24,6 +24,7 @@
 * Major features
   * Cross references
   * Named addresses
+  * Parse log / error log for analyzers
 
 * Nice-to-haves
   * On entry creation, can we have a function that is "create copies of this type until we reach a specific terminator"? We're running into that a bunch in Terraria analyzer
