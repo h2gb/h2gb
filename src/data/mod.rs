@@ -2,7 +2,10 @@
 //!
 //! Currently, there are two datatypes that we use: Enum and Bitmask.
 //!
-//! * Enums
+//! # Enums
+//!
+//! An enum is a collection of named values, with a type. For example,
+//! Terraria's "game mode" has 4 possible values:
 
 mod enums;
 pub use enums::{from_enum, enum_exists};

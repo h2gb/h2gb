@@ -1,14 +1,20 @@
 * Important things
-  * Print out structs better (like, each field gets its own thing)
-  * Clean up error handling on analyzer (in particular, when you read a bad location)
   * Write tests for character types in GenericNumber - and basically write tests everywhere
   * Write documentation everywhere
   * Figure out Enums better
   * Get rid of the weird "static" offsets in H2Type, I don't think it's buying anything except complication
   * Eliminate u64 as much as possible, in favour of usize
   * BetterEnum -> Enum
-  * Maybe kill Union?
   * Update the non-Terraria CSV files
+
+* Nested bumpy vectors
+  * Eliminate unions
+  * Print structs and such more nicely
+  * Comments on any field?
+
+* Analyzer improvements
+  * Clean up error handling on analyzer (in particular, when you read a bad location)
+  * On entry creation, can we have a function that is "create copies of this type until we reach a specific terminator"? We're running into that a bunch in Terraria analyzer
 
 * Datatypes
   * Do a better "duration" type
@@ -24,12 +30,8 @@
   * Cross references
   * Named addresses
   * Parse log / error log for analyzers
-
-* Nice-to-haves
-  * On entry creation, can we have a function that is "create copies of this type until we reach a specific terminator"? We're running into that a bunch in Terraria analyzer
-
-* Probably pipedreams
-  * Can we somehow do comments on struct fields? :-/
+  * UI
+  * API
 
 * Cleanup
   * Can struct definitions take &str instead of String (for simplicity)
