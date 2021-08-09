@@ -43,11 +43,10 @@ See the various classes in [`crate::datatype::simple`] for examples!
 ### Composite types
 
 A composite type is made up of other types. For example, a
-[`composite::H2Array`] is a series of the same type, a
-[`composite::H2Struct`] is a series of different types (with names), and a
-[`composite::H2Union`] is a choice of overlapping values. These can be fully
-recursive - an array can contain a struct which can contain an array and so
-on, for as long as you like.
+[`composite::H2Array`] is a series of the same type, and a
+[`composite::H2Struct`] is a series of different types (with names). It's
+all recursive - an array can contain a struct which can contain an array and
+so on, for as long as you like.
 
 #### String types
 

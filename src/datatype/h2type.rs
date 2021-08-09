@@ -30,7 +30,6 @@ pub enum H2Types {
 
     // Composite
     H2Array(H2Array),
-    H2Union(H2Union),
     H2Struct(H2Struct),
 
     // Strings
@@ -85,7 +84,6 @@ impl H2Type {
 
             // Complex
             H2Types::H2Array(t)   => t,
-            H2Types::H2Union(t)   => t,
             H2Types::H2Struct(t)  => t,
 
             // Strings

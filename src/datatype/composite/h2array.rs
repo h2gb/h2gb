@@ -11,8 +11,8 @@ use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 /// dynamic (the size is calculated at runtime and can vary element-to-element).
 ///
 /// Arrays can be nested, can contain
-/// [`crate::datatype::composite::H2Struct`]s/[`crate::datatype::composite::H2Union`]s, and can
-/// be as complex or simple as you need.
+/// [`crate::datatype::composite::H2Struct`]s/[`crate::datatype::composite::H2Array`]s,
+/// and can be as complex or simple as you need.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Array {
     field_type: Box<H2Type>,

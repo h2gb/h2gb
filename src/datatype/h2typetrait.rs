@@ -16,9 +16,8 @@ use crate::generic_number::GenericNumber;
 ///
 /// As a type developer, some of the traits must be implemented (obviously),
 /// while others have sane defaults that you can rely on. In some cases, if the
-/// default behaviour doesn't make sense for you (for example,
-/// [`crate::datatype::composite::H2Union`] doesn't have sequential children),
-/// or if you can implement it faster, feel free to override it.
+/// default behaviour doesn't make sense for you or if you can implement it
+/// faster, feel free to override it.
 ///
 /// The `actual_size` function is particularly to implement for any types that
 /// aren't 100% composed of other types. By default, we subtract the last
@@ -106,10 +105,6 @@ pub trait H2TypeTrait {
     /// * Children take up the full type - that is, the type starts at the
     ///   first byte of the first child, and ends at the last byte of the last
     ///   child (with possible alignment).
-    ///
-    /// The one type that breaks this rule is
-    /// [`crate::datatype::composite::H2Union`], where all values overlap (since
-    /// that's how a union works).
     ///
     /// Provided your children follow those rules, [`#actual_size`] and
     /// [`#children_with_range`] and [`#resolve`] will work with their default
