@@ -12,7 +12,7 @@ use crate::datatype::H2Type;
 use crate::datatype::simple::{H2Number, Rgb};
 use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::{H2String, LPString};
-use crate::generic_number::{GenericNumber, GenericReader, Endian, BetterEnumFormatter, DefaultFormatter, BooleanFormatter, BitmaskFormatter};
+use crate::generic_number::{GenericNumber, GenericReader, Endian, EnumFormatter, DefaultFormatter, BooleanFormatter, BitmaskFormatter};
 
 mod helpers;
 use helpers::*;
@@ -165,31 +165,31 @@ lazy_static! {
 
     static ref INVENTORY_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new("TerrariaItem").unwrap())),
             ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("affix".to_string(),       H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaAffix").unwrap())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, EnumFormatter::new("TerrariaAffix").unwrap())),
             ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
         ]).unwrap()
     };
 
     static ref STORED_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new("TerrariaItem").unwrap())),
             ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("affix".to_string(),       H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaAffix").unwrap())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, EnumFormatter::new("TerrariaAffix").unwrap())),
         ]).unwrap()
     };
 
     static ref EQUIPPED_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaItem").unwrap())),
-            ("affix".to_string(),       H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaAffix").unwrap())),
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new("TerrariaItem").unwrap())),
+            ("affix".to_string(),       H2Number::new(GenericReader::U8, EnumFormatter::new("TerrariaAffix").unwrap())),
         ]).unwrap()
     };
 
     static ref BUFF: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaBuff").unwrap())),
+            ("id".to_string(),          H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new("TerrariaBuff").unwrap())),
             ("duration".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
         ]).unwrap()
     };
@@ -475,7 +475,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     record.apply(ActionLayerCreate::new(buffer, LAYER))?;
 
     // Create an entry for the version
-    let version_number = create_entry_u64(record, buffer, LAYER, &H2Number::new(GenericReader::U32(Endian::Little), BetterEnumFormatter::new("TerrariaVersion")?), 0x00, Some("Version number"))?;
+    let version_number = create_entry_u64(record, buffer, LAYER, &H2Number::new(GenericReader::U32(Endian::Little), EnumFormatter::new("TerrariaVersion")?), 0x00, Some("Version number"))?;
 
     // Get the offsets for later
     let offsets = if version_number < 230 {
@@ -505,7 +505,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
 
     // Clothing is an enumeration (this also includes gender, and oddly enough
     // it's not in the same order as the UI shows)
-    create_entry(record, buffer, LAYER, &H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaClothing").unwrap()), base + offsets.clothing, Some("Character clothing"))?;
+    create_entry(record, buffer, LAYER, &H2Number::new(GenericReader::U8, EnumFormatter::new("TerrariaClothing").unwrap()), base + offsets.clothing, Some("Character clothing"))?;
 
     // Health and mana are both a simple struct with current + max
     create_entry(record, buffer, LAYER, &*HEALTH_MANA, base + offsets.health, Some("Health"))?;
@@ -513,7 +513,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
 
     // Create an entry for the game mode - we'll need this later to determine
     // if we have Journey Mode data
-    let game_mode = create_entry_u64(record, buffer, LAYER, &H2Number::new(GenericReader::U8, BetterEnumFormatter::new("TerrariaGameMode")?), base + offsets.game_mode, Some("Game mode"))?;
+    let game_mode = create_entry_u64(record, buffer, LAYER, &H2Number::new(GenericReader::U8, EnumFormatter::new("TerrariaGameMode")?), base + offsets.game_mode, Some("Game mode"))?;
 
     // Parse character colours
     create_entry(record, buffer, LAYER, &*COLOURS, base + offsets.colours, Some("Colours"))?;

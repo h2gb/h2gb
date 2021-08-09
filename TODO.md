@@ -4,7 +4,6 @@
   * Figure out Enums better
   * Get rid of the weird "static" offsets in H2Type, I don't think it's buying anything except complication
   * Eliminate u64 as much as possible, in favour of usize
-  * BetterEnum -> Enum
   * Update the non-Terraria CSV files
 
 * Nested bumpy vectors
