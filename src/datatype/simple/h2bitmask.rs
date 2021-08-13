@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 
 use simple_error::{SimpleResult, bail};
 
-use crate::data::{bitmask_exists, from_bitmask};
+use crate::data::{bitmask_exists, from_bitmask_str};
 use crate::generic_number::{GenericReader, GenericNumber};
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -47,29 +47,8 @@ impl H2Bitmask {
     }
 
     fn render(&self, as_u64: u64) -> SimpleResult<String> {
-        let mut out: Vec<String> = Vec::new();
-
-        // TODO: Add in the remainder
-        let (output, _remainder) = from_bitmask(&self.bitmask_type, as_u64)?;
-
-        output.into_iter().for_each(|(_value, name, present)| {
-            match (present, self.show_negative) {
-                // The flag is present
-                (true, _) => out.push(name.to_string()),
-
-                // The flag is not present, but we want to see it
-                (false, true) => out.push(format!("~{}", name)),
-
-                // The flag is not present, and we don't want to see it
-                (false, false) => (),
-            }
-        });
-
-        if out.len() == 0 {
-            Ok("(n/a)".to_string())
-        } else {
-            Ok(out.join(" | "))
-        }
+        let out = from_bitmask_str(&self.bitmask_type, as_u64, self.show_negative)?;
+        Ok(out.join(" | "))
     }
 }
 
@@ -79,7 +58,6 @@ impl H2TypeTrait for H2Bitmask {
     }
 
     fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
-        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
         match self.definition.size() {
             Some(v) => Ok(v as u64),
             None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),
@@ -108,27 +86,31 @@ impl H2TypeTrait for H2Bitmask {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader};
+    use crate::generic_number::{Context, GenericReader, Endian};
     use pretty_assertions::assert_eq;
 
     #[test]
     fn test_bitmask_reader() -> SimpleResult<()> {
-        let test_buffer = b"\x00\x01\x02\x03".to_vec();
+        let test_buffer = b"\x00\x00\x00\x01\x00\x02\x00\x03\x80\x01".to_vec();
         let offset = Offset::Dynamic(Context::new(&test_buffer));
 
         let tests = vec![
           // offset  show_negative  expected
             (0,      false,         "(n/a)"),
-            (1,      false,         "HIDE_SLOT_HEAD"),
-            (2,      false,         "HIDE_SLOT_BODY"),
-            (3,      false,         "HIDE_SLOT_HEAD | HIDE_SLOT_BODY"),
+            (2,      false,         "HIDE_SLOT_HEAD"),
+            (4,      false,         "HIDE_SLOT_BODY"),
+            (6,      false,         "HIDE_SLOT_HEAD | HIDE_SLOT_BODY"),
 
-            (1,      true,          "HIDE_SLOT_HEAD | ~HIDE_SLOT_BODY | ~HIDE_SLOT_LEGS | ~HIDE_SLOT_ACCESSORY1 | ~HIDE_SLOT_ACCESSORY2 | ~HIDE_SLOT_ACCESSORY3 | ~HIDE_SLOT_ACCESSORY4 | ~HIDE_SLOT_ACCESSORY5 | ~HIDE_SLOT_ACCESSORY6 | ~HIDE_SLOT_ACCESSORY8"),
+            // With negatives
+            (2,      true,          "HIDE_SLOT_HEAD | ~HIDE_SLOT_BODY | ~HIDE_SLOT_LEGS | ~HIDE_SLOT_ACCESSORY1 | ~HIDE_SLOT_ACCESSORY2 | ~HIDE_SLOT_ACCESSORY3 | ~HIDE_SLOT_ACCESSORY4 | ~HIDE_SLOT_ACCESSORY5 | ~HIDE_SLOT_ACCESSORY6 | ~HIDE_SLOT_ACCESSORY8"),
+
+            // With an unknown value
+            (8,      false,         "HIDE_SLOT_HEAD | Unknown_0x8000"),
         ];
 
         for (o, show_negative, expected) in tests {
             let t = H2Bitmask::new(
-                GenericReader::U8,
+                GenericReader::U16(Endian::Big),
                 "TerrariaVisibility",
                 show_negative,
             )?;

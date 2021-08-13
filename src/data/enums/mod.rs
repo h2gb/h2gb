@@ -2,6 +2,13 @@ use std::collections::HashMap;
 use simple_error::{SimpleResult, SimpleError, bail};
 use lazy_static::lazy_static;
 
+/// Load an Enum from a .csv file.
+///
+/// This requires the CSV to be a string file containing exactly two columns:
+/// a numeric column (compatible with an unsigned 64-bit value) and a string
+/// column representing the "name".
+///
+/// The numeric column must be unique.
 fn load_from_csv(data: &str) -> SimpleResult<HashMap<u64, String>> {
     let mut out = HashMap::new();
 
@@ -23,6 +30,10 @@ fn load_from_csv(data: &str) -> SimpleResult<HashMap<u64, String>> {
         )?.parse().map_err(|e| {
             SimpleError::new(format!("Couldn't parse first CSV field as integer: {}", e))
         })?;
+
+        if out.contains_key(&number) {
+            bail!("Duplicate key in CSV enum: {}", number);
+        }
 
         out.insert(number, record.get(1).ok_or(
             SimpleError::new("Couldn't parse the CSV")
