@@ -15,4 +15,7 @@ pub use rgb::*;
 mod h2bitmask;
 pub use h2bitmask::*;
 
+mod h2enum;
+pub use h2enum::*;
+
 pub mod network;

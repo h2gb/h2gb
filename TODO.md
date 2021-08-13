@@ -4,8 +4,6 @@
 
 * To-do soon
   * Tests and documentation
-  * Kill Unions - I don't think they're good
-  * Investigate nested bumpy vectors
   * Kill the "static" offset thing, and simply all the things
   * Change structs (and other APIey things) to take &str instead of String
 

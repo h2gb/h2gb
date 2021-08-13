@@ -21,6 +21,7 @@ pub enum H2Types {
     H2Pointer(H2Pointer),
     Rgb(Rgb),
     H2Bitmask(H2Bitmask),
+    H2Enum(H2Enum),
 
     // Netework
     IPv4(IPv4),
@@ -75,6 +76,7 @@ impl H2Type {
             H2Types::H2Pointer(t) => t,
             H2Types::Rgb(t)       => t,
             H2Types::H2Bitmask(t) => t,
+            H2Types::H2Enum(t)    => t,
 
             // Network
             H2Types::IPv4(t)        => t,
