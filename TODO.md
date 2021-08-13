@@ -4,24 +4,30 @@
 
 * To-do soon
   * Tests and documentation
-  * Work on Enum / Bitmask more
   * Kill Unions - I don't think they're good
   * Investigate nested bumpy vectors
   * Kill the "static" offset thing, and simply all the things
   * Change structs (and other APIey things) to take &str instead of String
 
+* Work on Enum / Bitmask - are they datatypes or output formats?
+  * They require external information - from the 'data' package - maybe that's what's different?
+  * I need to think about duration and timestamps - they do *not* require external information to display
+
 * Major / annoying cleanup
   * Make bumpyvectors use usize instead of u64
 
 * Nested bumpy vectors
-  * Eliminate unions
   * Print structs and such more nicely
   * Comments on any field?
   * Make the interface for resolving stricter, to ensure things don't overlap and stuff
+    * Guarantee that things are not overlapping
+    * Are things required to be contiguous?
 
 * Analyzer improvements
   * Clean up error handling on analyzer (in particular, when you read a bad location)
   * On entry creation, can we have a function that is "create copies of this type until we reach a specific terminator"? We're running into that a bunch in Terraria analyzer
+  * An "identify" function for analyzers
+    * More importantly, a trait
 
 * Datatypes
   * Do a better "duration" type
