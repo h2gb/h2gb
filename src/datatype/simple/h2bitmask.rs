@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
 use crate::data::{bitmask_exists, from_bitmask};
-use crate::generic_number::GenericReader;
+use crate::generic_number::{GenericReader, GenericNumber};
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
 /// Defines a numerical value.
@@ -93,6 +93,14 @@ impl H2TypeTrait for H2Bitmask {
                 self.render(self.definition.read(context)?.as_u64()?)
             }
         }
+    }
+
+    fn can_be_number(&self) -> bool {
+        true
+    }
+
+    fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
+        self.definition.read(offset.get_dynamic()?)
     }
 }
 

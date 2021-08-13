@@ -21,15 +21,6 @@ pub use scientific_formatter::*;
 mod character_formatter;
 pub use character_formatter::*;
 
-// mod enum_formatter;
-// pub use enum_formatter::*;
-
-mod enum_formatter;
-pub use enum_formatter::*;
-
-mod bitmask_formatter;
-pub use bitmask_formatter::*;
-
 mod boolean_formatter;
 pub use boolean_formatter::*;
 
@@ -68,9 +59,6 @@ pub enum GenericFormatter {
     Binary(BinaryFormatter),
     Scientific(ScientificFormatter),
     Character(CharacterFormatter),
-    // Enum(EnumFormatter),
-    Enum(EnumFormatter),
-    Bitmask(BitmaskFormatter),
     Boolean(BooleanFormatter),
 }
 
@@ -84,13 +72,7 @@ impl GenericFormatter {
             Self::Octal(o)      => Box::new(*o),
             Self::Scientific(o) => Box::new(*o),
             Self::Character(o)  => Box::new(*o),
-            // Self::Enum(o)       => Box::new(*o),
             Self::Boolean(o)    => Box::new(*o),
-
-            // Enums require clone() because they can't implement Copy (although
-            // it's a pretty cheap clone)
-            Self::Enum(o)       => Box::new(o.clone()),
-            Self::Bitmask(o)    => Box::new(o.clone()),
         }
     }
 
