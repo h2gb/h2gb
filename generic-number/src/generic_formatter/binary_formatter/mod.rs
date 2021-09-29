@@ -1,14 +1,14 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
 /// Render a [`GenericNumber`] as a binary value.
 ///
 /// # Example
 ///
 /// ```
-/// use libh2gb::generic_number::*;
+/// use generic_number::*;
 ///
 /// // Create a GenericNumber directly - normally you'd use a GenericReader
 /// let number = GenericNumber::from(15u8);
@@ -100,7 +100,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader};
+    use crate::{Context, GenericReader};
 
     #[test]
     fn test_binary_i8() -> SimpleResult<()> {

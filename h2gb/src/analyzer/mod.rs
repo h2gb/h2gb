@@ -12,7 +12,7 @@ use crate::datatype::H2Type;
 use crate::datatype::simple::{H2Number, H2Bitmask, H2Enum, Rgb};
 use crate::datatype::composite::H2Struct;
 use crate::datatype::composite::string::{H2String, LPString};
-use crate::generic_number::{GenericNumber, GenericReader, Endian, DefaultFormatter, BooleanFormatter};
+use generic_number::{GenericNumber, GenericReader, Endian, DefaultFormatter, BooleanFormatter};
 
 mod helpers;
 use helpers::*;

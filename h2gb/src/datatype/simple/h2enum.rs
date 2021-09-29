@@ -3,14 +3,14 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
 use crate::data::{enum_exists, from_enum};
-use crate::generic_number::{GenericReader, GenericNumber};
+use generic_number::{GenericReader, GenericNumber};
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
 /// Defines a numerical value.
 ///
 /// This represents any standard numerical value - [`u8`], [`i32`], stuff like
 /// that. The way it's defined, read, and displayed heavily leverages the
-/// [`crate::generic_number`] module.
+/// [`generic_number`] module.
 ///
 /// The size a given numeric type is always known in advance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,7 +100,7 @@ impl H2TypeTrait for H2Enum {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader};
+    use generic_number::{Context, GenericReader};
     use pretty_assertions::assert_eq;
 
     #[test]

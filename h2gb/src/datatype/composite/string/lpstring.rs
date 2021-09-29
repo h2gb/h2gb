@@ -10,7 +10,7 @@ use crate::datatype::composite::H2Array;
 ///
 /// This is a string with a numerical prefix that denotes the length of the
 /// string (in *characters*). The length is any numerical value as defined in
-/// [`crate::generic_number::GenericReader`] that `can_be_u64()`, and the
+/// [`generic_number::GenericReader`] that `can_be_u64()`, and the
 /// character type is from the same module, but `can_be_char()`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
@@ -107,7 +107,7 @@ impl H2TypeTrait for LPString {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader, Endian, DefaultFormatter, HexFormatter};
+    use generic_number::{Context, GenericReader, Endian, DefaultFormatter, HexFormatter};
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;
 

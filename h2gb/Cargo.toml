@@ -14,6 +14,9 @@ readme = "README.md"
 # name = "libh2gb"
 
 [dependencies]
+# Other parts of h2gb
+generic-number = { path = '../generic-number' }
+
 # Undo / redo
 redo = { version = "~0.40.0", features = ["chrono", "serde"] }
 

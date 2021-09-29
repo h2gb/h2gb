@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops::Range;
 
 use crate::datatype::H2Type;
-use crate::generic_number::GenericNumber;
+use generic_number::GenericNumber;
 
 /// The result of an [`H2Type`] being applied to a context.
 ///

@@ -16,7 +16,7 @@ An [`H2Type`] is somewhat abstract: it defines what the type is, how to
 calculate its size, how to convert it to a string, and so on. To calculate
 any of those, an [`Offset`] is required. An [`Offset`] can either be
 abstract (a numeric offset value) or concrete (a buffer of bytes in the form
-of a [`crate::generic_number::Context`]). Some types require a concrete
+of a [`generic_number::Context`]). Some types require a concrete
 buffer to do anything useful (for example, while the length of an IPv4 value
 doesn't change, the length of a UTF-8 character is based on the data).
 
@@ -78,7 +78,7 @@ use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
 use libh2gb::datatype::composite::*;
 use libh2gb::datatype::composite::string::*;
-use libh2gb::generic_number::*;
+use generic_number::*;
 
 // This is our buffer
 let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
@@ -107,7 +107,7 @@ use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
 use libh2gb::datatype::composite::*;
 use libh2gb::datatype::composite::string::*;
-use libh2gb::generic_number::*;
+use generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
 let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -141,7 +141,7 @@ use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
 use libh2gb::datatype::composite::*;
 use libh2gb::datatype::composite::string::*;
-use libh2gb::generic_number::*;
+use generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
 let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
@@ -173,7 +173,7 @@ use libh2gb::datatype::*;
 use libh2gb::datatype::simple::*;
 use libh2gb::datatype::composite::*;
 use libh2gb::datatype::composite::string::*;
-use libh2gb::generic_number::*;
+use generic_number::*;
 
 // This is our buffer - three strings with a one-byte length prefix
 let data = b"\x02hi\x03bye\x04test".to_vec();

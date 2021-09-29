@@ -3,7 +3,7 @@ use std::io::{Cursor, Read};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use simple_error::{SimpleError, SimpleResult, bail};
 
-use crate::generic_number::Endian;
+use crate::Endian;
 
 /// The maximum size of a UTF8 character
 pub const MAX_UTF8_BYTES: usize = 4;

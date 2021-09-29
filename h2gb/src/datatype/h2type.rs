@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
 
-use crate::generic_number::GenericNumber;
+use generic_number::GenericNumber;
 
 use crate::datatype::{H2TypeTrait, Offset, Alignment, ResolvedType};
 use crate::datatype::simple::*;

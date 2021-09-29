@@ -1,3 +1,54 @@
+//! A library for reading and formatting differently-sized integers and floats.
+//!
+//! The bulk of functionality is split into a couple parts:
+//!
+//! * [`GenericReader`] - Reads any primitive type from a [`Context`]
+//! * [`GenericNumber`] - Represents any primitive type
+//! * [`GenericFormatter`] - Renders a [`GenericNumber`] with user-configurable options
+//!
+//! Both [`GenericNumber`] and [`GenericFormatter`] are serializable, which is
+//! what makes it really useful for h2gb!
+//!
+//! # Usage
+//!
+//! To use, you typically read a value from a buffer using a [`GenericReader`],
+//! then display it using a [`GenericFormatter`]:
+//!
+//! ```
+//! use generic_number::*;
+//!
+//! // Create a buffer
+//! let buffer = b"\x01\x23\x45\x67".to_vec();
+//!
+//! // Create a context that points to the start of the buffer
+//! let context = Context::new_at(&buffer, 0);
+//!
+//! // Create a reader that knows how to read a U32 big endian value - this
+//! // reader can be serialized and used later!
+//! let reader = GenericReader::U32(Endian::Big);
+//!
+//! // Read from the context into a generic number - this number can be
+//! // serialized and used later!
+//! let number = reader.read(context).unwrap();
+//!
+//! // Display it using different formatters (these use the pretty defaults) -
+//! // these formatters can also be serialized!
+//! assert_eq!("0x01234567",                         HexFormatter::pretty().render(number).unwrap());
+//! assert_eq!("19088743",                           DefaultFormatter::new().render(number).unwrap());
+//! assert_eq!("0o110642547",                        OctalFormatter::pretty().render(number).unwrap());
+//! assert_eq!("0b00000001001000110100010101100111", BinaryFormatter::pretty().render(number).unwrap());
+//! assert_eq!("1.9088743e7",                        ScientificFormatter::pretty().render(number).unwrap());
+//! ```
+
+mod helpers;
+pub use helpers::*;
+
+mod generic_reader;
+pub use generic_reader::*;
+
+mod generic_formatter;
+pub use generic_formatter::*;
+
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
@@ -6,8 +57,8 @@ use simple_error::{SimpleResult, bail};
 /// The goal of creating this enum is to wrap around *any* generic type, with
 /// serialize, deserialize, and transparent conversion to [`u64`] and [`i64`].
 ///
-/// Typically, you'd use a [`crate::generic_number::GenericReader`] to create a
-/// [`GenericNumber`], then a [`crate::generic_number::GenericFormatter`] to
+/// Typically, you'd use a [`crate::GenericReader`] to create a
+/// [`GenericNumber`], then a [`crate::GenericFormatter`] to
 /// render it. All three of those classes can be serialized, so this operation
 /// is always repeatable!
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -214,7 +265,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::generic_number::{Context, GenericReader, Endian};
+    use crate::{Context, GenericReader, Endian};
 
     #[test]
     fn test_to_u64() -> SimpleResult<()> {

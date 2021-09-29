@@ -65,7 +65,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::generic_number::{GenericReader, CharacterFormatter, Context};
+    use generic_number::{GenericReader, CharacterFormatter, Context};
     use crate::datatype::simple::H2Number;
 
     #[test]

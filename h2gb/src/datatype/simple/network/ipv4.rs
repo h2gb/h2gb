@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use crate::generic_number::Endian;
+use generic_number::Endian;
 use std::net::Ipv4Addr;
 
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
@@ -52,7 +52,7 @@ impl H2TypeTrait for IPv4 {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, Endian};
+    use generic_number::{Context, Endian};
 
     #[test]
     fn test_ipv4() -> SimpleResult<()> {

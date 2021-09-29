@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::generic_number::{GenericReader, GenericFormatter};
+use generic_number::{GenericReader, GenericFormatter};
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
 /// Defines a pointer type - a numeric type that points to another location.
@@ -80,7 +80,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
 
-    use crate::generic_number::{Context, Endian, HexFormatter};
+    use generic_number::{Context, Endian, HexFormatter};
     use crate::datatype::simple::H2Number;
 
     #[test]

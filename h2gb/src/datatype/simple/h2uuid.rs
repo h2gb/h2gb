@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use uuid::Uuid;
 
-use crate::generic_number::Endian;
+use generic_number::Endian;
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
 /// Defines a UUID.
@@ -51,7 +51,7 @@ impl H2TypeTrait for H2UUID {
 // mod tests {
 //     use super::*;
 //     use simple_error::SimpleResult;
-//     use crate::generic_number::{Context, Endian};
+//     use generic_number::{Context, Endian};
 
 //     #[test]
 //     fn test_uuid() -> SimpleResult<()> {

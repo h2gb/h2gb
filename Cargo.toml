@@ -2,4 +2,5 @@
 
 members = [
     "h2gb",
+    "generic-number",
 ]

@@ -122,7 +122,7 @@ mod tests {
 
     use crate::datatype::simple::H2Number;
     use crate::datatype::composite::string::LPString;
-    use crate::generic_number::{GenericReader, Endian, DefaultFormatter};
+    use generic_number::{GenericReader, Endian, DefaultFormatter};
 
     // #[test]
     // fn test_action_create_entry() -> SimpleResult<()> {

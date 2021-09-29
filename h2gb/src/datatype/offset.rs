@@ -1,5 +1,5 @@
 use simple_error::{bail, SimpleResult};
-use crate::generic_number::Context;
+use generic_number::Context;
 
 /// Represents data that is being parsed.
 ///

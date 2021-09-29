@@ -303,6 +303,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "generic-number"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "pretty_assertions",
+ "serde",
+ "simple-error",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -391,6 +401,7 @@ dependencies = [
  "colored",
  "csv",
  "des",
+ "generic-number",
  "hex",
  "hhmmss",
  "inflate",

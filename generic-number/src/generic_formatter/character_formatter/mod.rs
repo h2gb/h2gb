@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
 /// Format options for unprintable characters
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -53,7 +53,7 @@ pub enum CharacterReplacementPolicy {
 /// # Example
 ///
 /// ```
-/// use libh2gb::generic_number::*;
+/// use generic_number::*;
 ///
 /// // Create a GenericNumber directly - normally you'd use a GenericReader
 /// let number = GenericNumber::from(('a', 1)); // (the size field doesn't matter when used directly like this)
@@ -220,7 +220,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::generic_number::GenericNumber;
+    use crate::GenericNumber;
 
     #[test]
     fn test_char_formatter() -> SimpleResult<()> {

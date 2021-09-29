@@ -2,7 +2,7 @@ use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
 use crate::datatype::{Alignment, Offset, ResolvedType, H2Type};
-use crate::generic_number::GenericNumber;
+use generic_number::GenericNumber;
 
 /// The core trait that makes a type into a type. All types must implement this.
 ///

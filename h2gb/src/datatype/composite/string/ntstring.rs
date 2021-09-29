@@ -9,7 +9,7 @@ use crate::datatype::composite::H2Array;
 /// Defines a null-terminated string.
 ///
 /// This is a string with a NUL byte at the end (`'\0'`). The character type can
-/// be any type defined in [`crate::generic_number::GenericReader`] that can
+/// be any type defined in [`generic_number::GenericReader`] that can
 /// be a character (`can_be_char()` is `true`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NTString {
@@ -91,7 +91,7 @@ impl H2TypeTrait for NTString {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{GenericReader, DefaultFormatter, Context, Endian};
+    use generic_number::{GenericReader, DefaultFormatter, Context, Endian};
     use crate::datatype::Alignment;
     use crate::datatype::simple::H2Number;
     use crate::datatype::simple::network::IPv4;

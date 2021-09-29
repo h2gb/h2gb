@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
 /// Render a [`GenericNumber`] as a true/false value (1 is true, 0 is false)
 ///
@@ -57,7 +57,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::generic_number::{Context, GenericReader};
+    use crate::{Context, GenericReader};
 
     #[test]
     fn test_default_u8() -> SimpleResult<()> {

@@ -1,7 +1,7 @@
 use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 
-use crate::generic_number::GenericNumber;
+use crate::GenericNumber;
 
 mod binary_formatter;
 pub use binary_formatter::*;
@@ -40,7 +40,7 @@ pub trait GenericFormatterImpl {
 /// # Example
 ///
 /// ```
-/// use libh2gb::generic_number::*;
+/// use generic_number::*;
 ///
 /// // Create a GenericNumber directly - normally you'd read from a buffer
 /// let number = GenericNumber::from(1234u32);

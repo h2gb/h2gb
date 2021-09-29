@@ -1,7 +1,7 @@
 use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 
-use crate::generic_number::{Context, Endian, GenericNumber};
+use crate::{Context, Endian, GenericNumber};
 
 /// Defines how data is read from a [`Context`] to produce a [`GenericNumber`].
 ///

@@ -1,14 +1,14 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::generic_number::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 
 /// Render a [`GenericNumber`] as a scientific (exponential) value.
 ///
 /// # Example
 ///
 /// ```
-/// use libh2gb::generic_number::*;
+/// use generic_number::*;
 ///
 /// // Create a GenericNumber directly - normally you'd use a GenericReader
 /// let number = GenericNumber::from(100u64);
@@ -80,7 +80,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::generic_number::{Context, Endian, GenericReader};
+    use crate::{Context, Endian, GenericReader};
 
     #[test]
     fn test_scientific_u32() -> SimpleResult<()> {

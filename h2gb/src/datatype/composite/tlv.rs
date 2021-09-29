@@ -6,7 +6,7 @@ use simple_error::{bail, SimpleResult};
 use crate::datatype::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 use crate::datatype::simple::H2Number;
 use crate::datatype::composite::H2Array;
-use crate::generic_number::{GenericReader, HexFormatter};
+use generic_number::{GenericReader, HexFormatter};
 
 /// Defines a struct.
 ///
@@ -81,7 +81,7 @@ impl H2TypeTrait for H2TLV {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::generic_number::{Context, GenericReader, HexFormatter, Endian};
+    use generic_number::{Context, GenericReader, HexFormatter, Endian};
     use crate::datatype::simple::H2Number;
 
     #[test]
