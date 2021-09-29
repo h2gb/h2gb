@@ -2,7 +2,7 @@ use simple_error::SimpleResult;
 use serde::{Serialize, Deserialize};
 use std::fmt;
 
-use crate::transformation::{Transformation, TransformerTrait};
+use crate::{Transformation, TransformerTrait};
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]
 pub struct TransformNull {

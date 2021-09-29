@@ -1,7 +1,7 @@
 use simple_error::SimpleResult;
 use std::fmt;
 
-use crate::transformation::Transformation;
+use crate::Transformation;
 
 pub trait TransformerTrait: fmt::Display {
     /// A transform takes a buffer that's encoded and decodes it.

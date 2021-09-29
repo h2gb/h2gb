@@ -4,7 +4,7 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::project::H2Project;
 use crate::actions::Action;
-use crate::transformation::Transformation;
+use h2transformation::Transformation;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Forward {
@@ -102,7 +102,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
 
-    use crate::transformation::{TransformHex, TransformBase64};
+    use h2transformation::{TransformHex, TransformBase64};
     use crate::actions::{Action, ActionBufferCreateFromBytes};
 
     #[test]

@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 use std::fmt;
 
-use crate::transformation::{Transformation, TransformerTrait, KeyOrIV};
+use crate::{Transformation, TransformerTrait, KeyOrIV};
 
 /// A macro to simplify decryption - lets us pass a class name as an argument
 /// (and greatly simplifies the code)

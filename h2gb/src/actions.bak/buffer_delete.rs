@@ -95,7 +95,7 @@ mod tests {
     use redo::Record;
     use simple_error::SimpleResult;
 
-    use crate::transformation::TransformHex;
+    use h2transformation::TransformHex;
 
     use crate::project::h2project::H2Project;
     use crate::actions::Action;

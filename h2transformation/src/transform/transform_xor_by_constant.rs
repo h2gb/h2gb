@@ -2,7 +2,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 use std::fmt;
 
-use crate::transformation::{Transformation, TransformerTrait};
+use crate::{Transformation, TransformerTrait};
 
 /// When performing an XorByConstant transformation, this represents the size
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Serialize, Deserialize)]

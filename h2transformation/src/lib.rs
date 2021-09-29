@@ -19,7 +19,7 @@
 //!
 //!
 //! ```
-//! use libh2gb::transformation::TransformHex;
+//! use h2transformation::TransformHex;
 //!
 //! // Input (note that some are uppercase and some are lower - that's allowed)
 //! let i: Vec<u8> = b"48656c6C6F2c20776f726c64".to_vec();
@@ -64,7 +64,7 @@ pub enum Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::TransformNull;
+    /// use h2transformation::TransformNull;
     ///
     /// // Input: "abcdef"
     /// let i: Vec<u8> = b"abcdef".to_vec();
@@ -87,7 +87,7 @@ pub enum Transformation {
     /// ## Eight bit
     ///
     /// ```
-    /// use libh2gb::transformation::{TransformXorByConstant, XorSettings};
+    /// use h2transformation::{TransformXorByConstant, XorSettings};
     ///
     /// // Input: "\x00\x01\x02\x03", XorSettings::EightBit(0xFF)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
@@ -100,7 +100,7 @@ pub enum Transformation {
     /// ## Sixteen bit
     ///
     /// ```
-    /// use libh2gb::transformation::{TransformXorByConstant, XorSettings};
+    /// use h2transformation::{TransformXorByConstant, XorSettings};
     ///
     /// // Input: "\x00\x01\x02\x03", XorSettings::SixteenBit(0xFF00)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
@@ -115,7 +115,7 @@ pub enum Transformation {
     /// The size of the input buffer must be a multiple of the XOR bit size.
     ///
     /// ```
-    /// use libh2gb::transformation::{TransformXorByConstant, XorSettings};
+    /// use h2transformation::{TransformXorByConstant, XorSettings};
     ///
     /// let i: Vec<u8> = b"\x00".to_vec();
     ///
@@ -135,7 +135,7 @@ pub enum Transformation {
     /// # Example 1 - Standard
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase64;
+    /// use h2transformation::TransformBase64;
     ///
     /// // Input: "AQIDBA=="
     /// let i: Vec<u8> = b"AQIDBA==".to_vec();
@@ -148,7 +148,7 @@ pub enum Transformation {
     ///
     /// # Example 2 - Error
     /// ```
-    /// use libh2gb::transformation::TransformBase64;
+    /// use h2transformation::TransformBase64;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
@@ -159,7 +159,7 @@ pub enum Transformation {
     /// # Example 3 - No padding
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase64;
+    /// use h2transformation::TransformBase64;
     ///
     /// // Input: "AQIDBA"
     /// let i: Vec<u8> = b"AQIDBA".to_vec();
@@ -173,7 +173,7 @@ pub enum Transformation {
     /// # Example 4 - URL character set
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase64;
+    /// use h2transformation::TransformBase64;
     ///
     /// // Input: "aa--_z8="
     /// let i: Vec<u8> = b"aa--_z8=".to_vec();
@@ -187,7 +187,7 @@ pub enum Transformation {
     /// # Example 5 - Permissive
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase64;
+    /// use h2transformation::TransformBase64;
     ///
     /// // Input: "AQIDBA="
     /// let i: Vec<u8> = b"AQIDBA=".to_vec();
@@ -209,7 +209,7 @@ pub enum Transformation {
     /// # Example 1 - Standard
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase32;
+    /// use h2transformation::TransformBase32;
     ///
     /// // Input: "AEBAGBA="
     /// let i: Vec<u8> = b"AEBAGBA=".to_vec();
@@ -223,7 +223,7 @@ pub enum Transformation {
     /// # Example 2 - Invalid transformation
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase32;
+    /// use h2transformation::TransformBase32;
     ///
     /// let i: Vec<u8> = b"Not valid base32~".to_vec();
     ///
@@ -234,7 +234,7 @@ pub enum Transformation {
     /// # Example 3 - Crockford character set
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase32;
+    /// use h2transformation::TransformBase32;
     ///
     /// // Input: "91JPRV3F"
     /// let i: Vec<u8> = b"91JPRV3F".to_vec();
@@ -248,7 +248,7 @@ pub enum Transformation {
     /// # Example 4 - Permissive
     ///
     /// ```
-    /// use libh2gb::transformation::TransformBase32;
+    /// use h2transformation::TransformBase32;
     ///
     /// // Input: "AEBA??*GBA=" (bad characters will be ignored)
     /// let i: Vec<u8> = b"AEBA??*GBA=".to_vec();
@@ -275,7 +275,7 @@ pub enum Transformation {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::transformation::TransformHex;
+    /// use h2transformation::TransformHex;
     ///
     /// // Input: "41424344"
     /// let i: Vec<u8> = b"41424344".to_vec();
@@ -304,7 +304,7 @@ pub enum Transformation {
     /// most common operation I see).
     ///
     /// ```
-    /// use libh2gb::transformation::*;
+    /// use h2transformation::*;
     ///
     /// let transformation = TransformBlockCipher::new(
     ///     BlockCipherType::AES, // AES algorithm
@@ -338,7 +338,7 @@ pub enum Transformation {
     /// likely go back and fill in gaps in the future.
     ///
     /// ```
-    /// use libh2gb::transformation::*;
+    /// use h2transformation::*;
     ///
     /// let transformation = TransformStreamCipher::new(
     ///     StreamCipherType::Salsa20,    // Salsa20

@@ -340,6 +340,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
+name = "h2transformation"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "base32",
+ "base64 0.12.3",
+ "block-modes",
+ "chacha20",
+ "cipher",
+ "des",
+ "hex",
+ "inflate",
+ "nettle",
+ "pretty_assertions",
+ "salsa20",
+ "serde",
+ "simple-error",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -401,29 +421,19 @@ checksum = "56d855069fafbb9b344c0f962150cd2c1187975cb1c22c1522c240d8c4986714"
 name = "libh2gb"
 version = "0.1.0"
 dependencies = [
- "aes",
- "base32",
- "base64 0.12.3",
- "block-modes",
  "bumpy-vector",
  "byteorder",
- "chacha20",
- "cipher",
  "colored",
  "csv",
- "des",
  "generic-number",
- "hex",
+ "h2transformation",
  "hhmmss",
- "inflate",
  "lazy_static",
  "macaddr",
  "maplit",
- "nettle",
  "pretty_assertions",
  "redo",
  "ron",
- "salsa20",
  "serde",
  "serde_json",
  "serde_yaml",

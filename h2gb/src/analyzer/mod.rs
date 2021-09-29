@@ -7,7 +7,7 @@ use std::time::Duration;
 use hhmmss::Hhmmss;
 
 use crate::actions::*;
-use crate::transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
+use h2transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use crate::datatype::H2Type;
 use crate::datatype::simple::{H2Number, H2Bitmask, H2Enum, Rgb};
 use crate::datatype::composite::H2Struct;

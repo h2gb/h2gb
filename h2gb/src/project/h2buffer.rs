@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::ops::Range;
 
-use crate::transformation::Transformation;
+use h2transformation::Transformation;
 use crate::project::H2Layer;
 use crate::datatype::{Offset, H2Type, ResolvedType};
 use generic_number::Context;
@@ -448,7 +448,7 @@ impl H2Buffer {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use crate::transformation::TransformHex;
+    use h2transformation::TransformHex;
 
     #[test]
     fn test_new() -> SimpleResult<()> {

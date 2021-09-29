@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError};
 use std::ops::Range;
 
-use crate::transformation::Transformation;
+use h2transformation::Transformation;
 use crate::project::h2project::H2Project;
 
 // Still needed:

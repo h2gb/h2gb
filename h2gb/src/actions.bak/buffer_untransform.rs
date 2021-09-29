@@ -14,7 +14,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::transformation::Transformation;
+use h2transformation::Transformation;
 use crate::project::h2project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -109,7 +109,7 @@ mod tests {
     use redo::Record;
     use pretty_assertions::assert_eq;
     use crate::actions::Action;
-    use crate::transformation::{TransformHex, TransformBase64};
+    use h2transformation::{TransformHex, TransformBase64};
 
     #[test]
     fn test_action() -> SimpleResult<()> {
