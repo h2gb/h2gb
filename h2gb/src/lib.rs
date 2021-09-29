@@ -17,7 +17,6 @@
 pub mod analyzer;
 pub mod bumpy_vector;
 pub mod datatype;
-pub mod multi_vector;
 pub mod transformation;
 
 pub mod project;
@@ -40,7 +39,6 @@ mod tests {
 //     use super::*;
 
 //     use simple_error::SimpleResult;
-//     // use multi_vector::MultiVector;
 
 //     use h2project::H2Project;
 //     use action::Action;
