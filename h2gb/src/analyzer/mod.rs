@@ -568,7 +568,7 @@ mod tests {
     fn test_analyze() -> SimpleResult<()> {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/terraria/ManySpawnPoints.plr");
+        d.push("../testdata/terraria/ManySpawnPoints.plr");
 
         // Create a fresh record
         let mut record: Record<Action> = Record::new(

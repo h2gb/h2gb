@@ -14,16 +14,16 @@ err() {
 BASE=$(git rev-parse --show-toplevel)
 
 # Update README.md
-pushd $BASE > /dev/null
+pushd $BASE/h2gb > /dev/null
 
 # Do the main README.md
-cargo readme -o README.md
+cargo readme -o $BASE/README.md
 
 # Append other paths to README.md
-echo -ne "\n# Other Documentation\n\n" >> README.md
+echo -ne "\n# Other Documentation\n\n" >> $BASE/README.md
 
 # Do any subdirectories
-for i in $(find . -type f -name mod.rs); do
+for i in $(find ../ -type f -name mod.rs); do
   if (head -n1 $i | grep '^\/\/\!' > /dev/null); then
     DIR=$(dirname "$i")
     echo "***Note: This file was automatically generated from a mod.rs file***" > "$DIR/README.md"
@@ -31,9 +31,10 @@ for i in $(find . -type f -name mod.rs); do
     cargo readme --no-title -i "$i" >> "$DIR/README.md"
     git add "$DIR/README.md"
 
-    echo -ne "* [$DIR]($DIR/README.md) - $( head -n1 $i | cut -c5- )\n\n" >> README.md
+    # Remove the leading ../, since we're adding it to a top-level README
+    RELATIVE_DIR=$(echo "$DIR" | cut -c3-)
+    echo -ne "* [$RELATIVE_DIR]($RELATIVE_DIR/README.md) - $( head -n1 $i | cut -c5- )\n\n" >> $BASE/README.md
   fi
 done
-
 
 popd > /dev/null
