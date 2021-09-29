@@ -33,7 +33,7 @@ for i in $(find ../ -type f -name mod.rs -or -name lib.rs -not -wholename ../h2g
 
     # Remove the leading ../, since we're adding it to a top-level README
     RELATIVE_DIR=$(echo "$DIR" | cut -c3-)
-    echo -ne "* [$RELATIVE_DIR]($RELATIVE_DIR/README.md) - $( head -n1 $i | cut -c5- )\n\n" >> $BASE/README.md
+    echo -ne "* [$(echo -ne $RELATIVE_DIR | cut -c2-)]($RELATIVE_DIR/README.md) - $( head -n1 $i | cut -c5- )\n\n" >> $BASE/README.md
   fi
 done
 
