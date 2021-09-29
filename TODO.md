@@ -7,6 +7,7 @@
   * Automatically create a default "Layer"
   * Can I move Float out of GenericNumber to make it more useful (sortable / comparable / etc)?
     * Can GenericNumber use more Into() methods instead of as_u64() and stuff like that?
+  * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
 
 * Major / annoying cleanup
   * Make bumpyvectors use usize instead of u64
