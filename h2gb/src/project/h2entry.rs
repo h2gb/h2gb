@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 use std::fmt;
 use std::ops::Range;
 
-use crate::bumpy_vector::AutoBumpyEntry;
+use bumpy_vector::AutoBumpyEntry;
 use crate::datatype::{H2Type, ResolvedType};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

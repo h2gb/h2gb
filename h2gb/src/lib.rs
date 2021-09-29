@@ -15,7 +15,6 @@
 #![allow(dead_code)] // TODO: Disable this
 
 pub mod analyzer;
-pub mod bumpy_vector;
 pub mod datatype;
 pub mod transformation;
 

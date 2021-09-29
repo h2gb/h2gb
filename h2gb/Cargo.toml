@@ -16,6 +16,7 @@ readme = "README.md"
 [dependencies]
 # Other parts of h2gb
 generic-number = { path = '../generic-number' }
+bumpy-vector   = { path = '../bumpy-vector'   }
 
 # Undo / redo
 redo = { version = "~0.40.0", features = ["chrono", "serde"] }

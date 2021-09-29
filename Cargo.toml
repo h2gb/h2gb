@@ -3,4 +3,5 @@
 members = [
     "h2gb",
     "generic-number",
+    "bumpy-vector",
 ]

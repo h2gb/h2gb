@@ -1,23 +1,14 @@
 //#![feature(range_is_empty)]
-//! [![Crate](https://img.shields.io/crates/v/bumpy_vector.svg)](https://crates.io/crates/bumpy_vector)
-//!
 //! A vector-like object where elements can be larger than one item. We use
 //! this primarily to represent objects in a binary that are made up of one
 //! or more bytes.
-//!
-//! # Goal
-//!
-//! [h2gb](https://github.com/h2gb/libh2gb) is a tool for analyzing binary
-//! files. Importantly, a binary file is a series of objects, each of which
-//! take up some number of bytes. We need a datatype to represent this unusual
-//! requirement, hence coming up with BumpyVector!
 //!
 //! # Usage
 //!
 //! Instantiate with a maximum size, then use somewhat like a vector:
 //!
 //! ```
-//! use libh2gb::bumpy_vector::{BumpyEntry, BumpyVector};
+//! use bumpy_vector::{BumpyEntry, BumpyVector};
 //!
 //! // Instantiate with a maximum size of 100 and a type of String
 //! let mut v: BumpyVector<String> = BumpyVector::new(100);
@@ -50,7 +41,7 @@
 //! supports, such as [ron](https://github.com/ron-rs/ron):
 //!
 //! ```
-//! use libh2gb::bumpy_vector::BumpyVector;
+//! use bumpy_vector::BumpyVector;
 //!
 //! fn main() {
 //!     let mut h: BumpyVector<String> = BumpyVector::new(10);
@@ -87,7 +78,7 @@ use serde::{Serialize, Deserialize};
 /// Creating a basic entry is very straight forward:
 ///
 /// ```
-/// use libh2gb::bumpy_vector::BumpyEntry;
+/// use bumpy_vector::BumpyEntry;
 ///
 /// let e: BumpyEntry<&str> = BumpyEntry {
 ///   entry: "hello",
@@ -100,7 +91,7 @@ use serde::{Serialize, Deserialize};
 /// For convenience, you can create an entry from a (T, Range) tuple:
 ///
 /// ```
-/// use libh2gb::bumpy_vector::BumpyEntry;
+/// use bumpy_vector::BumpyEntry;
 ///
 /// let e: BumpyEntry<&str> = ("hello", 0..1).into();
 /// ```
@@ -125,7 +116,7 @@ pub enum MetaBumpyEntry<T> {
 /// # Example
 ///
 /// ```
-/// use libh2gb::bumpy_vector::{BumpyVector, AutoBumpyEntry};
+/// use bumpy_vector::{BumpyVector, AutoBumpyEntry};
 /// use std::ops::Range;
 ///
 /// // A struct that has an index and size, then whatever other data
@@ -250,7 +241,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::{BumpyEntry, BumpyVector};
+    /// use bumpy_vector::{BumpyEntry, BumpyVector};
     ///
     /// // Create a 10-byte `BumpyVector`
     /// let mut v: BumpyVector<&str> = BumpyVector::new(10);
@@ -310,7 +301,7 @@ impl<'a, T> BumpyVector<T> {
     /// See `insert()` for return and errors.
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::{BumpyVector, AutoBumpyEntry};
+    /// use bumpy_vector::{BumpyVector, AutoBumpyEntry};
     /// use std::ops::Range;
     ///
     /// // A struct that has an index and size, then whatever other data
@@ -352,7 +343,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::BumpyVector;
+    /// use bumpy_vector::BumpyVector;
     ///
     /// // Create a 10-byte `BumpyVector`
     /// let mut v: BumpyVector<&str> = BumpyVector::new(10);
@@ -396,7 +387,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::BumpyVector;
+    /// use bumpy_vector::BumpyVector;
     ///
     /// // Create a 10-byte `BumpyVector`
     /// let mut v: BumpyVector<&str> = BumpyVector::new(10);
@@ -428,7 +419,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::BumpyVector;
+    /// use bumpy_vector::BumpyVector;
     ///
     /// // Create a 10-byte `BumpyVector`
     /// let mut v: BumpyVector<&str> = BumpyVector::new(10);
@@ -464,7 +455,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::BumpyVector;
+    /// use bumpy_vector::BumpyVector;
     ///
     /// // Create a small BumpyVector
     /// let mut h: BumpyVector<String> = BumpyVector::new(10);
@@ -500,7 +491,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::BumpyVector;
+    /// use bumpy_vector::BumpyVector;
     ///
     /// // Create a 10-byte `BumpyVector`
     /// let mut v: BumpyVector<&str> = BumpyVector::new(10);
@@ -530,7 +521,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::BumpyVector;
+    /// use bumpy_vector::BumpyVector;
     ///
     /// // Create a small BumpyVector
     /// let mut h: BumpyVector<String> = BumpyVector::new(10);
@@ -568,7 +559,7 @@ impl<'a, T> BumpyVector<T> {
     /// # Example
     ///
     /// ```
-    /// use libh2gb::bumpy_vector::BumpyVector;
+    /// use bumpy_vector::BumpyVector;
     ///
     /// // Create a 10-byte `BumpyVector`
     /// let mut v: BumpyVector<&str> = BumpyVector::new(10);

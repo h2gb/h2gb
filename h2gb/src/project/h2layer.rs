@@ -22,14 +22,14 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail, SimpleError};
 
-use crate::bumpy_vector::BumpyVector;
+use bumpy_vector::BumpyVector;
 use crate::datatype::{H2Type, ResolvedType};
 use crate::project::H2Entry;
 
 /// Hold information for a layer - basically, a bunch of entires in a
-/// [`BumpyVector`].
+/// [`bumpy_vector::BumpyVector`].
 ///
-/// This is actually mostly a thin wrapper around [`BumpyVector`].
+/// This is actually mostly a thin wrapper around [`bumpy_vector::BumpyVector`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Layer {
     name: String,

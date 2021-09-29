@@ -27,7 +27,5 @@ License: MIT
 
 * [/h2gb/src/datatype](/h2gb/src/datatype/README.md) - A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 
-* [/h2gb/src/multi_vector](/h2gb/src/multi_vector/README.md) - An object that holds multiple `BumpyVector`s, and can manage linked entries
-
 * [/h2gb/src/transformation](/h2gb/src/transformation/README.md) - A library for transforming raw data between encodings.
 

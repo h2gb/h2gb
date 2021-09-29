@@ -1,0 +1,14 @@
+[package]
+name = "bumpy-vector"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "~1.0.110", features = ["derive"] }
+simple-error = "~0.2.1"
+
+[dev-dependencies]
+pretty_assertions = "~0.6.1"
+ron = "~0.5.1" # Used in a unit test, but not the actual crate
