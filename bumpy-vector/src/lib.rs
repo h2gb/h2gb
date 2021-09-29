@@ -1,6 +1,7 @@
-//! A vector-like object where elements can be larger than one item. We use
-//! this primarily to represent objects in a binary that are made up of one
-//! or more bytes.
+//! A vector-like object where elements can be larger than one item.
+//!
+//! We use this primarily to represent objects in a binary that are made up of
+//! one or more bytes.
 //!
 //! # Usage
 //!

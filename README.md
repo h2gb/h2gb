@@ -19,6 +19,8 @@ License: MIT
 
 # Other Documentation
 
+* [/bumpy-vector/src](/bumpy-vector/src/README.md) - A vector-like object where elements can be larger than one item. We use
+
 * [/generic-number/src](/generic-number/src/README.md) - A library for reading and formatting differently-sized integers and floats.
 
 * [/h2gb/src/analyzer](/h2gb/src/analyzer/README.md) - So far, this is a simple demonstration of what we can do
