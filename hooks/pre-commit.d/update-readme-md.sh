@@ -23,7 +23,8 @@ cargo readme -o $BASE/README.md
 echo -ne "\n# Other Documentation\n\n" >> $BASE/README.md
 
 # Do any subdirectories
-for i in $(find ../ -type f -name mod.rs); do
+for i in $(find ../ -type f -name mod.rs -or -name lib.rs -not -wholename ../h2gb/src/lib.rs | sort); do
+  echo $i
   if (head -n1 $i | grep '^\/\/\!' > /dev/null); then
     DIR=$(dirname "$i")
     echo "***Note: This file was automatically generated from a mod.rs file***" > "$DIR/README.md"

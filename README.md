@@ -19,15 +19,15 @@ License: MIT
 
 # Other Documentation
 
+* [/generic-number/src](/generic-number/src/README.md) - A library for reading and formatting differently-sized integers and floats.
+
+* [/h2gb/src/analyzer](/h2gb/src/analyzer/README.md) - So far, this is a simple demonstration of what we can do
+
 * [/h2gb/src/data](/h2gb/src/data/README.md) - A library for loading data that analyzers and users can consume.
 
 * [/h2gb/src/datatype](/h2gb/src/datatype/README.md) - A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 
 * [/h2gb/src/multi_vector](/h2gb/src/multi_vector/README.md) - An object that holds multiple `BumpyVector`s, and can manage linked entries
 
-* [/h2gb/src/analyzer](/h2gb/src/analyzer/README.md) - So far, this is a simple demonstration of what we can do
-
 * [/h2gb/src/transformation](/h2gb/src/transformation/README.md) - A library for transforming raw data between encodings.
-
-* [/h2gb/src/generic_number](/h2gb/src/generic_number/README.md) - A library for reading and formatting differently-sized integers and floats.
 

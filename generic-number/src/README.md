@@ -17,7 +17,7 @@ To use, you typically read a value from a buffer using a [`GenericReader`],
 then display it using a [`GenericFormatter`]:
 
 ```rust
-use libh2gb::generic_number::*;
+use generic_number::*;
 
 // Create a buffer
 let buffer = b"\x01\x23\x45\x67".to_vec();
