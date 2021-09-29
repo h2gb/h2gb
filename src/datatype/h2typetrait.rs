@@ -189,6 +189,10 @@ pub trait H2TypeTrait {
         false
     }
 
+    fn can_be_u64(&self) -> bool {
+        false
+    }
+
     /// Convert to a [`GenericNumber`]. This lets the type represent any
     /// fixed-length primitive type, basically.
     fn to_number(&self, _offset: Offset) -> SimpleResult<GenericNumber> {

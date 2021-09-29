@@ -1,7 +1,12 @@
-* To-do soon
+* To-do soon / unsorted
   * Tests and documentation
   * Kill the "static" offset thing, and simply all the things
   * Change structs (and other APIey things) to take &str instead of String
+  * Bi-directional enums (so we can fetch stuff by name)
+  * A "blob" datatype, which is a big U8 array but that isn't displayed
+  * Automatically create a default "Layer"
+  * Can I move Float out of GenericNumber to make it more useful (sortable / comparable / etc)?
+    * Can GenericNumber use more Into() methods instead of as_u64() and stuff like that?
 
 * Major / annoying cleanup
   * Make bumpyvectors use usize instead of u64

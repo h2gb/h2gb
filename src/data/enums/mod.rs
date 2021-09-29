@@ -54,6 +54,8 @@ lazy_static! {
         h.insert("TerrariaVersion".to_string(),  load_from_csv(include_str!("./terraria_version.csv")).unwrap());
         h.insert("TerrariaClothing".to_string(), load_from_csv(include_str!("./terraria_clothing.csv")).unwrap());
 
+        h.insert("GeckoType".to_string(),        load_from_csv(include_str!("./gecko_type.csv")).unwrap());
+
         h.insert("TestEnum".to_string(),         load_from_csv(include_str!("./test_enum.csv")).unwrap());
 
         h.insert("WindowsError".to_string(),     load_from_csv(include_str!("./windows_error.csv")).unwrap());

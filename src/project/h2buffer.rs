@@ -22,6 +22,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult, SimpleError};
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::Range;
 
 use crate::transformation::Transformation;
 use crate::project::H2Layer;
@@ -43,11 +44,12 @@ pub struct H2Buffer {
     layers: HashMap<String, H2Layer>,
 
     display_empty_addresses: bool,
+    context_bytes: usize,
 }
 
 impl fmt::Display for H2Buffer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Buffer: {} (base 0x{:x})", self.name, self.base_address)?;
+        writeln!(f, "Buffer: {} (base 0x{:x} / 0x{:x} bytes long)", self.name, self.base_address, self.data.len())?;
         writeln!(f, " Transformations:")?;
         for transformation in self.transformations.iter() {
             writeln!(f, " * {}", transformation)?;
@@ -75,7 +77,7 @@ impl fmt::Display for H2Buffer {
                         let resolved = entry.resolved();
                         let actual_range = (resolved.actual_range.start as usize)..(resolved.actual_range.end as usize);
 
-                        let entry_byte_string: Vec<String> = self.data[actual_range.clone()].iter().map(|b| format!("{:02x}", b)).collect();
+                        let entry_byte_string: Vec<String> = self.data[actual_range.clone()].iter().take(self.context_bytes).map(|b| format!("{:02x}", b)).collect();
                         let entry_byte_string = entry_byte_string.join(" ");
 
                         write!(f, " 0x{:08x} - 0x{:08x}    {}   {}",
@@ -164,6 +166,7 @@ impl H2Buffer {
             transformations: Vec::new(),
 
             display_empty_addresses: true, // TODO: Figure out how to handle empty addresses
+            context_bytes: 16, // TODO: Figure out how to configure this
         })
     }
 
@@ -231,6 +234,14 @@ impl H2Buffer {
 
     //     Self::new(&self.name, self.data[range].into(), base_address)
     // }
+
+    pub fn byte_range(&self, range: Range<usize>) -> SimpleResult<&[u8]> {
+        if range.end > self.data.len() {
+            bail!("Invalid range");
+        }
+
+        Ok(&self.data[range])
+    }
 
     /// Returns true if the buffer contains layers, entries, or any changes
     /// that could prevent it from being cleanly removed.

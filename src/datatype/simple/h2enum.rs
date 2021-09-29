@@ -87,6 +87,10 @@ impl H2TypeTrait for H2Enum {
         true
     }
 
+    fn can_be_u64(&self) -> bool {
+        true
+    }
+
     fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
         self.definition.read(offset.get_dynamic()?)
     }

@@ -34,6 +34,9 @@ pub use buffer_create_empty::ActionBufferCreateEmpty;
 mod buffer_create_from_bytes;
 pub use buffer_create_from_bytes::ActionBufferCreateFromBytes;
 
+mod buffer_extract;
+pub use buffer_extract::ActionBufferExtract;
+
 mod buffer_transform;
 pub use buffer_transform::ActionBufferTransform;
 
@@ -58,6 +61,7 @@ pub enum Action {
     Null(NullAction),
     BufferCreateEmpty(ActionBufferCreateEmpty),
     BufferCreateFromBytes(ActionBufferCreateFromBytes),
+    BufferExtract(ActionBufferExtract),
     BufferTransform(ActionBufferTransform),
     LayerCreate(ActionLayerCreate),
     // EntryCreateAndInsert(ActionEntryCreateAndInsert),
@@ -74,6 +78,7 @@ impl Command for Action {
             Action::Null(a)                  => a.apply(project),
             Action::BufferCreateEmpty(a)     => a.apply(project),
             Action::BufferCreateFromBytes(a) => a.apply(project),
+            Action::BufferExtract(a)         => a.apply(project),
             Action::BufferTransform(a)       => a.apply(project),
             Action::LayerCreate(a)           => a.apply(project),
             // Action::EntryCreateAndInsert(a)  => a.apply(project),
@@ -87,6 +92,7 @@ impl Command for Action {
             Action::Null(a)                  => a.undo(project),
             Action::BufferCreateEmpty(a)     => a.undo(project),
             Action::BufferCreateFromBytes(a) => a.undo(project),
+            Action::BufferExtract(a)         => a.undo(project),
             Action::BufferTransform(a)       => a.undo(project),
             Action::LayerCreate(a)           => a.undo(project),
             // Action::EntryCreateAndInsert(a)  => a.undo(project),

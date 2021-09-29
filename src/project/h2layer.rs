@@ -142,8 +142,8 @@ impl H2Layer {
     }
 
     pub fn comments_get(&self, range: Range<usize>) -> SimpleResult<Vec<&String>> {
-        if range.end >= self.entries.max_size() {
-            bail!("Tried to get comment at illegal range {:?}", range);
+        if range.end > self.entries.max_size() {
+            bail!("Tried to get comment at illegal range 0x{:x?} (max = 0x{:x?})", range, self.entries.max_size());
         }
 
         let mut out = Vec::new();

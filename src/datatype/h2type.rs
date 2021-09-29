@@ -22,8 +22,10 @@ pub enum H2Types {
     Rgb(Rgb),
     H2Bitmask(H2Bitmask),
     H2Enum(H2Enum),
+    H2UUID(H2UUID),
+    H2Blob(H2Blob),
 
-    // Netework
+    // Network
     IPv4(IPv4),
     IPv6(IPv6),
     MacAddress(MacAddress),
@@ -77,6 +79,8 @@ impl H2Type {
             H2Types::Rgb(t)       => t,
             H2Types::H2Bitmask(t) => t,
             H2Types::H2Enum(t)    => t,
+            H2Types::H2UUID(t)    => t,
+            H2Types::H2Blob(t)    => t,
 
             // Network
             H2Types::IPv4(t)        => t,
