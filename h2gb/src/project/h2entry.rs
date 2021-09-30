@@ -8,7 +8,7 @@ use std::fmt;
 use std::ops::Range;
 
 use bumpy_vector::AutoBumpyEntry;
-use crate::datatype::{H2Type, ResolvedType};
+use h2datatype::{H2Type, ResolvedType};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct H2Entry {

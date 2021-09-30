@@ -340,6 +340,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
+name = "h2data"
+version = "0.1.0"
+dependencies = [
+ "csv",
+ "lazy_static",
+ "pretty_assertions",
+ "ron",
+ "serde",
+ "simple-error",
+]
+
+[[package]]
+name = "h2datatype"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "generic-number",
+ "h2data",
+ "macaddr",
+ "pretty_assertions",
+ "ron",
+ "serde",
+ "simple-error",
+ "uuid",
+]
+
+[[package]]
 name = "h2transformation"
 version = "0.1.0"
 dependencies = [
@@ -422,14 +449,11 @@ name = "libh2gb"
 version = "0.1.0"
 dependencies = [
  "bumpy-vector",
- "byteorder",
- "colored",
- "csv",
  "generic-number",
+ "h2datatype",
  "h2transformation",
  "hhmmss",
  "lazy_static",
- "macaddr",
  "maplit",
  "pretty_assertions",
  "redo",
@@ -438,7 +462,6 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "simple-error",
- "uuid",
 ]
 
 [[package]]

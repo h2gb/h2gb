@@ -2,7 +2,7 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::datatype::H2Type;
+use h2datatype::H2Type;
 use crate::project::H2Project;
 use crate::actions::Action;
 
@@ -120,8 +120,8 @@ mod tests {
 
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
-    use crate::datatype::simple::H2Number;
-    use crate::datatype::composite::string::LPString;
+    use h2datatype::simple::H2Number;
+    use h2datatype::composite::string::LPString;
     use generic_number::{GenericReader, Endian, DefaultFormatter};
 
     // #[test]

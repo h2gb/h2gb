@@ -1,8 +1,10 @@
 [workspace]
 
 members = [
-    "h2gb",
-    "generic-number",
     "bumpy-vector",
+    "generic-number",
+    "h2datatype",
+    "h2data",
+    "h2gb",
     "h2transformation",
 ]

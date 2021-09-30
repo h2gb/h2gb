@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use crate::actions::Action;
-use crate::datatype::{H2Type, ResolvedType};
+use h2datatype::{H2Type, ResolvedType};
 use crate::project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -111,8 +111,8 @@ mod tests {
 
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
-    use crate::datatype::simple::H2Number;
-    use crate::datatype::composite::string::LPString;
+    use h2datatype::simple::H2Number;
+    use h2datatype::composite::string::LPString;
     use generic_number::{GenericReader, Endian, DefaultFormatter};
 
     #[test]

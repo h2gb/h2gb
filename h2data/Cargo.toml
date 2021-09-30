@@ -1,11 +1,13 @@
 [package]
-name = "bumpy-vector"
+name = "h2data"
 version = "0.1.0"
 edition = "2018"
 
 [dependencies]
 serde = { version = "~1.0.110", features = ["derive"] }
 simple-error = "~0.2.1"
+lazy_static = "~1.4.0"
+csv = "~1.1.6"
 
 [dev-dependencies]
 pretty_assertions = "~0.6.1"

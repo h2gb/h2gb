@@ -26,7 +26,7 @@ use std::ops::Range;
 
 use h2transformation::Transformation;
 use crate::project::H2Layer;
-use crate::datatype::{Offset, H2Type, ResolvedType};
+use h2datatype::{Offset, H2Type, ResolvedType};
 use generic_number::Context;
 
 // H2Buffer holds the actual data, as well as its layers

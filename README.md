@@ -29,5 +29,5 @@ License: MIT
 
 * [h2gb/src/datatype](/h2gb/src/datatype/README.md) - A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 
-* [h2gb/src/transformation](/h2gb/src/transformation/README.md) - A library for transforming raw data between encodings.
+* [h2transformation/src](/h2transformation/src/README.md) - A library for transforming raw data between encodings.
 

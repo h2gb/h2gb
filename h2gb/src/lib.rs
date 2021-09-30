@@ -15,12 +15,8 @@
 #![allow(dead_code)] // TODO: Disable this
 
 pub mod analyzer;
-pub mod datatype;
-
 pub mod project;
 pub mod actions;
-
-pub mod data;
 
 // Actions we need:
 // * load data as buffer

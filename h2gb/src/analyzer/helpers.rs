@@ -1,8 +1,9 @@
 use redo::Record;
 use simple_error::{SimpleResult, SimpleError, bail};
 
+use h2datatype::{H2Type, ResolvedType};
+
 use crate::actions::*;
-use crate::datatype::{H2Type, ResolvedType};
 
 pub fn peek_entry(record: &mut Record<Action>, buffer: &str, datatype: &H2Type, offset: usize) -> SimpleResult<ResolvedType> {
     record.target().buffer_get_or_err(buffer)?.peek(&datatype, offset)

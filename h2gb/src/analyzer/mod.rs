@@ -8,10 +8,10 @@ use hhmmss::Hhmmss;
 
 use crate::actions::*;
 use h2transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
-use crate::datatype::H2Type;
-use crate::datatype::simple::{H2Number, H2Bitmask, H2Enum, Rgb};
-use crate::datatype::composite::H2Struct;
-use crate::datatype::composite::string::{H2String, LPString};
+use h2datatype::H2Type;
+use h2datatype::simple::{H2Number, H2Bitmask, H2Enum, Rgb};
+use h2datatype::composite::H2Struct;
+use h2datatype::composite::string::{H2String, LPString};
 use generic_number::{GenericNumber, GenericReader, Endian, DefaultFormatter, BooleanFormatter};
 
 mod helpers;

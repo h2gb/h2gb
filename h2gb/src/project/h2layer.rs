@@ -23,7 +23,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail, SimpleError};
 
 use bumpy_vector::BumpyVector;
-use crate::datatype::{H2Type, ResolvedType};
+use h2datatype::{H2Type, ResolvedType};
 use crate::project::H2Entry;
 
 /// Hold information for a layer - basically, a bunch of entires in a
