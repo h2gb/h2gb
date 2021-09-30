@@ -165,59 +165,59 @@ impl GenericReader {
         }
     }
 
-    /// Will the resulting [`GenericNumber`] be compatible with a [`i64`]?
-    ///
-    /// This is mostly a convenience function, so datatypes we define can
-    /// verify that a proper [`GenericReader`] is being used before it actually
-    /// reads anything.
-    pub fn can_be_i64(self) -> bool {
-        match self {
-            Self::I8       => true,
-            Self::I16(_)   => true,
-            Self::I32(_)   => true,
-            Self::I64(_)   => true,
-            Self::I128(_)  => false,
+//   /// Will the resulting [`GenericNumber`] be compatible with a [`i64`]?
+//   ///
+//   /// This is mostly a convenience function, so datatypes we define can
+//   /// verify that a proper [`GenericReader`] is being used before it actually
+//   /// reads anything.
+//   pub fn can_be_i64(self) -> bool {
+//       match self {
+//           Self::I8       => true,
+//           Self::I16(_)   => true,
+//           Self::I32(_)   => true,
+//           Self::I64(_)   => true,
+//           Self::I128(_)  => false,
+//
+//           Self::U8       => false,
+//           Self::U16(_)   => false,
+//           Self::U32(_)   => false,
+//           Self::U64(_)   => false,
+//           Self::U128(_)  => false,
+//
+//           Self::F32(_)   => false,
+//           Self::F64(_)   => false,
+//
+//           Self::ASCII    => false,
+//           Self::UTF8     => false,
+//           Self::UTF16(_) => false,
+//           Self::UTF32(_) => false,
+//       }
+//   }
 
-            Self::U8       => false,
-            Self::U16(_)   => false,
-            Self::U32(_)   => false,
-            Self::U64(_)   => false,
-            Self::U128(_)  => false,
+   /// Will the resulting [`GenericNumber`] be compatible with a [`char`]?
+   pub fn can_be_char(self) -> bool {
+       match self {
+           Self::I8       => false,
+           Self::I16(_)   => false,
+           Self::I32(_)   => false,
+           Self::I64(_)   => false,
+           Self::I128(_)  => false,
 
-            Self::F32(_)   => false,
-            Self::F64(_)   => false,
+           Self::U8       => false,
+           Self::U16(_)   => false,
+           Self::U32(_)   => false,
+           Self::U64(_)   => false,
+           Self::U128(_)  => false,
 
-            Self::ASCII    => false,
-            Self::UTF8     => false,
-            Self::UTF16(_) => false,
-            Self::UTF32(_) => false,
-        }
-    }
+           Self::F32(_)   => false,
+           Self::F64(_)   => false,
 
-    /// Will the resulting [`GenericNumber`] be compatible with a [`char`]?
-    pub fn can_be_char(self) -> bool {
-        match self {
-            Self::I8       => false,
-            Self::I16(_)   => false,
-            Self::I32(_)   => false,
-            Self::I64(_)   => false,
-            Self::I128(_)  => false,
-
-            Self::U8       => false,
-            Self::U16(_)   => false,
-            Self::U32(_)   => false,
-            Self::U64(_)   => false,
-            Self::U128(_)  => false,
-
-            Self::F32(_)   => false,
-            Self::F64(_)   => false,
-
-            Self::ASCII    => true,
-            Self::UTF8     => true,
-            Self::UTF16(_) => true,
-            Self::UTF32(_) => true,
-        }
-    }
+           Self::ASCII    => true,
+           Self::UTF8     => true,
+           Self::UTF16(_) => true,
+           Self::UTF32(_) => true,
+       }
+   }
 }
 
 #[cfg(test)]
