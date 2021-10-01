@@ -1,7 +1,7 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerFormatter, IntegerFormatterImpl};
 
 /// Render a [`GenericNumber`] as a binary value.
 ///

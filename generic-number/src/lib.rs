@@ -52,11 +52,14 @@ pub use generic_formatter::*;
 mod generic_number;
 pub use crate::generic_number::*;
 
+mod integer;
+pub use integer::*;
+
 mod integer_reader;
 pub use integer_reader::*;
 
-mod integer;
-pub use integer::*;
+mod integer_formatter;
+pub use integer_formatter::*;
 
 mod float;
 pub use float::*;

@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerFormatter, IntegerFormatterImpl};
 
 /// Render a [`GenericNumber`] as a scientific (exponential) value.
 ///

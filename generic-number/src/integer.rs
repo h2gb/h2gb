@@ -2,6 +2,8 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 use std::{fmt, mem};
 
+use crate::IntegerFormatterImpl;
+
 /// A number that can be any of the primitive types.
 ///
 /// The goal of creating this enum is to wrap around *any* generic type, with
@@ -139,6 +141,24 @@ impl Integer {
     }
 }
 
+impl fmt::Display for Integer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::U8(v)   => fmt::Display::fmt(&v, f),
+            Self::U16(v)  => fmt::Display::fmt(&v, f),
+            Self::U32(v)  => fmt::Display::fmt(&v, f),
+            Self::U64(v)  => fmt::Display::fmt(&v, f),
+            Self::U128(v) => fmt::Display::fmt(&v, f),
+
+            Self::I8(v)   => fmt::Display::fmt(&v, f),
+            Self::I16(v)  => fmt::Display::fmt(&v, f),
+            Self::I32(v)  => fmt::Display::fmt(&v, f),
+            Self::I64(v)  => fmt::Display::fmt(&v, f),
+            Self::I128(v) => fmt::Display::fmt(&v, f),
+        }
+    }
+}
+
 impl fmt::LowerHex for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -249,10 +269,11 @@ impl fmt::Binary for Integer {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::{Context, IntegerReader, Endian};
+    use crate::{Context, IntegerReader, Endian, DefaultFormatter};
 
     #[test]
     fn test_to_usize() -> SimpleResult<()> {

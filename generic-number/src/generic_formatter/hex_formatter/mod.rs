@@ -1,7 +1,7 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerFormatter, IntegerFormatterImpl};
 
 /// Render a [`GenericNumber`] as a hexadecimal value.
 ///
@@ -10,17 +10,17 @@ use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a GenericReader
-/// let number = GenericNumber::from(0xaa2233u32);
+/// // Create a GenericNumber directly - normally you'd use a IntegerReader
+/// let number = Integer::from(0xaa2233u32);
 ///
 /// // Default 'pretty' formatter
-/// assert_eq!("0x00aa2233", HexFormatter::pretty().render(number).unwrap());
+/// assert_eq!("0x00aa2233", HexFormatter::pretty_integer().render(number));
 ///
 /// // Specify options: uppercase, no prefix, zero-padded
-/// assert_eq!("00AA2233", HexFormatter::new(true,  false, true ).render(number).unwrap());
+/// assert_eq!("00AA2233", HexFormatter::new_integer(true,  false, true ).render(number));
 ///
 /// // Specify different options: lowercase, '0x' prefix, not padded
-/// assert_eq!("0xaa2233", HexFormatter::new(false, true,  false).render(number).unwrap());
+/// assert_eq!("0xaa2233", HexFormatter::new_integer(false, true,  false).render(number));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct HexFormatter {
@@ -34,7 +34,6 @@ pub struct HexFormatter {
     pub padded: bool,
 }
 
-
 impl HexFormatter {
     pub fn new(uppercase: bool, prefix: bool, padded: bool) -> GenericFormatter {
         GenericFormatter::Hex(Self {
@@ -47,6 +46,19 @@ impl HexFormatter {
     pub fn pretty() -> GenericFormatter {
         Self::new(false, true, true)
     }
+
+    pub fn new_integer(uppercase: bool, prefix: bool, padded: bool) -> IntegerFormatter {
+        IntegerFormatter::Hex(Self {
+            uppercase: uppercase,
+            prefix: prefix,
+            padded: padded,
+        })
+    }
+
+    pub fn pretty_integer() -> IntegerFormatter {
+        Self::new_integer(false, true, true)
+    }
+
 }
 
 impl GenericFormatterImpl for HexFormatter {
@@ -93,13 +105,31 @@ impl GenericFormatterImpl for HexFormatter {
     }
 }
 
+impl IntegerFormatterImpl for HexFormatter {
+    fn render_integer(&self, number: Integer) -> String {
+        let rendered = match (self.padded, self.uppercase, self.prefix) {
+            (true,  false, false) => format!("{:0width$x}", number, width=(number.size() * 2)), // *2 because it's bytes, not characters
+            (false, false, false) => format!("{:x}", number),
+            (true,  true,  false) => format!("{:0width$X}", number, width=(number.size() * 2)),
+            (false, true,  false) => format!("{:X}", number),
+
+            (true,  false, true)  => format!("{:#0width$x}", number, width=(number.size() * 2) + 2), // +2 because the width includes the 0x which we don't want
+            (false, false, true)  => format!("{:#x}", number),
+            (true,  true,  true)  => format!("{:#0width$X}", number, width=(number.size() * 2) + 2),
+            (false, true,  true)  => format!("{:#X}", number),
+        };
+
+        rendered
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-    use crate::{Context, Endian, GenericReader};
+    use crate::{Context, Endian, IntegerReader};
 
     #[test]
     fn test_hex_u8() -> SimpleResult<()> {
@@ -138,11 +168,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U8.read(context)?;
+            let number = IntegerReader::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).render(number)?,
+                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
             );
         }
 
@@ -178,11 +208,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U16(Endian::Big).read(context)?;
+            let number = IntegerReader::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).render(number)?,
+                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
             );
         }
 
@@ -211,11 +241,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U32(Endian::Big).read(context)?;
+            let number = IntegerReader::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).render(number)?,
+                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
             );
         }
 
@@ -237,11 +267,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U64(Endian::Big).read(context)?;
+            let number = IntegerReader::U64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).render(number)?,
+                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
             );
         }
 
@@ -263,11 +293,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U64(Endian::Little).read(context)?;
+            let number = IntegerReader::U64(Endian::Little).read(context)?;
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).render(number)?,
+                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
             );
         }
 
@@ -296,11 +326,11 @@ mod tests {
 
         for (index, uppercase, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U128(Endian::Big).read(context)?;
+            let number = IntegerReader::U128(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                HexFormatter::new(uppercase, prefix, padded).render(number)?,
+                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
             );
         }
 
