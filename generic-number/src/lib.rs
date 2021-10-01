@@ -60,3 +60,12 @@ pub use integer::*;
 
 mod float;
 pub use float::*;
+
+mod float_reader;
+pub use float_reader::*;
+
+mod character;
+pub use character::*;
+
+mod character_reader;
+pub use character_reader::*;
