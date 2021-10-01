@@ -3,11 +3,12 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
 
-use generic_number::GenericNumber;
+use generic_number::{GenericNumber, Integer, Float, Character};
 
 use crate::{H2TypeTrait, Offset, Alignment, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
+use crate::simple::numeric::*;
 use crate::composite::*;
 use crate::composite::string::*;
 
@@ -17,13 +18,18 @@ use crate::composite::string::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum H2Types {
     // Simple
-    H2Number(H2Number),
+    H2Number(H2Number), /// XXX Deprecated
     H2Pointer(H2Pointer),
     Rgb(Rgb),
     H2Bitmask(H2Bitmask),
     H2Enum(H2Enum),
     H2UUID(H2UUID),
     H2Blob(H2Blob),
+
+    // Numeric
+    H2Character(H2Character),
+    H2Float(H2Float),
+    H2Integer(H2Integer),
 
     // Network
     IPv4(IPv4),
@@ -74,13 +80,18 @@ impl H2Type {
     fn field_type(&self) -> &dyn H2TypeTrait {
         match &self.field {
             // Simple
-            H2Types::H2Number(t)  => t,
+            H2Types::H2Number(t)  => t, // XXX Deprecated
             H2Types::H2Pointer(t) => t,
             H2Types::Rgb(t)       => t,
             H2Types::H2Bitmask(t) => t,
             H2Types::H2Enum(t)    => t,
             H2Types::H2UUID(t)    => t,
             H2Types::H2Blob(t)    => t,
+
+            // Numeric
+            H2Types::H2Float(t)     => t,
+            H2Types::H2Character(t) => t,
+            H2Types::H2Integer(t)   => t,
 
             // Network
             H2Types::IPv4(t)        => t,
@@ -183,7 +194,31 @@ impl H2Type {
     }
 
     /// Try to convert to a [`GenericNumber`]?
-    pub fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
+    pub fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> { // XXX Deprecated
         self.field_type().to_number(offset)
+    }
+
+    pub fn can_be_integer(&self) -> bool {
+        self.field_type().can_be_integer()
+    }
+
+    pub fn to_integer(&self, offset: Offset) -> SimpleResult<Integer> {
+        self.field_type().to_integer(offset)
+    }
+
+    pub fn can_be_float(&self) -> bool {
+        self.field_type().can_be_float()
+    }
+
+    pub fn to_float(&self, offset: Offset) -> SimpleResult<Float> {
+        self.field_type().to_float(offset)
+    }
+
+    pub fn can_be_character(&self) -> bool {
+        self.field_type().can_be_character()
+    }
+
+    pub fn to_character(&self, offset: Offset) -> SimpleResult<Character> {
+        self.field_type().to_character(offset)
     }
 }

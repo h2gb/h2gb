@@ -2,7 +2,7 @@ use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
 use crate::{Alignment, Offset, ResolvedType, H2Type};
-use generic_number::GenericNumber;
+use generic_number::{GenericNumber, Integer, Float, Character};
 
 /// The core trait that makes a type into a type. All types must implement this.
 ///
@@ -153,6 +153,10 @@ pub trait H2TypeTrait {
 
             as_string: self.to_string(offset).ok(),
             as_number: self.to_number(offset).ok(),
+
+            as_integer: self.to_integer(offset).ok(),
+            as_float: self.to_float(offset).ok(),
+            as_character: self.to_character(offset).ok(),
         })
     }
 
@@ -197,5 +201,29 @@ pub trait H2TypeTrait {
     /// fixed-length primitive type, basically.
     fn to_number(&self, _offset: Offset) -> SimpleResult<GenericNumber> {
         bail!("This type cannot be converted to a number");
+    }
+
+    fn can_be_integer(&self) -> bool {
+        false
+    }
+
+    fn to_integer(&self, _offset: Offset) -> SimpleResult<Integer> {
+        bail!("This type cannot be converted to an integer");
+    }
+
+    fn can_be_float(&self) -> bool {
+        false
+    }
+
+    fn to_float(&self, _offset: Offset) -> SimpleResult<Float> {
+        bail!("This type cannot be converted to a float");
+    }
+
+    fn can_be_character(&self) -> bool {
+        false
+    }
+
+    fn to_character(&self, _offset: Offset) -> SimpleResult<Character> {
+        bail!("This type cannot be converted to a character");
     }
 }

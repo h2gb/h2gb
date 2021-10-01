@@ -1,10 +1,5 @@
-// Types that don't have subtypes.
-//
-// Keeping these types together in this module are a convention, there's no
-// firm rule.
-
 mod h2number;
-pub use h2number::*;
+pub use h2number::*; // XXX Deprecated
 
 mod h2pointer;
 pub use h2pointer::*;
@@ -24,4 +19,5 @@ pub use h2uuid::*;
 mod h2blob;
 pub use h2blob::*;
 
+pub mod numeric;
 pub mod network;
