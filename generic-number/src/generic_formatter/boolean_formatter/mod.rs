@@ -18,12 +18,9 @@ impl BooleanFormatter {
     pub fn new() -> GenericFormatter {
         GenericFormatter::Boolean(Self { })
     }
-}
 
-impl Default for BooleanFormatter {
-    fn default() -> Self {
-        Self {
-        }
+    pub fn new_integer() -> IntegerFormatter {
+        IntegerFormatter::Boolean(Self { })
     }
 }
 
@@ -50,6 +47,26 @@ impl GenericFormatterImpl for BooleanFormatter {
     }
 }
 
+impl IntegerFormatterImpl for BooleanFormatter {
+    fn render_integer(&self, number: Integer) -> String {
+        // Ironically, boolean is both the simplest (conceptually), and the
+        // hardest to program since we can't really compare integers of a
+        // different size to 0
+        match number {
+            Integer::U8(v)      => format!("{}", v != 0),
+            Integer::U16(v)     => format!("{}", v != 0),
+            Integer::U32(v)     => format!("{}", v != 0),
+            Integer::U64(v)     => format!("{}", v != 0),
+            Integer::U128(v)    => format!("{}", v != 0),
+
+            Integer::I8(v)      => format!("{}", v != 0),
+            Integer::I16(v)     => format!("{}", v != 0),
+            Integer::I32(v)     => format!("{}", v != 0),
+            Integer::I64(v)     => format!("{}", v != 0),
+            Integer::I128(v)    => format!("{}", v != 0),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -57,7 +74,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::{Context, GenericReader};
+    use crate::{Context, IntegerReader};
 
     #[test]
     fn test_default_u8() -> SimpleResult<()> {
@@ -73,11 +90,36 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U8.read(context)?;
+            let number = IntegerReader::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                BooleanFormatter::new().render(number)?,
+                BooleanFormatter::new_integer().render(number),
+            );
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_default_i8() -> SimpleResult<()> {
+        let data = b"\x00\x7F\x80\xFF".to_vec();
+
+        let tests = vec![
+            // index  expected
+            (   0,    "false"),
+            (   1,    "true"),
+            (   2,    "true"),
+            (   3,    "true"),
+        ];
+
+        for (index, expected) in tests {
+            let context = Context::new_at(&data, index);
+            let number = IntegerReader::I8.read(context)?;
+
+            assert_eq!(
+                expected,
+                BooleanFormatter::new_integer().render(number),
             );
         }
 

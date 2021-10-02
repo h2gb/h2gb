@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use crate::{Integer, DefaultFormatter, HexFormatter};
+use crate::{Integer, BinaryFormatter, BooleanFormatter, DefaultFormatter, HexFormatter, OctalFormatter, ScientificFormatter};
 
 // Define the interface for rendering an integer
 pub trait IntegerFormatterImpl {
@@ -9,22 +9,29 @@ pub trait IntegerFormatterImpl {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum IntegerFormatter {
+    Binary(BinaryFormatter),
+    Boolean(BooleanFormatter),
     Default(DefaultFormatter),
     Hex(HexFormatter),
+    Octal(OctalFormatter),
+    Scientific(ScientificFormatter),
 }
 
 impl IntegerFormatter {
     pub fn render(self, v: Integer) -> String {
         match self {
-            Self::Default(f) => f.render_integer(v),
-            Self::Hex(f)     => f.render_integer(v),
+            Self::Binary(f)     => f.render_integer(v),
+            Self::Boolean(f)    => f.render_integer(v),
+            Self::Default(f)    => f.render_integer(v),
+            Self::Hex(f)        => f.render_integer(v),
+            Self::Octal(f)      => f.render_integer(v),
+            Self::Scientific(f) => f.render_integer(v),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 

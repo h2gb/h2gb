@@ -10,7 +10,7 @@ use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, Inte
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a GenericReader
+/// // Create a GenericNumber directly - normally you'd use a IntegerReader
 /// let number = GenericNumber::from(32u8);
 ///
 /// // Default 'pretty' formatter
@@ -35,6 +35,17 @@ impl OctalFormatter {
 
     pub fn pretty() -> GenericFormatter {
         Self::new(true, false)
+    }
+
+    pub fn new_integer(prefix: bool, padded: bool) -> IntegerFormatter {
+        IntegerFormatter::Octal(Self {
+            prefix: prefix,
+            padded: padded,
+        })
+    }
+
+    pub fn pretty_integer() -> IntegerFormatter {
+        Self::new_integer(true, false)
     }
 }
 
@@ -77,6 +88,37 @@ impl GenericFormatterImpl for OctalFormatter {
     }
 }
 
+impl IntegerFormatterImpl for OctalFormatter {
+    fn render_integer(&self, number: Integer) -> String {
+        if self.padded {
+            // There might be a mathy way to get this, but /shrug
+            let width = match number {
+                Integer::U8(_)   => 3,
+                Integer::U16(_)  => 6,
+                Integer::U32(_)  => 11,
+                Integer::U64(_)  => 22,
+                Integer::U128(_) => 43,
+
+                Integer::I8(_)   => 3,
+                Integer::I16(_)  => 6,
+                Integer::I32(_)  => 11,
+                Integer::I64(_)  => 22,
+                Integer::I128(_) => 43,
+            };
+
+            match self.prefix {
+                false => format!("{:0width$o}", number, width=width),
+                true  => format!("{:#0width$o}", number, width=(width+2)),
+            }
+        } else {
+            match self.prefix {
+                false => format!("{:o}", number),
+                true  => format!("{:#o}", number),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -84,7 +126,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::{Context, Endian, GenericReader};
+    use crate::{Context, Endian, IntegerReader};
 
     #[test]
     fn test_octal_u8() -> SimpleResult<()> {
@@ -118,11 +160,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U8.read(context)?;
+            let number = IntegerReader::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 
@@ -157,11 +199,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U16(Endian::Big).read(context)?;
+            let number = IntegerReader::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 
@@ -196,11 +238,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U32(Endian::Big).read(context)?;
+            let number = IntegerReader::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 
@@ -232,11 +274,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U64(Endian::Big).read(context)?;
+            let number = IntegerReader::U64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 
