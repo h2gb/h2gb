@@ -21,19 +21,19 @@ pub struct H2Float {
     ///
     /// This is created by the various --Formatter modules in GenericNumber.
     /// For example, [`DefaultFormatter::new()`] or [`HexFormatter::pretty()`].
-    display: FloatRenderer,
+    renderer: FloatRenderer,
 }
 
 impl H2Float {
-    pub fn new_aligned(alignment: Alignment, reader: FloatReader, display: FloatRenderer) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, reader: FloatReader, renderer: FloatRenderer) -> H2Type {
         H2Type::new(alignment, H2Types::H2Float(Self {
             reader: reader,
-            display: display,
+            renderer: renderer,
         }))
     }
 
-    pub fn new(reader: FloatReader, display: FloatRenderer) -> H2Type {
-        Self::new_aligned(Alignment::None, reader, display)
+    pub fn new(reader: FloatReader, renderer: FloatRenderer) -> H2Type {
+        Self::new_aligned(Alignment::None, reader, renderer)
     }
 }
 
