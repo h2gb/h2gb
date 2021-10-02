@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use crate::{Character, DefaultFormatter, CharacterFormatter};
 
 /// Define the interface for rendering an integer
-pub trait CharacterRendererImpl {
+pub trait CharacterRendererTrait {
     fn render_character(&self, number: Character) -> String;
 }
 

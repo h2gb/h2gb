@@ -2,7 +2,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 use std::cmp;
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererTrait};
 
 /// Render a [`GenericNumber`] as a binary value.
 ///
@@ -122,7 +122,7 @@ impl GenericFormatterImpl for BinaryFormatter {
     }
 }
 
-impl IntegerRendererImpl for BinaryFormatter {
+impl IntegerRendererTrait for BinaryFormatter {
     fn render_integer(&self, number: Integer) -> String {
         match (self.padded, self.prefix) {
             (true,  false) => format!("{:0width$b}", number, width=cmp::max(self.min_digits, number.size() * 8)), // *8 because it's bytes, not characters

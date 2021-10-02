@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, CharacterRenderer, Character, CharacterRendererImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, CharacterRenderer, Character, CharacterRendererTrait};
 
 /// Format options for unprintable characters
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -231,7 +231,7 @@ impl GenericFormatterImpl for CharacterFormatter {
     }
 }
 
-impl CharacterRendererImpl for CharacterFormatter {
+impl CharacterRendererTrait for CharacterFormatter {
     fn render_character(&self, number: Character) -> String {
         self.do_render(number.as_char())
     }

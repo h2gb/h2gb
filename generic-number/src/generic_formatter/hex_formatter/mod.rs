@@ -1,7 +1,7 @@
 use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererTrait};
 
 /// Render a [`GenericNumber`] as a hexadecimal value.
 ///
@@ -105,7 +105,7 @@ impl GenericFormatterImpl for HexFormatter {
     }
 }
 
-impl IntegerRendererImpl for HexFormatter {
+impl IntegerRendererTrait for HexFormatter {
     fn render_integer(&self, number: Integer) -> String {
         let rendered = match (self.padded, self.uppercase, self.prefix) {
             (true,  false, false) => format!("{:0width$x}", number, width=(number.size() * 2)), // *2 because it's bytes, not characters

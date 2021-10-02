@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl, Float, FloatRenderer, FloatRendererImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererTrait, Float, FloatRenderer, FloatRendererTrait};
 
 /// Render a [`GenericNumber`] as a scientific (exponential) value.
 ///
@@ -93,7 +93,7 @@ impl GenericFormatterImpl for ScientificFormatter {
     }
 }
 
-impl IntegerRendererImpl for ScientificFormatter {
+impl IntegerRendererTrait for ScientificFormatter {
     fn render_integer(&self, number: Integer) -> String {
         let rendered = match self.uppercase {
             false => format!("{:e}", number),
@@ -104,7 +104,7 @@ impl IntegerRendererImpl for ScientificFormatter {
     }
 }
 
-impl FloatRendererImpl for ScientificFormatter {
+impl FloatRendererTrait for ScientificFormatter {
     fn render_float(&self, number: Float) -> String {
         let rendered = match self.uppercase {
             false => format!("{:e}", number),
