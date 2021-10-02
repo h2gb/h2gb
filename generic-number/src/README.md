@@ -2,19 +2,27 @@
 
 A library for reading and formatting differently-sized integers and floats.
 
-The bulk of functionality is split into a couple parts:
-XXX This is old documentation
-* [`GenericReader`] - Reads any primitive type from a [`Context`]
-* [`GenericNumber`] - Represents any primitive type
-* [`GenericFormatter`] - Renders a [`GenericNumber`] with user-configurable options
+The bulk of functionality is split into three parts:
 
-Both [`GenericNumber`] and [`GenericFormatter`] are serializable, which is
-what makes it really useful for h2gb!
+* Datatypes - [`Integer`], [`Float`], and [`Character`], which represent
+  datatypes and implement traits similar to the datatypes they represent
 
+* Readers - [`IntegerReader`], [`FloatReader`], and [`CharacterReader`],
+  which make it easy to read any of the native types out of a [`Context`]
+
+* Renderers - [`IntegerRenderer`], [`FloatRenderer`], and
+  [`CharacterRenderer`], which define how something is rendered. They are
+  not instantiated directly, but through the variety of
+  [formatters](/generic-number/src/generic_formatter/).
 ## Usage
 
-To use, you typically read a value from a buffer using a [`GenericReader`],
-then display it using a [`GenericFormatter`]:
+To use, you typically want to:
+
+* Create a [`Context`]
+* Read a datatype using one of the readers
+* Render it using one of the renderers
+
+Here's a working example:
 
 ```rust
 use generic_number::*;
