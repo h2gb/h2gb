@@ -267,11 +267,30 @@ impl fmt::Binary for Integer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
     use crate::{Context, IntegerReader, Endian, DefaultFormatter};
+
+    #[test]
+    fn test_display() -> SimpleResult<()> {
+        let data = b"\x00\x7F\x80\xFF\x00\x01\x02\x03\x80\x00\x00\x00\x00\x00\x00\x00".to_vec();
+
+        let formatter = DefaultFormatter::new_integer();
+
+        assert_eq!("0",    formatter.render(IntegerReader::U8.read(Context::new_at(&data, 0))?));
+        assert_eq!("127",  formatter.render(IntegerReader::U8.read(Context::new_at(&data, 1))?));
+        assert_eq!("128",  formatter.render(IntegerReader::U8.read(Context::new_at(&data, 2))?));
+        assert_eq!("255",  formatter.render(IntegerReader::U8.read(Context::new_at(&data, 3))?));
+
+        assert_eq!("0",    formatter.render(IntegerReader::I8.read(Context::new_at(&data, 0))?));
+        assert_eq!("127",  formatter.render(IntegerReader::I8.read(Context::new_at(&data, 1))?));
+        assert_eq!("-128", formatter.render(IntegerReader::I8.read(Context::new_at(&data, 2))?));
+        assert_eq!("-1",   formatter.render(IntegerReader::I8.read(Context::new_at(&data, 3))?));
+
+
+        Ok(())
+    }
 
     #[test]
     fn test_to_usize() -> SimpleResult<()> {

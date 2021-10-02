@@ -7,7 +7,7 @@ pub trait IntegerRendererTrait {
     fn render_integer(&self, number: Integer) -> String;
 }
 
-/// Configure how a [`Float`] is rendered.
+/// Configure how an [`Integer`] is rendered.
 ///
 /// You don't generally want to create this enum directly; instead, use the
 /// `new()` or `pretty()` methods in the formatter you want.
