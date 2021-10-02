@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerFormatter, IntegerFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl};
 
 /// Render a [`GenericNumber`] as an octal value.
 ///
@@ -37,14 +37,14 @@ impl OctalFormatter {
         Self::new(true, false)
     }
 
-    pub fn new_integer(prefix: bool, padded: bool) -> IntegerFormatter {
-        IntegerFormatter::Octal(Self {
+    pub fn new_integer(prefix: bool, padded: bool) -> IntegerRenderer {
+        IntegerRenderer::Octal(Self {
             prefix: prefix,
             padded: padded,
         })
     }
 
-    pub fn pretty_integer() -> IntegerFormatter {
+    pub fn pretty_integer() -> IntegerRenderer {
         Self::new_integer(true, false)
     }
 }
@@ -88,7 +88,7 @@ impl GenericFormatterImpl for OctalFormatter {
     }
 }
 
-impl IntegerFormatterImpl for OctalFormatter {
+impl IntegerRendererImpl for OctalFormatter {
     fn render_integer(&self, number: Integer) -> String {
         if self.padded {
             // There might be a mathy way to get this, but /shrug

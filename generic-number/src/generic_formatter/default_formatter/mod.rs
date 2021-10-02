@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, IntegerFormatterImpl, Integer, IntegerFormatter};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl, Float, FloatRenderer, FloatRendererImpl, Character, CharacterRenderer, CharacterRendererImpl};
 
 /// Render a [`GenericNumber`] as whatever the default for the datatype is.
 ///
@@ -33,15 +33,16 @@ impl DefaultFormatter {
         GenericFormatter::Default(Self { })
     }
 
-    pub fn integer() -> IntegerFormatter {
-        IntegerFormatter::Default(Self { })
+    pub fn new_integer() -> IntegerRenderer {
+        IntegerRenderer::Default(Self { })
     }
-}
 
-impl Default for DefaultFormatter {
-    fn default() -> Self {
-        Self {
-        }
+    pub fn new_float() -> FloatRenderer {
+        FloatRenderer::Default(Self { })
+    }
+
+    pub fn new_character() -> CharacterRenderer {
+        CharacterRenderer::Default(Self { })
     }
 }
 
@@ -68,8 +69,20 @@ impl GenericFormatterImpl for DefaultFormatter {
     }
 }
 
-impl IntegerFormatterImpl for DefaultFormatter {
+impl IntegerRendererImpl for DefaultFormatter {
     fn render_integer(&self, number: Integer) -> String {
+        format!("{}", number)
+    }
+}
+
+impl FloatRendererImpl for DefaultFormatter {
+    fn render_float(&self, number: Float) -> String {
+        format!("{}", number)
+    }
+}
+
+impl CharacterRendererImpl for DefaultFormatter {
+    fn render_character(&self, number: Character) -> String {
         format!("{}", number)
     }
 }

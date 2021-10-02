@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerFormatter, IntegerFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl, Float, FloatRenderer, FloatRendererImpl};
 
 /// Render a [`GenericNumber`] as a scientific (exponential) value.
 ///
@@ -38,14 +38,24 @@ impl ScientificFormatter {
         Self::new(false)
     }
 
-    pub fn new_integer(uppercase: bool) -> IntegerFormatter {
-        IntegerFormatter::Scientific(Self {
+    pub fn new_integer(uppercase: bool) -> IntegerRenderer {
+        IntegerRenderer::Scientific(Self {
             uppercase: uppercase
         })
     }
 
-    pub fn pretty_integer() -> IntegerFormatter {
+    pub fn pretty_integer() -> IntegerRenderer {
         Self::new_integer(false)
+    }
+
+    pub fn new_float(uppercase: bool) -> FloatRenderer {
+        FloatRenderer::Scientific(Self {
+            uppercase: uppercase
+        })
+    }
+
+    pub fn pretty_float() -> FloatRenderer {
+        Self::new_float(false)
     }
 }
 
@@ -83,8 +93,19 @@ impl GenericFormatterImpl for ScientificFormatter {
     }
 }
 
-impl IntegerFormatterImpl for ScientificFormatter {
+impl IntegerRendererImpl for ScientificFormatter {
     fn render_integer(&self, number: Integer) -> String {
+        let rendered = match self.uppercase {
+            false => format!("{:e}", number),
+            true  => format!("{:E}", number),
+        };
+
+        rendered
+    }
+}
+
+impl FloatRendererImpl for ScientificFormatter {
+    fn render_float(&self, number: Float) -> String {
         let rendered = match self.uppercase {
             false => format!("{:e}", number),
             true  => format!("{:E}", number),
@@ -101,7 +122,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::{Context, Endian, IntegerReader};
+    use crate::{Context, Endian, IntegerReader, FloatReader};
 
     #[test]
     fn test_scientific_u32() -> SimpleResult<()> {
@@ -161,30 +182,30 @@ mod tests {
         Ok(())
     }
 
-// #[test]
-// fn test_exponent_f64() -> SimpleResult<()> {
-//     // I wrote and disassembled a simple C program to get these strings.. double is hard
-//     let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f\x40\x09\x33\x33\x33\x33\x33\x33".to_vec();
-//
-//     let tests = vec![
-//         // index  uppercase expected
-//         (   0,    false,    "3.14e0"),
-//         (   8,    false,    "3.15e0"),
-//         (   0,    true,     "3.14E0"),
-//         (   8,    true,     "3.15E0"),
-//     ];
-//
-//     for (index, uppercase, expected) in tests {
-//         let context = Context::new_at(&data, index);
-//         let number = FloatReader::F64(Endian::Big).read(context)?;
-//
-//         assert_eq!(
-//             expected,
-//             ScientificFormatter::new_float(uppercase).render(number),
-//         );
-//     }
-//
-//     Ok(())
-// }
+    #[test]
+    fn test_exponent_f64() -> SimpleResult<()> {
+        // I wrote and disassembled a simple C program to get these strings.. double is hard
+        let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f\x40\x09\x33\x33\x33\x33\x33\x33".to_vec();
+
+        let tests = vec![
+            // index  uppercase expected
+            (   0,    false,    "3.14e0"),
+            (   8,    false,    "3.15e0"),
+            (   0,    true,     "3.14E0"),
+            (   8,    true,     "3.15E0"),
+        ];
+
+        for (index, uppercase, expected) in tests {
+            let context = Context::new_at(&data, index);
+            let number = FloatReader::F64(Endian::Big).read(context)?;
+
+            assert_eq!(
+                expected,
+                ScientificFormatter::new_float(uppercase).render(number),
+            );
+        }
+
+        Ok(())
+    }
 
 }

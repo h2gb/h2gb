@@ -2,7 +2,7 @@ use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 use std::cmp;
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerFormatter, IntegerFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl};
 
 /// Render a [`GenericNumber`] as a binary value.
 ///
@@ -57,23 +57,23 @@ impl BinaryFormatter {
         Self::new(true, true)
     }
 
-    pub fn new_integer(prefix: bool, padded: bool) -> IntegerFormatter {
-        IntegerFormatter::Binary(Self {
+    pub fn new_integer(prefix: bool, padded: bool) -> IntegerRenderer {
+        IntegerRenderer::Binary(Self {
             prefix: prefix,
             padded: padded,
             min_digits: 0,
         })
     }
 
-    pub fn new_with_min_size_integer(prefix: bool, min_digits: usize) -> IntegerFormatter {
-        IntegerFormatter::Binary(Self {
+    pub fn new_with_min_size_integer(prefix: bool, min_digits: usize) -> IntegerRenderer {
+        IntegerRenderer::Binary(Self {
             prefix: prefix,
             padded: false,
             min_digits: min_digits,
         })
     }
 
-    pub fn pretty_integer() -> IntegerFormatter {
+    pub fn pretty_integer() -> IntegerRenderer {
         Self::new_integer(true, true)
     }
 }
@@ -122,7 +122,7 @@ impl GenericFormatterImpl for BinaryFormatter {
     }
 }
 
-impl IntegerFormatterImpl for BinaryFormatter {
+impl IntegerRendererImpl for BinaryFormatter {
     fn render_integer(&self, number: Integer) -> String {
         match (self.padded, self.prefix) {
             (true,  false) => format!("{:0width$b}", number, width=cmp::max(self.min_digits, number.size() * 8)), // *8 because it's bytes, not characters
@@ -133,7 +133,6 @@ impl IntegerFormatterImpl for BinaryFormatter {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

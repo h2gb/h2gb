@@ -2,8 +2,6 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 use std::{fmt, mem};
 
-use crate::IntegerFormatterImpl;
-
 /// A number that can be any of the primitive types.
 ///
 /// The goal of creating this enum is to wrap around *any* generic type, with

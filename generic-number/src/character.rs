@@ -1,3 +1,4 @@
+use std::fmt;
 use serde::{Serialize, Deserialize};
 
 /// A number that can be any of the primitive types.
@@ -33,3 +34,8 @@ impl Character {
     }
 }
 
+impl fmt::Display for Character {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.character, f)
+    }
+}

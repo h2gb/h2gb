@@ -58,8 +58,8 @@ pub use integer::*;
 mod integer_reader;
 pub use integer_reader::*;
 
-mod integer_formatter;
-pub use integer_formatter::*;
+mod integer_renderer;
+pub use integer_renderer::*;
 
 mod float;
 pub use float::*;
@@ -67,8 +67,14 @@ pub use float::*;
 mod float_reader;
 pub use float_reader::*;
 
+mod float_renderer;
+pub use float_renderer::*;
+
 mod character;
 pub use character::*;
 
 mod character_reader;
 pub use character_reader::*;
+
+mod character_renderer;
+pub use character_renderer::*;

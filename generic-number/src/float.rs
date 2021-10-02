@@ -26,6 +26,15 @@ impl Float {
     }
 }
 
+impl fmt::Display for Float {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::F32(v)  => fmt::Display::fmt(&v, f),
+            Self::F64(v)  => fmt::Display::fmt(&v, f),
+        }
+    }
+}
+
 impl fmt::LowerExp for Float {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

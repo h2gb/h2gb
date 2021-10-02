@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, CharacterRenderer, Character, CharacterRendererImpl};
 
 /// Format options for unprintable characters
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -109,6 +109,24 @@ impl CharacterFormatter {
         Self::new(false, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
     }
 
+    pub fn new_character(show_single_quotes: bool, character_replacement_policy: CharacterReplacementPolicy, unprintable_option: CharacterUnprintableOption) -> CharacterRenderer {
+        CharacterRenderer::Character(Self {
+            show_single_quotes: show_single_quotes,
+            character_replacement_policy: character_replacement_policy,
+            unprintable_option: unprintable_option,
+        })
+    }
+
+    /// Choose decent options to look nice
+    pub fn pretty_character() -> CharacterRenderer {
+        Self::new_character(true, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
+    }
+
+    /// Choose decent options to look nice (as part of a string)
+    pub fn pretty_str_character() -> CharacterRenderer {
+        Self::new_character(false, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
+    }
+
     fn handle_unprintable(self, c: char) -> String {
         match self.unprintable_option {
             CharacterUnprintableOption::HexEncode => {
@@ -213,14 +231,18 @@ impl GenericFormatterImpl for CharacterFormatter {
     }
 }
 
+impl CharacterRendererImpl for CharacterFormatter {
+    fn render_character(&self, number: Character) -> String {
+        self.do_render(number.as_char())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
-
-    use crate::GenericNumber;
 
     #[test]
     fn test_char_formatter() -> SimpleResult<()> {
@@ -270,11 +292,11 @@ mod tests {
         ];
 
         for (c, show_quotes, replacement_policy, unprintable, expected) in tests {
-            let number = GenericNumber::from((c, 1)); // (the size doesn't matter here)
+            let number = Character::from((c, 1)); // (the size doesn't matter here)
 
             assert_eq!(
                 expected,
-                CharacterFormatter::new(show_quotes, replacement_policy, unprintable).render(number)?,
+                CharacterFormatter::new_character(show_quotes, replacement_policy, unprintable).render(number),
             );
         }
 

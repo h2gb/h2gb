@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerFormatter, IntegerFormatterImpl};
+use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererImpl};
 
 /// Render a [`GenericNumber`] as a true/false value (1 is true, 0 is false)
 ///
@@ -19,8 +19,8 @@ impl BooleanFormatter {
         GenericFormatter::Boolean(Self { })
     }
 
-    pub fn new_integer() -> IntegerFormatter {
-        IntegerFormatter::Boolean(Self { })
+    pub fn new_integer() -> IntegerRenderer {
+        IntegerRenderer::Boolean(Self { })
     }
 }
 
@@ -47,7 +47,7 @@ impl GenericFormatterImpl for BooleanFormatter {
     }
 }
 
-impl IntegerFormatterImpl for BooleanFormatter {
+impl IntegerRendererImpl for BooleanFormatter {
     fn render_integer(&self, number: Integer) -> String {
         // Ironically, boolean is both the simplest (conceptually), and the
         // hardest to program since we can't really compare integers of a

@@ -2,13 +2,17 @@ use serde::{Serialize, Deserialize};
 
 use crate::{Integer, BinaryFormatter, BooleanFormatter, DefaultFormatter, HexFormatter, OctalFormatter, ScientificFormatter};
 
-// Define the interface for rendering an integer
-pub trait IntegerFormatterImpl {
+/// Define the interface for rendering an integer
+pub trait IntegerRendererImpl {
     fn render_integer(&self, number: Integer) -> String;
 }
 
+/// Configure how a [`Float`] is rendered.
+///
+/// You don't generally want to create this enum directly; instead, use the
+/// `new()` or `pretty()` methods in the formatter you want.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum IntegerFormatter {
+pub enum IntegerRenderer {
     Binary(BinaryFormatter),
     Boolean(BooleanFormatter),
     Default(DefaultFormatter),
@@ -17,7 +21,7 @@ pub enum IntegerFormatter {
     Scientific(ScientificFormatter),
 }
 
-impl IntegerFormatter {
+impl IntegerRenderer {
     pub fn render(self, v: Integer) -> String {
         match self {
             Self::Binary(f)     => f.render_integer(v),
@@ -41,7 +45,7 @@ mod tests {
     fn test_render() -> SimpleResult<()> {
         let data = b"\x00\x01\x02\x03".to_vec();
 
-        let formatter = DefaultFormatter::integer();
+        let formatter = DefaultFormatter::new_integer();
         let integer = IntegerReader::U8.read(Context::new_at(&data, 0))?;
 
         assert_eq!("0".to_string(), formatter.render(integer));
