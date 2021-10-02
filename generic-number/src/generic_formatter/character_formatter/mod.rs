@@ -1,7 +1,6 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, CharacterRenderer, Character, CharacterRendererTrait};
+use crate::{CharacterRenderer, Character, CharacterRendererTrait};
 
 /// Format options for unprintable characters
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -55,25 +54,25 @@ pub enum CharacterReplacementPolicy {
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a GenericReader
-/// let number = GenericNumber::from(('a', 1)); // (the size field doesn't matter when used directly like this)
-/// let othernumber = GenericNumber::from(('☃', 1));
+/// // Create a Character directly - normally you'd use a GenericReader
+/// let number = Character::from(('a', 1)); // (the size field doesn't matter when used directly like this)
+/// let othernumber = Character::from(('☃', 1));
 ///
 /// // Default 'pretty' formatter
-/// assert_eq!("'a'", CharacterFormatter::pretty().render(number).unwrap());
-/// assert_eq!("'☃'", CharacterFormatter::pretty().render(othernumber).unwrap());
+/// assert_eq!("'a'", CharacterFormatter::pretty_character().render(number));
+/// assert_eq!("'☃'", CharacterFormatter::pretty_character().render(othernumber));
 ///
 /// // Default 'pretty string' formatter
-/// assert_eq!("a", CharacterFormatter::pretty_str().render(number).unwrap());
-/// assert_eq!("☃", CharacterFormatter::pretty_str().render(othernumber).unwrap());
+/// assert_eq!("a", CharacterFormatter::pretty_str_character().render(number));
+/// assert_eq!("☃", CharacterFormatter::pretty_str_character().render(othernumber));
 ///
 /// // Specify options: replace everything with hex encoding
-/// assert_eq!("\\x61", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(number).unwrap());
-/// assert_eq!("\\xe2\\x98\\x83", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(othernumber).unwrap());
+/// assert_eq!("\\x61", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(number));
+/// assert_eq!("\\xe2\\x98\\x83", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(othernumber));
 ///
 /// // Specify different options: replace non-ascii characters with URL encoding
-/// assert_eq!("a", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render(number).unwrap());
-/// assert_eq!("%e2%98%83", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render(othernumber).unwrap());
+/// assert_eq!("a", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render(number));
+/// assert_eq!("%e2%98%83", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render(othernumber));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CharacterFormatter {
@@ -91,24 +90,6 @@ pub struct CharacterFormatter {
 }
 
 impl CharacterFormatter {
-    pub fn new(show_single_quotes: bool, character_replacement_policy: CharacterReplacementPolicy, unprintable_option: CharacterUnprintableOption) -> GenericFormatter {
-        GenericFormatter::Character(Self {
-            show_single_quotes: show_single_quotes,
-            character_replacement_policy: character_replacement_policy,
-            unprintable_option: unprintable_option,
-        })
-    }
-
-    /// Choose decent options to look nice
-    pub fn pretty() -> GenericFormatter {
-        Self::new(true, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
-    }
-
-    /// Choose decent options to look nice (as part of a string)
-    pub fn pretty_str() -> GenericFormatter {
-        Self::new(false, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
-    }
-
     pub fn new_character(show_single_quotes: bool, character_replacement_policy: CharacterReplacementPolicy, unprintable_option: CharacterUnprintableOption) -> CharacterRenderer {
         CharacterRenderer::Character(Self {
             show_single_quotes: show_single_quotes,
@@ -206,27 +187,6 @@ impl CharacterFormatter {
         match self.show_single_quotes {
             true => format!("'{}'", out),
             false => out,
-        }
-    }
-}
-
-impl GenericFormatterImpl for CharacterFormatter {
-    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
-        match number {
-            GenericNumber::U8(_)   => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::U16(_)  => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::U32(_)  => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::U64(_)  => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::U128(_) => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::I8(_)   => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::I16(_)  => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::I32(_)  => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::I64(_)  => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::I128(_) => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::F32(_)  => bail!("Only a Character type can be formatted as a character"),
-            GenericNumber::F64(_)  => bail!("Only a Character type can be formatted as a character"),
-
-            GenericNumber::Char(c, _) => Ok(self.do_render(c)),
         }
     }
 }

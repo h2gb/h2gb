@@ -1,24 +1,23 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererTrait, Float, FloatRenderer, FloatRendererTrait};
+use crate::{Integer, IntegerRenderer, IntegerRendererTrait, Float, FloatRenderer, FloatRendererTrait};
 
-/// Render a [`GenericNumber`] as a scientific (exponential) value.
+/// Render a [`Integer`] as a scientific (exponential) value.
 ///
 /// # Example
 ///
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a IntegerReader
-/// let number = GenericNumber::from(100u64);
+/// // Create a Integer directly - normally you'd use a IntegerReader
+/// let number = Integer::from(100u64);
 ///
 /// // Default 'pretty' formatter
-/// assert_eq!("1e2", ScientificFormatter::pretty().render(number).unwrap());
+/// assert_eq!("1e2", ScientificFormatter::pretty_integer().render(number));
 ///
 /// // Also works on floating point
-/// let number = GenericNumber::from(314.159f32);
-/// assert_eq!("3.14159e2", ScientificFormatter::pretty().render(number).unwrap());
+/// let number = Float::from(314.159f32);
+/// assert_eq!("3.14159e2", ScientificFormatter::pretty_float().render(number));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ScientificFormatter {
@@ -28,16 +27,6 @@ pub struct ScientificFormatter {
 }
 
 impl ScientificFormatter {
-    pub fn new(uppercase: bool) -> GenericFormatter {
-        GenericFormatter::Scientific(Self {
-            uppercase: uppercase
-        })
-    }
-
-    pub fn pretty() -> GenericFormatter {
-        Self::new(false)
-    }
-
     pub fn new_integer(uppercase: bool) -> IntegerRenderer {
         IntegerRenderer::Scientific(Self {
             uppercase: uppercase
@@ -56,40 +45,6 @@ impl ScientificFormatter {
 
     pub fn pretty_float() -> FloatRenderer {
         Self::new_float(false)
-    }
-}
-
-impl GenericFormatterImpl for ScientificFormatter {
-    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
-        Ok(match (self.uppercase, number) {
-            (true, GenericNumber::U8(v))   => format!("{:E}", v),
-            (true, GenericNumber::U16(v))  => format!("{:E}", v),
-            (true, GenericNumber::U32(v))  => format!("{:E}", v),
-            (true, GenericNumber::U64(v))  => format!("{:E}", v),
-            (true, GenericNumber::U128(v)) => format!("{:E}", v),
-            (true, GenericNumber::I8(v))   => format!("{:E}", v),
-            (true, GenericNumber::I16(v))  => format!("{:E}", v),
-            (true, GenericNumber::I32(v))  => format!("{:E}", v),
-            (true, GenericNumber::I64(v))  => format!("{:E}", v),
-            (true, GenericNumber::I128(v)) => format!("{:E}", v),
-            (true, GenericNumber::F32(v))  => format!("{:E}", v),
-            (true, GenericNumber::F64(v))  => format!("{:E}", v),
-
-            (false, GenericNumber::U8(v))   => format!("{:e}", v),
-            (false, GenericNumber::U16(v))  => format!("{:e}", v),
-            (false, GenericNumber::U32(v))  => format!("{:e}", v),
-            (false, GenericNumber::U64(v))  => format!("{:e}", v),
-            (false, GenericNumber::U128(v)) => format!("{:e}", v),
-            (false, GenericNumber::I8(v))   => format!("{:e}", v),
-            (false, GenericNumber::I16(v))  => format!("{:e}", v),
-            (false, GenericNumber::I32(v))  => format!("{:e}", v),
-            (false, GenericNumber::I64(v))  => format!("{:e}", v),
-            (false, GenericNumber::I128(v)) => format!("{:e}", v),
-            (false, GenericNumber::F32(v))  => format!("{:e}", v),
-            (false, GenericNumber::F64(v))  => format!("{:e}", v),
-
-            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as scientific"),
-        })
     }
 }
 

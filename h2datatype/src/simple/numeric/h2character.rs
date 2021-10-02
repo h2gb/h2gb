@@ -21,19 +21,19 @@ pub struct H2Character {
     ///
     /// This is created by the various --Formatter modules in GenericNumber.
     /// For example, [`DefaultFormatter::new()`] or [`HexFormatter::pretty()`].
-    display: CharacterRenderer,
+    renderer: CharacterRenderer,
 }
 
 impl H2Character {
-    pub fn new_aligned(alignment: Alignment, reader: CharacterReader, display: CharacterRenderer) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, reader: CharacterReader, renderer: CharacterRenderer) -> H2Type {
         H2Type::new(alignment, H2Types::H2Character(Self {
             reader: reader,
-            display: display,
+            renderer: renderer,
         }))
     }
 
-    pub fn new(reader: CharacterReader, display: CharacterRenderer) -> H2Type {
-        Self::new_aligned(Alignment::None, reader, display)
+    pub fn new(reader: CharacterReader, renderer: CharacterRenderer) -> H2Type {
+        Self::new_aligned(Alignment::None, reader, renderer)
     }
 
     /// Convenience function to pre-set a definition.
@@ -96,7 +96,7 @@ impl H2TypeTrait for H2Character {
         match offset {
             Offset::Static(_) => Ok("Character".to_string()),
             Offset::Dynamic(context) => {
-                Ok(format!("{:?}", self.reader.read(context)?))
+                Ok(self.renderer.render(self.reader.read(context)?))
             }
         }
     }

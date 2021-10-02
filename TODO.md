@@ -8,6 +8,9 @@
   * Can I move Float out of GenericNumber to make it more useful (sortable / comparable / etc)?
     * Can GenericNumber use more Into() methods instead of as_u64() and stuff like that?
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
+  * I don't think I want H2String and such to take a H2Type parameter anymore
+    * My logic is, we don't need the "display" parameter, so why do we need the full type? A Reader is more logical
+  * Rename 'definition' to 'reader' among h2type definitions
 
 * Major / annoying cleanup
   * Make bumpyvectors use usize instead of u64

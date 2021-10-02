@@ -1,20 +1,19 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererTrait};
+use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 
-/// Render a [`GenericNumber`] as an octal value.
+/// Render an [`Integer`] as an octal value.
 ///
 /// # Example
 ///
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a IntegerReader
-/// let number = GenericNumber::from(32u8);
+/// // Create an Integer directly - normally you'd use a [`IntegerReader`]
+/// let number = Integer::from(32u8);
 ///
 /// // Default 'pretty' formatter
-/// assert_eq!("0o40", OctalFormatter::pretty().render(number).unwrap());
+/// assert_eq!("0o40", OctalFormatter::pretty_integer().render(number));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct OctalFormatter {
@@ -26,17 +25,6 @@ pub struct OctalFormatter {
 }
 
 impl OctalFormatter {
-    pub fn new(prefix: bool, padded: bool) -> GenericFormatter {
-        GenericFormatter::Octal(Self {
-            prefix: prefix,
-            padded: padded,
-        })
-    }
-
-    pub fn pretty() -> GenericFormatter {
-        Self::new(true, false)
-    }
-
     pub fn new_integer(prefix: bool, padded: bool) -> IntegerRenderer {
         IntegerRenderer::Octal(Self {
             prefix: prefix,
@@ -46,45 +34,6 @@ impl OctalFormatter {
 
     pub fn pretty_integer() -> IntegerRenderer {
         Self::new_integer(true, false)
-    }
-}
-
-impl GenericFormatterImpl for OctalFormatter {
-    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
-        let mut s = match (self.padded, number) {
-            (true, GenericNumber::U8(v))   => format!("{:03o}", v),
-            (true, GenericNumber::U16(v))  => format!("{:06o}", v),
-            (true, GenericNumber::U32(v))  => format!("{:011o}", v),
-            (true, GenericNumber::U64(v))  => format!("{:022o}", v),
-            (true, GenericNumber::U128(v)) => format!("{:043o}", v),
-            (true, GenericNumber::I8(v))   => format!("{:03o}", v),
-            (true, GenericNumber::I16(v))  => format!("{:06o}", v),
-            (true, GenericNumber::I32(v))  => format!("{:011o}", v),
-            (true, GenericNumber::I64(v))  => format!("{:022o}", v),
-            (true, GenericNumber::I128(v)) => format!("{:043o}", v),
-
-            (false, GenericNumber::U8(v))   => format!("{:o}", v),
-            (false, GenericNumber::U16(v))  => format!("{:o}", v),
-            (false, GenericNumber::U32(v))  => format!("{:o}", v),
-            (false, GenericNumber::U64(v))  => format!("{:o}", v),
-            (false, GenericNumber::U128(v)) => format!("{:o}", v),
-            (false, GenericNumber::I8(v))   => format!("{:o}", v),
-            (false, GenericNumber::I16(v))  => format!("{:o}", v),
-            (false, GenericNumber::I32(v))  => format!("{:o}", v),
-            (false, GenericNumber::I64(v))  => format!("{:o}", v),
-            (false, GenericNumber::I128(v)) => format!("{:o}", v),
-
-            (_, GenericNumber::F32(_))      => bail!("Cannot display floating point as octal"),
-            (_, GenericNumber::F64(_))      => bail!("Cannot display floating point as octal"),
-            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as octal"),
-        };
-
-        // Do the prefix after for simplicity
-        if self.prefix {
-            s = format!("0o{}", s);
-        }
-
-        Ok(s)
     }
 }
 

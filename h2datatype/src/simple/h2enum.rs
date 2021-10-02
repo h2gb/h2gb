@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
 use h2data::{enum_exists, from_enum};
-use generic_number::{GenericReader, GenericNumber};
+use generic_number::{IntegerReader, Integer};
 
 use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -17,14 +17,14 @@ use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Enum {
     /// The sign, signedness, and endianness of the value.
-    definition: GenericReader,
+    reader: IntegerReader,
 
     enum_type: String,
 }
 
 impl H2Enum {
-    pub fn new_aligned(alignment: Alignment, definition: GenericReader, enum_type: &str) -> SimpleResult<H2Type> {
-        if !definition.can_be_u64() {
+    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, enum_type: &str) -> SimpleResult<H2Type> {
+        if !reader.can_be_usize() {
             bail!("Enum types must be compatible with u64 values");
         }
 
@@ -34,20 +34,20 @@ impl H2Enum {
         }
 
         Ok(H2Type::new(alignment, H2Types::H2Enum(Self {
-            definition: definition,
+            reader: reader,
             enum_type: enum_type.to_string(),
         })))
 
     }
 
-    pub fn new(definition: GenericReader, enum_type: &str) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, definition, enum_type)
+    pub fn new(reader: IntegerReader, enum_type: &str) -> SimpleResult<H2Type> {
+        Self::new_aligned(Alignment::None, reader, enum_type)
     }
 
-    fn render(&self, as_u64: u64) -> SimpleResult<String> {
-        let output = match from_enum(&self.enum_type, as_u64)? {
+    fn render(&self, value: usize) -> SimpleResult<String> {
+        let output = match from_enum(&self.enum_type, value)? {
             Some(o) => o.to_string(),
-            None => format!("Unknown_0x{:x}", as_u64),
+            None => format!("Unknown_0x{:x}", value),
         };
 
         Ok(format!("{}::{}", self.enum_type, output))
@@ -59,18 +59,15 @@ impl H2TypeTrait for H2Enum {
         true
     }
 
-    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
-        match self.definition.size() {
-            Some(v) => Ok(v as u64),
-            None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),
-        }
+    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+        Ok(self.reader.size() as u64)
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
         match offset {
             Offset::Static(_) => Ok("Enum".to_string()),
             Offset::Dynamic(context) => {
-                let as_u64 = self.definition.read(context)?.as_u64()?;
+                let as_u64 = self.reader.read(context)?.as_usize()?;
                 self.render(as_u64)
             }
         }
@@ -81,19 +78,15 @@ impl H2TypeTrait for H2Enum {
     }
 
     fn to_string(&self, offset: Offset) -> SimpleResult<String> {
-        self.render(self.definition.read(offset.get_dynamic()?)?.as_u64()?)
+        self.render(self.reader.read(offset.get_dynamic()?)?.as_usize()?)
     }
 
-    fn can_be_number(&self) -> bool {
+    fn can_be_integer(&self) -> bool {
         true
     }
 
-    fn can_be_u64(&self) -> bool {
-        true
-    }
-
-    fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
-        self.definition.read(offset.get_dynamic()?)
+    fn to_integer(&self, offset: Offset) -> SimpleResult<Integer> {
+        self.reader.read(offset.get_dynamic()?)
     }
 }
 
@@ -101,7 +94,7 @@ impl H2TypeTrait for H2Enum {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use generic_number::{Context, GenericReader};
+    use generic_number::{Context, IntegerReader};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -120,7 +113,7 @@ mod tests {
 
         for (o, expected) in tests {
             let t = H2Enum::new(
-                GenericReader::U8,
+                IntegerReader::U8,
                 "TerrariaGameMode",
             )?;
 

@@ -76,6 +76,7 @@ and will be padded to end on 4, 8, 12, ...
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
 use h2datatype::composite::*;
 use h2datatype::composite::string::*;
 use generic_number::*;
@@ -87,7 +88,7 @@ let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create the abstract type - this is an H2Type
-let t = H2Number::new(GenericReader::I16(Endian::Big), DefaultFormatter::new());
+let t = H2Integer::new(IntegerReader::I16(Endian::Big), DefaultFormatter::new_integer());
 
 // It takes up two bytes of memory, including aligned (it's not aligned)
 assert_eq!(2, t.actual_size(offset).unwrap());
@@ -105,6 +106,7 @@ assert_eq!("-1",     t.to_display(offset.at(6)).unwrap());
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
 use h2datatype::composite::*;
 use h2datatype::composite::string::*;
 use generic_number::*;
@@ -116,9 +118,9 @@ let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create the abstract type - this is an H2Type
-let t = H2Number::new_aligned(
-  Alignment::Loose(4), GenericReader::U16(Endian::Big),
-  HexFormatter::pretty(),
+let t = H2Integer::new_aligned(
+  Alignment::Loose(4), IntegerReader::U16(Endian::Big),
+  HexFormatter::pretty_integer(),
 );
 
 // It takes up two bytes of memory normally...
@@ -139,6 +141,7 @@ assert_eq!("0xffff", t.to_display(offset.at(12)).unwrap());
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
 use h2datatype::composite::*;
 use h2datatype::composite::string::*;
 use generic_number::*;
@@ -150,9 +153,9 @@ let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create an array of 4 elements, each of which is padded to 4 bytes
-let t = H2Array::new(4, H2Number::new_aligned(
-  Alignment::Loose(4), GenericReader::U16(Endian::Big),
-  HexFormatter::pretty(),
+let t = H2Array::new(4, H2Integer::new_aligned(
+  Alignment::Loose(4), IntegerReader::U16(Endian::Big),
+  HexFormatter::pretty_integer(),
 )).unwrap();
 
 // The array takes up 16 bytes of memory, aligned and not
@@ -171,6 +174,7 @@ sized elements, like length-prefixed strings.
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
 use h2datatype::composite::*;
 use h2datatype::composite::string::*;
 use generic_number::*;
@@ -185,10 +189,10 @@ let offset = Offset::Dynamic(Context::new(&data));
 // byte length
 let t = H2Array::new(3, LPString::new(
   // The length field is an 8-bit unsigned integer
-  H2Number::new(GenericReader::U8, HexFormatter::pretty()),
+  H2Integer::new(IntegerReader::U8, HexFormatter::pretty_integer()),
 
   // The character type is also a number, but this time ASCII
-  H2Number::new_ascii(),
+  H2Character::new_ascii(),
 ).unwrap()).unwrap();
 
 // The array takes up 12 bytes of memory, all-in

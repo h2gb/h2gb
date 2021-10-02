@@ -1,16 +1,15 @@
-use simple_error::{SimpleResult, bail};
 use serde::{Serialize, Deserialize};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl, Integer, IntegerRenderer, IntegerRendererTrait};
+use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 
-/// Render a [`GenericNumber`] as a hexadecimal value.
+/// Render a [`Integer`] as a hexadecimal value.
 ///
 /// # Example
 ///
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a IntegerReader
+/// // Create a Integer directly - normally you'd use a IntegerReader
 /// let number = Integer::from(0xaa2233u32);
 ///
 /// // Default 'pretty' formatter
@@ -35,18 +34,6 @@ pub struct HexFormatter {
 }
 
 impl HexFormatter {
-    pub fn new(uppercase: bool, prefix: bool, padded: bool) -> GenericFormatter {
-        GenericFormatter::Hex(Self {
-            uppercase: uppercase,
-            prefix: prefix,
-            padded: padded,
-        })
-    }
-
-    pub fn pretty() -> GenericFormatter {
-        Self::new(false, true, true)
-    }
-
     pub fn new_integer(uppercase: bool, prefix: bool, padded: bool) -> IntegerRenderer {
         IntegerRenderer::Hex(Self {
             uppercase: uppercase,
@@ -59,50 +46,6 @@ impl HexFormatter {
         Self::new_integer(false, true, true)
     }
 
-}
-
-impl GenericFormatterImpl for HexFormatter {
-    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
-        let mut s = match (self.padded, number) {
-            (true, GenericNumber::U8(v))   => format!("{:02x}", v),
-            (true, GenericNumber::U16(v))  => format!("{:04x}", v),
-            (true, GenericNumber::U32(v))  => format!("{:08x}", v),
-            (true, GenericNumber::U64(v))  => format!("{:016x}", v),
-            (true, GenericNumber::U128(v)) => format!("{:032x}", v),
-            (true, GenericNumber::I8(v))   => format!("{:02x}", v),
-            (true, GenericNumber::I16(v))  => format!("{:04x}", v),
-            (true, GenericNumber::I32(v))  => format!("{:08x}", v),
-            (true, GenericNumber::I64(v))  => format!("{:016x}", v),
-            (true, GenericNumber::I128(v)) => format!("{:032x}", v),
-
-            (false, GenericNumber::U8(v))   => format!("{:x}", v),
-            (false, GenericNumber::U16(v))  => format!("{:x}", v),
-            (false, GenericNumber::U32(v))  => format!("{:x}", v),
-            (false, GenericNumber::U64(v))  => format!("{:x}", v),
-            (false, GenericNumber::U128(v)) => format!("{:x}", v),
-            (false, GenericNumber::I8(v))   => format!("{:x}", v),
-            (false, GenericNumber::I16(v))  => format!("{:x}", v),
-            (false, GenericNumber::I32(v))  => format!("{:x}", v),
-            (false, GenericNumber::I64(v))  => format!("{:x}", v),
-            (false, GenericNumber::I128(v)) => format!("{:x}", v),
-
-            (_, GenericNumber::F32(_))      => bail!("Cannot display floating point as hex"),
-            (_, GenericNumber::F64(_))      => bail!("Cannot display floating point as hex"),
-            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as hex"),
-        };
-
-        // Do uppercase after for simplicity
-        if self.uppercase {
-            s = s.to_uppercase();
-        }
-
-        // Likewise, do the prefix after
-        if self.prefix {
-            s = format!("0x{}", s);
-        }
-
-        Ok(s)
-    }
 }
 
 impl IntegerRendererTrait for HexFormatter {

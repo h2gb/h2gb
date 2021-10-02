@@ -9,10 +9,11 @@ use hhmmss::Hhmmss;
 use crate::actions::*;
 use h2transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 use h2datatype::H2Type;
-use h2datatype::simple::{H2Number, H2Bitmask, H2Enum, Rgb};
+use h2datatype::simple::{H2Bitmask, H2Enum, Rgb};
+use h2datatype::simple::numeric::{H2Integer, H2Character};
 use h2datatype::composite::H2Struct;
 use h2datatype::composite::string::{H2String, LPString};
-use generic_number::{GenericNumber, GenericReader, Endian, DefaultFormatter, BooleanFormatter};
+use generic_number::{IntegerReader, CharacterReader, Endian, DefaultFormatter, BooleanFormatter};
 
 mod helpers;
 use helpers::*;
@@ -135,19 +136,19 @@ lazy_static! {
     /// Terraria strings are ASCII, prefixed with a U8 length
     static ref TERRARIA_LPSTRING: H2Type = {
         LPString::new(
-            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
-            H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
+            H2Integer::new(IntegerReader::U8,        DefaultFormatter::new_integer()),
+            H2Character::new(CharacterReader::ASCII, DefaultFormatter::new_character()),
         ).unwrap()
     };
 
     static ref SPAWNPOINT_ENTRY: H2Type = {
         H2Struct::new(vec![
-            ("x".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("y".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("seed".to_string(),  H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+            ("x".to_string(),     H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
+            ("y".to_string(),     H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
+            ("seed".to_string(),  H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
             ("world".to_string(), LPString::new(
-                H2Number::new(GenericReader::U8, DefaultFormatter::new()),
-                H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
+                H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
+                H2Character::new(CharacterReader::ASCII, DefaultFormatter::new_character()),
             ).unwrap()),
         ]).unwrap()
     };
@@ -155,49 +156,49 @@ lazy_static! {
     static ref JOURNEYMODE_ITEM_ENTRY: H2Type = {
         H2Struct::new(vec![
             ("item".to_string(), LPString::new(
-                H2Number::new(GenericReader::U8, DefaultFormatter::new()),
-                H2Number::new(GenericReader::ASCII, DefaultFormatter::new()),
+                H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
+                H2Character::new(CharacterReader::ASCII, DefaultFormatter::new_character()),
             ).unwrap()),
 
-            ("quantity".to_string(),  H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+            ("quantity".to_string(),  H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
         ]).unwrap()
     };
 
     static ref INVENTORY_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(GenericReader::U32(Endian::Little), "TerrariaItem").unwrap()),
-            ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("affix".to_string(),       H2Enum::new(GenericReader::U8, "TerrariaAffix").unwrap()),
-            ("is_favorite".to_string(), H2Number::new(GenericReader::U8, BooleanFormatter::new())),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaItem").unwrap()),
+            ("quantity".to_string(),    H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
+            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, "TerrariaAffix").unwrap()),
+            ("is_favorite".to_string(), H2Integer::new(IntegerReader::U8, BooleanFormatter::new_integer())),
         ]).unwrap()
     };
 
     static ref STORED_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(GenericReader::U32(Endian::Little), "TerrariaItem").unwrap()),
-            ("quantity".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("affix".to_string(),       H2Enum::new(GenericReader::U8, "TerrariaAffix").unwrap()),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaItem").unwrap()),
+            ("quantity".to_string(),    H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
+            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, "TerrariaAffix").unwrap()),
         ]).unwrap()
     };
 
     static ref EQUIPPED_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(GenericReader::U32(Endian::Little), "TerrariaItem").unwrap()),
-            ("affix".to_string(),       H2Enum::new(GenericReader::U8, "TerrariaAffix").unwrap()),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaItem").unwrap()),
+            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, "TerrariaAffix").unwrap()),
         ]).unwrap()
     };
 
     static ref BUFF: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(GenericReader::U32(Endian::Little), "TerrariaBuff").unwrap()),
-            ("duration".to_string(),    H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaBuff").unwrap()),
+            ("duration".to_string(),    H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
         ]).unwrap()
     };
 
     static ref HEALTH_MANA: H2Type = {
         H2Struct::new(vec![
-            ("current".to_string(), H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
-            ("max".to_string(),     H2Number::new(GenericReader::U32(Endian::Little), DefaultFormatter::new())),
+            ("current".to_string(), H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
+            ("max".to_string(),     H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
         ]).unwrap()
     };
 
@@ -221,9 +222,9 @@ fn transform_decrypt(record: &mut Record<Action>, buffer: &str) -> SimpleResult<
 
 /// Special parser for time_played that calculates the proper duration
 fn parse_time_played(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    let time_played = create_entry_u64( record, buffer, LAYER, &H2Number::new(GenericReader::U64(Endian::Little), DefaultFormatter::new()), offset, None)?;
+    let time_played = create_entry_integer( record, buffer, LAYER, &H2Integer::new(IntegerReader::U64(Endian::Little), DefaultFormatter::new_integer()), offset, None)?;
 
-    let duration = Duration::from_micros(time_played / 10);
+    let duration = Duration::from_micros(time_played.as_usize()? as u64 / 10);
     add_comment(record, buffer, LAYER, offset, &format!("Playtime: {}", duration.hhmmssxxx()))?;
 
     Ok(())
@@ -234,7 +235,7 @@ fn parse_visibility(record: &mut Record<Action>, buffer: &str, offset: usize) ->
         record,
         buffer,
         LAYER,
-        &H2Bitmask::new(GenericReader::U16(Endian::Little), "TerrariaVisibility", false)?,
+        &H2Bitmask::new(IntegerReader::U16(Endian::Little), "TerrariaVisibility", false)?,
         offset, // Offset
         Some("Equipment visibility"),
     )?;
@@ -413,10 +414,10 @@ fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset:
     let mut current_spawn_offset = starting_offset;
     loop {
         // Check for the terminator
-        let terminator_type = H2Number::new(GenericReader::I32(Endian::Little), DefaultFormatter::new());
+        let terminator_type = H2Integer::new(IntegerReader::I32(Endian::Little), DefaultFormatter::new_integer());
         let possible_terminator = peek_entry(record, buffer, &terminator_type, current_spawn_offset)?;
-        if let Some(n) = possible_terminator.as_number {
-            if n == GenericNumber::from(-1) {
+        if let Some(n) = possible_terminator.as_integer {
+            if n.as_isize()? == -1 {
                 create_entry(record, buffer, LAYER, &terminator_type, current_spawn_offset, Some("Spawn point sentinel value (terminator)"))?;
                 break;
             }
@@ -442,10 +443,10 @@ fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset:
     let mut current_journey_offset = starting_offset;
 
     loop {
-        let terminator_type = H2Number::new(GenericReader::U8, DefaultFormatter::new());
+        let terminator_type = H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer());
         let possible_terminator = peek_entry(record, buffer, &terminator_type, current_journey_offset)?;
-        if let Some(n) = possible_terminator.as_number {
-            if n == GenericNumber::from(0u8) {
+        if let Some(n) = possible_terminator.as_integer {
+            if n.as_usize()? == 8 {
                 create_entry(record, buffer, LAYER, &terminator_type, current_journey_offset, Some("Journey mode entry sentinel value (terminator)"))?;
                 break;
             }
@@ -475,17 +476,17 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     record.apply(ActionLayerCreate::new(buffer, LAYER))?;
 
     // Create an entry for the version
-    let version_number = create_entry_u64(record, buffer, LAYER, &H2Enum::new(GenericReader::U32(Endian::Little), "TerrariaVersion")?, 0x00, Some("Version number"))?;
+    let version_number = create_entry_integer(record, buffer, LAYER, &H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaVersion")?, 0x00, Some("Version number"))?;
 
     // Get the offsets for later
-    let offsets = if version_number < 230 {
+    let offsets = if version_number.as_usize()? < 230 {
         *TERRARIA_OLD_OFFSETS
     } else {
         *TERRARIA_NEW_OFFSETS
     };
 
     // Get the "magic" value
-    create_entry(record, buffer, LAYER, &H2String::new(7, H2Number::new(GenericReader::ASCII, DefaultFormatter::new()))?, offsets.magic, Some("\"Magic\" value"))?;
+    create_entry(record, buffer, LAYER, &H2String::new(7, H2Character::new(CharacterReader::ASCII, DefaultFormatter::new_character()))?, offsets.magic, Some("\"Magic\" value"))?;
 
     // Create an entry for the name
     let name = create_entry(record, buffer, LAYER, &*TERRARIA_LPSTRING, offsets.name, Some("Character name"))?;
@@ -498,14 +499,14 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     parse_time_played(record, buffer, base + offsets.time_played)?;
 
     // Character face is an 8-bit number that we can't erally do much with
-    create_entry(record, buffer, LAYER, &H2Number::new(GenericReader::U8, DefaultFormatter::new()), base + offsets.face, Some("Character face"))?;
+    create_entry(record, buffer, LAYER, &H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()), base + offsets.face, Some("Character face"))?;
 
     // Equipment visibility is a 10-bit bitmask that we've created a definition for
-    create_entry(record, buffer, LAYER, &H2Bitmask::new(GenericReader::U16(Endian::Little), "TerrariaVisibility", false)?, base + offsets.visibility, Some("Equipment visibility"))?;
+    create_entry(record, buffer, LAYER, &H2Bitmask::new(IntegerReader::U16(Endian::Little), "TerrariaVisibility", false)?, base + offsets.visibility, Some("Equipment visibility"))?;
 
     // Clothing is an enumeration (this also includes gender, and oddly enough
     // it's not in the same order as the UI shows)
-    create_entry(record, buffer, LAYER, &H2Enum::new(GenericReader::U8, "TerrariaClothing")?, base + offsets.clothing, Some("Character clothing"))?;
+    create_entry(record, buffer, LAYER, &H2Enum::new(IntegerReader::U8, "TerrariaClothing")?, base + offsets.clothing, Some("Character clothing"))?;
 
     // Health and mana are both a simple struct with current + max
     create_entry(record, buffer, LAYER, &*HEALTH_MANA, base + offsets.health, Some("Health"))?;
@@ -513,7 +514,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
 
     // Create an entry for the game mode - we'll need this later to determine
     // if we have Journey Mode data
-    let game_mode = create_entry_string(record, buffer, LAYER, &H2Enum::new(GenericReader::U8, "TerrariaGameMode")?, base + offsets.game_mode, Some("Game mode"))?;
+    let game_mode = create_entry_string(record, buffer, LAYER, &H2Enum::new(IntegerReader::U8, "TerrariaGameMode")?, base + offsets.game_mode, Some("Game mode"))?;
 
     // Parse character colours
     create_entry(record, buffer, LAYER, &*COLOURS, base + offsets.colours, Some("Colours"))?;

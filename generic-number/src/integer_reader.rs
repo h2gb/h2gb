@@ -81,6 +81,25 @@ impl IntegerReader {
             Self::I128(_) => mem::size_of::<i128>(),
         }
     }
+
+    /// Is the type compatible with [`usize`]?
+    ///
+    /// Dynamically determine this based on [`mem::size_of`]
+    pub fn can_be_usize(self) -> bool {
+        match self {
+            Self::U8         => (self.size() <= mem::size_of::<usize>()),
+            Self::U16(_)     => (self.size() <= mem::size_of::<usize>()),
+            Self::U32(_)     => (self.size() <= mem::size_of::<usize>()),
+            Self::U64(_)     => (self.size() <= mem::size_of::<usize>()),
+            Self::U128(_)    => (self.size() <= mem::size_of::<usize>()),
+
+            Self::I8         => false,
+            Self::I16(_)     => false,
+            Self::I32(_)     => false,
+            Self::I64(_)     => false,
+            Self::I128(_)    => false,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -4,7 +4,7 @@ use std::fmt;
 use std::ops::Range;
 
 use crate::H2Type;
-use generic_number::{GenericNumber, Integer, Float, Character};
+use generic_number::{Integer, Float, Character};
 
 /// The result of an [`H2Type`] being applied to a context.
 ///
@@ -23,9 +23,7 @@ pub struct ResolvedType {
     pub children: Vec<ResolvedType>,
     pub related: Vec<(u64, H2Type)>,
 
-    pub as_string: Option<String>,
-    pub as_number: Option<GenericNumber>, // XXX Deprecated
-
+    pub as_string:    Option<String>,
     pub as_integer:   Option<Integer>,
     pub as_float:     Option<Float>,
     pub as_character: Option<Character>,

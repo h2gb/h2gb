@@ -1,9 +1,3 @@
-mod h2number;
-pub use h2number::*; // XXX Deprecated
-
-mod h2pointer;
-pub use h2pointer::*;
-
 mod rgb;
 pub use rgb::*;
 

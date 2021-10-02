@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 /// column representing the "name".
 ///
 /// The numeric column must be unique.
-fn load_from_csv(data: &str) -> SimpleResult<HashMap<u64, String>> {
+fn load_from_csv(data: &str) -> SimpleResult<HashMap<usize, String>> {
     let mut out = HashMap::new();
 
     let mut rdr = csv::ReaderBuilder::new()
@@ -25,7 +25,7 @@ fn load_from_csv(data: &str) -> SimpleResult<HashMap<u64, String>> {
             bail!("Bad enum CSV: must be 2 records per line, this line was {}", record.len());
         }
 
-        let number: u64 = record.get(0).ok_or(
+        let number: usize = record.get(0).ok_or(
             SimpleError::new("Error reading the CSV file")
         )?.parse().map_err(|e| {
             SimpleError::new(format!("Couldn't parse first CSV field as integer: {}", e))
@@ -45,7 +45,7 @@ fn load_from_csv(data: &str) -> SimpleResult<HashMap<u64, String>> {
 
 lazy_static! {
     /// Enumerations comment
-    pub static ref ENUMS: HashMap<String, HashMap<u64, String>> = {
+    pub static ref ENUMS: HashMap<String, HashMap<usize, String>> = {
         let mut h = HashMap::new();
         h.insert("TerrariaAffix".to_string(),    load_from_csv(include_str!("./terraria_affix.csv")).unwrap());
         h.insert("TerrariaBuff".to_string(),     load_from_csv(include_str!("./terraria_buff.csv")).unwrap());
@@ -66,7 +66,7 @@ pub fn enum_exists(name: &str) -> bool {
     ENUMS.contains_key(name)
 }
 
-pub fn from_enum(name: &str, value: u64) -> SimpleResult<Option<&str>> {
+pub fn from_enum(name: &str, value: usize) -> SimpleResult<Option<&str>> {
     Ok(ENUMS.get(name).ok_or(
         SimpleError::new(format!("No such enum: {}", name))
     )?.get(&value).map(|s| &s[..]))

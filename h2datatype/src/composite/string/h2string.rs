@@ -24,7 +24,7 @@ impl H2String {
             bail!("Length must be at least 1 character long");
         }
 
-        if !character.can_be_char() {
+        if !character.can_be_character() {
             bail!("Character type can't become a character");
         }
 
@@ -46,7 +46,7 @@ impl H2String {
         for _ in 0..self.length {
             let this_offset = offset.at(position);
             let this_size = self.character.actual_size(this_offset)?;
-            let this_character = self.character.to_char(this_offset)?;
+            let this_character = self.character.to_character(this_offset)?.as_char();
 
             result.push(this_character);
             position = position + this_size;
@@ -93,7 +93,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use generic_number::{Context, Endian};
-    use crate::simple::H2Number;
+    use crate::simple::numeric::H2Character;
     use crate::simple::network::IPv4;
 
     #[test]
@@ -102,7 +102,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = H2String::new(7, H2Number::new_utf8())?;
+        let a = H2String::new(7, H2Character::new_utf8())?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_zero_length_utf8_lstring() -> SimpleResult<()> {
-        assert!(H2String::new(0, H2Number::new_utf8()).is_err());
+        assert!(H2String::new(0, H2Character::new_utf8()).is_err());
 
         Ok(())
     }
@@ -120,7 +120,7 @@ mod tests {
         let data = b"A".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = H2String::new(2, H2Number::new_utf8())?;
+        let a = H2String::new(2, H2Character::new_utf8())?;
         assert!(a.to_display(offset).is_err());
 
         Ok(())
@@ -132,7 +132,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a: H2Type = H2String::new(7, H2Number::new_utf8())?;
+        let a: H2Type = H2String::new(7, H2Character::new_utf8())?;
         let array = a.resolve(offset, None)?;
 
         // Should just have one child - the array
@@ -157,7 +157,7 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let t = H2Array::new(4, H2String::new(4, H2Number::new_ascii())?)?;
+        let t = H2Array::new(4, H2String::new(4, H2Character::new_ascii())?)?;
 
         assert_eq!(16, t.actual_size(offset).unwrap());
 
