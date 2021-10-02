@@ -3,12 +3,9 @@
   * Kill the "static" offset thing, and simply all the things
   * Change structs (and other APIey things) to take &str instead of String
   * Bi-directional enums (so we can fetch stuff by name)
-  * A "blob" datatype, which is a big U8 array but that isn't displayed
   * Automatically create a default "Layer"
-  * Can I move Float out of GenericNumber to make it more useful (sortable / comparable / etc)?
-    * Can GenericNumber use more Into() methods instead of as_u64() and stuff like that?
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
-  * I don't think I want H2String and such to take a H2Type parameter anymore
+  * I don't think I want H2String and such to take a H2Type parameter anymore, instead I'd like a Reader
     * My logic is, we don't need the "display" parameter, so why do we need the full type? A Reader is more logical
   * Rename 'definition' to 'reader' among h2type definitions
 
