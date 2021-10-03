@@ -1,4 +1,4 @@
-***Note: This file was automatically generated from lib.rs or mod.rs***
+***Note: This file was automatically generated from [h2datatype/src/lib.rs](/h2datatype/src/lib.rs)***
 
 A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 

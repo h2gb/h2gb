@@ -1,4 +1,4 @@
-***Note: This file was automatically generated from lib.rs or mod.rs***
+***Note: This file was automatically generated from [generic-number/src/lib.rs](/generic-number/src/lib.rs)***
 
 A library for reading and formatting differently-sized integers and floats.
 

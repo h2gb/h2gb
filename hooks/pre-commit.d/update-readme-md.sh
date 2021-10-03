@@ -26,7 +26,8 @@ echo -ne "\n# Other Documentation\n\n" >> $BASE/README.md
 for i in $(find ../ -type f -name mod.rs -or -name lib.rs -not -wholename ../h2gb/src/lib.rs | sort); do
   if (head -n1 $i | grep '^\/\/\!' > /dev/null); then
     DIR=$(dirname "$i")
-    echo "***Note: This file was automatically generated from lib.rs or mod.rs***" > "$DIR/README.md"
+    RAW=$(echo "$i" | cut -c4-)
+    echo "***Note: This file was automatically generated from [$RAW](/$RAW)***" > "$DIR/README.md"
     echo "" >> "$DIR/README.md"
     cargo readme --no-title -i "$i" >> "$DIR/README.md"
     git add "$DIR/README.md"

@@ -1,4 +1,4 @@
-***Note: This file was automatically generated from lib.rs or mod.rs***
+***Note: This file was automatically generated from [h2data/src/lib.rs](/h2data/src/lib.rs)***
 
 A library for loading data that analyzers and users can consume.
 
