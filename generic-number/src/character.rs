@@ -1,26 +1,48 @@
 use std::fmt;
 use serde::{Serialize, Deserialize};
 
-/// A number that can be any of the primitive types.
+/// Represents a character, maintaining the original size.
 ///
-/// The goal of creating this enum is to wrap around *any* generic type, with
-/// serialize, deserialize, and transparent conversion to [`u64`] and [`i64`].
+/// This can represent any type of character - ASCII, UTF-8, etc., with
+/// serialize and deserialize support.
 ///
-/// Typically, you'd use a [`crate::GenericReader`] to create a
-/// [`Character`], then a [`crate::GenericFormatter`] to
-/// render it. All three of those classes can be serialized, so this operation
-/// is always repeatable!
+/// To use this, create a [`crate::CharacterReader`] to read a
+/// [`crate::Context`]. That'll produce a `Character`. Then you can render it
+/// using a [`crate::CharacterRenderer`].
+///
+/// # Example
+///
+/// ```
+/// use generic_number::*;
+///
+/// // Create a buffer
+/// let buffer = b"\xE2\x9D\x84".to_vec();
+///
+/// // Create a context that points to the start of the buffer
+/// let context = Context::new_at(&buffer, 0);
+///
+/// // Create a reader that knows how to read a U32 big endian value - this
+/// // reader can be serialized and used later!
+/// let reader = CharacterReader::UTF8;
+///
+/// // Read from the context into a generic number - this number can be
+/// // serialized and used later!
+/// let c = reader.read(context).unwrap();
+///
+/// // Display it using different formatters (these use the pretty defaults) -
+/// // these formatters can also be serialized!
+/// assert_eq!("'❄'", CharacterFormatter::pretty_character().render(c));
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Character {
     character: char,
 
-    // Explicitly store the size of the character, because the source (whether
-    // it was UTF8, UTF16, ASCII, etc.) is lost
+    /// Explicitly store the size of the character, because the source (whether
+    /// it was UTF8, UTF16, ASCII, etc.) is lost
     size: usize,
 }
 
-// Simplify converting from various basic types - generally, these shouldn't be
-// used directly except for testing!
+/// Implement a simple From
 impl From<(char, usize)> for Character { fn from(o: (char, usize)) -> Self { Self { character: o.0, size: o.1 } } }
 
 impl Character {
@@ -29,6 +51,7 @@ impl Character {
         self.size
     }
 
+    /// The character.
     pub fn as_char(self) -> char {
         self.character
     }

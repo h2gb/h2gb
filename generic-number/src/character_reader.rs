@@ -28,7 +28,8 @@ impl CharacterReader {
     /// The `Context` has the offset embedded, and the [`CharacterReader`] has the
     /// [`Endian`] built-in.
     ///
-    /// If successful, this creates a [`Character`], whose datatype will
+    /// If successful, this creates a [`Character`] that represents the
+    /// character of the requested type read from the `Context`.
     /// match the type that we chose in this struct.
     pub fn read(self, context: Context) -> SimpleResult<Character> {
         match self {
@@ -54,9 +55,7 @@ impl CharacterReader {
 
     /// The size - in bytes - that will be read by [`Self::read`].
     ///
-    /// Some types can have varying sizes - those return None.
-    ///
-    /// TODO(ron): This might actually be a useless function, we'll see.
+    /// Note that not all types have a pre-defined size; those return [`None`].
     pub fn size(self) -> Option<usize> {
         match self {
             Self::ASCII    => Some(1),

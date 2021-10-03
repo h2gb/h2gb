@@ -18,10 +18,10 @@
 //! To use, you typically want to:
 //!
 //! * Create a [`Context`]
-//! * Read a datatype using one of the readers
+//! * Read a datatype (Integer / Float / Character) using one of the readers
 //! * Render it using one of the renderers
 //!
-//! Here's a working example:
+//! Here's an example:
 //!
 //! ```
 //! use generic_number::*;
