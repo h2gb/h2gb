@@ -1,12 +1,35 @@
 use serde::{Serialize, Deserialize};
-//use simple_error::{SimpleResult, bail};
 use std::{fmt, mem};
 
-/// A generic floating-point value.
+/// Represents a floating point number - [`f32`] or [`f64`].
 ///
-/// I originally wanted to roll this into a GenericNumber class, but I ran into
-/// a huge problem: floats cannot be compared for equality or implement Hash,
-/// which means I couldn't use them to, say, look up Enum values.
+/// To use this, create a [`crate::FloatReader`] to read a [`crate::Context`].
+/// That'll produce a `Float`. Then you can render it using a
+/// renderer such as [`crate::ScientificFormatter`].
+///
+/// # Example
+///
+/// ```
+/// use generic_number::*;
+///
+/// // Create a buffer
+/// let buffer = b"\x40\x48\xf5\xc3".to_vec();
+///
+/// // Create a context that points to the start of the buffer
+/// let context = Context::new_at(&buffer, 0);
+///
+/// // Create a reader that knows how to read a 32-bit float - this reader can
+/// // be serialized and used later!
+/// let reader = FloatReader::F32(Endian::Big);
+///
+/// // Read from the context into a generic number - this number can be
+/// // serialized and used later!
+/// let f = reader.read(context).unwrap();
+///
+/// // Display it using different formatters (these use the pretty defaults) -
+/// // these formatters can also be serialized!
+/// assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(f));
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum Float {
     F32(f32),
@@ -52,11 +75,3 @@ impl fmt::UpperExp for Float {
         }
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use pretty_assertions::assert_eq;
-//     use simple_error::SimpleResult;
-
-//     use crate::{Context, GenericReader, Endian};
-// }

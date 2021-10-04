@@ -5,7 +5,7 @@ use crate::{CharacterRenderer, Character, CharacterRendererTrait};
 /// Format options for unprintable characters
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum CharacterUnprintableOption {
-    /// Encode unprintable characters as hex, - `'\xYY'`
+    /// Encode unprintable characters as hex, - `'\xYY'`.
     ///
     /// This uses UTF-8, which isn't necessarily the same as the original.
     HexEncode,
@@ -19,10 +19,10 @@ pub enum CharacterUnprintableOption {
     CString,
 
 
-    /// Replace with the Unicode Replacement character - '�'
+    /// Replace with the Unicode Replacement character - '�'.
     UnicodeReplacementCharacter,
 
-    /// URL encode - `%xx` and `+` for spaces
+    /// URL encode - `%xx` and `+` for spaces.
     ///
     /// This uses UTF-8, which isn't necessarily the same as the original.
     URLEncode,
@@ -47,14 +47,14 @@ pub enum CharacterReplacementPolicy {
     ReplaceEverything,
 }
 
-/// Render a [`GenericNumber`] as a character value.
+/// Render a [`Character`] as a character value.
 ///
 /// # Example
 ///
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a Character directly - normally you'd use a GenericReader
+/// // Create a Character directly - normally you'd use a CharacterReader
 /// let number = Character::from(('a', 1)); // (the size field doesn't matter when used directly like this)
 /// let othernumber = Character::from(('☃', 1));
 ///
@@ -92,9 +92,9 @@ pub struct CharacterFormatter {
 impl CharacterFormatter {
     pub fn new_character(show_single_quotes: bool, character_replacement_policy: CharacterReplacementPolicy, unprintable_option: CharacterUnprintableOption) -> CharacterRenderer {
         CharacterRenderer::Character(Self {
-            show_single_quotes: show_single_quotes,
+            show_single_quotes:           show_single_quotes,
             character_replacement_policy: character_replacement_policy,
-            unprintable_option: unprintable_option,
+            unprintable_option:           unprintable_option,
         })
     }
 

@@ -2,15 +2,16 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 use std::{fmt, mem};
 
-/// A number that can be any of the primitive types.
+/// A number that can be any of the primitive integer types.
 ///
-/// The goal of creating this enum is to wrap around *any* generic type, with
-/// serialize, deserialize, and transparent conversion to [`u64`] and [`i64`].
+/// The goal of creating this enum is to wrap around *any* integer type, with
+/// serialize, deserialize, and easy conversion / rendering.
 ///
-/// Typically, you'd use a [`crate::IntegerReader`] to create a
-/// [`Integer`], then a [`crate::GenericFormatter`] to
-/// render it. All three of those classes can be serialized, so this operation
-/// is always repeatable!
+/// Typically, you'd use a [`crate::IntegerReader`] to create an
+/// [`Integer`], then a formatter such as [`crate::HexFormatter`] to render it.
+///
+/// This class can also safely convert to [`usize`] and [`isize`], based on the
+/// actual size on the host system.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Integer {
     U8(u8),

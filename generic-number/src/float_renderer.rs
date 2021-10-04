@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::{Float, DefaultFormatter, ScientificFormatter};
 
-/// Define the interface for rendering an integer
+/// Define the interface for rendering a [`Float`].
 pub trait FloatRendererTrait {
     fn render_float(&self, number: Float) -> String;
 }

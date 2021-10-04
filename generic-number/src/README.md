@@ -14,6 +14,7 @@ The bulk of functionality is split into three parts:
   [`CharacterRenderer`], which define how something is rendered. They are
   not instantiated directly, but through the variety of
   [formatters](/generic-number/src/generic_formatter/).
+
 ## Usage
 
 To use, you typically want to:

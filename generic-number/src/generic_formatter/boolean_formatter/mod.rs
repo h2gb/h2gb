@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 
-/// Render a [`GenericNumber`] as a true/false value (1 is true, 0 is false)
+/// Render a [`Integer`] as "false" (if 0) or "true" (otherwise).
 ///
 /// # Example
 ///

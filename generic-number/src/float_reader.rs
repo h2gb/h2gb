@@ -4,7 +4,7 @@ use std::mem;
 
 use crate::{Context, Endian, Float};
 
-/// Defines how data is read from a [`Context`] to produce a [`GenericNumber`].
+/// Defines how data is read from a [`Context`] to produce a [`Float`].
 ///
 /// Importantly, this can be serialized, which means it can be stored and
 /// re-used in the future.

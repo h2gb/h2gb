@@ -8,7 +8,7 @@ use serde::{Serialize, Deserialize};
 ///
 /// To use this, create a [`crate::CharacterReader`] to read a
 /// [`crate::Context`]. That'll produce a `Character`. Then you can render it
-/// using a [`crate::CharacterRenderer`].
+/// using a [`crate::CharacterFormatter`] or [`crate::DefaultFormatter`].
 ///
 /// # Example
 ///
@@ -21,8 +21,8 @@ use serde::{Serialize, Deserialize};
 /// // Create a context that points to the start of the buffer
 /// let context = Context::new_at(&buffer, 0);
 ///
-/// // Create a reader that knows how to read a U32 big endian value - this
-/// // reader can be serialized and used later!
+/// // Create a reader that knows how to read a UTF8 character - this reader can
+/// // be serialized and used later!
 /// let reader = CharacterReader::UTF8;
 ///
 /// // Read from the context into a generic number - this number can be

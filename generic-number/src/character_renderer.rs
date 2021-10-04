@@ -10,7 +10,7 @@ pub trait CharacterRendererTrait {
 /// Configure how a [`Character`] is rendered.
 ///
 /// You don't generally want to create this enum directly; instead, use the
-/// `new()` or `pretty()` methods in the formatter you want.
+/// `new_character()` or `pretty_character()` methods in the formatter you want.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CharacterRenderer {
     Default(DefaultFormatter),

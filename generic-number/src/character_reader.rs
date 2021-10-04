@@ -65,7 +65,3 @@ impl CharacterReader {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-}
