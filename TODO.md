@@ -5,9 +5,6 @@
   * Bi-directional enums (so we can fetch stuff by name)
   * Automatically create a default "Layer"
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
-  * I don't think I want H2String and such to take a H2Type parameter anymore, instead I'd like a Reader
-    * My logic is, we don't need the "display" parameter, so why do we need the full type? A Reader is more logical
-  * Rename 'definition' to 'reader' among h2type definitions
 
 * Major / annoying cleanup
   * Make bumpyvectors use usize instead of u64

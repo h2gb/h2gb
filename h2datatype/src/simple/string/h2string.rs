@@ -3,7 +3,7 @@ use std::iter::FromIterator;
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 
-use generic_number::CharacterReader;
+use generic_number::{Character, CharacterReader, CharacterRenderer};
 
 use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
 
@@ -17,10 +17,11 @@ use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
 pub struct H2String {
     length: u64,
     character: CharacterReader,
+    renderer: CharacterRenderer,
 }
 
 impl H2String {
-    pub fn new_aligned(alignment: Alignment, length_in_characters: u64, character: CharacterReader) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length_in_characters: u64, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
         if length_in_characters == 0 {
             bail!("Length must be at least 1 character long");
         }
@@ -28,15 +29,16 @@ impl H2String {
         Ok(H2Type::new(alignment, H2Types::H2String(Self {
             length: length_in_characters,
             character: character,
+            renderer: renderer,
         })))
     }
 
-    pub fn new(length_in_characters: u64, character: CharacterReader) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, length_in_characters, character)
+    pub fn new(length_in_characters: u64, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+        Self::new_aligned(Alignment::None, length_in_characters, character, renderer)
     }
 
 
-    fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<char>)> {
+    fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<Character>)> {
         let mut position = offset.position();
         let mut result = Vec::new();
 
@@ -45,7 +47,7 @@ impl H2String {
 
             let this_character = self.character.read(this_offset.get_dynamic()?)?;
 
-            result.push(this_character.as_char());
+            result.push(this_character);
             position = position + this_character.size() as u64;
         }
 
@@ -74,7 +76,7 @@ impl H2TypeTrait for H2String {
         let (_, chars) = self.analyze(offset)?;
 
         // Convert into a string
-        Ok(String::from_iter(chars.into_iter()))
+        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
@@ -86,7 +88,8 @@ impl H2TypeTrait for H2String {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use generic_number::Context;
+    use generic_number::{Context, CharacterFormatter, CharacterReplacementPolicy, CharacterUnprintableOption};
+
     use crate::composite::H2Array;
 
     #[test]
@@ -95,7 +98,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = H2String::new(7, CharacterReader::UTF8)?;
+        let a = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
@@ -103,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_zero_length_utf8_lstring() -> SimpleResult<()> {
-        assert!(H2String::new(0, CharacterReader::UTF8).is_err());
+        assert!(H2String::new(0, CharacterReader::UTF8, CharacterFormatter::pretty_str_character()).is_err());
 
         Ok(())
     }
@@ -113,7 +116,7 @@ mod tests {
         let data = b"A".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = H2String::new(2, CharacterReader::UTF8)?;
+        let a = H2String::new(2, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
         assert!(a.to_display(offset).is_err());
 
         Ok(())
@@ -125,7 +128,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a: H2Type = H2String::new(7, CharacterReader::UTF8)?;
+        let a: H2Type = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
         let resolved = a.resolve(offset, None)?;
 
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
@@ -138,7 +141,7 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII)?)?;
+        let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?)?;
 
         assert_eq!(16, t.actual_size(offset).unwrap());
         assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(offset).unwrap());
@@ -146,5 +149,22 @@ mod tests {
         Ok(())
     }
 
-    // XXX: Write a test with differently formatted characters!
+    #[test]
+    fn test_character_renderer() -> SimpleResult<()> {
+        let data = b"\x41\x10\x09".to_vec();
+        let offset = Offset::Dynamic(Context::new(&data));
+
+        let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
+        assert_eq!("\"A\\x10\\t\"", a.to_display(offset)?);
+
+        let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::new_character(
+                false, // show_single_quotes
+                CharacterReplacementPolicy::ReplaceEverything,
+                CharacterUnprintableOption::URLEncode,
+
+        ))?;
+        assert_eq!("\"%41%10%09\"", a.to_display(offset)?);
+
+        Ok(())
+    }
 }

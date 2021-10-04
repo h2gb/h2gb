@@ -2,8 +2,9 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::actions::Action;
 use h2datatype::{H2Type, ResolvedType};
+
+use crate::actions::Action;
 use crate::project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -111,10 +112,10 @@ mod tests {
 
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
-    use h2datatype::simple::numeric::{H2Integer, H2Character};
+    use h2datatype::simple::numeric::H2Integer;
     use h2datatype::simple::string::LPString;
 
-    use generic_number::{IntegerReader, CharacterReader, Endian, DefaultFormatter};
+    use generic_number::{IntegerReader, CharacterReader, CharacterFormatter, Endian, DefaultFormatter};
 
     #[test]
     fn test_action_create_entry() -> SimpleResult<()> {
@@ -155,6 +156,7 @@ mod tests {
         let datatype = LPString::new(
             IntegerReader::U8,
             CharacterReader::ASCII,
+            CharacterFormatter::pretty_str_character(),
         )?;
         let resolved = record.target()
             .buffer_get_or_err("buffer")?

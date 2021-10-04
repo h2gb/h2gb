@@ -6,14 +6,17 @@ use lazy_static::lazy_static;
 use std::time::Duration;
 use hhmmss::Hhmmss;
 
-use crate::actions::*;
 use h2transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
+
 use h2datatype::H2Type;
 use h2datatype::simple::{H2Bitmask, H2Enum, Rgb};
-use h2datatype::simple::numeric::{H2Integer, H2Character};
+use h2datatype::simple::numeric::H2Integer;
 use h2datatype::simple::string::{H2String, LPString};
 use h2datatype::composite::H2Struct;
-use generic_number::{IntegerReader, CharacterReader, Endian, DefaultFormatter, BooleanFormatter};
+
+use generic_number::{IntegerReader, CharacterReader, CharacterFormatter, Endian, DefaultFormatter, BooleanFormatter};
+
+use crate::actions::*;
 
 mod helpers;
 use helpers::*;
@@ -138,6 +141,7 @@ lazy_static! {
         LPString::new(
             IntegerReader::U8,
             CharacterReader::ASCII,
+            CharacterFormatter::pretty_str_character(),
         ).unwrap()
     };
 
@@ -149,6 +153,7 @@ lazy_static! {
             ("world".to_string(), LPString::new(
                 IntegerReader::U8,
                 CharacterReader::ASCII,
+                CharacterFormatter::pretty_str_character(),
             ).unwrap()),
         ]).unwrap()
     };
@@ -158,6 +163,7 @@ lazy_static! {
             ("item".to_string(), LPString::new(
                 IntegerReader::U8,
                 CharacterReader::ASCII,
+                CharacterFormatter::pretty_str_character(),
             ).unwrap()),
 
             ("quantity".to_string(),  H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
@@ -486,7 +492,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     };
 
     // Get the "magic" value
-    create_entry(record, buffer, LAYER, &H2String::new(7, CharacterReader::ASCII)?, offsets.magic, Some("\"Magic\" value"))?;
+    create_entry(record, buffer, LAYER, &H2String::new(7, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?, offsets.magic, Some("\"Magic\" value"))?;
 
     // Create an entry for the name
     let name = create_entry(record, buffer, LAYER, &*TERRARIA_LPSTRING, offsets.name, Some("Character name"))?;

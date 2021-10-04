@@ -186,11 +186,14 @@
 //! // Create an array of 3 elements, each of which is an LPString with a one-
 //! // byte length
 //! let t = H2Array::new(3, LPString::new(
-//!   // The length field is an 8-bit unsigned integer
+//!   // The length field is read by an IntegerReader, and is 8-bits
 //!   IntegerReader::U8,
 //!
-//!   // The character type is also a number, but this time ASCII
+//!   // The character type is read by a CharacterReader
 //!   CharacterReader::ASCII,
+//!
+//!   // How to render the characters
+//!   CharacterFormatter::pretty_str_character(),
 //! ).unwrap()).unwrap();
 //!
 //! // The array takes up 12 bytes of memory, all-in
@@ -199,20 +202,6 @@
 //! // Even though it takes up the extra space, the values don't change
 //! assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset).unwrap());
 //! ```
-//! # Things left to do
-//!
-//! Things I want to add:
-//!
-//! * Parse out structs and such from a C file
-//! * Make sure I'm not converting u64 to usize
-//! * Do I need H2Pointer at all?
-//! * If an array is static, simplify the size
-//! * Maybe split out characters again?
-//!
-//! Types needed:
-//! * DNS name
-//! * Type/length/value
-//! * x86 / x64 / other assembly languages
 
 mod alignment;
 pub use alignment::Alignment;

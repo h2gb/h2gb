@@ -2,10 +2,9 @@ use std::iter::FromIterator;
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 
-use generic_number::{IntegerReader, CharacterReader};
+use generic_number::{IntegerReader, Character, CharacterReader, CharacterRenderer};
 
 use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
-use crate::composite::H2Array;
 
 /// Defines a length-prefixed string.
 ///
@@ -17,10 +16,11 @@ use crate::composite::H2Array;
 pub struct LPString {
     length: IntegerReader,
     character: CharacterReader,
+    renderer: CharacterRenderer,
 }
 
 impl LPString {
-    pub fn new_aligned(alignment: Alignment, length: IntegerReader, character: CharacterReader) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length: IntegerReader, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
         if !length.can_be_usize() {
             bail!("Length type isn't numeric!");
         }
@@ -28,14 +28,15 @@ impl LPString {
         Ok(H2Type::new(alignment, H2Types::LPString(Self {
             length: length,
             character: character,
+            renderer: renderer,
         })))
     }
 
-    pub fn new(length: IntegerReader, character: CharacterReader) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, length, character)
+    pub fn new(length: IntegerReader, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+        Self::new_aligned(Alignment::None, length, character, renderer)
     }
 
-    fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<char>)> {
+    fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<Character>)> {
         // TODO: This should be usize
         let length = self.length.read(offset.get_dynamic()?)?.as_usize()?;
         let mut position = offset.position() + self.length.size() as u64;
@@ -44,7 +45,7 @@ impl LPString {
         for _ in 0..length {
             let character = self.character.read(offset.at(position).get_dynamic()?)?;
 
-            result.push(character.as_char());
+            result.push(character);
             position = position + character.size() as u64;
         }
 
@@ -70,7 +71,7 @@ impl H2TypeTrait for LPString {
         let (_, chars) = self.analyze(offset)?;
 
         // Convert into a string
-        Ok(String::from_iter(chars.into_iter()))
+        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
@@ -81,8 +82,12 @@ impl H2TypeTrait for LPString {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use simple_error::SimpleResult;
-    use generic_number::{Context, Endian, IntegerReader};
+
+    use generic_number::{Context, Endian, IntegerReader, CharacterReader, CharacterFormatter, CharacterReplacementPolicy, CharacterUnprintableOption};
+
+    use crate::composite::H2Array;
 
     #[test]
     fn test_utf8_lpstring() -> SimpleResult<()> {
@@ -94,6 +99,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U16(Endian::Big),
             CharacterReader::UTF8,
+            CharacterFormatter::pretty_str_character(),
         )?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
@@ -108,6 +114,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
+            CharacterFormatter::pretty_str_character(),
         )?;
 
         // Ensure it can display
@@ -128,6 +135,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
+            CharacterFormatter::pretty_str_character(),
         )?;
         assert!(a.to_display(offset).is_err());
 
@@ -143,6 +151,7 @@ mod tests {
         let a: H2Type = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
+            CharacterFormatter::pretty_str_character(),
         )?;
 
         let resolved = a.resolve(offset, None)?;
@@ -162,10 +171,30 @@ mod tests {
         let t = H2Array::new(3, LPString::new(
           IntegerReader::U8,
           CharacterReader::ASCII,
+          CharacterFormatter::pretty_str_character(),
         )?)?;
 
         assert_eq!(12, t.actual_size(offset)?);
         assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_character_renderer() -> SimpleResult<()> {
+        let data = b"\x03\x41\x10\x09".to_vec();
+        let offset = Offset::Dynamic(Context::new(&data));
+
+        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
+        assert_eq!("\"A\\x10\\t\"", a.to_display(offset)?);
+
+        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new_character(
+                false, // show_single_quotes
+                CharacterReplacementPolicy::ReplaceEverything,
+                CharacterUnprintableOption::URLEncode,
+
+        ))?;
+        assert_eq!("\"%41%10%09\"", a.to_display(offset)?);
 
         Ok(())
     }

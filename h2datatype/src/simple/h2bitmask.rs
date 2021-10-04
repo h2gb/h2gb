@@ -26,7 +26,7 @@ pub struct H2Bitmask {
 impl H2Bitmask {
     pub fn new_aligned(alignment: Alignment, reader: IntegerReader, bitmask_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
         if !reader.can_be_usize() {
-            bail!("Bitmask types must be compatible with u64 values");
+            bail!("Bitmask types must be compatible with usize values");
         }
 
         // Make sure the bitmask type exists
