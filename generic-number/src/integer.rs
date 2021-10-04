@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 use std::{fmt, mem};
+use std::cmp::Ordering;
 
 /// A number that can be any of the primitive integer types.
 ///
@@ -12,7 +13,7 @@ use std::{fmt, mem};
 ///
 /// This class can also safely convert to [`usize`] and [`isize`], based on the
 /// actual size on the host system.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Integer {
     U8(u8),
     U16(u16),
@@ -55,6 +56,23 @@ impl Integer {
             Self::I32(_)  => mem::size_of::<i32>(),
             Self::I64(_)  => mem::size_of::<i64>(),
             Self::I128(_) => mem::size_of::<i128>(),
+        }
+    }
+
+    /// Is it signed?
+    pub fn is_signed(self) -> bool {
+        match self {
+            Self::U8(_)   => false,
+            Self::U16(_)  => false,
+            Self::U32(_)  => false,
+            Self::U64(_)  => false,
+            Self::U128(_) => false,
+
+            Self::I8(_)   => true,
+            Self::I16(_)  => true,
+            Self::I32(_)  => true,
+            Self::I64(_)  => true,
+            Self::I128(_) => true,
         }
     }
 
@@ -136,6 +154,30 @@ impl Integer {
             Self::I32(v)       => Ok(v as isize),
             Self::I64(v)       => Ok(v as isize),
             Self::I128(v)      => Ok(v as isize),
+        }
+    }
+
+    /// Private function used internally
+    fn as_i128(self) -> Option<i128> {
+        match self {
+            Self::I8(v)   => Some(v as i128),
+            Self::I16(v)  => Some(v as i128),
+            Self::I32(v)  => Some(v as i128),
+            Self::I64(v)  => Some(v as i128),
+            Self::I128(v) => Some(v as i128),
+            _             => None,
+        }
+    }
+
+    /// Private function used internally
+    fn as_u128(self) -> Option<u128> {
+        match self {
+            Self::U8(v)   => Some(v as u128),
+            Self::U16(v)  => Some(v as u128),
+            Self::U32(v)  => Some(v as u128),
+            Self::U64(v)  => Some(v as u128),
+            Self::U128(v) => Some(v as u128),
+            _             => None,
         }
     }
 }
@@ -266,12 +308,72 @@ impl fmt::Binary for Integer {
     }
 }
 
+impl PartialEq for Integer {
+    fn eq(&self, other: &Self) -> bool {
+        if self.can_be_usize() && other.can_be_usize() {
+            // Try to compare as usize
+            self.as_usize() == other.as_usize()
+
+        } else if self.can_be_isize() && other.can_be_isize() {
+            // Try to compare as isize
+            self.as_isize() == other.as_isize()
+
+        } else if self.is_signed() && other.is_signed() {
+            let v1 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+            let v2 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+
+            v1 == v2
+
+        } else if !self.is_signed() && !other.is_signed() {
+            let v1 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+            let v2 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+
+            v1 == v2
+        } else {
+            // If one is signed and the other is unsigned, there's simply nothing we can do
+            false
+        }
+    }
+}
+
+impl Eq for Integer {
+    // Automatically uses PartialEq
+}
+
+impl PartialOrd for Integer {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self.can_be_usize() && other.can_be_usize() {
+            // Try to compare as usize
+            self.as_usize().unwrap().partial_cmp(&other.as_usize().unwrap())
+
+        } else if self.can_be_isize() && other.can_be_isize() {
+            // Try to compare as isize
+            self.as_isize().unwrap().partial_cmp(&other.as_isize().unwrap())
+
+        } else if self.is_signed() && other.is_signed() {
+            let v1 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+            let v2 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+
+            v1.partial_cmp(&v2)
+
+        } else if !self.is_signed() && !other.is_signed() {
+            let v1 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+            let v2 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+
+            v1.partial_cmp(&v2)
+        } else {
+            // If one is signed and the other is unsigned, there's simply nothing we can do
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use pretty_assertions::assert_eq;
+    use pretty_assertions::{assert_eq, assert_ne};
     use simple_error::SimpleResult;
 
-    use crate::{Context, IntegerReader, Endian, DefaultFormatter};
+    use crate::{Context, Integer, IntegerReader, Endian, DefaultFormatter};
 
     #[test]
     fn test_display() -> SimpleResult<()> {
@@ -338,6 +440,33 @@ mod tests {
         assert!(IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
         assert!(IntegerReader::U64(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
         assert!(IntegerReader::I128(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_comparison() -> SimpleResult<()> {
+        // Unsigned -> unsigned
+        assert_eq!(Integer::from(0u8), Integer::from(0u8));
+        assert_eq!(Integer::from(0u8), Integer::from(0u16));
+        assert_eq!(Integer::from(0u8), Integer::from(0u64));
+        assert_eq!(Integer::from(0u8), Integer::from(0u128));
+
+        // Signed -> signed
+        assert_eq!(Integer::from(0i8), Integer::from(0i8));
+        assert_eq!(Integer::from(0i8), Integer::from(0i16));
+        assert_eq!(Integer::from(0i8), Integer::from(0i64));
+        assert_eq!(Integer::from(0i8), Integer::from(0i128));
+
+        // Signed -> unsigned (never equal)
+        assert_ne!(Integer::from(0u8), Integer::from(0i8));
+        assert_ne!(Integer::from(0u8), Integer::from(0i128));
+
+        // Test ordering
+        assert!(Integer::from(0u8)  < Integer::from(1u32));
+        assert!(Integer::from(0u32) < Integer::from(1u8));
+        assert!(Integer::from(1u8)  > Integer::from(0u32));
+        assert!(Integer::from(1u32) > Integer::from(0u8));
 
         Ok(())
     }

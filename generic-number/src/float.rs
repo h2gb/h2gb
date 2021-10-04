@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 use std::{fmt, mem};
+use std::cmp::Ordering;
 
 /// Represents a floating point number - [`f32`] or [`f64`].
 ///
@@ -30,7 +31,7 @@ use std::{fmt, mem};
 /// // these formatters can also be serialized!
 /// assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(f));
 /// ```
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Float {
     F32(f32),
     F64(f64),
@@ -47,8 +48,30 @@ impl Float {
             Self::F64(_)  => mem::size_of::<f64>(),
         }
     }
+
+    /// Internal function for implementing comparisons
+    fn as_f64(self) -> f64 {
+        match self {
+            Self::F32(f) => f as f64,
+            Self::F64(f) => f,
+        }
+    }
 }
 
+impl PartialEq for Float {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_f64().eq(&other.as_f64())
+    }
+}
+
+// Floats don't get to be Eq
+// impl Eq for Float { }
+
+impl PartialOrd for Float {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.as_f64().partial_cmp(&other.as_f64())
+    }
+}
 impl fmt::Display for Float {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -73,5 +96,22 @@ impl fmt::UpperExp for Float {
             Self::F32(v)   => fmt::UpperExp::fmt(&v, f),
             Self::F64(v)  => fmt::UpperExp::fmt(&v, f),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use simple_error::SimpleResult;
+    use crate::Float;
+
+    #[test]
+    fn test_comparison() -> SimpleResult<()> {
+        // Test ordering only, since we can't really do equality for floats
+        assert!(Float::from(0f32) < Float::from(1f64));
+        assert!(Float::from(0f64) < Float::from(1f32));
+        assert!(Float::from(1f32) > Float::from(0f64));
+        assert!(Float::from(1f64) > Float::from(0f32));
+
+        Ok(())
     }
 }
