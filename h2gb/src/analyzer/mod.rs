@@ -136,8 +136,8 @@ lazy_static! {
     /// Terraria strings are ASCII, prefixed with a U8 length
     static ref TERRARIA_LPSTRING: H2Type = {
         LPString::new(
-            H2Integer::new(IntegerReader::U8,        DefaultFormatter::new_integer()),
-            H2Character::new(CharacterReader::ASCII, DefaultFormatter::new_character()),
+            IntegerReader::U8,
+            CharacterReader::ASCII,
         ).unwrap()
     };
 
@@ -147,8 +147,8 @@ lazy_static! {
             ("y".to_string(),     H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
             ("seed".to_string(),  H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
             ("world".to_string(), LPString::new(
-                H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
-                H2Character::new(CharacterReader::ASCII, DefaultFormatter::new_character()),
+                IntegerReader::U8,
+                CharacterReader::ASCII,
             ).unwrap()),
         ]).unwrap()
     };
@@ -156,8 +156,8 @@ lazy_static! {
     static ref JOURNEYMODE_ITEM_ENTRY: H2Type = {
         H2Struct::new(vec![
             ("item".to_string(), LPString::new(
-                H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
-                H2Character::new(CharacterReader::ASCII, DefaultFormatter::new_character()),
+                IntegerReader::U8,
+                CharacterReader::ASCII,
             ).unwrap()),
 
             ("quantity".to_string(),  H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),

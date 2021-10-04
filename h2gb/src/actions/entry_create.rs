@@ -113,7 +113,8 @@ mod tests {
 
     use h2datatype::simple::numeric::{H2Integer, H2Character};
     use h2datatype::simple::string::LPString;
-    use generic_number::{IntegerReader, Endian, DefaultFormatter};
+
+    use generic_number::{IntegerReader, CharacterReader, Endian, DefaultFormatter};
 
     #[test]
     fn test_action_create_entry() -> SimpleResult<()> {
@@ -152,8 +153,8 @@ mod tests {
 
         // Create a string type
         let datatype = LPString::new(
-            H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
-            H2Character::new_ascii(),
+            IntegerReader::U8,
+            CharacterReader::ASCII,
         )?;
         let resolved = record.target()
             .buffer_get_or_err("buffer")?

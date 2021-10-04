@@ -1,7 +1,8 @@
-use serde::{Serialize, Deserialize};
-
-use simple_error::{bail, SimpleResult};
 use std::iter::FromIterator;
+use serde::{Serialize, Deserialize};
+use simple_error::{bail, SimpleResult};
+
+use generic_number::{IntegerReader, CharacterReader};
 
 use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
 use crate::composite::H2Array;
@@ -14,44 +15,37 @@ use crate::composite::H2Array;
 /// character type is from [`generic_number::CharacterReader`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
-    length: Box<H2Type>,
-    character: Box<H2Type>,
+    length: IntegerReader,
+    character: CharacterReader,
 }
 
 impl LPString {
-    pub fn new_aligned(alignment: Alignment, length: H2Type, character: H2Type) -> SimpleResult<H2Type> {
-        if !length.can_be_integer() {
+    pub fn new_aligned(alignment: Alignment, length: IntegerReader, character: CharacterReader) -> SimpleResult<H2Type> {
+        if !length.can_be_usize() {
             bail!("Length type isn't numeric!");
         }
 
-        if !character.can_be_character() {
-            bail!("Character type can't become a character");
-        }
-
         Ok(H2Type::new(alignment, H2Types::LPString(Self {
-            length: Box::new(length),
-            character: Box::new(character),
+            length: length,
+            character: character,
         })))
     }
 
-    pub fn new(length: H2Type, character: H2Type) -> SimpleResult<H2Type> {
+    pub fn new(length: IntegerReader, character: CharacterReader) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length, character)
     }
 
     fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<char>)> {
         // TODO: This should be usize
-        let length = self.length.to_integer(offset)?.as_usize()?;
-
-        let mut position = offset.position() + self.length.aligned_size(offset)?;
+        let length = self.length.read(offset.get_dynamic()?)?.as_usize()?;
+        let mut position = offset.position() + self.length.size() as u64;
 
         let mut result = Vec::new();
         for _ in 0..length {
-            let this_offset = offset.at(position);
-            let this_size = self.character.actual_size(this_offset)?;
-            let this_character = self.character.to_character(this_offset)?.as_char();
+            let character = self.character.read(offset.at(position).get_dynamic()?)?;
 
-            result.push(this_character);
-            position = position + this_size;
+            result.push(character.as_char());
+            position = position + character.size() as u64;
         }
 
         Ok((position - offset.position(), result))
@@ -60,7 +54,7 @@ impl LPString {
 
 impl H2TypeTrait for LPString {
     fn is_static(&self) -> bool {
-        self.character.is_static()
+        self.character.size().is_some()
     }
 
     fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
@@ -82,34 +76,13 @@ impl H2TypeTrait for LPString {
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(offset)?))
     }
-
-    fn children(&self, offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        let length = self.length.to_integer(offset)?.as_usize()?;
-
-        // Always start with the size
-        let mut result = vec![
-            ( Some("size".to_string()), self.length.as_ref().clone() )
-        ];
-
-        // Only create the array if the length is non-zero (since we can't have
-        // an empty array)
-        if length > 0 {
-            result.push(
-                (None, H2Array::new(length as u64, self.character.as_ref().clone())?)
-            );
-        }
-
-        Ok(result)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use generic_number::{Context, Endian, DefaultFormatter, HexFormatter, IntegerReader};
-    use crate::simple::numeric::{H2Integer, H2Character};
-    use crate::simple::network::IPv4;
+    use generic_number::{Context, Endian, IntegerReader};
 
     #[test]
     fn test_utf8_lpstring() -> SimpleResult<()> {
@@ -119,8 +92,8 @@ mod tests {
 
 
         let a = LPString::new(
-            H2Integer::new(IntegerReader::U16(Endian::Big), DefaultFormatter::new_integer()),
-            H2Character::new_utf8(),
+            IntegerReader::U16(Endian::Big),
+            CharacterReader::UTF8,
         )?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
@@ -133,8 +106,8 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let a = LPString::new(
-            H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
-            H2Character::new_utf8(),
+            IntegerReader::U8,
+            CharacterReader::UTF8,
         )?;
 
         // Ensure it can display
@@ -153,25 +126,10 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let a = LPString::new(
-            H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
-            H2Character::new_utf8(),
+            IntegerReader::U8,
+            CharacterReader::UTF8,
         )?;
         assert!(a.to_display(offset).is_err());
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_aligned_length_lpstring() -> SimpleResult<()> {
-        let data = b"\x00\x07PPPPPP\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
-
-
-        let a = LPString::new(
-            H2Integer::new_aligned(Alignment::Loose(8), IntegerReader::U16(Endian::Big), DefaultFormatter::new_integer()),
-            H2Character::new_utf8(),
-        )?;
-        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
     }
@@ -183,36 +141,15 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let a: H2Type = LPString::new(
-            H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()),
-            H2Character::new_utf8(),
+            IntegerReader::U8,
+            CharacterReader::UTF8,
         )?;
-        let array = a.resolve(offset, None)?;
 
-        // Should just have two children - the length and the array
-        assert_eq!(2, array.children.len());
-
-        // The first child should just be the length
-        assert_eq!("7", array.children[0].display);
+        let resolved = a.resolve(offset, None)?;
 
         // The second child should be an array of the characters
-        assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", array.children[1].display);
-        assert_eq!(7, array.children[1].children.len());
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_bad_type() -> SimpleResult<()> {
-        let size_type = H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer());
-        assert!(LPString::new(size_type, IPv4::new(Endian::Big)).is_err());
-
-        let size_type = IPv4::new(Endian::Big);
-        assert!(
-            LPString::new(
-                size_type,
-                H2Character::new_utf8(),
-            ).is_err()
-        );
+        assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
+        assert_eq!(0..19, resolved.actual_range);
 
         Ok(())
     }
@@ -223,8 +160,8 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let t = H2Array::new(3, LPString::new(
-          H2Integer::new(IntegerReader::U8, HexFormatter::pretty_integer()),
-          H2Character::new_ascii(),
+          IntegerReader::U8,
+          CharacterReader::ASCII,
         )?)?;
 
         assert_eq!(12, t.actual_size(offset)?);

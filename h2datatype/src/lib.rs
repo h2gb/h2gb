@@ -105,8 +105,8 @@
 //! use h2datatype::*;
 //! use h2datatype::simple::*;
 //! use h2datatype::simple::numeric::*;
-//! use h2datatype::composite::*;
 //! use h2datatype::simple::string::*;
+//! use h2datatype::composite::*;
 //! use generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
@@ -140,8 +140,8 @@
 //! use h2datatype::*;
 //! use h2datatype::simple::*;
 //! use h2datatype::simple::numeric::*;
-//! use h2datatype::composite::*;
 //! use h2datatype::simple::string::*;
+//! use h2datatype::composite::*;
 //! use generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
@@ -173,8 +173,8 @@
 //! use h2datatype::*;
 //! use h2datatype::simple::*;
 //! use h2datatype::simple::numeric::*;
-//! use h2datatype::composite::*;
 //! use h2datatype::simple::string::*;
+//! use h2datatype::composite::*;
 //! use generic_number::*;
 //!
 //! // This is our buffer - three strings with a one-byte length prefix
@@ -187,10 +187,10 @@
 //! // byte length
 //! let t = H2Array::new(3, LPString::new(
 //!   // The length field is an 8-bit unsigned integer
-//!   H2Integer::new(IntegerReader::U8, HexFormatter::pretty_integer()),
+//!   IntegerReader::U8,
 //!
 //!   // The character type is also a number, but this time ASCII
-//!   H2Character::new_ascii(),
+//!   CharacterReader::ASCII,
 //! ).unwrap()).unwrap();
 //!
 //! // The array takes up 12 bytes of memory, all-in

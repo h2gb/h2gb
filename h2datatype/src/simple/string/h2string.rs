@@ -3,16 +3,15 @@ use std::iter::FromIterator;
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 
-use generic_number::{Character, CharacterReader};
+use generic_number::CharacterReader;
 
 use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
-use crate::composite::H2Array;
 
 /// Defines a string with a configured length.
 ///
 /// The length (in characters) is chosen when creating the type. The length in
 /// bytes may be longer if the character type is non-ASCII, however. See
-/// [`generic_number::GenericReader`] for a list of possible character
+/// [`generic_number::CharacterReader`] for a list of possible character
 /// types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2String {
@@ -87,9 +86,8 @@ impl H2TypeTrait for H2String {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use generic_number::{Context, Endian};
-    use crate::simple::numeric::H2Character;
-    use crate::simple::network::IPv4;
+    use generic_number::Context;
+    use crate::composite::H2Array;
 
     #[test]
     fn test_utf8_lstring() -> SimpleResult<()> {
@@ -147,4 +145,6 @@ mod tests {
 
         Ok(())
     }
+
+    // XXX: Write a test with differently formatted characters!
 }
