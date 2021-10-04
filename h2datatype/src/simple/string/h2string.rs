@@ -1,7 +1,9 @@
-use serde::{Serialize, Deserialize};
-
-use simple_error::{bail, SimpleResult};
 use std::iter::FromIterator;
+
+use serde::{Serialize, Deserialize};
+use simple_error::{bail, SimpleResult};
+
+use generic_number::{Character, CharacterReader};
 
 use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
 use crate::composite::H2Array;
@@ -15,26 +17,22 @@ use crate::composite::H2Array;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2String {
     length: u64,
-    character: Box<H2Type>,
+    character: CharacterReader,
 }
 
 impl H2String {
-    pub fn new_aligned(alignment: Alignment, length_in_characters: u64, character: H2Type) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length_in_characters: u64, character: CharacterReader) -> SimpleResult<H2Type> {
         if length_in_characters == 0 {
             bail!("Length must be at least 1 character long");
         }
 
-        if !character.can_be_character() {
-            bail!("Character type can't become a character");
-        }
-
         Ok(H2Type::new(alignment, H2Types::H2String(Self {
             length: length_in_characters,
-            character: Box::new(character),
+            character: character,
         })))
     }
 
-    pub fn new(length_in_characters: u64, character: H2Type) -> SimpleResult<H2Type> {
+    pub fn new(length_in_characters: u64, character: CharacterReader) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length_in_characters, character)
     }
 
@@ -45,11 +43,11 @@ impl H2String {
 
         for _ in 0..self.length {
             let this_offset = offset.at(position);
-            let this_size = self.character.actual_size(this_offset)?;
-            let this_character = self.character.to_character(this_offset)?.as_char();
 
-            result.push(this_character);
-            position = position + this_size;
+            let this_character = self.character.read(this_offset.get_dynamic()?)?;
+
+            result.push(this_character.as_char());
+            position = position + this_character.size() as u64;
         }
 
         Ok((position - offset.position(), result))
@@ -58,11 +56,14 @@ impl H2String {
 
 impl H2TypeTrait for H2String {
     fn is_static(&self) -> bool {
-        self.character.is_static()
+        self.character.size().is_some()
     }
 
     fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
-        Ok(self.analyze(offset)?.0)
+        match self.character.size() {
+            Some(s) => Ok(s as u64 * self.length),
+            None => Ok(self.analyze(offset)?.0),
+        }
     }
 
     fn can_be_string(&self) -> bool {
@@ -80,12 +81,6 @@ impl H2TypeTrait for H2String {
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(offset)?))
     }
-
-    fn children(&self, _offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        Ok(vec![
-            ( None, H2Array::new(self.length, self.character.as_ref().clone())? ),
-        ])
-    }
 }
 
 #[cfg(test)]
@@ -102,7 +97,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = H2String::new(7, H2Character::new_utf8())?;
+        let a = H2String::new(7, CharacterReader::UTF8)?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
@@ -110,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_zero_length_utf8_lstring() -> SimpleResult<()> {
-        assert!(H2String::new(0, H2Character::new_utf8()).is_err());
+        assert!(H2String::new(0, CharacterReader::UTF8).is_err());
 
         Ok(())
     }
@@ -120,7 +115,7 @@ mod tests {
         let data = b"A".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = H2String::new(2, H2Character::new_utf8())?;
+        let a = H2String::new(2, CharacterReader::UTF8)?;
         assert!(a.to_display(offset).is_err());
 
         Ok(())
@@ -132,22 +127,10 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a: H2Type = H2String::new(7, H2Character::new_utf8())?;
-        let array = a.resolve(offset, None)?;
+        let a: H2Type = H2String::new(7, CharacterReader::UTF8)?;
+        let resolved = a.resolve(offset, None)?;
 
-        // Should just have one child - the array
-        assert_eq!(1, array.children.len());
-
-        // The child should be an array of the characters
-        assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", array.children[0].display);
-        assert_eq!(7, array.children[0].children.len());
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_bad_type() -> SimpleResult<()> {
-        assert!(H2String::new(1, IPv4::new(Endian::Big)).is_err());
+        assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
 
         Ok(())
     }
@@ -157,10 +140,9 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let t = H2Array::new(4, H2String::new(4, H2Character::new_ascii())?)?;
+        let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII)?)?;
 
         assert_eq!(16, t.actual_size(offset).unwrap());
-
         assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(offset).unwrap());
 
         Ok(())

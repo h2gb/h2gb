@@ -9,8 +9,8 @@ use crate::{H2TypeTrait, Offset, Alignment, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
 use crate::simple::numeric::*;
+use crate::simple::string::*;
 use crate::composite::*;
-use crate::composite::string::*;
 
 /// An enum used to multiplex between the various types.
 ///
@@ -36,14 +36,15 @@ pub enum H2Types {
     MacAddress(MacAddress),
     MacAddress8(MacAddress8),
 
-    // Composite
-    H2Array(H2Array),
-    H2Struct(H2Struct),
-
     // Strings
     H2String(H2String),
     NTString(NTString),
     LPString(LPString),
+
+    // Composite
+    H2Array(H2Array),
+    H2Struct(H2Struct),
+
 }
 
 /// The core of this crate - defines any type of value abstractly.

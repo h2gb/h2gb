@@ -48,7 +48,7 @@
 //!
 //! ### String types
 //!
-//! A string type, which are defined in [`composite::string`], are a special
+//! A string type, which are defined in [`simple::string`], are a special
 //! composite type. They're really just arrays of a value that can consume a
 //! character type in some way to become a String.
 //!
@@ -75,8 +75,8 @@
 //! use h2datatype::*;
 //! use h2datatype::simple::*;
 //! use h2datatype::simple::numeric::*;
+//! use h2datatype::simple::string::*;
 //! use h2datatype::composite::*;
-//! use h2datatype::composite::string::*;
 //! use generic_number::*;
 //!
 //! // This is our buffer
@@ -106,7 +106,7 @@
 //! use h2datatype::simple::*;
 //! use h2datatype::simple::numeric::*;
 //! use h2datatype::composite::*;
-//! use h2datatype::composite::string::*;
+//! use h2datatype::simple::string::*;
 //! use generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
@@ -141,7 +141,7 @@
 //! use h2datatype::simple::*;
 //! use h2datatype::simple::numeric::*;
 //! use h2datatype::composite::*;
-//! use h2datatype::composite::string::*;
+//! use h2datatype::simple::string::*;
 //! use generic_number::*;
 //!
 //! // This is our buffer - the PP represents padding for alignment
@@ -174,7 +174,7 @@
 //! use h2datatype::simple::*;
 //! use h2datatype::simple::numeric::*;
 //! use h2datatype::composite::*;
-//! use h2datatype::composite::string::*;
+//! use h2datatype::simple::string::*;
 //! use generic_number::*;
 //!
 //! // This is our buffer - three strings with a one-byte length prefix

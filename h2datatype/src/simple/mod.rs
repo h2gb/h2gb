@@ -15,3 +15,4 @@ pub use h2blob::*;
 
 pub mod numeric;
 pub mod network;
+pub mod string;

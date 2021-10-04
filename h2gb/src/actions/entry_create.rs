@@ -112,7 +112,7 @@ mod tests {
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
     use h2datatype::simple::numeric::{H2Integer, H2Character};
-    use h2datatype::composite::string::LPString;
+    use h2datatype::simple::string::LPString;
     use generic_number::{IntegerReader, Endian, DefaultFormatter};
 
     #[test]
