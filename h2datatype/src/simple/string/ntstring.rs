@@ -1,7 +1,8 @@
-use serde::{Serialize, Deserialize};
-
-use simple_error::{bail, SimpleResult};
 use std::iter::FromIterator;
+use serde::{Serialize, Deserialize};
+use simple_error::{bail, SimpleResult};
+
+use generic_number::CharacterReader;
 
 use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
 use crate::composite::H2Array;
@@ -13,21 +14,17 @@ use crate::composite::H2Array;
 /// be a character (`can_be_char()` is `true`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NTString {
-    character: Box<H2Type>,
+    character: CharacterReader,
 }
 
 impl NTString {
-    pub fn new_aligned(alignment: Alignment, character: H2Type) -> SimpleResult<H2Type> {
-        if !character.can_be_character() {
-            bail!("Character type can't become a character");
-        }
-
-        Ok(H2Type::new(alignment, H2Types::NTString(Self {
-            character: Box::new(character),
-        })))
+    pub fn new_aligned(alignment: Alignment, character: CharacterReader) -> H2Type {
+        H2Type::new(alignment, H2Types::NTString(Self {
+            character: character,
+        }))
     }
 
-    pub fn new(character: H2Type) -> SimpleResult<H2Type> {
+    pub fn new(character: CharacterReader) -> H2Type {
         Self::new_aligned(Alignment::None, character)
     }
 
@@ -36,14 +33,11 @@ impl NTString {
         let mut result = Vec::new();
 
         loop {
-            let this_offset = offset.at(position);
-            let this_size = self.character.aligned_size(this_offset)?;
-            let this_character = self.character.to_character(this_offset)?.as_char();
+            let this_character = self.character.read(offset.at(position).get_dynamic()?)?;
+            result.push(this_character.as_char());
+            position = position + this_character.size() as u64;
 
-            result.push(this_character);
-            position = position + this_size;
-
-            if this_character == '\0' {
+            if this_character.as_char() == '\0' {
                 break;
             }
         }
@@ -54,7 +48,7 @@ impl NTString {
 
 impl H2TypeTrait for NTString {
     fn is_static(&self) -> bool {
-        self.character.is_static()
+        self.character.size().is_some()
     }
 
     fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
@@ -76,15 +70,6 @@ impl H2TypeTrait for NTString {
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(offset)?))
     }
-
-    fn children(&self, offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        // We want the number of characters, not the length in bytes
-        let (_, characters) = self.analyze(offset)?;
-
-        Ok(vec![
-            (None, H2Array::new(characters.len() as u64, self.character.as_ref().clone())?)
-        ])
-    }
 }
 
 #[cfg(test)]
@@ -102,7 +87,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7\x00".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = NTString::new(H2Character::new_utf8())?;
+        let a = NTString::new(CharacterReader::UTF8);
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
@@ -113,7 +98,7 @@ mod tests {
         let data = b"\x00".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = NTString::new(H2Character::new_utf8())?;
+        let a = NTString::new(CharacterReader::UTF8);
         assert_eq!("\"\"", a.to_display(offset)?);
 
         Ok(())
@@ -124,7 +109,7 @@ mod tests {
         let data = b"".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = NTString::new(H2Character::new_utf8())?;
+        let a = NTString::new(CharacterReader::UTF8);
         assert!(a.to_display(offset).is_err());
 
         Ok(())
@@ -136,28 +121,8 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a = NTString::new(H2Character::new_utf8())?;
+        let a = NTString::new(CharacterReader::UTF8);
         assert!(a.to_display(offset).is_err());
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_utf8_aligned_characters_string() -> SimpleResult<()> {
-        // We're aligning to 3-byte characters, so 1, 2, and 4 byte characters
-        // get padded
-        //             --    --    ----------  ----------  --------------    --------------    ------
-        let data = b"\x41PP\x42PP\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9EPP\xF0\x9F\x98\x88PP\xc3\xb7P\x00".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
-
-        let a = NTString::new(
-            H2Character::new_aligned(
-                Alignment::Loose(3),
-                CharacterReader::UTF8,
-                DefaultFormatter::new_character(),
-            )
-        )?;
-        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
 
         Ok(())
     }
@@ -168,25 +133,13 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7\x00".to_vec();
         let offset = Offset::Dynamic(Context::new(&data));
 
-        let a: H2Type = NTString::new(H2Character::new_utf8())?;
+        let a: H2Type = NTString::new(CharacterReader::UTF8);
         let array = a.resolve(offset, None)?;
 
         // Should just have one child - the array
-        assert_eq!(1, array.children.len());
         assert_eq!("AB❄☢𝄞😈÷", array.as_string.unwrap());
         assert_eq!("\"AB❄☢𝄞😈÷\"", array.display);
 
-        // The child should be an array of the characters, including the NUL at
-        // the end
-        assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷', '\\0' ]", array.children[0].display);
-        assert_eq!(8, array.children[0].children.len());
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_bad_character_type() -> SimpleResult<()> {
-        assert!(NTString::new(IPv4::new(Endian::Big)).is_err());
         Ok(())
     }
 
@@ -196,8 +149,8 @@ mod tests {
         let offset = Offset::Dynamic(Context::new(&data));
 
         let t = H2Array::new(3, NTString::new(
-            H2Character::new_ascii(),
-        )?)?;
+            CharacterReader::ASCII,
+        ))?;
 
         assert_eq!(12, t.actual_size(offset).unwrap());
 
