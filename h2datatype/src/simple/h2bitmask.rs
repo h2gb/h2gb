@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
 use h2data::{bitmask_exists, from_bitmask_str};
-use generic_number::{GenericReader, GenericNumber};
+use generic_number::{IntegerReader, Integer};
 
 use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 
@@ -17,17 +17,16 @@ use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Bitmask {
     /// The sign, signedness, and endianness of the value.
-    definition: GenericReader,
-
+    reader: IntegerReader,
 
     bitmask_type: String,
     show_negative: bool,
 }
 
 impl H2Bitmask {
-    pub fn new_aligned(alignment: Alignment, definition: GenericReader, bitmask_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
-        if !definition.can_be_u64() {
-            bail!("Bitmask types must be compatible with u64 values");
+    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, bitmask_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
+        if !reader.can_be_usize() {
+            bail!("Bitmask types must be compatible with usize values");
         }
 
         // Make sure the bitmask type exists
@@ -36,19 +35,19 @@ impl H2Bitmask {
         }
 
         Ok(H2Type::new(alignment, H2Types::H2Bitmask(Self {
-            definition: definition,
+            reader: reader,
             bitmask_type: bitmask_type.to_string(),
             show_negative: show_negative,
         })))
 
     }
 
-    pub fn new(definition: GenericReader, bitmask_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, definition, bitmask_type, show_negative)
+    pub fn new(reader: IntegerReader, bitmask_type: &str, show_negative: bool) -> SimpleResult<H2Type> {
+        Self::new_aligned(Alignment::None, reader, bitmask_type, show_negative)
     }
 
-    fn render(&self, as_u64: u64) -> SimpleResult<String> {
-        let out = from_bitmask_str(&self.bitmask_type, as_u64, self.show_negative)?;
+    fn render(&self, number: usize) -> SimpleResult<String> {
+        let out = from_bitmask_str(&self.bitmask_type, number, self.show_negative)?;
         Ok(out.join(" | "))
     }
 }
@@ -58,28 +57,25 @@ impl H2TypeTrait for H2Bitmask {
         true
     }
 
-    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
-        match self.definition.size() {
-            Some(v) => Ok(v as u64),
-            None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),
-        }
+    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+        Ok(self.reader.size() as u64)
     }
 
     fn to_display(&self, offset: Offset) -> SimpleResult<String> {
         match offset {
             Offset::Static(_) => Ok("Bitmask".to_string()),
             Offset::Dynamic(context) => {
-                self.render(self.definition.read(context)?.as_u64()?)
+                self.render(self.reader.read(context)?.as_usize()?)
             }
         }
     }
 
-    fn can_be_number(&self) -> bool {
+    fn can_be_integer(&self) -> bool {
         true
     }
 
-    fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
-        self.definition.read(offset.get_dynamic()?)
+    fn to_integer(&self, offset: Offset) -> SimpleResult<Integer> {
+        self.reader.read(offset.get_dynamic()?)
     }
 }
 
@@ -87,7 +83,7 @@ impl H2TypeTrait for H2Bitmask {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use generic_number::{Context, GenericReader, Endian};
+    use generic_number::{Context, IntegerReader, Endian};
     use pretty_assertions::assert_eq;
 
     #[test]
@@ -111,7 +107,7 @@ mod tests {
 
         for (o, show_negative, expected) in tests {
             let t = H2Bitmask::new(
-                GenericReader::U16(Endian::Big),
+                IntegerReader::U16(Endian::Big),
                 "TerrariaVisibility",
                 show_negative,
             )?;

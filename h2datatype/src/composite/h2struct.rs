@@ -60,8 +60,8 @@ impl H2TypeTrait for H2Struct {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
-    use generic_number::{Context, GenericReader, Endian, HexFormatter, OctalFormatter, DefaultFormatter};
-    use crate::simple::H2Number;
+    use generic_number::{Context, IntegerReader, Endian, HexFormatter, OctalFormatter, DefaultFormatter};
+    use crate::simple::numeric::{H2Integer, H2Character};
     use crate::simple::network::IPv4;
     use crate::composite::H2Array;
 
@@ -73,32 +73,32 @@ mod tests {
         let t = H2Struct::new(vec![
             (
                 "field_u32".to_string(),
-                H2Number::new(
-                    GenericReader::U32(Endian::Big),
-                    HexFormatter::pretty(),
+                H2Integer::new(
+                    IntegerReader::U32(Endian::Big),
+                    HexFormatter::pretty_integer(),
                 )
             ),
             (
                 "field_u16".to_string(),
-                H2Number::new_aligned(
+                H2Integer::new_aligned(
                     Alignment::Loose(3),
-                    GenericReader::U16(Endian::Big),
-                    HexFormatter::pretty(),
+                    IntegerReader::U16(Endian::Big),
+                    HexFormatter::pretty_integer(),
                 )
             ),
             (
                 "field_u8".to_string(),
-                H2Number::new_aligned(
+                H2Integer::new_aligned(
                     Alignment::Loose(4),
-                    GenericReader::U8,
-                    OctalFormatter::new(true, false),
+                    IntegerReader::U8,
+                    OctalFormatter::new_integer(true, false),
                 )
             ),
             (
                 "field_u32_little".to_string(),
-                H2Number::new(
-                    GenericReader::U32(Endian::Little),
-                    DefaultFormatter::new(),
+                H2Integer::new(
+                    IntegerReader::U32(Endian::Little),
+                    DefaultFormatter::new_integer(),
                 )
             ),
         ])?;
@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(15, t.aligned_size(offset)?);
         assert_eq!(0..15, t.actual_range(offset)?);
         assert_eq!(0..15, t.aligned_range(offset)?);
-        assert_eq!("{ field_u32: Number, field_u16: Number, field_u8: Number, field_u32_little: Number }", t.to_display(offset)?);
+        assert_eq!("{ field_u32: Integer, field_u16: Integer, field_u8: Integer, field_u32_little: Integer }", t.to_display(offset)?);
         assert_eq!(0, t.related(offset)?.len());
         assert_eq!(4, t.children(offset)?.len());
 
@@ -141,7 +141,7 @@ mod tests {
         assert_eq!(15, r.aligned_size());
         assert_eq!(0..15, r.actual_range);
         assert_eq!(0..15, r.aligned_range);
-        assert_eq!("{ field_u32: Number, field_u16: Number, field_u8: Number, field_u32_little: Number }", r.display);
+        assert_eq!("{ field_u32: Integer, field_u16: Integer, field_u8: Integer, field_u32_little: Integer }", r.display);
         assert_eq!(0, r.related.len());
         assert_eq!(4, r.children.len());
 
@@ -157,10 +157,10 @@ mod tests {
         let t = H2Struct::new(vec![
             (
                 "hex".to_string(),
-                H2Number::new_aligned(
+                H2Integer::new_aligned(
                     Alignment::Loose(4),
-                    GenericReader::U16(Endian::Big),
-                    HexFormatter::pretty(),
+                    IntegerReader::U16(Endian::Big),
+                    HexFormatter::pretty_integer(),
                 )
             ),
             (
@@ -168,23 +168,23 @@ mod tests {
                 H2Struct::new(vec![
                     (
                         "A".to_string(),
-                        H2Number::new(
-                            GenericReader::U8,
-                            HexFormatter::pretty(),
+                        H2Integer::new(
+                            IntegerReader::U8,
+                            HexFormatter::pretty_integer(),
                         )
                     ),
                     (
                         "B".to_string(),
-                        H2Number::new(
-                            GenericReader::U8,
-                            HexFormatter::pretty(),
+                        H2Integer::new(
+                            IntegerReader::U8,
+                            HexFormatter::pretty_integer(),
                         )
                     ),
                     (
                         "C".to_string(),
-                        H2Number::new(
-                            GenericReader::U16(Endian::Big),
-                            HexFormatter::pretty(),
+                        H2Integer::new(
+                            IntegerReader::U16(Endian::Big),
+                            HexFormatter::pretty_integer(),
                         )
                     ),
                     (
@@ -192,7 +192,7 @@ mod tests {
                         H2Array::new_aligned(
                             Alignment::Loose(8),
                             5,
-                            H2Number::new_ascii(),
+                            H2Character::new_ascii(),
                         )?,
                     )
                 ])?,

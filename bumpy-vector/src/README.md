@@ -1,4 +1,4 @@
-***Note: This file was automatically generated from lib.rs or mod.rs***
+***Note: This file was automatically generated from [bumpy-vector/src/lib.rs](/bumpy-vector/src/lib.rs)***
 
 A vector-like object where elements can be larger than one item.
 

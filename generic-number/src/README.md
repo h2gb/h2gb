@@ -1,20 +1,29 @@
-***Note: This file was automatically generated from lib.rs or mod.rs***
+***Note: This file was automatically generated from [generic-number/src/lib.rs](/generic-number/src/lib.rs)***
 
 A library for reading and formatting differently-sized integers and floats.
 
-The bulk of functionality is split into a couple parts:
+The bulk of functionality is split into three parts:
 
-* [`GenericReader`] - Reads any primitive type from a [`Context`]
-* [`GenericNumber`] - Represents any primitive type
-* [`GenericFormatter`] - Renders a [`GenericNumber`] with user-configurable options
+* Datatypes - [`Integer`], [`Float`], and [`Character`], which represent
+  datatypes and implement traits similar to the datatypes they represent
 
-Both [`GenericNumber`] and [`GenericFormatter`] are serializable, which is
-what makes it really useful for h2gb!
+* Readers - [`IntegerReader`], [`FloatReader`], and [`CharacterReader`],
+  which make it easy to read any of the native types out of a [`Context`]
+
+* Renderers - [`IntegerRenderer`], [`FloatRenderer`], and
+  [`CharacterRenderer`], which define how something is rendered. They are
+  not instantiated directly, but through the variety of
+  [formatters](/generic-number/src/generic_formatter/).
 
 ## Usage
 
-To use, you typically read a value from a buffer using a [`GenericReader`],
-then display it using a [`GenericFormatter`]:
+To use, you typically want to:
+
+* Create a [`Context`]
+* Read a datatype (Integer / Float / Character) using one of the readers
+* Render it using one of the renderers
+
+Here's an example:
 
 ```rust
 use generic_number::*;
@@ -27,7 +36,7 @@ let context = Context::new_at(&buffer, 0);
 
 // Create a reader that knows how to read a U32 big endian value - this
 // reader can be serialized and used later!
-let reader = GenericReader::U32(Endian::Big);
+let reader = IntegerReader::U32(Endian::Big);
 
 // Read from the context into a generic number - this number can be
 // serialized and used later!
@@ -35,11 +44,11 @@ let number = reader.read(context).unwrap();
 
 // Display it using different formatters (these use the pretty defaults) -
 // these formatters can also be serialized!
-assert_eq!("0x01234567",                         HexFormatter::pretty().render(number).unwrap());
-assert_eq!("19088743",                           DefaultFormatter::new().render(number).unwrap());
-assert_eq!("0o110642547",                        OctalFormatter::pretty().render(number).unwrap());
-assert_eq!("0b00000001001000110100010101100111", BinaryFormatter::pretty().render(number).unwrap());
-assert_eq!("1.9088743e7",                        ScientificFormatter::pretty().render(number).unwrap());
+assert_eq!("0x01234567",                         HexFormatter::pretty_integer().render(number));
+assert_eq!("19088743",                           DefaultFormatter::new_integer().render(number));
+assert_eq!("0o110642547",                        OctalFormatter::pretty_integer().render(number));
+assert_eq!("0b00000001001000110100010101100111", BinaryFormatter::pretty_integer().render(number));
+assert_eq!("1.9088743e7",                        ScientificFormatter::pretty_integer().render(number));
 ```
 
 License: MIT

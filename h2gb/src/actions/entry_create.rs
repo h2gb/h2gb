@@ -2,8 +2,9 @@ use redo::Command;
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use crate::actions::Action;
 use h2datatype::{H2Type, ResolvedType};
+
+use crate::actions::Action;
 use crate::project::H2Project;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -111,9 +112,10 @@ mod tests {
 
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
-    use h2datatype::simple::H2Number;
-    use h2datatype::composite::string::LPString;
-    use generic_number::{GenericReader, Endian, DefaultFormatter};
+    use h2datatype::simple::numeric::H2Integer;
+    use h2datatype::simple::string::LPString;
+
+    use generic_number::{IntegerReader, CharacterReader, CharacterFormatter, Endian, DefaultFormatter};
 
     #[test]
     fn test_action_create_entry() -> SimpleResult<()> {
@@ -126,7 +128,7 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create a numeric type
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
         let resolved = record.target()
             .buffer_get_or_err("buffer")?
             .peek(&datatype, 0)?;
@@ -139,7 +141,7 @@ mod tests {
             .buffer_get_or_err("buffer")?
             .layer_get_or_err("default")?
             .entry_get(0)?.unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_number.unwrap().as_u64().unwrap());
+        assert_eq!(0x01020304, entry.resolved().as_integer.unwrap().as_usize().unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Retrieve it from the other side to make sure that works
@@ -147,13 +149,14 @@ mod tests {
             .buffer_get_or_err("buffer")?
             .layer_get_or_err("default")?
             .entry_get(3)?.unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_number.unwrap().as_u64().unwrap());
+        assert_eq!(0x01020304, entry.resolved().as_integer.unwrap().as_usize().unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Create a string type
         let datatype = LPString::new(
-            H2Number::new(GenericReader::U8, DefaultFormatter::new()),
-            H2Number::new_ascii(),
+            IntegerReader::U8,
+            CharacterReader::ASCII,
+            CharacterFormatter::pretty_str_character(),
         )?;
         let resolved = record.target()
             .buffer_get_or_err("buffer")?
@@ -246,7 +249,7 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create an entry
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
 
         // Resolve it
         let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
@@ -296,18 +299,18 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default2"))?;
 
         // Create an entry
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
         let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
         let action = ActionEntryCreate::new("buffer", "default", resolved, None);
         record.apply(action)?;
 
         // Make sure we can't overlap it on the same layer
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
         let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, None)).is_err());
 
         // But we can on the other
-        let datatype = H2Number::new(GenericReader::U32(Endian::Big), DefaultFormatter::new());
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
         let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default2", resolved, None)).is_ok());
 

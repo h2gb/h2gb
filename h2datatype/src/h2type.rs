@@ -3,13 +3,14 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
 
-use generic_number::GenericNumber;
+use generic_number::{Integer, Float, Character};
 
 use crate::{H2TypeTrait, Offset, Alignment, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
+use crate::simple::numeric::*;
+use crate::simple::string::*;
 use crate::composite::*;
-use crate::composite::string::*;
 
 /// An enum used to multiplex between the various types.
 ///
@@ -17,13 +18,17 @@ use crate::composite::string::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum H2Types {
     // Simple
-    H2Number(H2Number),
-    H2Pointer(H2Pointer),
+    //H2Pointer(H2Pointer),
     Rgb(Rgb),
     H2Bitmask(H2Bitmask),
     H2Enum(H2Enum),
     H2UUID(H2UUID),
     H2Blob(H2Blob),
+
+    // Numeric
+    H2Character(H2Character),
+    H2Float(H2Float),
+    H2Integer(H2Integer),
 
     // Network
     IPv4(IPv4),
@@ -31,14 +36,15 @@ pub enum H2Types {
     MacAddress(MacAddress),
     MacAddress8(MacAddress8),
 
-    // Composite
-    H2Array(H2Array),
-    H2Struct(H2Struct),
-
     // Strings
     H2String(H2String),
     NTString(NTString),
     LPString(LPString),
+
+    // Composite
+    H2Array(H2Array),
+    H2Struct(H2Struct),
+
 }
 
 /// The core of this crate - defines any type of value abstractly.
@@ -74,13 +80,17 @@ impl H2Type {
     fn field_type(&self) -> &dyn H2TypeTrait {
         match &self.field {
             // Simple
-            H2Types::H2Number(t)  => t,
-            H2Types::H2Pointer(t) => t,
+            //H2Types::H2Pointer(t) => t,
             H2Types::Rgb(t)       => t,
             H2Types::H2Bitmask(t) => t,
             H2Types::H2Enum(t)    => t,
             H2Types::H2UUID(t)    => t,
             H2Types::H2Blob(t)    => t,
+
+            // Numeric
+            H2Types::H2Float(t)     => t,
+            H2Types::H2Character(t) => t,
+            H2Types::H2Integer(t)   => t,
 
             // Network
             H2Types::IPv4(t)        => t,
@@ -157,16 +167,6 @@ impl H2Type {
         self.field_type().to_display(offset)
     }
 
-    /// Can this value represent a [`char`]?
-    pub fn can_be_char(&self) -> bool {
-        self.field_type().can_be_char()
-    }
-
-    /// Try to convert to a [`char`].
-    pub fn to_char(&self, offset: Offset) -> SimpleResult<char> {
-        self.field_type().to_char(offset)
-    }
-
     /// Can this value represent a [`String`]?
     pub fn can_be_string(&self) -> bool {
         self.field_type().can_be_string()
@@ -177,13 +177,27 @@ impl H2Type {
         self.field_type().to_string(offset)
     }
 
-    /// Can this value represent a [`GenericNumber`]?
-    pub fn can_be_number(&self) -> bool {
-        self.field_type().can_be_number()
+    pub fn can_be_integer(&self) -> bool {
+        self.field_type().can_be_integer()
     }
 
-    /// Try to convert to a [`GenericNumber`]?
-    pub fn to_number(&self, offset: Offset) -> SimpleResult<GenericNumber> {
-        self.field_type().to_number(offset)
+    pub fn to_integer(&self, offset: Offset) -> SimpleResult<Integer> {
+        self.field_type().to_integer(offset)
+    }
+
+    pub fn can_be_float(&self) -> bool {
+        self.field_type().can_be_float()
+    }
+
+    pub fn to_float(&self, offset: Offset) -> SimpleResult<Float> {
+        self.field_type().to_float(offset)
+    }
+
+    pub fn can_be_character(&self) -> bool {
+        self.field_type().can_be_character()
+    }
+
+    pub fn to_character(&self, offset: Offset) -> SimpleResult<Character> {
+        self.field_type().to_character(offset)
     }
 }

@@ -1,20 +1,19 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 
-/// Render a [`GenericNumber`] as an octal value.
+/// Render an [`Integer`] as an octal value.
 ///
 /// # Example
 ///
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a GenericReader
-/// let number = GenericNumber::from(32u8);
+/// // Create an Integer directly - normally you'd use a [`IntegerReader`]
+/// let number = Integer::from(32u8);
 ///
 /// // Default 'pretty' formatter
-/// assert_eq!("0o40", OctalFormatter::pretty().render(number).unwrap());
+/// assert_eq!("0o40", OctalFormatter::pretty_integer().render(number));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct OctalFormatter {
@@ -26,54 +25,46 @@ pub struct OctalFormatter {
 }
 
 impl OctalFormatter {
-    pub fn new(prefix: bool, padded: bool) -> GenericFormatter {
-        GenericFormatter::Octal(Self {
+    pub fn new_integer(prefix: bool, padded: bool) -> IntegerRenderer {
+        IntegerRenderer::Octal(Self {
             prefix: prefix,
             padded: padded,
         })
     }
 
-    pub fn pretty() -> GenericFormatter {
-        Self::new(true, false)
+    pub fn pretty_integer() -> IntegerRenderer {
+        Self::new_integer(true, false)
     }
 }
 
-impl GenericFormatterImpl for OctalFormatter {
-    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
-        let mut s = match (self.padded, number) {
-            (true, GenericNumber::U8(v))   => format!("{:03o}", v),
-            (true, GenericNumber::U16(v))  => format!("{:06o}", v),
-            (true, GenericNumber::U32(v))  => format!("{:011o}", v),
-            (true, GenericNumber::U64(v))  => format!("{:022o}", v),
-            (true, GenericNumber::U128(v)) => format!("{:043o}", v),
-            (true, GenericNumber::I8(v))   => format!("{:03o}", v),
-            (true, GenericNumber::I16(v))  => format!("{:06o}", v),
-            (true, GenericNumber::I32(v))  => format!("{:011o}", v),
-            (true, GenericNumber::I64(v))  => format!("{:022o}", v),
-            (true, GenericNumber::I128(v)) => format!("{:043o}", v),
+impl IntegerRendererTrait for OctalFormatter {
+    fn render_integer(&self, number: Integer) -> String {
+        if self.padded {
+            // There might be a mathy way to get this, but /shrug
+            let width = match number {
+                Integer::U8(_)   => 3,
+                Integer::U16(_)  => 6,
+                Integer::U32(_)  => 11,
+                Integer::U64(_)  => 22,
+                Integer::U128(_) => 43,
 
-            (false, GenericNumber::U8(v))   => format!("{:o}", v),
-            (false, GenericNumber::U16(v))  => format!("{:o}", v),
-            (false, GenericNumber::U32(v))  => format!("{:o}", v),
-            (false, GenericNumber::U64(v))  => format!("{:o}", v),
-            (false, GenericNumber::U128(v)) => format!("{:o}", v),
-            (false, GenericNumber::I8(v))   => format!("{:o}", v),
-            (false, GenericNumber::I16(v))  => format!("{:o}", v),
-            (false, GenericNumber::I32(v))  => format!("{:o}", v),
-            (false, GenericNumber::I64(v))  => format!("{:o}", v),
-            (false, GenericNumber::I128(v)) => format!("{:o}", v),
+                Integer::I8(_)   => 3,
+                Integer::I16(_)  => 6,
+                Integer::I32(_)  => 11,
+                Integer::I64(_)  => 22,
+                Integer::I128(_) => 43,
+            };
 
-            (_, GenericNumber::F32(_))      => bail!("Cannot display floating point as octal"),
-            (_, GenericNumber::F64(_))      => bail!("Cannot display floating point as octal"),
-            (_, GenericNumber::Char(_, _))  => bail!("Cannot display character as octal"),
-        };
-
-        // Do the prefix after for simplicity
-        if self.prefix {
-            s = format!("0o{}", s);
+            match self.prefix {
+                false => format!("{:0width$o}", number, width=width),
+                true  => format!("{:#0width$o}", number, width=(width+2)),
+            }
+        } else {
+            match self.prefix {
+                false => format!("{:o}", number),
+                true  => format!("{:#o}", number),
+            }
         }
-
-        Ok(s)
     }
 }
 
@@ -84,7 +75,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::{Context, Endian, GenericReader};
+    use crate::{Context, Endian, IntegerReader};
 
     #[test]
     fn test_octal_u8() -> SimpleResult<()> {
@@ -118,11 +109,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U8.read(context)?;
+            let number = IntegerReader::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 
@@ -157,11 +148,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U16(Endian::Big).read(context)?;
+            let number = IntegerReader::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 
@@ -196,11 +187,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U32(Endian::Big).read(context)?;
+            let number = IntegerReader::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 
@@ -232,11 +223,11 @@ mod tests {
 
         for (index, prefix, padded, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U64(Endian::Big).read(context)?;
+            let number = IntegerReader::U64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                OctalFormatter::new(prefix, padded).render(number)?,
+                OctalFormatter::new_integer(prefix, padded).render(number),
             );
         }
 

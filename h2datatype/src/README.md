@@ -1,4 +1,4 @@
-***Note: This file was automatically generated from lib.rs or mod.rs***
+***Note: This file was automatically generated from [h2datatype/src/lib.rs](/h2datatype/src/lib.rs)***
 
 A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 
@@ -50,7 +50,7 @@ so on, for as long as you like.
 
 #### String types
 
-A string type, which are defined in [`composite::string`], are a special
+A string type, which are defined in [`simple::string`], are a special
 composite type. They're really just arrays of a value that can consume a
 character type in some way to become a String.
 
@@ -76,8 +76,9 @@ and will be padded to end on 4, 8, 12, ...
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
+use h2datatype::simple::string::*;
 use h2datatype::composite::*;
-use h2datatype::composite::string::*;
 use generic_number::*;
 
 // This is our buffer
@@ -87,7 +88,7 @@ let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create the abstract type - this is an H2Type
-let t = H2Number::new(GenericReader::I16(Endian::Big), DefaultFormatter::new());
+let t = H2Integer::new(IntegerReader::I16(Endian::Big), DefaultFormatter::new_integer());
 
 // It takes up two bytes of memory, including aligned (it's not aligned)
 assert_eq!(2, t.actual_size(offset).unwrap());
@@ -105,8 +106,9 @@ assert_eq!("-1",     t.to_display(offset.at(6)).unwrap());
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
+use h2datatype::simple::string::*;
 use h2datatype::composite::*;
-use h2datatype::composite::string::*;
 use generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
@@ -116,9 +118,9 @@ let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create the abstract type - this is an H2Type
-let t = H2Number::new_aligned(
-  Alignment::Loose(4), GenericReader::U16(Endian::Big),
-  HexFormatter::pretty(),
+let t = H2Integer::new_aligned(
+  Alignment::Loose(4), IntegerReader::U16(Endian::Big),
+  HexFormatter::pretty_integer(),
 );
 
 // It takes up two bytes of memory normally...
@@ -139,8 +141,9 @@ assert_eq!("0xffff", t.to_display(offset.at(12)).unwrap());
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
+use h2datatype::simple::string::*;
 use h2datatype::composite::*;
-use h2datatype::composite::string::*;
 use generic_number::*;
 
 // This is our buffer - the PP represents padding for alignment
@@ -150,9 +153,9 @@ let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
 let offset = Offset::Dynamic(Context::new(&data));
 
 // Create an array of 4 elements, each of which is padded to 4 bytes
-let t = H2Array::new(4, H2Number::new_aligned(
-  Alignment::Loose(4), GenericReader::U16(Endian::Big),
-  HexFormatter::pretty(),
+let t = H2Array::new(4, H2Integer::new_aligned(
+  Alignment::Loose(4), IntegerReader::U16(Endian::Big),
+  HexFormatter::pretty_integer(),
 )).unwrap();
 
 // The array takes up 16 bytes of memory, aligned and not
@@ -171,8 +174,9 @@ sized elements, like length-prefixed strings.
 ```rust
 use h2datatype::*;
 use h2datatype::simple::*;
+use h2datatype::simple::numeric::*;
+use h2datatype::simple::string::*;
 use h2datatype::composite::*;
-use h2datatype::composite::string::*;
 use generic_number::*;
 
 // This is our buffer - three strings with a one-byte length prefix
@@ -184,11 +188,14 @@ let offset = Offset::Dynamic(Context::new(&data));
 // Create an array of 3 elements, each of which is an LPString with a one-
 // byte length
 let t = H2Array::new(3, LPString::new(
-  // The length field is an 8-bit unsigned integer
-  H2Number::new(GenericReader::U8, HexFormatter::pretty()),
+  // The length field is read by an IntegerReader, and is 8-bits
+  IntegerReader::U8,
 
-  // The character type is also a number, but this time ASCII
-  H2Number::new_ascii(),
+  // The character type is read by a CharacterReader
+  CharacterReader::ASCII,
+
+  // How to render the characters
+  CharacterFormatter::pretty_str_character(),
 ).unwrap()).unwrap();
 
 // The array takes up 12 bytes of memory, all-in
@@ -197,19 +204,5 @@ assert_eq!(12, t.actual_size(offset).unwrap());
 // Even though it takes up the extra space, the values don't change
 assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset).unwrap());
 ```
-## Things left to do
-
-Things I want to add:
-
-* Parse out structs and such from a C file
-* Make sure I'm not converting u64 to usize
-* Do I need H2Pointer at all?
-* If an array is static, simplify the size
-* Maybe split out characters again?
-
-Types needed:
-* DNS name
-* Type/length/value
-* x86 / x64 / other assembly languages
 
 License: MIT

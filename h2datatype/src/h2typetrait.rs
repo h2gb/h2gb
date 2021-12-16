@@ -2,7 +2,7 @@ use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
 use crate::{Alignment, Offset, ResolvedType, H2Type};
-use generic_number::GenericNumber;
+use generic_number::{Integer, Float, Character};
 
 /// The core trait that makes a type into a type. All types must implement this.
 ///
@@ -152,24 +152,11 @@ pub trait H2TypeTrait {
             related: self.related(offset)?,
 
             as_string: self.to_string(offset).ok(),
-            as_number: self.to_number(offset).ok(),
+
+            as_integer: self.to_integer(offset).ok(),
+            as_float: self.to_float(offset).ok(),
+            as_character: self.to_character(offset).ok(),
         })
-    }
-
-    /// Can this type output a [`char`] (in general)?
-    ///
-    /// This doesn't have to be perfect, but it helps create errors early if
-    /// a developer tries to use it to make a string or something.
-    fn can_be_char(&self) -> bool {
-        false
-    }
-
-    /// Convert to a [`char`], if it's sensible for this type.
-    ///
-    /// Types that can become a [`char`] can be used as part of one of the
-    /// various [`crate::composite::string`] types.
-    fn to_char(&self, offset: Offset) -> SimpleResult<char> {
-        self.to_number(offset)?.as_char()
     }
 
     /// Can this type output a [`String`] (in general)?
@@ -184,18 +171,27 @@ pub trait H2TypeTrait {
         bail!("This type cannot be converted to a string");
     }
 
-    /// Can this type output a [`GenericNumber`] (in general)?
-    fn can_be_number(&self) -> bool {
+    fn can_be_integer(&self) -> bool {
         false
     }
 
-    fn can_be_u64(&self) -> bool {
+    fn to_integer(&self, _offset: Offset) -> SimpleResult<Integer> {
+        bail!("This type cannot be converted to an integer");
+    }
+
+    fn can_be_float(&self) -> bool {
         false
     }
 
-    /// Convert to a [`GenericNumber`]. This lets the type represent any
-    /// fixed-length primitive type, basically.
-    fn to_number(&self, _offset: Offset) -> SimpleResult<GenericNumber> {
-        bail!("This type cannot be converted to a number");
+    fn to_float(&self, _offset: Offset) -> SimpleResult<Float> {
+        bail!("This type cannot be converted to a float");
+    }
+
+    fn can_be_character(&self) -> bool {
+        false
+    }
+
+    fn to_character(&self, _offset: Offset) -> SimpleResult<Character> {
+        bail!("This type cannot be converted to a character");
     }
 }

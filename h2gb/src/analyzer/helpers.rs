@@ -1,6 +1,7 @@
 use redo::Record;
 use simple_error::{SimpleResult, SimpleError, bail};
 
+use generic_number::Integer;
 use h2datatype::{H2Type, ResolvedType};
 
 use crate::actions::*;
@@ -42,14 +43,14 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
 
 /// This is a helper function that creates a record, then returns it as a simple
 /// u64 - I found myself doing this a lot.
-pub fn create_entry_u64(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<u64> {
-    if !datatype.can_be_number() {
+pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<Integer> {
+    if !datatype.can_be_integer() {
         bail!("Attempting to create a numeric entry from a non-numeric datatype");
     }
 
-    create_entry(record, buffer, layer, datatype, offset, comment)?.as_number.ok_or(
+    create_entry(record, buffer, layer, datatype, offset, comment)?.as_integer.ok_or(
         SimpleError::new("Could not create entry as a u64 value")
-    )?.as_u64().map_err( |e| SimpleError::new(format!("Could not interpret entry as a u64: {:?}", e)))
+    ).map_err( |e| SimpleError::new(format!("Could not interpret entry as an integer: {:?}", e)))
 }
 
 /// This is a helper function that creates a record, then returns it as a simple

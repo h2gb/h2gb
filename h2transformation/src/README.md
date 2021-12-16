@@ -1,4 +1,4 @@
-***Note: This file was automatically generated from lib.rs or mod.rs***
+***Note: This file was automatically generated from [h2transformation/src/lib.rs](/h2transformation/src/lib.rs)***
 
 A library for transforming raw data between encodings.
 

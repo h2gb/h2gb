@@ -8,5 +8,3 @@ pub use h2array::*;
 
 mod h2struct;
 pub use h2struct::*;
-
-pub mod string;

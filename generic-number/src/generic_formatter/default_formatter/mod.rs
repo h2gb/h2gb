@@ -1,66 +1,61 @@
 use serde::{Serialize, Deserialize};
-use simple_error::SimpleResult;
 
-use crate::{GenericNumber, GenericFormatter, GenericFormatterImpl};
+use crate::{Integer, IntegerRenderer, IntegerRendererTrait, Float, FloatRenderer, FloatRendererTrait, Character, CharacterRenderer, CharacterRendererTrait};
 
-/// Render a [`GenericNumber`] as whatever the default for the datatype is.
+/// Render a [`Integer`], [`Character`], or [`Float`] as whatever the default is.
 ///
 /// # Example
 ///
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a GenericNumber directly - normally you'd use a GenericReader
-/// let number = GenericNumber::from(1234u32);
+/// // Create a Integer directly - normally you'd use a IntegerReader
+/// let number = Integer::from(1234u32);
 ///
 /// // DefaultFormatter has no special options
-/// assert_eq!("1234", DefaultFormatter::new().render(number).unwrap());
+/// assert_eq!("1234", DefaultFormatter::new_integer().render(number));
 ///
-/// // Also handles signed values correctly, using the GenericNumber's type
-/// let number = GenericNumber::from(-1234i32);
-/// assert_eq!("-1234", DefaultFormatter::new().render(number).unwrap());
+/// // Also handles signed values correctly, using the Integer's type
+/// let number = Integer::from(-1234i32);
+/// assert_eq!("-1234", DefaultFormatter::new_integer().render(number));
 ///
 /// // Handles floating point correctly, as well
-/// let number = GenericNumber::from(314.159f32);
-/// assert_eq!("314.159", DefaultFormatter::new().render(number).unwrap());
+/// let number = Float::from(314.159f32);
+/// assert_eq!("314.159", DefaultFormatter::new_float().render(number));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct DefaultFormatter {
 }
 
 impl DefaultFormatter {
-    pub fn new() -> GenericFormatter {
-        GenericFormatter::Default(Self { })
+    pub fn new_integer() -> IntegerRenderer {
+        IntegerRenderer::Default(Self { })
+    }
+
+    pub fn new_float() -> FloatRenderer {
+        FloatRenderer::Default(Self { })
+    }
+
+    pub fn new_character() -> CharacterRenderer {
+        CharacterRenderer::Default(Self { })
     }
 }
 
-impl Default for DefaultFormatter {
-    fn default() -> Self {
-        Self {
-        }
+impl IntegerRendererTrait for DefaultFormatter {
+    fn render_integer(&self, number: Integer) -> String {
+        format!("{}", number)
     }
 }
 
-impl GenericFormatterImpl for DefaultFormatter {
-    fn render(&self, number: GenericNumber) -> SimpleResult<String> {
-        match number {
-            GenericNumber::U8(v)      => Ok(format!("{}", v)),
-            GenericNumber::U16(v)     => Ok(format!("{}", v)),
-            GenericNumber::U32(v)     => Ok(format!("{}", v)),
-            GenericNumber::U64(v)     => Ok(format!("{}", v)),
-            GenericNumber::U128(v)    => Ok(format!("{}", v)),
+impl FloatRendererTrait for DefaultFormatter {
+    fn render_float(&self, number: Float) -> String {
+        format!("{}", number)
+    }
+}
 
-            GenericNumber::I8(v)      => Ok(format!("{}", v)),
-            GenericNumber::I16(v)     => Ok(format!("{}", v)),
-            GenericNumber::I32(v)     => Ok(format!("{}", v)),
-            GenericNumber::I64(v)     => Ok(format!("{}", v)),
-            GenericNumber::I128(v)    => Ok(format!("{}", v)),
-
-            GenericNumber::F32(v)     => Ok(format!("{}", v)),
-            GenericNumber::F64(v)     => Ok(format!("{}", v)),
-
-            GenericNumber::Char(v, _) => Ok(format!("{}", v)),
-        }
+impl CharacterRendererTrait for DefaultFormatter {
+    fn render_character(&self, number: Character) -> String {
+        format!("{}", number)
     }
 }
 
@@ -71,7 +66,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
-    use crate::{Context, Endian, GenericReader};
+    use crate::{Context, Endian, IntegerReader, FloatReader};
 
     #[test]
     fn test_default_u8() -> SimpleResult<()> {
@@ -87,11 +82,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U8.read(context)?;
+            let number = IntegerReader::U8.read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -112,11 +107,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::I8.read(context)?;
+            let number = IntegerReader::I8.read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -137,11 +132,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U16(Endian::Big).read(context)?;
+            let number = IntegerReader::U16(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -162,11 +157,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U32(Endian::Big).read(context)?;
+            let number = IntegerReader::U32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -187,11 +182,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::I32(Endian::Big).read(context)?;
+            let number = IntegerReader::I32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -212,11 +207,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::I64(Endian::Big).read(context)?;
+            let number = IntegerReader::I64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -235,11 +230,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::U128(Endian::Big).read(context)?;
+            let number = IntegerReader::U128(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -258,11 +253,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::I128(Endian::Big).read(context)?;
+            let number = IntegerReader::I128(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_integer().render(number),
             );
         }
 
@@ -283,11 +278,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::F32(Endian::Big).read(context)?;
+            let number = FloatReader::F32(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_float().render(number),
             );
         }
 
@@ -307,11 +302,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::F64(Endian::Big).read(context)?;
+            let number = FloatReader::F64(Endian::Big).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_float().render(number),
             );
         }
 
@@ -331,11 +326,11 @@ mod tests {
 
         for (index, expected) in tests {
             let context = Context::new_at(&data, index);
-            let number = GenericReader::F64(Endian::Little).read(context)?;
+            let number = FloatReader::F64(Endian::Little).read(context)?;
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new().render(number)?,
+                DefaultFormatter::new_float().render(number),
             );
         }
 
