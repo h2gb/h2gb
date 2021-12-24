@@ -12,22 +12,14 @@ are somewhat arbitrary, the essential difference is that simple types are
 fundamental building blocks, and composite types are made up of simple types
 (and other composite types).
 
-An [`H2Type`] is somewhat abstract: it defines what the type is, how to
-calculate its size, how to convert it to a string, and so on. To calculate
-any of those, an [`Offset`] is required. An [`Offset`] can either be
-abstract (a numeric offset value) or concrete (a buffer of bytes in the form
-of a [`generic_number::Context`]). Some types require a concrete
-buffer to do anything useful (for example, while the length of an IPv4 value
-doesn't change, the length of a UTF-8 character is based on the data).
-
-Pretty much all operations on an [`H2Type`] require an [`Offset`], but
-whether can work with a [`Offset::Static`] or [`Offset::Dynamic`] depends on
-the implementation.
+An [`H2Type`] takes a [`generic_number::Context`] and its associated
+readers, and uses it to build a more complex type. [`H2Type`] basically
+defines how to read a variable.
 
 ### Resolving
 
 An [`H2Type`] can also be *resolved*. It's resolved against a particular
-[`Offset`], and produces a [`ResolvedType`]. A [`ResolvedType`] has all the
+[`Context`], and produces a [`ResolvedType`]. A [`ResolvedType`] has all the
 same fields as a [`H2Type`], more or less, but they are now set in stone.
 They can be fetched instantly, and have no chance of returning an error or
 changing - the field has been resolved.
@@ -84,21 +76,21 @@ use generic_number::*;
 // This is our buffer
 let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
 
-// Create a dynamic offset (dynamic means it's linked to the actual data)
-let offset = Offset::Dynamic(Context::new(&data));
+// Create a context at the start of the data
+let context = Context::new(&data);
 
 // Create the abstract type - this is an H2Type
 let t = H2Integer::new(IntegerReader::I16(Endian::Big), DefaultFormatter::new_integer());
 
 // It takes up two bytes of memory, including aligned (it's not aligned)
-assert_eq!(2, t.actual_size(offset).unwrap());
-assert_eq!(2, t.aligned_size(offset).unwrap());
+assert_eq!(2, t.actual_size(context).unwrap());
+assert_eq!(2, t.aligned_size(context).unwrap());
 
 // Read the values at 0, 2, 4, and 8 bytes into the buffer
-assert_eq!("0",      t.to_display(offset.at(0)).unwrap());
-assert_eq!("32767",  t.to_display(offset.at(2)).unwrap());
-assert_eq!("-32768", t.to_display(offset.at(4)).unwrap());
-assert_eq!("-1",     t.to_display(offset.at(6)).unwrap());
+assert_eq!("0",      t.to_display(context.at(0)).unwrap());
+assert_eq!("32767",  t.to_display(context.at(2)).unwrap());
+assert_eq!("-32768", t.to_display(context.at(4)).unwrap());
+assert_eq!("-1",     t.to_display(context.at(6)).unwrap());
 ```
 
 ### Alignment
@@ -114,8 +106,8 @@ use generic_number::*;
 // This is our buffer - the PP represents padding for alignment
 let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
 
-// Create a dynamic offset (dynamic means it's linked to the actual data)
-let offset = Offset::Dynamic(Context::new(&data));
+// Create a context
+let context = Context::new(&data);
 
 // Create the abstract type - this is an H2Type
 let t = H2Integer::new_aligned(
@@ -124,16 +116,16 @@ let t = H2Integer::new_aligned(
 );
 
 // It takes up two bytes of memory normally...
-assert_eq!(2, t.actual_size(offset).unwrap());
+assert_eq!(2, t.actual_size(context).unwrap());
 
 // ...but 4 bytes when aligned
-assert_eq!(4, t.aligned_size(offset).unwrap());
+assert_eq!(4, t.aligned_size(context).unwrap());
 
 // Even though it takes up the extra space, the values don't change
-assert_eq!("0x0000", t.to_display(offset.at(0)).unwrap());
-assert_eq!("0x7fff", t.to_display(offset.at(4)).unwrap());
-assert_eq!("0x8000", t.to_display(offset.at(8)).unwrap());
-assert_eq!("0xffff", t.to_display(offset.at(12)).unwrap());
+assert_eq!("0x0000", t.to_display(context.at(0)).unwrap());
+assert_eq!("0x7fff", t.to_display(context.at(4)).unwrap());
+assert_eq!("0x8000", t.to_display(context.at(8)).unwrap());
+assert_eq!("0xffff", t.to_display(context.at(12)).unwrap());
 ```
 
 ### Composite types
@@ -149,8 +141,8 @@ use generic_number::*;
 // This is our buffer - the PP represents padding for alignment
 let data = b"\x00\x00PP\x7f\xffPP\x80\x00PP\xff\xffPP".to_vec();
 
-// Create a dynamic offset (dynamic means it's linked to the actual data)
-let offset = Offset::Dynamic(Context::new(&data));
+// Create a context
+let context = Context::new(&data);
 
 // Create an array of 4 elements, each of which is padded to 4 bytes
 let t = H2Array::new(4, H2Integer::new_aligned(
@@ -159,11 +151,11 @@ let t = H2Array::new(4, H2Integer::new_aligned(
 )).unwrap();
 
 // The array takes up 16 bytes of memory, aligned and not
-assert_eq!(16, t.actual_size(offset).unwrap());
-assert_eq!(16, t.aligned_size(offset).unwrap());
+assert_eq!(16, t.actual_size(context).unwrap());
+assert_eq!(16, t.aligned_size(context).unwrap());
 
 // Even though it takes up the extra space, the values don't change
-assert_eq!("[ 0x0000, 0x7fff, 0x8000, 0xffff ]", t.to_display(offset.at(0)).unwrap());
+assert_eq!("[ 0x0000, 0x7fff, 0x8000, 0xffff ]", t.to_display(context.at(0)).unwrap());
 ```
 
 ### Dynamic array
@@ -182,8 +174,8 @@ use generic_number::*;
 // This is our buffer - three strings with a one-byte length prefix
 let data = b"\x02hi\x03bye\x04test".to_vec();
 
-// Create a dynamic offset (dynamic means it's linked to the actual data)
-let offset = Offset::Dynamic(Context::new(&data));
+// Create a context
+let context = Context::new(&data);
 
 // Create an array of 3 elements, each of which is an LPString with a one-
 // byte length
@@ -199,10 +191,10 @@ let t = H2Array::new(3, LPString::new(
 ).unwrap()).unwrap();
 
 // The array takes up 12 bytes of memory, all-in
-assert_eq!(12, t.actual_size(offset).unwrap());
+assert_eq!(12, t.actual_size(context).unwrap());
 
 // Even though it takes up the extra space, the values don't change
-assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset).unwrap());
+assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(context).unwrap());
 ```
 
 License: MIT

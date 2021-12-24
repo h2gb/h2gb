@@ -1,11 +1,10 @@
 use std::iter::FromIterator;
-
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult};
 
-use generic_number::{Character, CharacterReader, CharacterRenderer};
+use generic_number::{Context, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
+use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
 
 /// Defines a string with a configured length.
 ///
@@ -38,20 +37,20 @@ impl H2String {
     }
 
 
-    fn analyze(&self, offset: Offset) -> SimpleResult<(u64, Vec<Character>)> {
-        let mut position = offset.position();
+    fn analyze(&self, context: Context) -> SimpleResult<(u64, Vec<Character>)> {
+        let mut position = context.position();
         let mut result = Vec::new();
 
         for _ in 0..self.length {
-            let this_offset = offset.at(position);
+            let this_context = context.at(position);
 
-            let this_character = self.character.read(this_offset.get_dynamic()?)?;
+            let this_character = self.character.read(this_context)?;
 
             result.push(this_character);
             position = position + this_character.size() as u64;
         }
 
-        Ok((position - offset.position(), result))
+        Ok((position - context.position(), result))
     }
 }
 
@@ -60,10 +59,10 @@ impl H2TypeTrait for H2String {
         self.character.size().is_some()
     }
 
-    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
+    fn actual_size(&self, context: Context) -> SimpleResult<u64> {
         match self.character.size() {
             Some(s) => Ok(s as u64 * self.length),
-            None => Ok(self.analyze(offset)?.0),
+            None => Ok(self.analyze(context)?.0),
         }
     }
 
@@ -71,16 +70,16 @@ impl H2TypeTrait for H2String {
         true
     }
 
-    fn to_string(&self, offset: Offset) -> SimpleResult<String> {
+    fn to_string(&self, context: Context) -> SimpleResult<String> {
         // Get the length so we can truncate
-        let (_, chars) = self.analyze(offset)?;
+        let (_, chars) = self.analyze(context)?;
 
         // Convert into a string
         Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        Ok(format!("\"{}\"", self.to_string(offset)?))
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        Ok(format!("\"{}\"", self.to_string(context)?))
     }
 }
 
@@ -96,10 +95,10 @@ mod tests {
     fn test_utf8_lstring() -> SimpleResult<()> {
         //             --  --  ----------  ----------  --------------  --------------  ------
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         let a = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
-        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
+        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context)?);
 
         Ok(())
     }
@@ -114,10 +113,10 @@ mod tests {
     #[test]
     fn test_too_long_lstring() -> SimpleResult<()> {
         let data = b"A".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         let a = H2String::new(2, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
-        assert!(a.to_display(offset).is_err());
+        assert!(a.to_display(context).is_err());
 
         Ok(())
     }
@@ -126,10 +125,10 @@ mod tests {
     fn test_utf8_to_array() -> SimpleResult<()> {
         //             --  --  ----------  ----------  --------------  --------------  ------
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         let a: H2Type = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
-        let resolved = a.resolve(offset, None)?;
+        let resolved = a.resolve(context, None)?;
 
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
 
@@ -139,12 +138,12 @@ mod tests {
     #[test]
     fn test_starting_non_zero_offset() -> SimpleResult<()> {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?)?;
 
-        assert_eq!(16, t.actual_size(offset).unwrap());
-        assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(offset).unwrap());
+        assert_eq!(16, t.actual_size(context).unwrap());
+        assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(context).unwrap());
 
         Ok(())
     }
@@ -152,10 +151,10 @@ mod tests {
     #[test]
     fn test_character_renderer() -> SimpleResult<()> {
         let data = b"\x41\x10\x09".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
-        assert_eq!("\"A\\x10\\t\"", a.to_display(offset)?);
+        assert_eq!("\"A\\x10\\t\"", a.to_display(context)?);
 
         let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::new_character(
                 false, // show_single_quotes
@@ -163,7 +162,7 @@ mod tests {
                 CharacterUnprintableOption::URLEncode,
 
         ))?;
-        assert_eq!("\"%41%10%09\"", a.to_display(offset)?);
+        assert_eq!("\"%41%10%09\"", a.to_display(context)?);
 
         Ok(())
     }

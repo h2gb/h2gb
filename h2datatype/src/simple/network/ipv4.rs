@@ -1,10 +1,10 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use generic_number::Endian;
+use generic_number::{Context, Endian};
 use std::net::Ipv4Addr;
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines an IPv4 address.
 ///
@@ -32,19 +32,14 @@ impl H2TypeTrait for IPv4 {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(4)
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("IPv4 Address".to_string()),
-            Offset::Dynamic(context) => {
-                let number = context.read_u32(self.endian)?;
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        let number = context.read_u32(self.endian)?;
 
-                Ok(Ipv4Addr::from(number).to_string())
-            }
-        }
+        Ok(Ipv4Addr::from(number).to_string())
     }
 }
 
@@ -57,9 +52,9 @@ mod tests {
     #[test]
     fn test_ipv4() -> SimpleResult<()> {
         let data = b"\x7f\x00\x00\x01".to_vec();
-        let d_offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
-        assert_eq!("127.0.0.1", IPv4::new(Endian::Big).to_display(d_offset)?);
+        assert_eq!("127.0.0.1", IPv4::new(Endian::Big).to_display(context)?);
 
         Ok(())
     }
@@ -67,9 +62,9 @@ mod tests {
     #[test]
     fn test_ipv4_little() -> SimpleResult<()> {
         let data = b"\x01\x02\x02\x04".to_vec();
-        let d_offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
-        assert_eq!("4.2.2.1", IPv4::new(Endian::Little).to_display(d_offset)?);
+        assert_eq!("4.2.2.1", IPv4::new(Endian::Little).to_display(context)?);
 
         Ok(())
     }
@@ -77,9 +72,9 @@ mod tests {
     #[test]
     fn test_ipv4_error() -> SimpleResult<()> {
         let data = b"\x7f\x00\x00".to_vec();
-        let d_offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
-        assert!(IPv4::new(Endian::Big).to_display(d_offset).is_err());
+        assert!(IPv4::new(Endian::Big).to_display(context).is_err());
 
         Ok(())
     }

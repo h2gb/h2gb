@@ -1,9 +1,10 @@
-use serde::{Serialize, Deserialize};
-
 use macaddr::MacAddr6;
+use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use generic_number::Context;
+
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a MAC address in EUI-48 format.
 ///
@@ -28,27 +29,22 @@ impl H2TypeTrait for MacAddress {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(6)
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("MAC Address".to_string()),
-            Offset::Dynamic(context) => {
-                let b = context.read_bytes(6)?;
-                let b: [u8; 6] = [
-                    b[0],
-                    b[1],
-                    b[2],
-                    b[3],
-                    b[4],
-                    b[5],
-                ];
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        let b = context.read_bytes(6)?;
+        let b: [u8; 6] = [
+            b[0],
+            b[1],
+            b[2],
+            b[3],
+            b[4],
+            b[5],
+        ];
 
-                Ok(MacAddr6::from(b).to_string())
-            }
-        }
+        Ok(MacAddr6::from(b).to_string())
     }
 }
 
@@ -61,9 +57,9 @@ mod tests {
     #[test]
     fn test_mac() -> SimpleResult<()> {
         let data = b"\x01\x23\x45\x67\x89\xab".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
-        assert_eq!("01:23:45:67:89:AB", MacAddress::new().to_display(offset)?);
+        assert_eq!("01:23:45:67:89:AB", MacAddress::new().to_display(context)?);
 
         Ok(())
     }

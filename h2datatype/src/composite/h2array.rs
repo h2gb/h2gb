@@ -1,8 +1,9 @@
 use serde::{Serialize, Deserialize};
-
 use simple_error::{bail, SimpleResult};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use generic_number::Context;
+
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines an array of values.
 ///
@@ -42,18 +43,18 @@ impl H2TypeTrait for H2Array {
         self.field_type.is_static()
     }
 
-    fn children(&self, _offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
+    fn children(&self, _context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
         // Just clone the child type over and over
         Ok((0..self.length).into_iter().map(|_index| {
             (None, self.field_type.as_ref().clone())
         }).collect())
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
         // Because the collect() expects a result, this will end and bubble
         // up errors automatically!
-        let strings: Vec<String> = self.children_with_range(offset)?.iter().map(|(range, _name, child)| {
-            child.to_display(offset.at(range.start))
+        let strings: Vec<String> = self.children_with_range(context)?.iter().map(|(range, _name, child)| {
+            child.to_display(context.at(range.start))
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("[ {} ]", strings.join(", ")))
@@ -71,21 +72,21 @@ mod tests {
     #[test]
     fn test_array_type() -> SimpleResult<()> {
         let data = b"ABCD".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         // Check the basics
         let a = H2Array::new(4, H2Character::new_ascii())?;
         assert_eq!(true, a.is_static());
-        assert_eq!(4, a.actual_size(offset)?);
-        assert_eq!(4, a.aligned_size(offset)?);
-        assert_eq!(0..4, a.actual_range(offset)?);
-        assert_eq!(0..4, a.aligned_range(offset)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(offset)?);
-        assert_eq!(0, a.related(offset)?.len());
-        assert_eq!(4, a.children(offset)?.len());
+        assert_eq!(4, a.actual_size(context)?);
+        assert_eq!(4, a.aligned_size(context)?);
+        assert_eq!(0..4, a.actual_range(context)?);
+        assert_eq!(0..4, a.aligned_range(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!(0, a.related(context)?.len());
+        assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(offset, None)?;
+        let r = a.resolve(context, None)?;
         assert_eq!(4, r.actual_size());
         assert_eq!(4, r.aligned_size());
         assert_eq!(0..4, r.actual_range);
@@ -112,21 +113,21 @@ mod tests {
     #[test]
     fn test_array_type_aligned() -> SimpleResult<()> {
         let data = b"ABCD".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         // Check the basics
         let a = H2Array::new_aligned(Alignment::Loose(8), 4, H2Character::new_ascii())?;
         assert_eq!(true, a.is_static());
-        assert_eq!(4, a.actual_size(offset)?);
-        assert_eq!(8, a.aligned_size(offset)?);
-        assert_eq!(0..4, a.actual_range(offset)?);
-        assert_eq!(0..8, a.aligned_range(offset)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(offset)?);
-        assert_eq!(0, a.related(offset)?.len());
-        assert_eq!(4, a.children(offset)?.len());
+        assert_eq!(4, a.actual_size(context)?);
+        assert_eq!(8, a.aligned_size(context)?);
+        assert_eq!(0..4, a.actual_range(context)?);
+        assert_eq!(0..8, a.aligned_range(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!(0, a.related(context)?.len());
+        assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(offset, None)?;
+        let r = a.resolve(context, None)?;
         assert_eq!(4, r.actual_size());
         assert_eq!(8, r.aligned_size());
         assert_eq!(0..4, r.actual_range);
@@ -153,7 +154,7 @@ mod tests {
     #[test]
     fn test_array_type_aligned_elements() -> SimpleResult<()> {
         let data = b"AxxxBxxxCxxxDxxx".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         // Check the basics
         let a = H2Array::new(
@@ -165,16 +166,16 @@ mod tests {
             ),
         )?;
         assert_eq!(true, a.is_static());
-        assert_eq!(16,  a.actual_size(offset)?);
-        assert_eq!(16, a.aligned_size(offset)?);
-        assert_eq!(0..16,  a.actual_range(offset)?);
-        assert_eq!(0..16, a.aligned_range(offset)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(offset)?);
-        assert_eq!(0, a.related(offset)?.len());
-        assert_eq!(4, a.children(offset)?.len());
+        assert_eq!(16,  a.actual_size(context)?);
+        assert_eq!(16, a.aligned_size(context)?);
+        assert_eq!(0..16,  a.actual_range(context)?);
+        assert_eq!(0..16, a.aligned_range(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!(0, a.related(context)?.len());
+        assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(offset, None)?;
+        let r = a.resolve(context, None)?;
         assert_eq!(16, r.actual_size());
         assert_eq!(16, r.aligned_size());
         assert_eq!(0..16, r.actual_range);
@@ -207,7 +208,7 @@ mod tests {
     #[test]
     fn test_array_type_aligned_and_aligned_elements() -> SimpleResult<()> {
         let data = b"AxxxBxxxCxxxDxxx".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         // Check the basics (align to 5, which is awkward but easy to check)
         let a = H2Array::new_aligned(
@@ -220,16 +221,16 @@ mod tests {
             ),
         )?;
         assert_eq!(true, a.is_static());
-        assert_eq!(16,  a.actual_size(offset)?);
-        assert_eq!(20, a.aligned_size(offset)?);
-        assert_eq!(0..16,  a.actual_range(offset)?);
-        assert_eq!(0..20, a.aligned_range(offset)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(offset)?);
-        assert_eq!(0, a.related(offset)?.len());
-        assert_eq!(4, a.children(offset)?.len());
+        assert_eq!(16,  a.actual_size(context)?);
+        assert_eq!(20, a.aligned_size(context)?);
+        assert_eq!(0..16,  a.actual_range(context)?);
+        assert_eq!(0..20, a.aligned_range(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!(0, a.related(context)?.len());
+        assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(offset, None)?;
+        let r = a.resolve(context, None)?;
         assert_eq!(16, r.actual_size());
         assert_eq!(20, r.aligned_size());
         assert_eq!(0..16, r.actual_range);
@@ -260,9 +261,9 @@ mod tests {
     }
 
     #[test]
-    fn test_array_type_aligned_and_offset_elements() -> SimpleResult<()> {
+    fn test_array_type_aligned_and_context_elements() -> SimpleResult<()> {
         let data = b"xAxxxBxxxCxxxDxx".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data).at(1));
+        let context = Context::new(&data).at(1);
 
         let a = H2Array::new(
             4,
@@ -273,16 +274,16 @@ mod tests {
             ),
         )?;
         assert_eq!(true, a.is_static());
-        assert_eq!(16,  a.actual_size(offset)?);
-        assert_eq!(16, a.aligned_size(offset)?);
-        assert_eq!(1..17,  a.actual_range(offset)?);
-        assert_eq!(1..17, a.aligned_range(offset)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(offset)?);
-        assert_eq!(0, a.related(offset)?.len());
-        assert_eq!(4, a.children(offset)?.len());
+        assert_eq!(16,  a.actual_size(context)?);
+        assert_eq!(16, a.aligned_size(context)?);
+        assert_eq!(1..17,  a.actual_range(context)?);
+        assert_eq!(1..17, a.aligned_range(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!(0, a.related(context)?.len());
+        assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(offset, None)?;
+        let r = a.resolve(context, None)?;
         assert_eq!(16, r.actual_size());
         assert_eq!(16, r.aligned_size());
         assert_eq!(1..17, r.actual_range);
@@ -316,11 +317,11 @@ mod tests {
     fn test_dynamic_utf8_array() -> SimpleResult<()> {
         //             --  --  ----------  ----------  --------------  --------------  ------
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
-        let offset = Offset::Dynamic(Context::new(&data));
+        let context = Context::new(&data);
 
         let a = H2Array::new(7, H2Character::new_utf8())?;
-        assert_eq!(18, a.actual_size(offset)?);
-        assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", a.to_display(offset)?);
+        assert_eq!(18, a.actual_size(context)?);
+        assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", a.to_display(context)?);
 
         Ok(())
     }

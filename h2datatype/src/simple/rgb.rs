@@ -3,7 +3,8 @@ use serde::{Serialize, Deserialize};
 use colored::Colorize;
 use simple_error::SimpleResult;
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use generic_number::Context;
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -34,40 +35,36 @@ impl H2TypeTrait for Rgb {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(3)
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("Rgb".to_string()),
-            Offset::Dynamic(context) => {
-                // Read the 24-bit value
-                let colors = context.read_bytes(3)?;
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        // Read the 24-bit value
+        let colors = context.read_bytes(3)?;
 
-                let red = colors[0];
-                let green = colors[1];
-                let blue = colors[2];
-                let value = ((red as u32) << 16) | ((green as u32) << 8) | (blue as u32);
+        let red = colors[0];
+        let green = colors[1];
+        let blue = colors[2];
+        let value = ((red as u32) << 16) | ((green as u32) << 8) | (blue as u32);
 
-                if self.colorize_output {
-                    if ((red as u32 + green as u32 + blue as u32) / 3) > 0x80 {
-                        // Use a light background
-                        Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_black().to_string())
-                    } else {
-                        // Use a dark background
-                        Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_white().to_string())
-                    }
-                } else {
-                    Ok(format!("#{:06x}", value))
-                }
+        if self.colorize_output {
+            if ((red as u32 + green as u32 + blue as u32) / 3) > 0x80 {
+                // Use a light background
+                Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_black().to_string())
+            } else {
+                // Use a dark background
+                Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_white().to_string())
             }
+        } else {
+            Ok(format!("#{:06x}", value))
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    // TODO: Tests
     // use super::*;
     // use simple_error::SimpleResult;
     // use generic_number::{Context, Endian, GenericReader, HexFormatter, DefaultFormatter};

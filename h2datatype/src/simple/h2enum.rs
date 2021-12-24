@@ -1,11 +1,10 @@
 use serde::{Serialize, Deserialize};
-
 use simple_error::{SimpleResult, bail};
 
+use generic_number::{Context, IntegerReader, Integer};
 use h2data::{enum_exists, from_enum};
-use generic_number::{IntegerReader, Integer};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -59,34 +58,29 @@ impl H2TypeTrait for H2Enum {
         true
     }
 
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.reader.size() as u64)
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("Enum".to_string()),
-            Offset::Dynamic(context) => {
-                let as_u64 = self.reader.read(context)?.as_usize()?;
-                self.render(as_u64)
-            }
-        }
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        let as_u64 = self.reader.read(context)?.as_usize()?;
+        self.render(as_u64)
     }
 
     fn can_be_string(&self) -> bool {
         true
     }
 
-    fn to_string(&self, offset: Offset) -> SimpleResult<String> {
-        self.render(self.reader.read(offset.get_dynamic()?)?.as_usize()?)
+    fn to_string(&self, context: Context) -> SimpleResult<String> {
+        self.render(self.reader.read(context)?.as_usize()?)
     }
 
     fn can_be_integer(&self) -> bool {
         true
     }
 
-    fn to_integer(&self, offset: Offset) -> SimpleResult<Integer> {
-        self.reader.read(offset.get_dynamic()?)
+    fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
+        self.reader.read(context)
     }
 }
 
@@ -100,7 +94,7 @@ mod tests {
     #[test]
     fn test_enum_reader() -> SimpleResult<()> {
         let test_buffer = b"\x00\x01\x02\x03\x20".to_vec();
-        let offset = Offset::Dynamic(Context::new(&test_buffer));
+        let context = Context::new(&test_buffer);
 
         let tests = vec![
           // offset  expected
@@ -119,7 +113,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                t.to_display(offset.at(o))?,
+                t.to_display(context.at(o))?,
             );
         }
 
