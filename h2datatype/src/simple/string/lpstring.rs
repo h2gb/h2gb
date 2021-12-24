@@ -37,7 +37,6 @@ impl LPString {
     }
 
     fn analyze(&self, context: Context) -> SimpleResult<(usize, Vec<Character>)> {
-        // TODO: This should be usize
         let length = self.length.read(context)?.as_usize()?;
         let mut position = context.position() + self.length.size();
 
