@@ -19,7 +19,7 @@ use generic_number::{Context, Integer, Float, Character};
 /// default behaviour doesn't make sense for you or if you can implement it
 /// faster, feel free to override it.
 ///
-/// The `actual_size` function is particularly to implement for any types that
+/// The `base_size` function is particularly to implement for any types that
 /// aren't 100% composed of other types. By default, we subtract the last
 /// address of the last child from the first address of the first, but
 /// simple types have no children.
@@ -34,7 +34,7 @@ pub trait H2TypeTrait {
     ///
     /// Types without children - in general, [`crate::simple`]s - must also
     /// implement this. Without children, we can't tell.
-    fn actual_size(&self, context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, context: Context) -> SimpleResult<u64> {
         let children = self.children_with_range(context)?;
 
         let first_range = match children.first() {
@@ -69,7 +69,7 @@ pub trait H2TypeTrait {
     fn range(&self, context: Context, alignment: Alignment) -> SimpleResult<Range<u64>> {
         // Get the start and end
         let start = context.position();
-        let end   = start + self.actual_size(context)?;
+        let end   = start + self.base_size(context)?;
 
         // Do the rounding
         alignment.align(start..end)
@@ -100,7 +100,7 @@ pub trait H2TypeTrait {
     ///   first byte of the first child, and ends at the last byte of the last
     ///   child (with possible alignment).
     ///
-    /// Provided your children follow those rules, [`#actual_size`] and
+    /// Provided your children follow those rules, [`#base_size`] and
     /// [`#children_with_range`] and [`#resolve`] will work with their default
     /// implementations.
     fn children(&self, _context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {

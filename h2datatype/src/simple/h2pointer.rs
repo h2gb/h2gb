@@ -33,7 +33,7 @@
 //}
 
 //impl H2TypeTrait for H2Pointer {
-//    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
+//    fn base_size(&self, offset: Offset) -> SimpleResult<u64> {
 //        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
 //        match self.definition.size() {
 //            Some(v) => Ok(v as u64),
@@ -98,8 +98,8 @@
 //        );
 
 //        // A 16-bit pointer is 2 bytes
-//        assert_eq!(2, t.actual_size(s_offset).unwrap());
-//        assert_eq!(2, t.actual_size(d_offset).unwrap());
+//        assert_eq!(2, t.base_size(s_offset).unwrap());
+//        assert_eq!(2, t.base_size(d_offset).unwrap());
 
 //        // Make sure it resolves the other variable
 //        assert!(t.to_display(d_offset)?.starts_with("(ref) 0x0008"));
@@ -126,8 +126,8 @@
 //            )
 //        );
 
-//        assert_eq!(1, t.actual_size(s_offset).unwrap());
-//        assert_eq!(1, t.actual_size(d_offset).unwrap());
+//        assert_eq!(1, t.base_size(s_offset).unwrap());
+//        assert_eq!(1, t.base_size(d_offset).unwrap());
 
 //        assert_eq!(1, t.related(d_offset)?.len());
 //        assert!(t.to_display(d_offset)?.ends_with("0x4142434445464748"));

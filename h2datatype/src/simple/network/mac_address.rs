@@ -25,7 +25,7 @@ impl MacAddress {
 }
 
 impl H2TypeTrait for MacAddress {
-    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(6)
     }
 

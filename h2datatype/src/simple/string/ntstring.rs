@@ -49,7 +49,7 @@ impl NTString {
 }
 
 impl H2TypeTrait for NTString {
-    fn actual_size(&self, offset: Context) -> SimpleResult<u64> {
+    fn base_size(&self, offset: Context) -> SimpleResult<u64> {
         Ok(self.analyze(offset)?.0)
     }
 
@@ -150,7 +150,7 @@ mod tests {
             CharacterFormatter::pretty_str_character(),
         ))?;
 
-        assert_eq!(12, t.actual_size(offset).unwrap());
+        assert_eq!(12, t.base_size(offset).unwrap());
 
         assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset).unwrap());
 

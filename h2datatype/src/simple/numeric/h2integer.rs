@@ -38,7 +38,7 @@ impl H2Integer {
 }
 
 impl H2TypeTrait for H2Integer {
-    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.reader.size() as u64)
     }
 
@@ -71,7 +71,7 @@ mod tests {
             HexFormatter::pretty_integer(),
         );
 
-        assert_eq!(1, t.actual_size(context).unwrap());
+        assert_eq!(1, t.base_size(context).unwrap());
         assert_eq!(0, t.related(context)?.len());
 
         assert_eq!("0x00", t.to_display(context.at(0))?);
@@ -92,7 +92,7 @@ mod tests {
             DefaultFormatter::new_integer(),
         );
 
-        assert_eq!(2, t.actual_size(context).unwrap());
+        assert_eq!(2, t.base_size(context).unwrap());
         assert_eq!(0, t.related(context)?.len());
 
         assert_eq!("0",      t.to_display(context.at(0))?);
@@ -116,7 +116,7 @@ mod tests {
 
         // Starting at 0
         let this_context = context.at(0);
-        assert_eq!(2, t.actual_size(this_context)?);
+        assert_eq!(2, t.base_size(this_context)?);
         assert_eq!(0..2, t.actual_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
@@ -124,7 +124,7 @@ mod tests {
 
         // Starting at 2
         let this_context = context.at(2);
-        assert_eq!(2, t.actual_size(this_context)?);
+        assert_eq!(2, t.base_size(this_context)?);
         assert_eq!(2..4, t.actual_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
@@ -132,7 +132,7 @@ mod tests {
 
         // Starting at 7
         let this_context = context.at(7);
-        assert_eq!(2, t.actual_size(this_context)?);
+        assert_eq!(2, t.base_size(this_context)?);
         assert_eq!(7..9, t.actual_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);

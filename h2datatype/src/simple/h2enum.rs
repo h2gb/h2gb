@@ -54,7 +54,7 @@ impl H2Enum {
 }
 
 impl H2TypeTrait for H2Enum {
-    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.reader.size() as u64)
     }
 

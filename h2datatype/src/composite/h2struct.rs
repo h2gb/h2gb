@@ -97,7 +97,7 @@ mod tests {
 
         // Use real data
         let context = Context::new(&data);
-        assert_eq!(15, t.actual_size(context)?);
+        assert_eq!(15, t.base_size(context)?);
         assert_eq!(15, t.aligned_size(context)?);
         assert_eq!(0..15, t.actual_range(context)?);
         assert_eq!(0..15, t.aligned_range(context)?);
@@ -107,7 +107,7 @@ mod tests {
 
         // Resolve and validate the resolved version
         let r = t.resolve(context, None)?;
-        assert_eq!(15, r.actual_size());
+        assert_eq!(15, r.base_size());
         assert_eq!(15, r.aligned_size());
         assert_eq!(0..15, r.actual_range);
         assert_eq!(0..15, r.aligned_range);
@@ -175,7 +175,7 @@ mod tests {
 
         // Start at 3 to test offsets and alignment
         let context = Context::new_at(&data, 3);
-        assert_eq!(20, t.actual_size(context)?);
+        assert_eq!(20, t.base_size(context)?);
         assert_eq!(20, t.aligned_size(context)?);
         assert_eq!(3..23, t.actual_range(context)?);
         assert_eq!(3..23, t.aligned_range(context)?);
@@ -185,7 +185,7 @@ mod tests {
 
         // Make sure it resolves sanely
         let r = t.resolve(context, None)?;
-        assert_eq!(20, r.actual_size());
+        assert_eq!(20, r.base_size());
         assert_eq!(20, r.aligned_size());
         assert_eq!(3..23, r.actual_range);
         assert_eq!(3..23, r.aligned_range);
@@ -194,21 +194,21 @@ mod tests {
         assert_eq!(3, r.children.len());
 
         // Check the first child
-        assert_eq!(2, r.children[0].actual_size());
+        assert_eq!(2, r.children[0].base_size());
         assert_eq!(4, r.children[0].aligned_size());
         assert_eq!("0x0001", r.children[0].display);
         assert_eq!(0, r.children[0].children.len());
         assert_eq!("hex", r.children[0].field_name.as_ref().unwrap());
 
         // Check the second child
-        assert_eq!(12, r.children[1].actual_size());
+        assert_eq!(12, r.children[1].base_size());
         assert_eq!(12, r.children[1].aligned_size());
         assert_eq!("{ A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }", r.children[1].display);
         assert_eq!(4, r.children[1].children.len());
         assert_eq!("struct", r.children[1].field_name.as_ref().unwrap());
 
         // Check the character array
-        assert_eq!(5, r.children[1].children[3].actual_size());
+        assert_eq!(5, r.children[1].children[3].base_size());
         assert_eq!(8, r.children[1].children[3].aligned_size());
         assert_eq!(5, r.children[1].children[3].children.len());
         assert_eq!("char_array", r.children[1].children[3].field_name.as_ref().unwrap());

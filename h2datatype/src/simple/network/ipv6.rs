@@ -28,7 +28,7 @@ impl IPv6 {
 }
 
 impl H2TypeTrait for IPv6 {
-    fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(16)
     }
 

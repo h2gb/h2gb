@@ -114,8 +114,8 @@ impl H2Type {
     /// Note that if the type has children (such as a
     /// [`crate::composite::H2Array`], the alignment on THAT is
     /// included since that's part of the actual object.
-    pub fn actual_size(&self, context: Context) -> SimpleResult<u64> {
-        self.field_type().actual_size(context)
+    pub fn base_size(&self, context: Context) -> SimpleResult<u64> {
+        self.field_type().base_size(context)
     }
 
     /// Get the size of the field, including the alignment.

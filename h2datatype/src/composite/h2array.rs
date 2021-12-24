@@ -71,7 +71,7 @@ mod tests {
 
         // Check the basics
         let a = H2Array::new(4, H2Character::new_ascii())?;
-        assert_eq!(4, a.actual_size(context)?);
+        assert_eq!(4, a.base_size(context)?);
         assert_eq!(4, a.aligned_size(context)?);
         assert_eq!(0..4, a.actual_range(context)?);
         assert_eq!(0..4, a.aligned_range(context)?);
@@ -81,7 +81,7 @@ mod tests {
 
         // Check the resolved version
         let r = a.resolve(context, None)?;
-        assert_eq!(4, r.actual_size());
+        assert_eq!(4, r.base_size());
         assert_eq!(4, r.aligned_size());
         assert_eq!(0..4, r.actual_range);
         assert_eq!(0..4, r.aligned_range);
@@ -111,7 +111,7 @@ mod tests {
 
         // Check the basics
         let a = H2Array::new_aligned(Alignment::Loose(8), 4, H2Character::new_ascii())?;
-        assert_eq!(4, a.actual_size(context)?);
+        assert_eq!(4, a.base_size(context)?);
         assert_eq!(8, a.aligned_size(context)?);
         assert_eq!(0..4, a.actual_range(context)?);
         assert_eq!(0..8, a.aligned_range(context)?);
@@ -121,7 +121,7 @@ mod tests {
 
         // Check the resolved version
         let r = a.resolve(context, None)?;
-        assert_eq!(4, r.actual_size());
+        assert_eq!(4, r.base_size());
         assert_eq!(8, r.aligned_size());
         assert_eq!(0..4, r.actual_range);
         assert_eq!(0..8, r.aligned_range);
@@ -158,7 +158,7 @@ mod tests {
                 CharacterFormatter::pretty_character(),
             ),
         )?;
-        assert_eq!(16,  a.actual_size(context)?);
+        assert_eq!(16,  a.base_size(context)?);
         assert_eq!(16, a.aligned_size(context)?);
         assert_eq!(0..16,  a.actual_range(context)?);
         assert_eq!(0..16, a.aligned_range(context)?);
@@ -168,7 +168,7 @@ mod tests {
 
         // Check the resolved version
         let r = a.resolve(context, None)?;
-        assert_eq!(16, r.actual_size());
+        assert_eq!(16, r.base_size());
         assert_eq!(16, r.aligned_size());
         assert_eq!(0..16, r.actual_range);
         assert_eq!(0..16, r.aligned_range);
@@ -212,7 +212,7 @@ mod tests {
                 CharacterFormatter::pretty_character(),
             ),
         )?;
-        assert_eq!(16,  a.actual_size(context)?);
+        assert_eq!(16,  a.base_size(context)?);
         assert_eq!(20, a.aligned_size(context)?);
         assert_eq!(0..16,  a.actual_range(context)?);
         assert_eq!(0..20, a.aligned_range(context)?);
@@ -222,7 +222,7 @@ mod tests {
 
         // Check the resolved version
         let r = a.resolve(context, None)?;
-        assert_eq!(16, r.actual_size());
+        assert_eq!(16, r.base_size());
         assert_eq!(20, r.aligned_size());
         assert_eq!(0..16, r.actual_range);
         assert_eq!(0..20, r.aligned_range);
@@ -264,7 +264,7 @@ mod tests {
                 CharacterFormatter::pretty_character(),
             ),
         )?;
-        assert_eq!(16,  a.actual_size(context)?);
+        assert_eq!(16,  a.base_size(context)?);
         assert_eq!(16, a.aligned_size(context)?);
         assert_eq!(1..17,  a.actual_range(context)?);
         assert_eq!(1..17, a.aligned_range(context)?);
@@ -274,7 +274,7 @@ mod tests {
 
         // Check the resolved version
         let r = a.resolve(context, None)?;
-        assert_eq!(16, r.actual_size());
+        assert_eq!(16, r.base_size());
         assert_eq!(16, r.aligned_size());
         assert_eq!(1..17, r.actual_range);
         assert_eq!(1..17, r.aligned_range);
@@ -310,7 +310,7 @@ mod tests {
         let context = Context::new(&data);
 
         let a = H2Array::new(7, H2Character::new_utf8())?;
-        assert_eq!(18, a.actual_size(context)?);
+        assert_eq!(18, a.base_size(context)?);
         assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", a.to_display(context)?);
 
         Ok(())
