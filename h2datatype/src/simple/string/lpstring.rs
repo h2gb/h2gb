@@ -10,7 +10,7 @@ use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
 ///
 /// This is a string with a numerical prefix that denotes the length of the
 /// string (in *characters*). The length is any numerical value as defined in
-/// [`generic_number::IntegerReader`] that `can_be_u64()`, and the
+/// [`generic_number::IntegerReader`] that `can_be_usize()`, and the
 /// character type is from [`generic_number::CharacterReader`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
@@ -36,17 +36,17 @@ impl LPString {
         Self::new_aligned(Alignment::None, length, character, renderer)
     }
 
-    fn analyze(&self, context: Context) -> SimpleResult<(u64, Vec<Character>)> {
+    fn analyze(&self, context: Context) -> SimpleResult<(usize, Vec<Character>)> {
         // TODO: This should be usize
         let length = self.length.read(context)?.as_usize()?;
-        let mut position = context.position() + self.length.size() as u64;
+        let mut position = context.position() + self.length.size();
 
         let mut result = Vec::new();
         for _ in 0..length {
             let character = self.character.read(context.at(position))?;
 
             result.push(character);
-            position = position + character.size() as u64;
+            position = position + character.size();
         }
 
         Ok((position - context.position(), result))
@@ -54,7 +54,7 @@ impl LPString {
 }
 
 impl H2TypeTrait for LPString {
-    fn base_size(&self, context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, context: Context) -> SimpleResult<usize> {
         Ok(self.analyze(context)?.0)
     }
 

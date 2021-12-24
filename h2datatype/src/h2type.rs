@@ -114,28 +114,28 @@ impl H2Type {
     /// Note that if the type has children (such as a
     /// [`crate::composite::H2Array`], the alignment on THAT is
     /// included since that's part of the actual object.
-    pub fn base_size(&self, context: Context) -> SimpleResult<u64> {
+    pub fn base_size(&self, context: Context) -> SimpleResult<usize> {
         self.field_type().base_size(context)
     }
 
     /// Get the size of the field, including the alignment.
-    pub fn aligned_size(&self, context: Context) -> SimpleResult<u64> {
+    pub fn aligned_size(&self, context: Context) -> SimpleResult<usize> {
         self.field_type().aligned_size(context, self.alignment)
     }
 
-    /// Get the [`Range<u64>`] that the type will cover, starting at the
+    /// Get the [`Range<usize>`] that the type will cover, starting at the
     /// given [`Context`], if it can be known, without adding padding.
-    pub fn actual_range(&self, context: Context) -> SimpleResult<Range<u64>> {
+    pub fn actual_range(&self, context: Context) -> SimpleResult<Range<usize>> {
         self.field_type().range(context, Alignment::None)
     }
 
-    /// Get the [`Range<u64>`] that the type will cover, with padding.
-    pub fn aligned_range(&self, context: Context) -> SimpleResult<Range<u64>> {
+    /// Get the [`Range<usize>`] that the type will cover, with padding.
+    pub fn aligned_range(&self, context: Context) -> SimpleResult<Range<usize>> {
         self.field_type().range(context, self.alignment)
     }
 
     /// Get *related* nodes - ie, other fields that a pointer points to
-    pub fn related(&self, context: Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+    pub fn related(&self, context: Context) -> SimpleResult<Vec<(usize, H2Type)>> {
         self.field_type().related(context)
     }
 

@@ -20,7 +20,7 @@ pub fn commit_entry(record: &mut Record<Action>, buffer: &str, layer: &str, reso
 
     // Add a comment if one was given
     if let Some(c) = comment {
-        let comment_action = ActionEntrySetComment::new(buffer, layer, offset as usize, Some(c.to_string()));
+        let comment_action = ActionEntrySetComment::new(buffer, layer, offset, Some(c.to_string()));
         record.apply(comment_action)?;
     }
 
@@ -28,7 +28,7 @@ pub fn commit_entry(record: &mut Record<Action>, buffer: &str, layer: &str, reso
 }
 
 pub fn add_comment(record: &mut Record<Action>, buffer: &str, layer: &str, offset: usize, comment: &str) -> SimpleResult<()> {
-    record.apply(ActionEntrySetComment::new(buffer, layer, offset as usize, Some(comment.to_string())))
+    record.apply(ActionEntrySetComment::new(buffer, layer, offset, Some(comment.to_string())))
 }
 
 pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<ResolvedType> {
@@ -41,15 +41,15 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
     Ok(resolved)
 }
 
-/// This is a helper function that creates a record, then returns it as a simple
-/// u64 - I found myself doing this a lot.
+/// This is a helper function that creates a record, then returns it as an
+/// [`Integer`] - I found myself doing this a lot.
 pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>) -> SimpleResult<Integer> {
     if !datatype.can_be_integer() {
         bail!("Attempting to create a numeric entry from a non-numeric datatype");
     }
 
     create_entry(record, buffer, layer, datatype, offset, comment)?.as_integer.ok_or(
-        SimpleError::new("Could not create entry as a u64 value")
+        SimpleError::new("Could not create entry as an Integer value")
     ).map_err( |e| SimpleError::new(format!("Could not interpret entry as an integer: {:?}", e)))
 }
 

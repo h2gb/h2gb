@@ -14,14 +14,14 @@ use generic_number::{Integer, Float, Character};
 /// unexpected data).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedType {
-    pub actual_range: Range<u64>,
-    pub aligned_range: Range<u64>,
+    pub actual_range: Range<usize>,
+    pub aligned_range: Range<usize>,
 
     pub field_name: Option<String>,
     pub display: String,
 
     pub children: Vec<ResolvedType>,
-    pub related: Vec<(u64, H2Type)>,
+    pub related: Vec<(usize, H2Type)>,
 
     pub as_string:    Option<String>,
     pub as_integer:   Option<Integer>,
@@ -30,11 +30,11 @@ pub struct ResolvedType {
 }
 
 impl ResolvedType {
-    pub fn base_size(&self) -> u64 {
+    pub fn base_size(&self) -> usize {
         self.actual_range.end - self.actual_range.start
     }
 
-    pub fn aligned_size(&self) -> u64 {
+    pub fn aligned_size(&self) -> usize {
         self.aligned_range.end - self.aligned_range.start
     }
 }

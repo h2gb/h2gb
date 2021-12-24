@@ -28,7 +28,7 @@ impl H2UUID {
 }
 
 impl H2TypeTrait for H2UUID {
-    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
         Ok(16)
     }
 

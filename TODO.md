@@ -6,9 +6,6 @@
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
   * Look at the formats in https://github.com/wader/fq/
 
-* Major / annoying cleanup
-  * Make bumpyvectors use usize instead of u64
-
 * Nested bumpy vectors
   * Print structs and such more nicely
   * Comments on any field?

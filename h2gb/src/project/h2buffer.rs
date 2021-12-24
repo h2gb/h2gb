@@ -75,7 +75,7 @@ impl fmt::Display for H2Buffer {
                     Ok(Some(entry)) => {
                         // Deal with the entry
                         let resolved = entry.resolved();
-                        let actual_range = (resolved.actual_range.start as usize)..(resolved.actual_range.end as usize);
+                        let actual_range = resolved.actual_range.start..resolved.actual_range.end;
 
                         let entry_byte_string: Vec<String> = self.data[actual_range.clone()].iter().take(self.context_bytes).map(|b| format!("{:02x}", b)).collect();
                         let entry_byte_string = entry_byte_string.join(" ");
@@ -97,7 +97,7 @@ impl fmt::Display for H2Buffer {
                         }
 
                         // Deal with the padding / alignment
-                        let alignment_range = (resolved.actual_range.end as usize)..(resolved.aligned_range.end as usize);
+                        let alignment_range = (resolved.actual_range.end)..(resolved.aligned_range.end);
                         if !alignment_range.is_empty() {
                             let alignment_byte_string: Vec<String> = self.data[alignment_range.clone()].iter().map(|b| format!("{:02x}", b)).collect();
                             let alignment_byte_string = alignment_byte_string.join(" ");
@@ -119,7 +119,7 @@ impl fmt::Display for H2Buffer {
                         }
 
                         // Move to the next entry
-                        offset = resolved.aligned_range.end as usize;
+                        offset = resolved.aligned_range.end;
                     },
                     Ok(None) => {
                         if self.display_empty_addresses {
@@ -438,7 +438,7 @@ impl H2Buffer {
     }
 
     pub fn peek(&self, abstract_type: &H2Type, offset: usize) -> SimpleResult<ResolvedType> {
-        let offset = Context::new_at(&self.data, offset as u64);
+        let offset = Context::new_at(&self.data, offset);
 
         abstract_type.resolve(offset, None)
     }

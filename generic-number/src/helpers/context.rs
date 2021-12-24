@@ -18,7 +18,7 @@ pub const MAX_UTF16_WORDS: usize = 2;
 #[derive(Debug, Clone, Copy)]
 pub struct Context<'a> {
     v: &'a Vec<u8>,
-    position: u64,
+    position: usize,
     //c: Cursor<&'a Vec<u8>>,
 }
 
@@ -38,7 +38,7 @@ impl<'a> Context<'a> {
     ///
     /// Cannot fail, even if the Vec is empty or if the position is crazy. Those
     /// are checked when using the cursor, not while creating it.
-    pub fn new_at(v: &'a Vec<u8>, position: u64) -> Self {
+    pub fn new_at(v: &'a Vec<u8>, position: usize) -> Self {
         //let mut c = Cursor::new(v);
         //c.set_position(position);
 
@@ -56,7 +56,7 @@ impl<'a> Context<'a> {
     /// the data - just a reference.
     fn cursor(self) -> Cursor<&'a Vec<u8>> {
         let mut cursor = Cursor::new(self.v);
-        cursor.set_position(self.position);
+        cursor.set_position(self.position as u64);
 
         cursor
     }
@@ -65,7 +65,7 @@ impl<'a> Context<'a> {
     ///
     /// I found myself doing a clone-then-set-position operation a bunch, so
     /// this simplifies it.
-    pub fn at(self, new_position: u64) -> Self {
+    pub fn at(self, new_position: usize) -> Self {
         // Since this has the Copy trait, we can copy it super easy
         let mut c = self;
         c.position = new_position;
@@ -74,7 +74,7 @@ impl<'a> Context<'a> {
     }
 
     /// Get the current position.
-    pub fn position(self) -> u64 {
+    pub fn position(self) -> usize {
         self.position
     }
 
@@ -313,7 +313,7 @@ impl<'a> Context<'a> {
 
     /// Get a [`u8`] slice starting at the current `position`
     pub fn as_slice(self) -> &'a [u8] {
-        &self.v[(self.position as usize)..]
+        &self.v[(self.position)..]
     }
 }
 

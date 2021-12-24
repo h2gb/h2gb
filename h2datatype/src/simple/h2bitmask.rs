@@ -52,8 +52,8 @@ impl H2Bitmask {
 }
 
 impl H2TypeTrait for H2Bitmask {
-    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
-        Ok(self.reader.size() as u64)
+    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
+        Ok(self.reader.size())
     }
 
     fn to_display(&self, context: Context) -> SimpleResult<String> {

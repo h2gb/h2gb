@@ -14,13 +14,13 @@ use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
 /// types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2String {
-    length: u64,
+    length: usize,
     character: CharacterReader,
     renderer: CharacterRenderer,
 }
 
 impl H2String {
-    pub fn new_aligned(alignment: Alignment, length_in_characters: u64, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length_in_characters: usize, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
         if length_in_characters == 0 {
             bail!("Length must be at least 1 character long");
         }
@@ -32,12 +32,12 @@ impl H2String {
         })))
     }
 
-    pub fn new(length_in_characters: u64, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+    pub fn new(length_in_characters: usize, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length_in_characters, character, renderer)
     }
 
 
-    fn analyze(&self, context: Context) -> SimpleResult<(u64, Vec<Character>)> {
+    fn analyze(&self, context: Context) -> SimpleResult<(usize, Vec<Character>)> {
         let mut position = context.position();
         let mut result = Vec::new();
 
@@ -47,7 +47,7 @@ impl H2String {
             let this_character = self.character.read(this_context)?;
 
             result.push(this_character);
-            position = position + this_character.size() as u64;
+            position = position + this_character.size();
         }
 
         Ok((position - context.position(), result))
@@ -55,9 +55,9 @@ impl H2String {
 }
 
 impl H2TypeTrait for H2String {
-    fn base_size(&self, context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, context: Context) -> SimpleResult<usize> {
         match self.character.size() {
-            Some(s) => Ok(s as u64 * self.length),
+            Some(s) => Ok(s * self.length),
             None => Ok(self.analyze(context)?.0),
         }
     }

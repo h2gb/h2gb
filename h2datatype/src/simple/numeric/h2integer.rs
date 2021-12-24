@@ -38,8 +38,8 @@ impl H2Integer {
 }
 
 impl H2TypeTrait for H2Integer {
-    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
-        Ok(self.reader.size() as u64)
+    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
+        Ok(self.reader.size())
     }
 
     fn to_display(&self, context: Context) -> SimpleResult<String> {
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_i64() -> SimpleResult<()> {
+    fn test_to_isize() -> SimpleResult<()> {
         let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
         let context = Context::new(&data);
 
@@ -166,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_u64() -> SimpleResult<()> {
+    fn test_to_usize() -> SimpleResult<()> {
         let data = b"\x00\x00\x7f\xff\x80\x00\xff\xff".to_vec();
         let context = Context::new(&data);
 
