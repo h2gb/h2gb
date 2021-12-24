@@ -31,15 +31,6 @@ impl H2Struct {
 }
 
 impl H2TypeTrait for H2Struct {
-    // Is the size known ahead of time?
-    fn is_static(&self) -> bool {
-        // Loop over each field - return an object as soon as is_static() is
-        // false
-        self.fields.iter().find(|(_, t)| {
-            t.is_static() == false
-        }).is_none()
-    }
-
     fn children(&self, _context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
         Ok(self.fields.iter().map(|(name, field_type)| {
             (Some(name.clone()), field_type.clone())
@@ -106,7 +97,6 @@ mod tests {
 
         // Use real data
         let context = Context::new(&data);
-        assert_eq!(true, t.is_static());
         assert_eq!(15, t.actual_size(context)?);
         assert_eq!(15, t.aligned_size(context)?);
         assert_eq!(0..15, t.actual_range(context)?);
@@ -185,7 +175,6 @@ mod tests {
 
         // Start at 3 to test offsets and alignment
         let context = Context::new_at(&data, 3);
-        assert_eq!(true, t.is_static());
         assert_eq!(20, t.actual_size(context)?);
         assert_eq!(20, t.aligned_size(context)?);
         assert_eq!(3..23, t.actual_range(context)?);

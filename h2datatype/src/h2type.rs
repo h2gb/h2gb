@@ -109,11 +109,6 @@ impl H2Type {
         }
     }
 
-    /// Is the size known ahead of time?
-    pub fn is_static(&self) -> bool {
-        self.field_type().is_static()
-    }
-
     /// Get the size of just the field - no alignment included.
     ///
     /// Note that if the type has children (such as a

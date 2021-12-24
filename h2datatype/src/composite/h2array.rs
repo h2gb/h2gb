@@ -38,11 +38,6 @@ impl H2Array {
 }
 
 impl H2TypeTrait for H2Array {
-    fn is_static(&self) -> bool {
-        // Offload the is_static() question to the child field type
-        self.field_type.is_static()
-    }
-
     fn children(&self, _context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
         // Just clone the child type over and over
         Ok((0..self.length).into_iter().map(|_index| {
@@ -76,7 +71,6 @@ mod tests {
 
         // Check the basics
         let a = H2Array::new(4, H2Character::new_ascii())?;
-        assert_eq!(true, a.is_static());
         assert_eq!(4, a.actual_size(context)?);
         assert_eq!(4, a.aligned_size(context)?);
         assert_eq!(0..4, a.actual_range(context)?);
@@ -117,7 +111,6 @@ mod tests {
 
         // Check the basics
         let a = H2Array::new_aligned(Alignment::Loose(8), 4, H2Character::new_ascii())?;
-        assert_eq!(true, a.is_static());
         assert_eq!(4, a.actual_size(context)?);
         assert_eq!(8, a.aligned_size(context)?);
         assert_eq!(0..4, a.actual_range(context)?);
@@ -165,7 +158,6 @@ mod tests {
                 CharacterFormatter::pretty_character(),
             ),
         )?;
-        assert_eq!(true, a.is_static());
         assert_eq!(16,  a.actual_size(context)?);
         assert_eq!(16, a.aligned_size(context)?);
         assert_eq!(0..16,  a.actual_range(context)?);
@@ -220,7 +212,6 @@ mod tests {
                 CharacterFormatter::pretty_character(),
             ),
         )?;
-        assert_eq!(true, a.is_static());
         assert_eq!(16,  a.actual_size(context)?);
         assert_eq!(20, a.aligned_size(context)?);
         assert_eq!(0..16,  a.actual_range(context)?);
@@ -273,7 +264,6 @@ mod tests {
                 CharacterFormatter::pretty_character(),
             ),
         )?;
-        assert_eq!(true, a.is_static());
         assert_eq!(16,  a.actual_size(context)?);
         assert_eq!(16, a.aligned_size(context)?);
         assert_eq!(1..17,  a.actual_range(context)?);

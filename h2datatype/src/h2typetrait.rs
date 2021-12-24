@@ -24,12 +24,6 @@ use generic_number::{Context, Integer, Float, Character};
 /// address of the last child from the first address of the first, but
 /// simple types have no children.
 pub trait H2TypeTrait {
-    /// Can information (like size and children) be retrieved without context?
-    ///
-    /// I'm not entirely sure if this is meaningful anymore, but I'm keeping it
-    /// anyways (for now)!
-    fn is_static(&self) -> bool;
-
     /// The actual size, in bytes, of a type. This does not include alignment
     /// or padding.
     ///

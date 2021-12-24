@@ -49,10 +49,6 @@ impl NTString {
 }
 
 impl H2TypeTrait for NTString {
-    fn is_static(&self) -> bool {
-        self.character.size().is_some()
-    }
-
     fn actual_size(&self, offset: Context) -> SimpleResult<u64> {
         Ok(self.analyze(offset)?.0)
     }

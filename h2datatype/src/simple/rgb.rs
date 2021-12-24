@@ -31,10 +31,6 @@ impl Rgb {
 }
 
 impl H2TypeTrait for Rgb {
-    fn is_static(&self) -> bool {
-        true
-    }
-
     fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(3)
     }

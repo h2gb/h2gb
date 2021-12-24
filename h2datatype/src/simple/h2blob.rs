@@ -33,10 +33,6 @@ impl H2Blob {
 }
 
 impl H2TypeTrait for H2Blob {
-    fn is_static(&self) -> bool {
-        true
-    }
-
     fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.length)
     }

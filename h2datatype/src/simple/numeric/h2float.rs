@@ -38,10 +38,6 @@ impl H2Float {
 }
 
 impl H2TypeTrait for H2Float {
-    fn is_static(&self) -> bool {
-        true
-    }
-
     fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.reader.size() as u64)
     }

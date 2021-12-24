@@ -78,13 +78,6 @@ impl H2Character {
 }
 
 impl H2TypeTrait for H2Character {
-    fn is_static(&self) -> bool {
-        match self.reader.size() {
-            Some(_) => true,
-            None    => false
-        }
-    }
-
     fn actual_size(&self, context: Context) -> SimpleResult<u64> {
         match self.reader.size() {
             Some(v) => Ok(v as u64),

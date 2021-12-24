@@ -25,10 +25,6 @@ impl MacAddress8 {
 }
 
 impl H2TypeTrait for MacAddress8 {
-    fn is_static(&self) -> bool {
-        true
-    }
-
     fn actual_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(8)
     }

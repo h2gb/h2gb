@@ -55,10 +55,6 @@ impl H2String {
 }
 
 impl H2TypeTrait for H2String {
-    fn is_static(&self) -> bool {
-        self.character.size().is_some()
-    }
-
     fn actual_size(&self, context: Context) -> SimpleResult<u64> {
         match self.character.size() {
             Some(s) => Ok(s as u64 * self.length),

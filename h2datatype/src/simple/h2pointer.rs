@@ -33,10 +33,6 @@
 //}
 
 //impl H2TypeTrait for H2Pointer {
-//    fn is_static(&self) -> bool {
-//        true
-//    }
-
 //    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
 //        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
 //        match self.definition.size() {

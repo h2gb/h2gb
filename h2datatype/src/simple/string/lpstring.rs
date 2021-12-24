@@ -54,10 +54,6 @@ impl LPString {
 }
 
 impl H2TypeTrait for LPString {
-    fn is_static(&self) -> bool {
-        self.character.size().is_some()
-    }
-
     fn actual_size(&self, context: Context) -> SimpleResult<u64> {
         Ok(self.analyze(context)?.0)
     }
