@@ -16,18 +16,18 @@
 //!
 //! In other words: DON'T USE THESE DIRECTLY, unless you're writing actions.
 
-use std::mem;
+use std::collections::HashMap;
+use std::ops::Range;
+use std::{fmt, mem};
 
 use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult, SimpleError};
-use std::collections::HashMap;
-use std::fmt;
-use std::ops::Range;
 
-use h2transformation::Transformation;
-use crate::project::H2Layer;
-use h2datatype::{Offset, H2Type, ResolvedType};
 use generic_number::Context;
+use h2datatype::{H2Type, ResolvedType};
+use h2transformation::Transformation;
+
+use crate::project::H2Layer;
 
 // H2Buffer holds the actual data, as well as its layers
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -438,7 +438,7 @@ impl H2Buffer {
     }
 
     pub fn peek(&self, abstract_type: &H2Type, offset: usize) -> SimpleResult<ResolvedType> {
-        let offset = Offset::Dynamic(Context::new(&self.data).at(offset as u64)); // TODO: I don't like this cast
+        let offset = Context::new_at(&self.data, offset as u64);
 
         abstract_type.resolve(offset, None)
     }

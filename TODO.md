@@ -1,10 +1,10 @@
 * To-do soon / unsorted
   * Tests and documentation
-  * Kill the "static" offset thing, and simply all the things
   * Change structs (and other APIey things) to take &str instead of String
   * Bi-directional enums (so we can fetch stuff by name)
   * Automatically create a default "Layer"
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
+  * Look at the formats in https://github.com/wader/fq/
 
 * Major / annoying cleanup
   * Make bumpyvectors use usize instead of u64
@@ -22,6 +22,7 @@
   * An "identify" function for analyzers
     * More importantly, a trait
   * Think of a way to make analyzing smoother, like automatically doing offsets and stuff
+  * Consider something to parse files "linearly", the way "fq" does
 
 * Datatypes
   * Do a better "duration" type

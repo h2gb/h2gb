@@ -1,11 +1,10 @@
 use serde::{Serialize, Deserialize};
-
 use simple_error::{SimpleResult, bail};
 
 use h2data::{bitmask_exists, from_bitmask_str};
-use generic_number::{IntegerReader, Integer};
+use generic_number::{Context, IntegerReader, Integer};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -53,29 +52,20 @@ impl H2Bitmask {
 }
 
 impl H2TypeTrait for H2Bitmask {
-    fn is_static(&self) -> bool {
-        true
-    }
-
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.reader.size() as u64)
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("Bitmask".to_string()),
-            Offset::Dynamic(context) => {
-                self.render(self.reader.read(context)?.as_usize()?)
-            }
-        }
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        self.render(self.reader.read(context)?.as_usize()?)
     }
 
     fn can_be_integer(&self) -> bool {
         true
     }
 
-    fn to_integer(&self, offset: Offset) -> SimpleResult<Integer> {
-        self.reader.read(offset.get_dynamic()?)
+    fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
+        self.reader.read(context)
     }
 }
 
@@ -89,7 +79,7 @@ mod tests {
     #[test]
     fn test_bitmask_reader() -> SimpleResult<()> {
         let test_buffer = b"\x00\x00\x00\x01\x00\x02\x00\x03\x80\x01".to_vec();
-        let offset = Offset::Dynamic(Context::new(&test_buffer));
+        let context = Context::new(&test_buffer);
 
         let tests = vec![
           // offset  show_negative  expected
@@ -114,7 +104,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                t.to_display(offset.at(o))?,
+                t.to_display(context.at(o))?,
             );
         }
 

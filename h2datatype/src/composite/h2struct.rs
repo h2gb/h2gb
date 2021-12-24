@@ -1,8 +1,9 @@
 use serde::{Serialize, Deserialize};
-
 use simple_error::{bail, SimpleResult};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use generic_number::Context;
+
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a struct.
 ///
@@ -30,26 +31,17 @@ impl H2Struct {
 }
 
 impl H2TypeTrait for H2Struct {
-    // Is the size known ahead of time?
-    fn is_static(&self) -> bool {
-        // Loop over each field - return an object as soon as is_static() is
-        // false
-        self.fields.iter().find(|(_, t)| {
-            t.is_static() == false
-        }).is_none()
-    }
-
-    fn children(&self, _offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
+    fn children(&self, _context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
         Ok(self.fields.iter().map(|(name, field_type)| {
             (Some(name.clone()), field_type.clone())
         }).collect())
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
         // Because the collect() expects a result, this will end and bubble
         // up errors automatically!
-        let strings: Vec<String> = self.children_with_range(offset)?.iter().map(|(range, name, child)| {
-            Ok(format!("{}: {}", name.clone().unwrap_or("<name unknown>".to_string()), child.to_display(offset.at(range.start))?))
+        let strings: Vec<String> = self.children_with_range(context)?.iter().map(|(range, name, child)| {
+            Ok(format!("{}: {}", name.clone().unwrap_or("<name unknown>".to_string()), child.to_display(context.at(range.start))?))
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("{{ {} }}", strings.join(", ")))
@@ -104,44 +96,22 @@ mod tests {
         ])?;
 
         // Use real data
-        let offset = Offset::Dynamic(Context::new(&data));
-        assert_eq!(true, t.is_static());
-        assert_eq!(15, t.actual_size(offset)?);
-        assert_eq!(15, t.aligned_size(offset)?);
-        assert_eq!(0..15, t.actual_range(offset)?);
-        assert_eq!(0..15, t.aligned_range(offset)?);
-        assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", t.to_display(offset)?);
-        assert_eq!(0, t.related(offset)?.len());
-        assert_eq!(4, t.children(offset)?.len());
+        let context = Context::new(&data);
+        assert_eq!(15, t.base_size(context)?);
+        assert_eq!(15, t.aligned_size(context)?);
+        assert_eq!(0..15, t.actual_range(context)?);
+        assert_eq!(0..15, t.aligned_range(context)?);
+        assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", t.to_display(context)?);
+        assert_eq!(0, t.related(context)?.len());
+        assert_eq!(4, t.children(context)?.len());
 
         // Resolve and validate the resolved version
-        let r = t.resolve(offset, None)?;
-        assert_eq!(15, r.actual_size());
+        let r = t.resolve(context, None)?;
+        assert_eq!(15, r.base_size());
         assert_eq!(15, r.aligned_size());
         assert_eq!(0..15, r.actual_range);
         assert_eq!(0..15, r.aligned_range);
         assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", r.display);
-        assert_eq!(0, r.related.len());
-        assert_eq!(4, r.children.len());
-
-        // Use abstract data
-        let offset = Offset::Static(0);
-        assert_eq!(true, t.is_static());
-        assert_eq!(15, t.actual_size(offset)?);
-        assert_eq!(15, t.aligned_size(offset)?);
-        assert_eq!(0..15, t.actual_range(offset)?);
-        assert_eq!(0..15, t.aligned_range(offset)?);
-        assert_eq!("{ field_u32: Integer, field_u16: Integer, field_u8: Integer, field_u32_little: Integer }", t.to_display(offset)?);
-        assert_eq!(0, t.related(offset)?.len());
-        assert_eq!(4, t.children(offset)?.len());
-
-        // Resolve and validate the resolved version
-        let r = t.resolve(offset, None)?;
-        assert_eq!(15, r.actual_size());
-        assert_eq!(15, r.aligned_size());
-        assert_eq!(0..15, r.actual_range);
-        assert_eq!(0..15, r.aligned_range);
-        assert_eq!("{ field_u32: Integer, field_u16: Integer, field_u8: Integer, field_u32_little: Integer }", r.display);
         assert_eq!(0, r.related.len());
         assert_eq!(4, r.children.len());
 
@@ -204,19 +174,18 @@ mod tests {
         ])?;
 
         // Start at 3 to test offsets and alignment
-        let offset = Offset::Dynamic(Context::new_at(&data, 3));
-        assert_eq!(true, t.is_static());
-        assert_eq!(20, t.actual_size(offset)?);
-        assert_eq!(20, t.aligned_size(offset)?);
-        assert_eq!(3..23, t.actual_range(offset)?);
-        assert_eq!(3..23, t.aligned_range(offset)?);
-        assert_eq!("{ hex: 0x0001, struct: { A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }, ipv4: 127.0.0.1 }", t.to_display(offset)?);
-        assert_eq!(0, t.related(offset)?.len());
-        assert_eq!(3, t.children(offset)?.len());
+        let context = Context::new_at(&data, 3);
+        assert_eq!(20, t.base_size(context)?);
+        assert_eq!(20, t.aligned_size(context)?);
+        assert_eq!(3..23, t.actual_range(context)?);
+        assert_eq!(3..23, t.aligned_range(context)?);
+        assert_eq!("{ hex: 0x0001, struct: { A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }, ipv4: 127.0.0.1 }", t.to_display(context)?);
+        assert_eq!(0, t.related(context)?.len());
+        assert_eq!(3, t.children(context)?.len());
 
         // Make sure it resolves sanely
-        let r = t.resolve(offset, None)?;
-        assert_eq!(20, r.actual_size());
+        let r = t.resolve(context, None)?;
+        assert_eq!(20, r.base_size());
         assert_eq!(20, r.aligned_size());
         assert_eq!(3..23, r.actual_range);
         assert_eq!(3..23, r.aligned_range);
@@ -225,21 +194,21 @@ mod tests {
         assert_eq!(3, r.children.len());
 
         // Check the first child
-        assert_eq!(2, r.children[0].actual_size());
+        assert_eq!(2, r.children[0].base_size());
         assert_eq!(4, r.children[0].aligned_size());
         assert_eq!("0x0001", r.children[0].display);
         assert_eq!(0, r.children[0].children.len());
         assert_eq!("hex", r.children[0].field_name.as_ref().unwrap());
 
         // Check the second child
-        assert_eq!(12, r.children[1].actual_size());
+        assert_eq!(12, r.children[1].base_size());
         assert_eq!(12, r.children[1].aligned_size());
         assert_eq!("{ A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }", r.children[1].display);
         assert_eq!(4, r.children[1].children.len());
         assert_eq!("struct", r.children[1].field_name.as_ref().unwrap());
 
         // Check the character array
-        assert_eq!(5, r.children[1].children[3].actual_size());
+        assert_eq!(5, r.children[1].children[3].base_size());
         assert_eq!(8, r.children[1].children[3].aligned_size());
         assert_eq!(5, r.children[1].children[3].children.len());
         assert_eq!("char_array", r.children[1].children[3].field_name.as_ref().unwrap());

@@ -30,7 +30,7 @@ pub struct ResolvedType {
 }
 
 impl ResolvedType {
-    pub fn actual_size(&self) -> u64 {
+    pub fn base_size(&self) -> u64 {
         self.actual_range.end - self.actual_range.start
     }
 

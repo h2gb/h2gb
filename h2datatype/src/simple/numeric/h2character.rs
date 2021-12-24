@@ -1,9 +1,9 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use generic_number::{Character, CharacterReader, CharacterRenderer, CharacterFormatter};
+use generic_number::{Context, Character, CharacterReader, CharacterRenderer, CharacterFormatter};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -78,38 +78,27 @@ impl H2Character {
 }
 
 impl H2TypeTrait for H2Character {
-    fn is_static(&self) -> bool {
-        match self.reader.size() {
-            Some(_) => true,
-            None    => false
-        }
-    }
-
-    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
+    fn base_size(&self, context: Context) -> SimpleResult<u64> {
         match self.reader.size() {
             Some(v) => Ok(v as u64),
-            None    => Ok(self.reader.read(offset.get_dynamic()?)?.size() as u64),
+            None    => Ok(self.reader.read(context)?.size() as u64),
         }
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("Character".to_string()),
-            Offset::Dynamic(context) => {
-                Ok(self.renderer.render(self.reader.read(context)?))
-            }
-        }
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        Ok(self.renderer.render(self.reader.read(context)?))
     }
 
     fn can_be_character(&self) -> bool {
         true
     }
 
-    fn to_character(&self, offset: Offset) -> SimpleResult<Character> {
-        self.reader.read(offset.get_dynamic()?)
+    fn to_character(&self, context: Context) -> SimpleResult<Character> {
+        self.reader.read(context)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    // TODO: We need tests here
 }

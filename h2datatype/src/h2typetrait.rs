@@ -1,8 +1,8 @@
 use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
-use crate::{Alignment, Offset, ResolvedType, H2Type};
-use generic_number::{Integer, Float, Character};
+use crate::{Alignment, ResolvedType, H2Type};
+use generic_number::{Context, Integer, Float, Character};
 
 /// The core trait that makes a type into a type. All types must implement this.
 ///
@@ -19,17 +19,11 @@ use generic_number::{Integer, Float, Character};
 /// default behaviour doesn't make sense for you or if you can implement it
 /// faster, feel free to override it.
 ///
-/// The `actual_size` function is particularly to implement for any types that
+/// The `base_size` function is particularly to implement for any types that
 /// aren't 100% composed of other types. By default, we subtract the last
 /// address of the last child from the first address of the first, but
 /// simple types have no children.
 pub trait H2TypeTrait {
-    /// Can information (like size and children) be retrieved without context?
-    ///
-    /// I'm not entirely sure if this is meaningful anymore, but I'm keeping it
-    /// anyways (for now)!
-    fn is_static(&self) -> bool;
-
     /// The actual size, in bytes, of a type. This does not include alignment
     /// or padding.
     ///
@@ -40,8 +34,8 @@ pub trait H2TypeTrait {
     ///
     /// Types without children - in general, [`crate::simple`]s - must also
     /// implement this. Without children, we can't tell.
-    fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
-        let children = self.children_with_range(offset)?;
+    fn base_size(&self, context: Context) -> SimpleResult<u64> {
+        let children = self.children_with_range(context)?;
 
         let first_range = match children.first() {
             Some((r, _, _)) => r,
@@ -60,8 +54,8 @@ pub trait H2TypeTrait {
     /// Get the aligned size.
     ///
     /// The default implementation is very likely fine for this.
-    fn aligned_size(&self, offset: Offset, alignment: Alignment) -> SimpleResult<u64> {
-        let range = self.range(offset, alignment)?;
+    fn aligned_size(&self, context: Context, alignment: Alignment) -> SimpleResult<u64> {
+        let range = self.range(context, alignment)?;
 
         Ok(range.end - range.start)
     }
@@ -72,10 +66,10 @@ pub trait H2TypeTrait {
     /// The default implementation is very likely good. This is only
     /// implemented as a trait function because other trait functions (such as
     /// [`#resolve`]) use it.
-    fn range(&self, offset: Offset, alignment: Alignment) -> SimpleResult<Range<u64>> {
+    fn range(&self, context: Context, alignment: Alignment) -> SimpleResult<Range<u64>> {
         // Get the start and end
-        let start = offset.position();
-        let end   = start + self.actual_size(offset)?;
+        let start = context.position();
+        let end   = start + self.base_size(context)?;
 
         // Do the rounding
         alignment.align(start..end)
@@ -85,10 +79,10 @@ pub trait H2TypeTrait {
     ///
     /// This String value is ultimately what is displayed by users, and should
     /// have any formatting that a user would want to see.
-    fn to_display(&self, offset: Offset) -> SimpleResult<String>;
+    fn to_display(&self, context: Context) -> SimpleResult<String>;
 
     /// Get "related" values - ie, what a pointer points to.
-    fn related(&self, _offset: Offset) -> SimpleResult<Vec<(u64, H2Type)>> {
+    fn related(&self, _context: Context) -> SimpleResult<Vec<(u64, H2Type)>> {
         Ok(vec![])
     }
 
@@ -106,10 +100,10 @@ pub trait H2TypeTrait {
     ///   first byte of the first child, and ends at the last byte of the last
     ///   child (with possible alignment).
     ///
-    /// Provided your children follow those rules, [`#actual_size`] and
+    /// Provided your children follow those rules, [`#base_size`] and
     /// [`#children_with_range`] and [`#resolve`] will work with their default
     /// implementations.
-    fn children(&self, _offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
+    fn children(&self, _context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
         Ok(vec![])
     }
 
@@ -119,13 +113,13 @@ pub trait H2TypeTrait {
     /// children are consecutive, adjacent, and make up the full parent type.
     /// As long as that's the case, the default implementation will work just
     /// fine.
-    fn children_with_range(&self, offset: Offset) -> SimpleResult<Vec<(Range<u64>, Option<String>, H2Type)>> {
-        let mut child_offset = offset;
+    fn children_with_range(&self, context: Context) -> SimpleResult<Vec<(Range<u64>, Option<String>, H2Type)>> {
+        let mut child_context = context;
 
-        self.children(offset)?.into_iter().map(|(name, child)| {
-            let range = child.aligned_range(child_offset)?;
+        self.children(context)?.into_iter().map(|(name, child)| {
+            let range = child.aligned_range(child_context)?;
 
-            child_offset = offset.at(range.end);
+            child_context = context.at(range.end);
 
             Ok((range, name, child.clone()))
         }).collect::<SimpleResult<Vec<_>>>()
@@ -135,27 +129,27 @@ pub trait H2TypeTrait {
     ///
     /// A resolved type has all the values calculated, and is therefore very
     /// quick to use.
-    fn resolve(&self, offset: Offset, alignment: Alignment, field_name: Option<String>) -> SimpleResult<ResolvedType> {
+    fn resolve(&self, context: Context, alignment: Alignment, field_name: Option<String>) -> SimpleResult<ResolvedType> {
         Ok(ResolvedType {
-            actual_range: self.range(offset, Alignment::None)?,
-            aligned_range: self.range(offset, alignment)?,
+            actual_range: self.range(context, Alignment::None)?,
+            aligned_range: self.range(context, alignment)?,
 
             field_name: field_name,
-            display: self.to_display(offset)?,
+            display: self.to_display(context)?,
 
             // Resolve the children here and now
-            children: self.children_with_range(offset)?.into_iter().map(|(range, name, child)| {
+            children: self.children_with_range(context)?.into_iter().map(|(range, name, child)| {
                 // Errors here will be handled by the collect
-                child.resolve(offset.at(range.start), name)
+                child.resolve(context.at(range.start), name)
             }).collect::<SimpleResult<Vec<ResolvedType>>>()?,
 
-            related: self.related(offset)?,
+            related: self.related(context)?,
 
-            as_string: self.to_string(offset).ok(),
+            as_string: self.to_string(context).ok(),
 
-            as_integer: self.to_integer(offset).ok(),
-            as_float: self.to_float(offset).ok(),
-            as_character: self.to_character(offset).ok(),
+            as_integer: self.to_integer(context).ok(),
+            as_float: self.to_float(context).ok(),
+            as_character: self.to_character(context).ok(),
         })
     }
 
@@ -167,7 +161,7 @@ pub trait H2TypeTrait {
     }
 
     /// Convert to a [`String`], if it's sensible for this type.
-    fn to_string(&self, _offset: Offset) -> SimpleResult<String> {
+    fn to_string(&self, _context: Context) -> SimpleResult<String> {
         bail!("This type cannot be converted to a string");
     }
 
@@ -175,7 +169,7 @@ pub trait H2TypeTrait {
         false
     }
 
-    fn to_integer(&self, _offset: Offset) -> SimpleResult<Integer> {
+    fn to_integer(&self, _context: Context) -> SimpleResult<Integer> {
         bail!("This type cannot be converted to an integer");
     }
 
@@ -183,7 +177,7 @@ pub trait H2TypeTrait {
         false
     }
 
-    fn to_float(&self, _offset: Offset) -> SimpleResult<Float> {
+    fn to_float(&self, _context: Context) -> SimpleResult<Float> {
         bail!("This type cannot be converted to a float");
     }
 
@@ -191,7 +185,7 @@ pub trait H2TypeTrait {
         false
     }
 
-    fn to_character(&self, _offset: Offset) -> SimpleResult<Character> {
+    fn to_character(&self, _context: Context) -> SimpleResult<Character> {
         bail!("This type cannot be converted to a character");
     }
 }

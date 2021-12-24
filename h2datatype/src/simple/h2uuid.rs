@@ -3,8 +3,8 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use uuid::Uuid;
 
-use generic_number::Endian;
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use generic_number::{Context, Endian};
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a UUID.
 ///
@@ -28,27 +28,19 @@ impl H2UUID {
 }
 
 impl H2TypeTrait for H2UUID {
-    fn is_static(&self) -> bool {
-        true
-    }
-
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(16)
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("UUID".to_string()),
-            Offset::Dynamic(context) => {
-                let number = context.read_u128(self.endian)?;
-                Ok(Uuid::from_u128(number).to_string())
-            }
-        }
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        let number = context.read_u128(self.endian)?;
+        Ok(Uuid::from_u128(number).to_string())
     }
 }
 
 // #[cfg(test)]
 // mod tests {
+// TODO: Tests
 //     use super::*;
 //     use simple_error::SimpleResult;
 //     use generic_number::{Context, Endian};

@@ -3,9 +3,9 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use std::ops::Range;
 
-use generic_number::{Integer, Float, Character};
+use generic_number::{Context, Integer, Float, Character};
 
-use crate::{H2TypeTrait, Offset, Alignment, ResolvedType};
+use crate::{H2TypeTrait, Alignment, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
 use crate::simple::numeric::*;
@@ -109,39 +109,34 @@ impl H2Type {
         }
     }
 
-    /// Is the size known ahead of time?
-    pub fn is_static(&self) -> bool {
-        self.field_type().is_static()
-    }
-
     /// Get the size of just the field - no alignment included.
     ///
     /// Note that if the type has children (such as a
     /// [`crate::composite::H2Array`], the alignment on THAT is
     /// included since that's part of the actual object.
-    pub fn actual_size(&self, offset: Offset) -> SimpleResult<u64> {
-        self.field_type().actual_size(offset)
+    pub fn base_size(&self, context: Context) -> SimpleResult<u64> {
+        self.field_type().base_size(context)
     }
 
     /// Get the size of the field, including the alignment.
-    pub fn aligned_size(&self, offset: Offset) -> SimpleResult<u64> {
-        self.field_type().aligned_size(offset, self.alignment)
+    pub fn aligned_size(&self, context: Context) -> SimpleResult<u64> {
+        self.field_type().aligned_size(context, self.alignment)
     }
 
     /// Get the [`Range<u64>`] that the type will cover, starting at the
-    /// given [`Offset`], if it can be known, without adding padding.
-    pub fn actual_range(&self, offset: Offset) -> SimpleResult<Range<u64>> {
-        self.field_type().range(offset, Alignment::None)
+    /// given [`Context`], if it can be known, without adding padding.
+    pub fn actual_range(&self, context: Context) -> SimpleResult<Range<u64>> {
+        self.field_type().range(context, Alignment::None)
     }
 
     /// Get the [`Range<u64>`] that the type will cover, with padding.
-    pub fn aligned_range(&self, offset: Offset) -> SimpleResult<Range<u64>> {
-        self.field_type().range(offset, self.alignment)
+    pub fn aligned_range(&self, context: Context) -> SimpleResult<Range<u64>> {
+        self.field_type().range(context, self.alignment)
     }
 
     /// Get *related* nodes - ie, other fields that a pointer points to
-    pub fn related(&self, offset: Offset) -> SimpleResult<Vec<(u64, H2Type)>> {
-        self.field_type().related(offset)
+    pub fn related(&self, context: Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+        self.field_type().related(context)
     }
 
     /// Get the types that make up the given type.
@@ -149,8 +144,8 @@ impl H2Type {
     /// Some types don't have children, they are essentially leaf notes. Others
     /// (such as [`H2Array`] and
     /// [`NTString`]) do.
-    pub fn children(&self, offset: Offset) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        self.field_type().children(offset)
+    pub fn children(&self, context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
+        self.field_type().children(context)
     }
 
     /// Resolve this type into a concrete type.
@@ -158,13 +153,13 @@ impl H2Type {
     /// Once a type is resolved, the size, range, data, string value, and so on
     /// are "written in stone", so to speak, which means they no longer need to
     /// be calculated.
-    pub fn resolve(&self, offset: Offset, name: Option<String>) -> SimpleResult<ResolvedType> {
-        self.field_type().resolve(offset, self.alignment, name)
+    pub fn resolve(&self, context: Context, name: Option<String>) -> SimpleResult<ResolvedType> {
+        self.field_type().resolve(context, self.alignment, name)
     }
 
     /// Get a user-consumeable string
-    pub fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        self.field_type().to_display(offset)
+    pub fn to_display(&self, context: Context) -> SimpleResult<String> {
+        self.field_type().to_display(context)
     }
 
     /// Can this value represent a [`String`]?
@@ -173,31 +168,31 @@ impl H2Type {
     }
 
     /// Try to convert to a [`String`].
-    pub fn to_string(&self, offset: Offset) -> SimpleResult<String> {
-        self.field_type().to_string(offset)
+    pub fn to_string(&self, context: Context) -> SimpleResult<String> {
+        self.field_type().to_string(context)
     }
 
     pub fn can_be_integer(&self) -> bool {
         self.field_type().can_be_integer()
     }
 
-    pub fn to_integer(&self, offset: Offset) -> SimpleResult<Integer> {
-        self.field_type().to_integer(offset)
+    pub fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
+        self.field_type().to_integer(context)
     }
 
     pub fn can_be_float(&self) -> bool {
         self.field_type().can_be_float()
     }
 
-    pub fn to_float(&self, offset: Offset) -> SimpleResult<Float> {
-        self.field_type().to_float(offset)
+    pub fn to_float(&self, context: Context) -> SimpleResult<Float> {
+        self.field_type().to_float(context)
     }
 
     pub fn can_be_character(&self) -> bool {
         self.field_type().can_be_character()
     }
 
-    pub fn to_character(&self, offset: Offset) -> SimpleResult<Character> {
-        self.field_type().to_character(offset)
+    pub fn to_character(&self, context: Context) -> SimpleResult<Character> {
+        self.field_type().to_character(context)
     }
 }

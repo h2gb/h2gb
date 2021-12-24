@@ -1,8 +1,9 @@
 use serde::{Serialize, Deserialize};
-
 use simple_error::{bail, SimpleResult};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Offset, Alignment};
+use generic_number::Context;
+
+use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
 
 /// Defines a string with a configured length.
 ///
@@ -32,20 +33,17 @@ impl H2Blob {
 }
 
 impl H2TypeTrait for H2Blob {
-    fn is_static(&self) -> bool {
-        true
-    }
-
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.length)
     }
 
-    fn to_display(&self, _offset: Offset) -> SimpleResult<String> {
+    fn to_display(&self, _context: Context) -> SimpleResult<String> {
         Ok(format!("Binary blob ({} bytes)", self.length))
     }
 }
 
 // #[cfg(test)]
+// TODO: Tests
 // mod tests {
 //     use super::*;
 //     use simple_error::SimpleResult;

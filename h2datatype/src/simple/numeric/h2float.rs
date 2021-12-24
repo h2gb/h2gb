@@ -1,9 +1,9 @@
 use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
-use generic_number::{Float, FloatReader, FloatRenderer};
+use generic_number::{Context, Float, FloatReader, FloatRenderer};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -38,28 +38,19 @@ impl H2Float {
 }
 
 impl H2TypeTrait for H2Float {
-    fn is_static(&self) -> bool {
-        true
-    }
-
-    fn actual_size(&self, _offset: Offset) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
         Ok(self.reader.size() as u64)
     }
 
-    fn to_display(&self, offset: Offset) -> SimpleResult<String> {
-        match offset {
-            Offset::Static(_) => Ok("Float".to_string()),
-            Offset::Dynamic(context) => {
-                Ok(format!("{:?}", self.reader.read(context)?))
-            }
-        }
+    fn to_display(&self, context: Context) -> SimpleResult<String> {
+        Ok(format!("{:?}", self.reader.read(context)?))
     }
 
     fn can_be_float(&self) -> bool {
         true
     }
 
-    fn to_float(&self, offset: Offset) -> SimpleResult<Float> {
-        self.reader.read(offset.get_dynamic()?)
+    fn to_float(&self, context: Context) -> SimpleResult<Float> {
+        self.reader.read(context)
     }
 }
