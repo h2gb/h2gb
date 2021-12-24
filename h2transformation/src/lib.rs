@@ -365,15 +365,15 @@ impl fmt::Display for Transformation {
 
 impl Transformation {
     fn get_transformer(&self) -> Box<dyn TransformerTrait> {
-        match self { // TODO: I think I can simplify this by moving the *
-            Self::Null(s)             => Box::new(*s),
-            Self::XorByConstant(s)    => Box::new(*s),
-            Self::FromBase64(s)       => Box::new(*s),
-            Self::FromBase32(s)       => Box::new(*s),
-            Self::FromDeflated(s)     => Box::new(*s),
-            Self::FromHex(s)          => Box::new(*s),
-            Self::FromBlockCipher(s)  => Box::new(*s),
-            Self::FromStreamCipher(s) => Box::new(*s),
+        match *self {
+            Self::Null(s)             => Box::new(s),
+            Self::XorByConstant(s)    => Box::new(s),
+            Self::FromBase64(s)       => Box::new(s),
+            Self::FromBase32(s)       => Box::new(s),
+            Self::FromDeflated(s)     => Box::new(s),
+            Self::FromHex(s)          => Box::new(s),
+            Self::FromBlockCipher(s)  => Box::new(s),
+            Self::FromStreamCipher(s) => Box::new(s),
         }
     }
 

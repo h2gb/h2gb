@@ -19,7 +19,6 @@
 
 //impl H2Pointer {
 //    pub fn new_aligned(alignment: Alignment, definition: IntegerReader, display: GenericFormatter, target_type: H2Type) -> H2Type {
-//        // TODO: Ensure the definition can be a u64
 //        H2Type::new(alignment, H2Types::H2Pointer(Self {
 //            definition: definition,
 //            display: display,
@@ -34,7 +33,6 @@
 
 //impl H2TypeTrait for H2Pointer {
 //    fn base_size(&self, offset: Offset) -> SimpleResult<u64> {
-//        // TODO: I'm not sure if using the static size here is really something I should care about, as opposed to just reading + checking
 //        match self.definition.size() {
 //            Some(v) => Ok(v as u64),
 //            None    => Ok(self.definition.read(offset.get_dynamic()?)?.size() as u64),

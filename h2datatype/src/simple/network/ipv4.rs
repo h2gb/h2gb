@@ -28,7 +28,7 @@ impl IPv4 {
 }
 
 impl H2TypeTrait for IPv4 {
-    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
         Ok(4)
     }
 

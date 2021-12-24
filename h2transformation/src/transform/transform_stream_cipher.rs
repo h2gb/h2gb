@@ -36,7 +36,7 @@ pub struct TransformStreamCipher {
     cipher: StreamCipherType,
     key: KeyOrIV,
     iv: Option<KeyOrIV>,
-    offset: u64,
+    offset: usize,
 }
 
 impl fmt::Display for TransformStreamCipher {

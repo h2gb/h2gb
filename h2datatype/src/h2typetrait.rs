@@ -34,7 +34,7 @@ pub trait H2TypeTrait {
     ///
     /// Types without children - in general, [`crate::simple`]s - must also
     /// implement this. Without children, we can't tell.
-    fn base_size(&self, context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, context: Context) -> SimpleResult<usize> {
         let children = self.children_with_range(context)?;
 
         let first_range = match children.first() {
@@ -54,7 +54,7 @@ pub trait H2TypeTrait {
     /// Get the aligned size.
     ///
     /// The default implementation is very likely fine for this.
-    fn aligned_size(&self, context: Context, alignment: Alignment) -> SimpleResult<u64> {
+    fn aligned_size(&self, context: Context, alignment: Alignment) -> SimpleResult<usize> {
         let range = self.range(context, alignment)?;
 
         Ok(range.end - range.start)
@@ -66,7 +66,7 @@ pub trait H2TypeTrait {
     /// The default implementation is very likely good. This is only
     /// implemented as a trait function because other trait functions (such as
     /// [`#resolve`]) use it.
-    fn range(&self, context: Context, alignment: Alignment) -> SimpleResult<Range<u64>> {
+    fn range(&self, context: Context, alignment: Alignment) -> SimpleResult<Range<usize>> {
         // Get the start and end
         let start = context.position();
         let end   = start + self.base_size(context)?;
@@ -82,7 +82,7 @@ pub trait H2TypeTrait {
     fn to_display(&self, context: Context) -> SimpleResult<String>;
 
     /// Get "related" values - ie, what a pointer points to.
-    fn related(&self, _context: Context) -> SimpleResult<Vec<(u64, H2Type)>> {
+    fn related(&self, _context: Context) -> SimpleResult<Vec<(usize, H2Type)>> {
         Ok(vec![])
     }
 
@@ -113,7 +113,7 @@ pub trait H2TypeTrait {
     /// children are consecutive, adjacent, and make up the full parent type.
     /// As long as that's the case, the default implementation will work just
     /// fine.
-    fn children_with_range(&self, context: Context) -> SimpleResult<Vec<(Range<u64>, Option<String>, H2Type)>> {
+    fn children_with_range(&self, context: Context) -> SimpleResult<Vec<(Range<usize>, Option<String>, H2Type)>> {
         let mut child_context = context;
 
         self.children(context)?.into_iter().map(|(name, child)| {

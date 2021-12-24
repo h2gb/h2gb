@@ -24,8 +24,7 @@ impl fmt::Display for H2Entry {
 
 impl AutoBumpyEntry for H2Entry {
     fn range(&self) -> Range<usize> {
-        // TODO: Converting like this is bad news
-        (self.resolved_type.aligned_range.start as usize)..(self.resolved_type.aligned_range.end as usize)
+        self.resolved_type.aligned_range.start..self.resolved_type.aligned_range.end
     }
 }
 

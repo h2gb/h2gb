@@ -439,7 +439,7 @@ fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset:
         )?;
 
         // Update to the next spawn offset
-        current_spawn_offset = spawn_point.actual_range.end as usize;
+        current_spawn_offset = spawn_point.actual_range.end;
     }
 
     Ok(current_spawn_offset)
@@ -468,7 +468,7 @@ fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset:
         )?;
 
         // Update to the next journey offset
-        current_journey_offset = journey_item.actual_range.end as usize;
+        current_journey_offset = journey_item.actual_range.end;
     }
 
     Ok(())
@@ -498,7 +498,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     let name = create_entry(record, buffer, LAYER, &*TERRARIA_LPSTRING, offsets.name, Some("Character name"))?;
 
     // The end of the name is the starting offset for the next bunch of fields
-    let base = name.actual_range.end as usize;
+    let base = name.actual_range.end;
 
     // Time played has a special parser because it's a duration value that we
     // want to display pretty

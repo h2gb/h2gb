@@ -31,7 +31,7 @@ impl Rgb {
 }
 
 impl H2TypeTrait for Rgb {
-    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
         Ok(3)
     }
 

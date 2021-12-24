@@ -67,7 +67,7 @@ impl Command for ActionEntryCreate {
         self.0 = State::Backward(Backward {
             buffer: forward.buffer.clone(),
             layer: forward.layer.clone(),
-            offset: forward.resolved_type.actual_range.start as usize,
+            offset: forward.resolved_type.actual_range.start,
         });
 
         Ok(())

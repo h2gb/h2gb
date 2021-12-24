@@ -17,11 +17,11 @@ use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Array {
     field_type: Box<H2Type>,
-    length: u64,
+    length: usize,
 }
 
 impl H2Array {
-    pub fn new_aligned(alignment: Alignment, length: u64, field_type: H2Type) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length: usize, field_type: H2Type) -> SimpleResult<H2Type> {
         if length == 0 {
             bail!("Arrays must be at least one element long");
         }
@@ -32,7 +32,7 @@ impl H2Array {
         })))
     }
 
-    pub fn new(length: u64, field_type: H2Type) -> SimpleResult<H2Type> {
+    pub fn new(length: usize, field_type: H2Type) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length, field_type)
     }
 }

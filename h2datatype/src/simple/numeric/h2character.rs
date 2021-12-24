@@ -78,10 +78,10 @@ impl H2Character {
 }
 
 impl H2TypeTrait for H2Character {
-    fn base_size(&self, context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, context: Context) -> SimpleResult<usize> {
         match self.reader.size() {
-            Some(v) => Ok(v as u64),
-            None    => Ok(self.reader.read(context)?.size() as u64),
+            Some(v) => Ok(v),
+            None    => Ok(self.reader.read(context)?.size()),
         }
     }
 

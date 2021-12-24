@@ -22,14 +22,14 @@ pub enum Alignment {
     /// Each field is padded until its length is a multiple of the padding
     /// Length.. so 0..1 aligned to 4 will be 0..4, and 1..2 aligned to 4 will
     /// be 1..5
-    Loose(u64),
+    Loose(usize),
 
     /// Only pad after, but error out if the start isn't aligned.
-    Strict(u64),
+    Strict(usize),
 }
 
 impl Alignment {
-    fn round_up(number: u64, multiple: u64) -> u64 {
+    fn round_up(number: usize, multiple: usize) -> usize {
         if multiple == 0 {
             return number;
         }
@@ -42,7 +42,7 @@ impl Alignment {
         number - remainder + multiple
     }
 
-    pub fn align(self, range: Range<u64>) -> SimpleResult<Range<u64>> {
+    pub fn align(self, range: Range<usize>) -> SimpleResult<Range<usize>> {
         if range.end < range.start {
             bail!("Range ends before it starts");
         }
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_none() -> SimpleResult<()> {
-        let tests: Vec<(Range<u64>, Range<u64>)> = vec![
+        let tests: Vec<(Range<usize>, Range<usize>)> = vec![
             //       value       expected
             (         0..0,          0..0),
             (        0..10,         0..10),
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_loose() -> SimpleResult<()> {
-        let tests: Vec<(Range<u64>, u64, Range<u64>)> = vec![
+        let tests: Vec<(Range<usize>, usize, Range<usize>)> = vec![
             //  value  multiple  expected
             (    0..0,        0,     0..0),
             (    0..0,        4,     0..0),
@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_strict() -> SimpleResult<()> {
-        let good_tests: Vec<(Range<u64>, u64, Range<u64>)> = vec![
+        let good_tests: Vec<(Range<usize>, usize, Range<usize>)> = vec![
             //      value  multiple  expected
             (    0..0,        0,         0..0),
             (    0..1,        4,         0..4),
@@ -134,7 +134,7 @@ mod tests {
             assert_eq!(expected, Alignment::Strict(multiple).align(value)?);
         }
 
-        let bad_tests: Vec<(Range<u64>, u64)> = vec![
+        let bad_tests: Vec<(Range<usize>, usize)> = vec![
             //   value      multiple
             (    2..3,            4),
             (    1..1,            4),

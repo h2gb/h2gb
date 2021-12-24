@@ -24,7 +24,7 @@ pub struct H2Enum {
 impl H2Enum {
     pub fn new_aligned(alignment: Alignment, reader: IntegerReader, enum_type: &str) -> SimpleResult<H2Type> {
         if !reader.can_be_usize() {
-            bail!("Enum types must be compatible with u64 values");
+            bail!("Enum types must be compatible with usize values");
         }
 
         // Make sure the enum type exists
@@ -54,13 +54,13 @@ impl H2Enum {
 }
 
 impl H2TypeTrait for H2Enum {
-    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
-        Ok(self.reader.size() as u64)
+    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
+        Ok(self.reader.size())
     }
 
     fn to_display(&self, context: Context) -> SimpleResult<String> {
-        let as_u64 = self.reader.read(context)?.as_usize()?;
-        self.render(as_u64)
+        let as_usize = self.reader.read(context)?.as_usize()?;
+        self.render(as_usize)
     }
 
     fn can_be_string(&self) -> bool {

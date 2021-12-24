@@ -13,11 +13,11 @@ use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
 /// types.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Blob {
-    length: u64,
+    length: usize,
 }
 
 impl H2Blob {
-    pub fn new_aligned(alignment: Alignment, length_in_bytes: u64) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length_in_bytes: usize) -> SimpleResult<H2Type> {
         if length_in_bytes == 0 {
             bail!("Length must be at least 1 character long");
         }
@@ -27,13 +27,13 @@ impl H2Blob {
         })))
     }
 
-    pub fn new(length_in_bytes: u64) -> SimpleResult<H2Type> {
+    pub fn new(length_in_bytes: usize) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length_in_bytes)
     }
 }
 
 impl H2TypeTrait for H2Blob {
-    fn base_size(&self, _context: Context) -> SimpleResult<u64> {
+    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
         Ok(self.length)
     }
 

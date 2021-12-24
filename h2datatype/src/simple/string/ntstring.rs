@@ -28,13 +28,13 @@ impl NTString {
         Self::new_aligned(Alignment::None, character, renderer)
     }
 
-    fn analyze(&self, offset: Context) -> SimpleResult<(u64, Vec<Character>)> {
+    fn analyze(&self, offset: Context) -> SimpleResult<(usize, Vec<Character>)> {
         let mut position = offset.position();
         let mut result = Vec::new();
 
         loop {
             let this_character = self.character.read(offset.at(position))?;
-            position = position + this_character.size() as u64;
+            position = position + this_character.size();
 
             if this_character.as_char() == '\0' {
                 break;
@@ -49,7 +49,7 @@ impl NTString {
 }
 
 impl H2TypeTrait for NTString {
-    fn base_size(&self, offset: Context) -> SimpleResult<u64> {
+    fn base_size(&self, offset: Context) -> SimpleResult<usize> {
         Ok(self.analyze(offset)?.0)
     }
 

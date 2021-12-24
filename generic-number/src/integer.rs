@@ -105,6 +105,8 @@ impl Integer {
             Self::U8(v)        => Ok(v as usize),
             Self::U16(v)       => Ok(v as usize),
             Self::U32(v)       => Ok(v as usize),
+
+            // These may be unreachable - it depends if can_be_usize() passes
             Self::U64(v)       => Ok(v as usize),
             Self::U128(v)      => Ok(v as usize),
 
@@ -152,6 +154,8 @@ impl Integer {
             Self::I8(v)        => Ok(v as isize),
             Self::I16(v)       => Ok(v as isize),
             Self::I32(v)       => Ok(v as isize),
+
+            // These may be unreachable - it depends if can_be_isize() passes
             Self::I64(v)       => Ok(v as isize),
             Self::I128(v)      => Ok(v as isize),
         }
