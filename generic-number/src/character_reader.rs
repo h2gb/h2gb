@@ -65,3 +65,137 @@ impl CharacterReader {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    use crate::CharacterReader;
+
+    #[test]
+    fn test_ascii() -> SimpleResult<()> {
+        let data = b"\x41\x42\xff".to_vec();
+
+        let c = CharacterReader::ASCII.read(Context::new_at(&data, 0))?;
+        assert_eq!(c.size(), 1);
+        assert_eq!(c.as_char(), 'A');
+
+        let c = CharacterReader::ASCII.read(Context::new_at(&data, 1))?;
+        assert_eq!(c.size(), 1);
+        assert_eq!(c.as_char(), 'B');
+
+        let c = CharacterReader::ASCII.read(Context::new_at(&data, 2))?;
+        assert_eq!(c.size(), 1);
+        assert_eq!(c.as_char(), 0xff as char);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_utf8() -> SimpleResult<()> {
+        //             --  --  ----------  ----------  --------------  --------------  ------
+        //             A   B   ❄           ☢           𝄞               😈              ÷
+        let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
+
+        let c = CharacterReader::UTF8.read(Context::new_at(&data, 0))?;
+        assert_eq!(c.size(), 1);
+        assert_eq!(c.as_char(), 'A');
+
+        let c = CharacterReader::UTF8.read(Context::new_at(&data, 1))?;
+        assert_eq!(c.size(), 1);
+        assert_eq!(c.as_char(), 'B');
+
+        let c = CharacterReader::UTF8.read(Context::new_at(&data, 2))?;
+        assert_eq!(c.size(), 3);
+        assert_eq!(c.as_char(), '❄');
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_utf16_big_endian() -> SimpleResult<()> {
+        //           ------------ single -----------  ----------- double ------------
+        let data = b"\x00\x41\x00\x42\x27\x44\x26\x22\xD8\x34\xDD\x1E\xD8\x3D\xDE\x08".to_vec();
+        let c = Context::new(&data);
+
+        // Single
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Big).read(c.at(0))?.size());
+        assert_eq!('A', CharacterReader::UTF16(Endian::Big).read(c.at(0))?.as_char());
+
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Big).read(c.at(2))?.size());
+        assert_eq!('B', CharacterReader::UTF16(Endian::Big).read(c.at(2))?.as_char());
+
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Big).read(c.at(4))?.size());
+        assert_eq!('❄', CharacterReader::UTF16(Endian::Big).read(c.at(4))?.as_char());
+
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Big).read(c.at(6))?.size());
+        assert_eq!('☢', CharacterReader::UTF16(Endian::Big).read(c.at(6))?.as_char());
+
+        // Double
+        assert_eq!(4,   CharacterReader::UTF16(Endian::Big).read(c.at(8))?.size());
+        assert_eq!('𝄞', CharacterReader::UTF16(Endian::Big).read(c.at(8))?.as_char());
+
+        assert_eq!(4,   CharacterReader::UTF16(Endian::Big).read(c.at(12))?.size());
+        assert_eq!('😈', CharacterReader::UTF16(Endian::Big).read(c.at(12))?.as_char());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_utf16_little_endian() -> SimpleResult<()> {
+        //           ------------ single -----------  ----------- double ------------
+        let data = b"\x41\x00\x42\x00\x44\x27\x22\x26\x34\xd8\x1e\xdd\x3d\xd8\x08\xde".to_vec();
+        let c = Context::new(&data);
+
+        // Single
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Little).read(c.at(0))?.size());
+        assert_eq!('A', CharacterReader::UTF16(Endian::Little).read(c.at(0))?.as_char());
+
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Little).read(c.at(2))?.size());
+        assert_eq!('B', CharacterReader::UTF16(Endian::Little).read(c.at(2))?.as_char());
+
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Little).read(c.at(4))?.size());
+        assert_eq!('❄', CharacterReader::UTF16(Endian::Little).read(c.at(4))?.as_char());
+
+        assert_eq!(2,   CharacterReader::UTF16(Endian::Little).read(c.at(6))?.size());
+        assert_eq!('☢', CharacterReader::UTF16(Endian::Little).read(c.at(6))?.as_char());
+
+        // Double
+        assert_eq!(4,   CharacterReader::UTF16(Endian::Little).read(c.at(8))?.size());
+        assert_eq!('𝄞', CharacterReader::UTF16(Endian::Little).read(c.at(8))?.as_char());
+
+        assert_eq!(4,    CharacterReader::UTF16(Endian::Little).read(c.at(12))?.size());
+        assert_eq!('😈', CharacterReader::UTF16(Endian::Little).read(c.at(12))?.as_char());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_utf32_big_endian() -> SimpleResult<()> {
+        let data = b"\x00\x00\x00\x41\x00\x00\x00\x42\x00\x00\x27\x44\x00\x00\x26\x22\x00\x01\xD1\x1E\x00\x01\xF6\x08".to_vec();
+        let c = Context::new(&data);
+
+        assert_eq!(4,   CharacterReader::UTF32(Endian::Big).read(c.at(0))?.size());
+        assert_eq!('A', CharacterReader::UTF32(Endian::Big).read(c.at(0))?.as_char());
+
+        assert_eq!(4,   CharacterReader::UTF32(Endian::Big).read(c.at(4))?.size());
+        assert_eq!('B', CharacterReader::UTF32(Endian::Big).read(c.at(4))?.as_char());
+
+        assert_eq!(4,   CharacterReader::UTF32(Endian::Big).read(c.at(8))?.size());
+        assert_eq!('❄', CharacterReader::UTF32(Endian::Big).read(c.at(8))?.as_char());
+
+        assert_eq!(4,   CharacterReader::UTF32(Endian::Big).read(c.at(12))?.size());
+        assert_eq!('☢', CharacterReader::UTF32(Endian::Big).read(c.at(12))?.as_char());
+
+        assert_eq!(4,   CharacterReader::UTF32(Endian::Big).read(c.at(16))?.size());
+        assert_eq!('𝄞', CharacterReader::UTF32(Endian::Big).read(c.at(16))?.as_char());
+
+        assert_eq!(4,    CharacterReader::UTF32(Endian::Big).read(c.at(20))?.size());
+        assert_eq!('😈', CharacterReader::UTF32(Endian::Big).read(c.at(20))?.as_char());
+
+        Ok(())
+    }
+}

@@ -108,6 +108,19 @@ mod tests {
     use simple_error::SimpleResult;
 
     #[test]
+    fn test_u32() -> SimpleResult<()> {
+        let data = b"\x12\x34\x56\x78\x9a\xbc\xde\xf0".to_vec();
+
+        assert_eq!(Integer::from(0x12345678u32), IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 0))?);
+        assert_eq!(Integer::from(0x9abcdef0u32), IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 4))?);
+
+        assert_eq!(Integer::from(0x78563412u32), IntegerReader::U32(Endian::Little).read(Context::new_at(&data, 0))?);
+        assert_eq!(Integer::from(0xf0debc9au32), IntegerReader::U32(Endian::Little).read(Context::new_at(&data, 4))?);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_buffer_too_short() -> SimpleResult<()> {
         let data = b"".to_vec();
         assert!(IntegerReader::I8.read(Context::new(&data)).is_err());

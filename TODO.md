@@ -2,9 +2,9 @@
   * Tests and documentation
   * Change structs (and other APIey things) to take &str instead of String
   * Bi-directional enums (so we can fetch stuff by name)
+  * Figure out if we can package data files
   * Automatically create a default "Layer"
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
-  * Look at the formats in https://github.com/wader/fq/
 
 * Nested bumpy vectors
   * Print structs and such more nicely
@@ -20,6 +20,7 @@
     * More importantly, a trait
   * Think of a way to make analyzing smoother, like automatically doing offsets and stuff
   * Consider something to parse files "linearly", the way "fq" does
+  * Maybe consume() methods in Context would be helpful?
 
 * Datatypes
   * Do a better "duration" type
@@ -31,6 +32,7 @@
   * Think of some way to "diff" two binary files
   * Bitmap image
   * .MPQ
+  * Look at the formats in https://github.com/wader/fq/
 
 * Major features
   * Cross references

@@ -62,3 +62,24 @@ impl fmt::Display for Character {
         fmt::Display::fmt(&self.character, f)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_character() -> SimpleResult<()> {
+        let c = Character::from(('A', 1));
+        assert_eq!('A', c.as_char());
+        assert_eq!(1, c.size());
+
+        let c = Character::from(('A', 100));
+        assert_eq!('A', c.as_char());
+        assert_eq!(100, c.size());
+
+        Ok(())
+    }
+}

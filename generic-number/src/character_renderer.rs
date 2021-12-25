@@ -26,3 +26,21 @@ impl CharacterRenderer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    use crate::Character;
+
+    #[test]
+    fn test_pretty() -> SimpleResult<()> {
+        assert_eq!("'A'",   CharacterFormatter::pretty_character().render(Character::from(('A', 1))));
+        assert_eq!("'\\n'", CharacterFormatter::pretty_character().render(Character::from(('\n', 1))));
+
+        Ok(())
+    }
+}

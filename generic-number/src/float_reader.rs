@@ -43,4 +43,35 @@ impl FloatReader {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_f32() -> SimpleResult<()> {
+        // Should be ~3.14
+        let data = b"\x40\x48\xf5\xc3".to_vec();
+
+        let c = FloatReader::F32(Endian::Big).read(Context::new_at(&data, 0))?;
+        assert_eq!(c.size(), 4);
+        assert!(c > Float::from(3.13));
+        assert!(c < Float::from(3.15));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_f64() -> SimpleResult<()> {
+        // Should be ~3.14
+        let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f".to_vec();
+
+        let c = FloatReader::F64(Endian::Big).read(Context::new_at(&data, 0))?;
+        assert_eq!(c.size(), 8);
+
+        assert!(c > Float::from(3.13));
+        assert!(c < Float::from(3.15));
+
+        Ok(())
+    }
 }
