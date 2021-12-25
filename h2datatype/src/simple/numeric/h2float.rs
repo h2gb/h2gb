@@ -54,3 +54,8 @@ impl H2TypeTrait for H2Float {
         self.reader.read(context)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: We need tests here
+}

@@ -38,15 +38,7 @@ impl H2TypeTrait for H2UUID {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-// TODO: Tests
-//     use super::*;
-//     use simple_error::SimpleResult;
-//     use generic_number::{Context, Endian};
-
-//     #[test]
-//     fn test_uuid() -> SimpleResult<()> {
-//         Ok(())
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    // TODO: We need tests here
+}

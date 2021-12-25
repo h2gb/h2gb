@@ -42,17 +42,7 @@ impl H2TypeTrait for H2Blob {
     }
 }
 
-// #[cfg(test)]
-// TODO: Tests
-// mod tests {
-//     use super::*;
-//     use simple_error::SimpleResult;
-//     use generic_number::{Context, Endian};
-//     use crate::simple::H2Number;
-//     use crate::simple::network::IPv4;
-
-//     #[test]
-//     fn test_test() -> SimpleResult<()> {
-//         Ok(())
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    // TODO: We need tests here
+}

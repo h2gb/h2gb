@@ -60,9 +60,5 @@ impl H2TypeTrait for Rgb {
 
 #[cfg(test)]
 mod tests {
-    // TODO: Tests
-    // use super::*;
-    // use simple_error::SimpleResult;
-    // use generic_number::{Context, Endian, GenericReader, HexFormatter, DefaultFormatter};
-
+    // TODO: We need tests here
 }

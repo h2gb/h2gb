@@ -14,19 +14,19 @@ use generic_number::{Integer, Float, Character};
 /// unexpected data).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedType {
-    pub actual_range: Range<usize>,
+    pub actual_range:  Range<usize>,
     pub aligned_range: Range<usize>,
 
-    pub field_name: Option<String>,
-    pub display: String,
+    pub field_name:    Option<String>,
+    pub display:       String,
 
-    pub children: Vec<ResolvedType>,
-    pub related: Vec<(usize, H2Type)>,
+    pub children:      Vec<ResolvedType>,
+    pub related:       Vec<(usize, H2Type)>,
 
-    pub as_string:    Option<String>,
-    pub as_integer:   Option<Integer>,
-    pub as_float:     Option<Float>,
-    pub as_character: Option<Character>,
+    pub as_string:     Option<String>,
+    pub as_integer:    Option<Integer>,
+    pub as_float:      Option<Float>,
+    pub as_character:  Option<Character>,
 }
 
 impl ResolvedType {
