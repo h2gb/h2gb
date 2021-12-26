@@ -98,17 +98,14 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn read_u24(self, endian: Endian) -> SimpleResult<u32> {
-        let bytes = match endian {
-            Endian::Big => self.read_bytes(3)?,
-            Endian::Little => {
-                let mut b = self.read_bytes(3)?;
-                b.reverse();
-                b
-            },
-        };
+    pub fn read_u24(self, endian: Endian) -> SimpleResult<(u8, u16)> {
+        match endian {
+            // Read the msb from the current position, then the lsb's from the next
+            Endian::Big    => Ok((self.read_u8()?, self.at(self.position + 1).read_u16(Endian::Big)?)),
 
-        Ok((bytes[0] as u32) << 16 | (bytes[1] as u32) << 8 | (bytes[0] as u32))
+            // Read the msb from position+2, then the lsb's (in little endian) from the current position
+            Endian::Little => Ok((self.at(self.position + 2).read_u8()?, self.read_u16(Endian::Little)?)),
+        }
     }
 
     pub fn read_u32(self, endian: Endian) -> SimpleResult<u32> {
@@ -362,7 +359,32 @@ mod tests {
     }
 
     #[test]
-    fn test_read_u32() -> SimpleResult<()> {
+    fn test_u24() -> SimpleResult<()> {
+        let data = b"\x01\x02\x03\x04\x05\x06".to_vec();
+
+        let tests = vec![
+            // offset     endian          expected
+            (  0,         Endian::Big,    (0x01u8, 0x0203u16)),
+            (  1,         Endian::Big,    (0x02u8, 0x0304u16)),
+            (  2,         Endian::Big,    (0x03u8, 0x0405u16)),
+            (  3,         Endian::Big,    (0x04u8, 0x0506u16)),
+
+            (  0,         Endian::Little, (0x03u8, 0x0201u16)),
+            (  1,         Endian::Little, (0x04u8, 0x0302u16)),
+            (  2,         Endian::Little, (0x05u8, 0x0403u16)),
+            (  3,         Endian::Little, (0x06u8, 0x0504u16)),
+        ];
+
+        for (offset, endian, expected) in tests {
+            let c = Context::new_at(&data, offset);
+            assert_eq!(expected, c.read_u24(endian)?);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_u32() -> SimpleResult<()> {
         // Most functionality on context is implicitly exercised by the tests
         // in lib.rs, but read_bytes is not so test it
         let data = b"\x01\x02\x03\x04\x05\x06".to_vec();

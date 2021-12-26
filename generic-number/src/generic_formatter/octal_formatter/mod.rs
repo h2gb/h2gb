@@ -45,7 +45,7 @@ impl IntegerRendererTrait for OctalFormatter {
             let width = match number {
                 Integer::U8(_)    => 3,
                 Integer::U16(_)   => 6,
-                Integer::U24(_)   => 8,
+                Integer::U24(_,_) => 8,
                 Integer::U32(_)   => 11,
                 Integer::U64(_)   => 22,
                 Integer::U128(_)  => 43,

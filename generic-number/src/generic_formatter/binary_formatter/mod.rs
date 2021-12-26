@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_binary_u24() -> SimpleResult<()> {
-        let number = Integer::U24(0x0f0f0f);
+        let number = Integer::U24(0x0f, 0x0f0f);
         assert_eq!("000011110000111100001111", BinaryFormatter::new_integer(false, true).render(number));
 
         Ok(())

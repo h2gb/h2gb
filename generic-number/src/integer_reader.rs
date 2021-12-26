@@ -16,6 +16,9 @@ pub enum IntegerReader {
     /// Unsigned 16-bit integer
     U16(Endian),
 
+    /// Unsigned 24-bit integer
+    U24(Endian),
+
     /// Unsigned 32-bit integer
     U32(Endian),
 
@@ -59,6 +62,7 @@ impl IntegerReader {
 
             Self::U8             => Ok(Integer::from(context.read_u8()?)),
             Self::U16(endian)    => Ok(Integer::from(context.read_u16(endian)?)),
+            Self::U24(endian)    => Ok(Integer::from(context.read_u24(endian)?)),
             Self::U32(endian)    => Ok(Integer::from(context.read_u32(endian)?)),
             Self::U64(endian)    => Ok(Integer::from(context.read_u64(endian)?)),
             Self::U128(endian)   => Ok(Integer::from(context.read_u128(endian)?)),
@@ -70,6 +74,7 @@ impl IntegerReader {
         match self {
             Self::U8      => mem::size_of::<u8>(),
             Self::U16(_)  => mem::size_of::<u16>(),
+            Self::U24(_)  => mem::size_of::<u8>() + mem::size_of::<u16>(),
             Self::U32(_)  => mem::size_of::<u32>(),
             Self::U64(_)  => mem::size_of::<u64>(),
             Self::U128(_) => mem::size_of::<u128>(),
@@ -89,6 +94,7 @@ impl IntegerReader {
         match self {
             Self::U8         => (self.size() <= mem::size_of::<usize>()),
             Self::U16(_)     => (self.size() <= mem::size_of::<usize>()),
+            Self::U24(_)     => (self.size() <= mem::size_of::<usize>()),
             Self::U32(_)     => (self.size() <= mem::size_of::<usize>()),
             Self::U64(_)     => (self.size() <= mem::size_of::<usize>()),
             Self::U128(_)    => (self.size() <= mem::size_of::<usize>()),
