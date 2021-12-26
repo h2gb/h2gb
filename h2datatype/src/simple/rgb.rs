@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
 
-use generic_number::Context;
+use generic_number::{Context, Endian, IntegerReader, HexFormatter};
 use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
@@ -33,19 +33,27 @@ impl H2TypeTrait for Rgb {
     }
 
     fn to_display(&self, context: Context) -> SimpleResult<String> {
-        // Read the 24-bit value
-        let colors = context.read_bytes(3)?;
+        let reader = IntegerReader::U24(Endian::Big);
+        let number = reader.read(context)?;
+        let renderer = HexFormatter::new_integer(false, false, true);
 
-        let red = colors[0];
-        let green = colors[1];
-        let blue = colors[2];
-        let value = ((red as u32) << 16) | ((green as u32) << 8) | (blue as u32);
-
-        Ok(format!("#{:06x}", value))
+        Ok(format!("#{}", renderer.render(number)))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    // TODO: We need tests here
+    use super::*;
+    use simple_error::SimpleResult;
+    use generic_number::Context;
+
+    #[test]
+    fn test_rgb() -> SimpleResult<()> {
+        let data = b"\x41\x42\x43".to_vec();
+        let context = Context::new(&data);
+
+        assert_eq!("#414243", Rgb::new().to_display(context)?);
+
+        Ok(())
+    }
 }
