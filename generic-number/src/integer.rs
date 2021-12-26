@@ -20,59 +20,67 @@ pub enum Integer {
     U32(u32),
     U64(u64),
     U128(u128),
+    USize(usize),
 
     I8(i8),
     I16(i16),
     I32(i32),
     I64(i64),
     I128(i128),
+    ISize(isize),
 }
 
 // Simplify converting from various basic types - generally, these shouldn't be
 // used directly except for testing!
-impl From<u8>   for Integer { fn from(o: u8)   -> Self { Self::U8(o)   } }
-impl From<u16>  for Integer { fn from(o: u16)  -> Self { Self::U16(o)  } }
-impl From<u32>  for Integer { fn from(o: u32)  -> Self { Self::U32(o)  } }
-impl From<u64>  for Integer { fn from(o: u64)  -> Self { Self::U64(o)  } }
-impl From<u128> for Integer { fn from(o: u128) -> Self { Self::U128(o) } }
-impl From<i8>   for Integer { fn from(o: i8)   -> Self { Self::I8(o)   } }
-impl From<i16>  for Integer { fn from(o: i16)  -> Self { Self::I16(o)  } }
-impl From<i32>  for Integer { fn from(o: i32)  -> Self { Self::I32(o)  } }
-impl From<i64>  for Integer { fn from(o: i64)  -> Self { Self::I64(o)  } }
-impl From<i128> for Integer { fn from(o: i128) -> Self { Self::I128(o) } }
+impl From<u8>    for Integer { fn from(o: u8)   -> Self { Self::U8(o)   } }
+impl From<u16>   for Integer { fn from(o: u16)  -> Self { Self::U16(o)  } }
+impl From<u32>   for Integer { fn from(o: u32)  -> Self { Self::U32(o)  } }
+impl From<u64>   for Integer { fn from(o: u64)  -> Self { Self::U64(o)  } }
+impl From<u128>  for Integer { fn from(o: u128) -> Self { Self::U128(o) } }
+impl From<usize> for Integer { fn from(o: usize) -> Self { Self::USize(o) } }
+impl From<i8>    for Integer { fn from(o: i8)   -> Self { Self::I8(o)   } }
+impl From<i16>   for Integer { fn from(o: i16)  -> Self { Self::I16(o)  } }
+impl From<i32>   for Integer { fn from(o: i32)  -> Self { Self::I32(o)  } }
+impl From<i64>   for Integer { fn from(o: i64)  -> Self { Self::I64(o)  } }
+impl From<i128>  for Integer { fn from(o: i128) -> Self { Self::I128(o) } }
+impl From<isize> for Integer { fn from(o: isize) -> Self { Self::ISize(o) } }
 
 impl Integer {
     /// The size - in bytes - of the type.
     pub fn size(self) -> usize {
         match self {
-            Self::U8(_)   => mem::size_of::<u8>(),
-            Self::U16(_)  => mem::size_of::<u16>(),
-            Self::U32(_)  => mem::size_of::<u32>(),
-            Self::U64(_)  => mem::size_of::<u64>(),
-            Self::U128(_) => mem::size_of::<u128>(),
+            Self::U8(_)    => mem::size_of::<u8>(),
+            Self::U16(_)   => mem::size_of::<u16>(),
+            Self::U32(_)   => mem::size_of::<u32>(),
+            Self::U64(_)   => mem::size_of::<u64>(),
+            Self::U128(_)  => mem::size_of::<u128>(),
+            Self::USize(_) => mem::size_of::<usize>(),
 
-            Self::I8(_)   => mem::size_of::<i8>(),
-            Self::I16(_)  => mem::size_of::<i16>(),
-            Self::I32(_)  => mem::size_of::<i32>(),
-            Self::I64(_)  => mem::size_of::<i64>(),
-            Self::I128(_) => mem::size_of::<i128>(),
+            Self::I8(_)    => mem::size_of::<i8>(),
+            Self::I16(_)   => mem::size_of::<i16>(),
+            Self::I32(_)   => mem::size_of::<i32>(),
+            Self::I64(_)   => mem::size_of::<i64>(),
+            Self::I128(_)  => mem::size_of::<i128>(),
+            Self::ISize(_) => mem::size_of::<isize>(),
         }
     }
 
     /// Is it signed?
     pub fn is_signed(self) -> bool {
         match self {
-            Self::U8(_)   => false,
-            Self::U16(_)  => false,
-            Self::U32(_)  => false,
-            Self::U64(_)  => false,
-            Self::U128(_) => false,
+            Self::U8(_)    => false,
+            Self::U16(_)   => false,
+            Self::U32(_)   => false,
+            Self::U64(_)   => false,
+            Self::U128(_)  => false,
+            Self::USize(_) => false,
 
-            Self::I8(_)   => true,
-            Self::I16(_)  => true,
-            Self::I32(_)  => true,
-            Self::I64(_)  => true,
-            Self::I128(_) => true,
+            Self::I8(_)    => true,
+            Self::I16(_)   => true,
+            Self::I32(_)   => true,
+            Self::I64(_)   => true,
+            Self::I128(_)  => true,
+            Self::ISize(_) => true,
         }
     }
 
@@ -86,12 +94,14 @@ impl Integer {
             Self::U32(_)     => (self.size() <= mem::size_of::<usize>()),
             Self::U64(_)     => (self.size() <= mem::size_of::<usize>()),
             Self::U128(_)    => (self.size() <= mem::size_of::<usize>()),
+            Self::USize(_)   => true,
 
             Self::I8(_)      => false,
             Self::I16(_)     => false,
             Self::I32(_)     => false,
             Self::I64(_)     => false,
             Self::I128(_)    => false,
+            Self::ISize(_)   => false,
         }
     }
 
@@ -110,12 +120,16 @@ impl Integer {
             Self::U64(v)       => Ok(v as usize),
             Self::U128(v)      => Ok(v as usize),
 
+            // Easy!
+            Self::USize(v)     => Ok(v),
+
             // None of these can become u32
-            Self::I8(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I16(_)  => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I32(_)  => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I64(_)  => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I128(_) => bail!("Can't convert {:?} into an unsigned size value", self),
+            Self::I8(_)    => bail!("Can't convert {:?} into an unsigned size value", self),
+            Self::I16(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
+            Self::I32(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
+            Self::I64(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
+            Self::I128(_)  => bail!("Can't convert {:?} into an unsigned size value", self),
+            Self::ISize(_) => bail!("Can't convert {:?} into an unsigned size value", self),
         }
     }
 
@@ -129,12 +143,14 @@ impl Integer {
             Self::U32(_)     => false,
             Self::U64(_)     => false,
             Self::U128(_)    => false,
+            Self::USize(_)   => false,
 
             Self::I8(_)      => (mem::size_of::<i8>()   <= mem::size_of::<isize>()),
             Self::I16(_)     => (mem::size_of::<i16>()  <= mem::size_of::<isize>()),
             Self::I32(_)     => (mem::size_of::<i32>()  <= mem::size_of::<isize>()),
             Self::I64(_)     => (mem::size_of::<i64>()  <= mem::size_of::<isize>()),
             Self::I128(_)    => (mem::size_of::<i128>() <= mem::size_of::<isize>()),
+            Self::ISize(_)   => true,
         }
     }
 
@@ -145,11 +161,12 @@ impl Integer {
         }
 
         match self {
-            Self::U8(_)   => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U16(_)  => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U32(_)  => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U64(_)  => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U128(_) => bail!("Can't convert {:?} into a signed size value", self),
+            Self::U8(_)    => bail!("Can't convert {:?} into a signed size value", self),
+            Self::U16(_)   => bail!("Can't convert {:?} into a signed size value", self),
+            Self::U32(_)   => bail!("Can't convert {:?} into a signed size value", self),
+            Self::U64(_)   => bail!("Can't convert {:?} into a signed size value", self),
+            Self::U128(_)  => bail!("Can't convert {:?} into a signed size value", self),
+            Self::USize(_) => bail!("Can't convert {:?} into a signed size value", self),
 
             Self::I8(v)        => Ok(v as isize),
             Self::I16(v)       => Ok(v as isize),
@@ -158,30 +175,36 @@ impl Integer {
             // These may be unreachable - it depends if can_be_isize() passes
             Self::I64(v)       => Ok(v as isize),
             Self::I128(v)      => Ok(v as isize),
+
+            // Easy!
+            Self::ISize(v)     => Ok(v),
         }
     }
 
     /// Private function used internally
     fn as_i128(self) -> Option<i128> {
         match self {
-            Self::I8(v)   => Some(v as i128),
-            Self::I16(v)  => Some(v as i128),
-            Self::I32(v)  => Some(v as i128),
-            Self::I64(v)  => Some(v as i128),
-            Self::I128(v) => Some(v as i128),
-            _             => None,
+            Self::I8(v)    => Some(v as i128),
+            Self::I16(v)   => Some(v as i128),
+            Self::I32(v)   => Some(v as i128),
+            Self::I64(v)   => Some(v as i128),
+            Self::I128(v)  => Some(v as i128),
+            Self::ISize(v) => Some(v as i128),
+
+            _              => None,
         }
     }
 
     /// Private function used internally
     fn as_u128(self) -> Option<u128> {
         match self {
-            Self::U8(v)   => Some(v as u128),
-            Self::U16(v)  => Some(v as u128),
-            Self::U32(v)  => Some(v as u128),
-            Self::U64(v)  => Some(v as u128),
-            Self::U128(v) => Some(v as u128),
-            _             => None,
+            Self::U8(v)    => Some(v as u128),
+            Self::U16(v)   => Some(v as u128),
+            Self::U32(v)   => Some(v as u128),
+            Self::U64(v)   => Some(v as u128),
+            Self::U128(v)  => Some(v as u128),
+            Self::USize(v) => Some(v as u128),
+            _              => None,
         }
     }
 }
@@ -189,17 +212,19 @@ impl Integer {
 impl fmt::Display for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(v)   => fmt::Display::fmt(&v, f),
-            Self::U16(v)  => fmt::Display::fmt(&v, f),
-            Self::U32(v)  => fmt::Display::fmt(&v, f),
-            Self::U64(v)  => fmt::Display::fmt(&v, f),
-            Self::U128(v) => fmt::Display::fmt(&v, f),
+            Self::U8(v)    => fmt::Display::fmt(&v, f),
+            Self::U16(v)   => fmt::Display::fmt(&v, f),
+            Self::U32(v)   => fmt::Display::fmt(&v, f),
+            Self::U64(v)   => fmt::Display::fmt(&v, f),
+            Self::U128(v)  => fmt::Display::fmt(&v, f),
+            Self::USize(v) => fmt::Display::fmt(&v, f),
 
-            Self::I8(v)   => fmt::Display::fmt(&v, f),
-            Self::I16(v)  => fmt::Display::fmt(&v, f),
-            Self::I32(v)  => fmt::Display::fmt(&v, f),
-            Self::I64(v)  => fmt::Display::fmt(&v, f),
-            Self::I128(v) => fmt::Display::fmt(&v, f),
+            Self::I8(v)    => fmt::Display::fmt(&v, f),
+            Self::I16(v)   => fmt::Display::fmt(&v, f),
+            Self::I32(v)   => fmt::Display::fmt(&v, f),
+            Self::I64(v)   => fmt::Display::fmt(&v, f),
+            Self::I128(v)  => fmt::Display::fmt(&v, f),
+            Self::ISize(v) => fmt::Display::fmt(&v, f),
         }
     }
 }
@@ -207,17 +232,19 @@ impl fmt::Display for Integer {
 impl fmt::LowerHex for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(v)   => fmt::LowerHex::fmt(&v, f),
-            Self::U16(v)  => fmt::LowerHex::fmt(&v, f),
-            Self::U32(v)  => fmt::LowerHex::fmt(&v, f),
-            Self::U64(v)  => fmt::LowerHex::fmt(&v, f),
-            Self::U128(v) => fmt::LowerHex::fmt(&v, f),
+            Self::U8(v)    => fmt::LowerHex::fmt(&v, f),
+            Self::U16(v)   => fmt::LowerHex::fmt(&v, f),
+            Self::U32(v)   => fmt::LowerHex::fmt(&v, f),
+            Self::U64(v)   => fmt::LowerHex::fmt(&v, f),
+            Self::U128(v)  => fmt::LowerHex::fmt(&v, f),
+            Self::USize(v) => fmt::LowerHex::fmt(&v, f),
 
-            Self::I8(v)   => fmt::LowerHex::fmt(&v, f),
-            Self::I16(v)  => fmt::LowerHex::fmt(&v, f),
-            Self::I32(v)  => fmt::LowerHex::fmt(&v, f),
-            Self::I64(v)  => fmt::LowerHex::fmt(&v, f),
-            Self::I128(v) => fmt::LowerHex::fmt(&v, f),
+            Self::I8(v)    => fmt::LowerHex::fmt(&v, f),
+            Self::I16(v)   => fmt::LowerHex::fmt(&v, f),
+            Self::I32(v)   => fmt::LowerHex::fmt(&v, f),
+            Self::I64(v)   => fmt::LowerHex::fmt(&v, f),
+            Self::I128(v)  => fmt::LowerHex::fmt(&v, f),
+            Self::ISize(v) => fmt::LowerHex::fmt(&v, f),
         }
     }
 }
@@ -225,17 +252,19 @@ impl fmt::LowerHex for Integer {
 impl fmt::UpperHex for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(v)   => fmt::UpperHex::fmt(&v, f),
-            Self::U16(v)  => fmt::UpperHex::fmt(&v, f),
-            Self::U32(v)  => fmt::UpperHex::fmt(&v, f),
-            Self::U64(v)  => fmt::UpperHex::fmt(&v, f),
-            Self::U128(v) => fmt::UpperHex::fmt(&v, f),
+            Self::U8(v)    => fmt::UpperHex::fmt(&v, f),
+            Self::U16(v)   => fmt::UpperHex::fmt(&v, f),
+            Self::U32(v)   => fmt::UpperHex::fmt(&v, f),
+            Self::U64(v)   => fmt::UpperHex::fmt(&v, f),
+            Self::U128(v)  => fmt::UpperHex::fmt(&v, f),
+            Self::USize(v) => fmt::UpperHex::fmt(&v, f),
 
-            Self::I8(v)   => fmt::UpperHex::fmt(&v, f),
-            Self::I16(v)  => fmt::UpperHex::fmt(&v, f),
-            Self::I32(v)  => fmt::UpperHex::fmt(&v, f),
-            Self::I64(v)  => fmt::UpperHex::fmt(&v, f),
-            Self::I128(v) => fmt::UpperHex::fmt(&v, f),
+            Self::I8(v)    => fmt::UpperHex::fmt(&v, f),
+            Self::I16(v)   => fmt::UpperHex::fmt(&v, f),
+            Self::I32(v)   => fmt::UpperHex::fmt(&v, f),
+            Self::I64(v)   => fmt::UpperHex::fmt(&v, f),
+            Self::I128(v)  => fmt::UpperHex::fmt(&v, f),
+            Self::ISize(v) => fmt::UpperHex::fmt(&v, f),
         }
     }
 }
@@ -243,17 +272,19 @@ impl fmt::UpperHex for Integer {
 impl fmt::Octal for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(v)   => fmt::Octal::fmt(&v, f),
-            Self::U16(v)  => fmt::Octal::fmt(&v, f),
-            Self::U32(v)  => fmt::Octal::fmt(&v, f),
-            Self::U64(v)  => fmt::Octal::fmt(&v, f),
-            Self::U128(v) => fmt::Octal::fmt(&v, f),
+            Self::U8(v)    => fmt::Octal::fmt(&v, f),
+            Self::U16(v)   => fmt::Octal::fmt(&v, f),
+            Self::U32(v)   => fmt::Octal::fmt(&v, f),
+            Self::U64(v)   => fmt::Octal::fmt(&v, f),
+            Self::U128(v)  => fmt::Octal::fmt(&v, f),
+            Self::USize(v) => fmt::Octal::fmt(&v, f),
 
-            Self::I8(v)   => fmt::Octal::fmt(&v, f),
-            Self::I16(v)  => fmt::Octal::fmt(&v, f),
-            Self::I32(v)  => fmt::Octal::fmt(&v, f),
-            Self::I64(v)  => fmt::Octal::fmt(&v, f),
-            Self::I128(v) => fmt::Octal::fmt(&v, f),
+            Self::I8(v)    => fmt::Octal::fmt(&v, f),
+            Self::I16(v)   => fmt::Octal::fmt(&v, f),
+            Self::I32(v)   => fmt::Octal::fmt(&v, f),
+            Self::I64(v)   => fmt::Octal::fmt(&v, f),
+            Self::I128(v)  => fmt::Octal::fmt(&v, f),
+            Self::ISize(v) => fmt::Octal::fmt(&v, f),
         }
     }
 }
@@ -261,17 +292,19 @@ impl fmt::Octal for Integer {
 impl fmt::LowerExp for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(v)   => fmt::LowerExp::fmt(&v, f),
-            Self::U16(v)  => fmt::LowerExp::fmt(&v, f),
-            Self::U32(v)  => fmt::LowerExp::fmt(&v, f),
-            Self::U64(v)  => fmt::LowerExp::fmt(&v, f),
-            Self::U128(v) => fmt::LowerExp::fmt(&v, f),
+            Self::U8(v)    => fmt::LowerExp::fmt(&v, f),
+            Self::U16(v)   => fmt::LowerExp::fmt(&v, f),
+            Self::U32(v)   => fmt::LowerExp::fmt(&v, f),
+            Self::U64(v)   => fmt::LowerExp::fmt(&v, f),
+            Self::U128(v)  => fmt::LowerExp::fmt(&v, f),
+            Self::USize(v) => fmt::LowerExp::fmt(&v, f),
 
-            Self::I8(v)   => fmt::LowerExp::fmt(&v, f),
-            Self::I16(v)  => fmt::LowerExp::fmt(&v, f),
-            Self::I32(v)  => fmt::LowerExp::fmt(&v, f),
-            Self::I64(v)  => fmt::LowerExp::fmt(&v, f),
-            Self::I128(v) => fmt::LowerExp::fmt(&v, f),
+            Self::I8(v)    => fmt::LowerExp::fmt(&v, f),
+            Self::I16(v)   => fmt::LowerExp::fmt(&v, f),
+            Self::I32(v)   => fmt::LowerExp::fmt(&v, f),
+            Self::I64(v)   => fmt::LowerExp::fmt(&v, f),
+            Self::I128(v)  => fmt::LowerExp::fmt(&v, f),
+            Self::ISize(v) => fmt::LowerExp::fmt(&v, f),
         }
     }
 }
@@ -279,17 +312,19 @@ impl fmt::LowerExp for Integer {
 impl fmt::UpperExp for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(v)   => fmt::UpperExp::fmt(&v, f),
-            Self::U16(v)  => fmt::UpperExp::fmt(&v, f),
-            Self::U32(v)  => fmt::UpperExp::fmt(&v, f),
-            Self::U64(v)  => fmt::UpperExp::fmt(&v, f),
-            Self::U128(v) => fmt::UpperExp::fmt(&v, f),
+            Self::U8(v)    => fmt::UpperExp::fmt(&v, f),
+            Self::U16(v)   => fmt::UpperExp::fmt(&v, f),
+            Self::U32(v)   => fmt::UpperExp::fmt(&v, f),
+            Self::U64(v)   => fmt::UpperExp::fmt(&v, f),
+            Self::U128(v)  => fmt::UpperExp::fmt(&v, f),
+            Self::USize(v) => fmt::UpperExp::fmt(&v, f),
 
-            Self::I8(v)   => fmt::UpperExp::fmt(&v, f),
-            Self::I16(v)  => fmt::UpperExp::fmt(&v, f),
-            Self::I32(v)  => fmt::UpperExp::fmt(&v, f),
-            Self::I64(v)  => fmt::UpperExp::fmt(&v, f),
-            Self::I128(v) => fmt::UpperExp::fmt(&v, f),
+            Self::I8(v)    => fmt::UpperExp::fmt(&v, f),
+            Self::I16(v)   => fmt::UpperExp::fmt(&v, f),
+            Self::I32(v)   => fmt::UpperExp::fmt(&v, f),
+            Self::I64(v)   => fmt::UpperExp::fmt(&v, f),
+            Self::I128(v)  => fmt::UpperExp::fmt(&v, f),
+            Self::ISize(v) => fmt::UpperExp::fmt(&v, f),
         }
     }
 }
@@ -297,17 +332,19 @@ impl fmt::UpperExp for Integer {
 impl fmt::Binary for Integer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(v)   => fmt::Binary::fmt(&v, f),
-            Self::U16(v)  => fmt::Binary::fmt(&v, f),
-            Self::U32(v)  => fmt::Binary::fmt(&v, f),
-            Self::U64(v)  => fmt::Binary::fmt(&v, f),
-            Self::U128(v) => fmt::Binary::fmt(&v, f),
+            Self::U8(v)    => fmt::Binary::fmt(&v, f),
+            Self::U16(v)   => fmt::Binary::fmt(&v, f),
+            Self::U32(v)   => fmt::Binary::fmt(&v, f),
+            Self::U64(v)   => fmt::Binary::fmt(&v, f),
+            Self::U128(v)  => fmt::Binary::fmt(&v, f),
+            Self::USize(v) => fmt::Binary::fmt(&v, f),
 
-            Self::I8(v)   => fmt::Binary::fmt(&v, f),
-            Self::I16(v)  => fmt::Binary::fmt(&v, f),
-            Self::I32(v)  => fmt::Binary::fmt(&v, f),
-            Self::I64(v)  => fmt::Binary::fmt(&v, f),
-            Self::I128(v) => fmt::Binary::fmt(&v, f),
+            Self::I8(v)    => fmt::Binary::fmt(&v, f),
+            Self::I16(v)   => fmt::Binary::fmt(&v, f),
+            Self::I32(v)   => fmt::Binary::fmt(&v, f),
+            Self::I64(v)   => fmt::Binary::fmt(&v, f),
+            Self::I128(v)  => fmt::Binary::fmt(&v, f),
+            Self::ISize(v) => fmt::Binary::fmt(&v, f),
         }
     }
 }

@@ -1,3 +1,4 @@
+use std::mem;
 use serde::{Serialize, Deserialize};
 
 use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
@@ -42,17 +43,37 @@ impl IntegerRendererTrait for OctalFormatter {
         if self.padded {
             // There might be a mathy way to get this, but /shrug
             let width = match number {
-                Integer::U8(_)   => 3,
-                Integer::U16(_)  => 6,
-                Integer::U32(_)  => 11,
-                Integer::U64(_)  => 22,
-                Integer::U128(_) => 43,
+                Integer::U8(_)    => 3,
+                Integer::U16(_)   => 6,
+                Integer::U32(_)   => 11,
+                Integer::U64(_)   => 22,
+                Integer::U128(_)  => 43,
+                Integer::USize(_) => {
+                    match mem::size_of::<usize>() {
+                        1  => 3,
+                        2  => 6,
+                        4  => 11,
+                        8  => 22,
+                        16 => 43,
+                        _ => 0,
+                    }
+                },
 
-                Integer::I8(_)   => 3,
-                Integer::I16(_)  => 6,
-                Integer::I32(_)  => 11,
-                Integer::I64(_)  => 22,
-                Integer::I128(_) => 43,
+                Integer::I8(_)    => 3,
+                Integer::I16(_)   => 6,
+                Integer::I32(_)   => 11,
+                Integer::I64(_)   => 22,
+                Integer::I128(_)  => 43,
+                Integer::ISize(_) => {
+                    match mem::size_of::<isize>() {
+                        1  => 3,
+                        2  => 6,
+                        4  => 11,
+                        8  => 22,
+                        16 => 43,
+                        _ => 0,
+                    }
+                },
             };
 
             match self.prefix {
