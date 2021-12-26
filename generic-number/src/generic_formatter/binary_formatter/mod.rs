@@ -112,6 +112,14 @@ mod tests {
     }
 
     #[test]
+    fn test_binary_u24() -> SimpleResult<()> {
+        let number = Integer::U24(0x0f0f0f);
+        assert_eq!("000011110000111100001111", BinaryFormatter::new_integer(false, true).render(number));
+
+        Ok(())
+    }
+
+    #[test]
     fn test_minimum_length() -> SimpleResult<()> {
         // No prefix
         let number = IntegerReader::U8.read(Context::new(&b"\x01".to_vec()))?;

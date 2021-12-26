@@ -1,6 +1,5 @@
 use serde::{Serialize, Deserialize};
 
-use colored::Colorize;
 use simple_error::SimpleResult;
 
 use generic_number::Context;
@@ -15,18 +14,16 @@ use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
 /// The size a given numeric type is always known in advance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rgb {
-    colorize_output: bool
 }
 
 impl Rgb {
-    pub fn new_aligned(alignment: Alignment, colorize_output: bool) -> H2Type {
+    pub fn new_aligned(alignment: Alignment) -> H2Type {
         H2Type::new(alignment, H2Types::Rgb(Self {
-            colorize_output: colorize_output,
         }))
     }
 
-    pub fn new(colorize_output: bool) -> H2Type {
-        Self::new_aligned(Alignment::None, colorize_output)
+    pub fn new() -> H2Type {
+        Self::new_aligned(Alignment::None)
     }
 }
 
@@ -44,17 +41,7 @@ impl H2TypeTrait for Rgb {
         let blue = colors[2];
         let value = ((red as u32) << 16) | ((green as u32) << 8) | (blue as u32);
 
-        if self.colorize_output {
-            if ((red as u32 + green as u32 + blue as u32) / 3) > 0x80 {
-                // Use a light background
-                Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_black().to_string())
-            } else {
-                // Use a dark background
-                Ok(format!("#{:06x}", value).truecolor(red, green, blue).on_white().to_string())
-            }
-        } else {
-            Ok(format!("#{:06x}", value))
-        }
+        Ok(format!("#{:06x}", value))
     }
 }
 

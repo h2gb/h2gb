@@ -98,6 +98,19 @@ impl<'a> Context<'a> {
         }
     }
 
+    pub fn read_u24(self, endian: Endian) -> SimpleResult<u32> {
+        let bytes = match endian {
+            Endian::Big => self.read_bytes(3)?,
+            Endian::Little => {
+                let mut b = self.read_bytes(3)?;
+                b.reverse();
+                b
+            },
+        };
+
+        Ok((bytes[0] as u32) << 16 | (bytes[1] as u32) << 8 | (bytes[0] as u32))
+    }
+
     pub fn read_u32(self, endian: Endian) -> SimpleResult<u32> {
         match endian {
             Endian::Big => match self.cursor().read_u32::<BigEndian>() {
@@ -344,6 +357,31 @@ mod tests {
         // Not valid
         assert!(Context::new(&data).read_bytes(5).is_err());
         assert!(Context::new_at(&data, 5).read_bytes(1).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_read_u32() -> SimpleResult<()> {
+        // Most functionality on context is implicitly exercised by the tests
+        // in lib.rs, but read_bytes is not so test it
+        let data = b"\x01\x02\x03\x04\x05\x06".to_vec();
+
+        let tests = vec![
+            // offset     endian          expected
+            (  0,         Endian::Big,    0x01020304  ),
+            (  1,         Endian::Big,    0x02030405  ),
+            (  2,         Endian::Big,    0x03040506  ),
+
+            (  0,         Endian::Little, 0x04030201  ),
+            (  1,         Endian::Little, 0x05040302  ),
+            (  2,         Endian::Little, 0x06050403  ),
+        ];
+
+        for (offset, endian, expected) in tests {
+            let c = Context::new_at(&data, offset);
+            assert_eq!(expected, c.read_u32(endian)?);
+        }
 
         Ok(())
     }
