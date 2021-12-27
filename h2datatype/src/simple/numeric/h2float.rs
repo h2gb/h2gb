@@ -43,7 +43,7 @@ impl H2TypeTrait for H2Float {
     }
 
     fn to_display(&self, context: Context) -> SimpleResult<String> {
-        Ok(format!("{:?}", self.reader.read(context)?))
+        Ok(self.renderer.render(self.to_float(context)?))
     }
 
     fn can_be_float(&self) -> bool {
@@ -52,5 +52,39 @@ impl H2TypeTrait for H2Float {
 
     fn to_float(&self, context: Context) -> SimpleResult<Float> {
         self.reader.read(context)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    use generic_number::{Endian, FloatReader, DefaultFormatter};
+
+    #[test]
+    fn test_f32() -> SimpleResult<()> {
+        // Should be ~3.14
+        let data = b"\x40\x48\xf5\xc3".to_vec();
+
+        let t = H2Float::new(FloatReader::F32(Endian::Big), DefaultFormatter::new_float());
+
+        assert_eq!("3.14", t.to_display(Context::new_at(&data, 0))?);
+        assert_eq!(4,      t.base_size(Context::new_at(&data, 0))?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_f64() -> SimpleResult<()> {
+        // Should be ~3.14
+        let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f".to_vec();
+
+        assert_eq!("3.14", H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new_float()).to_display(Context::new_at(&data, 0))?);
+        assert_eq!(8,      H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new_float()).base_size(Context::new_at(&data, 0))?);
+
+        Ok(())
     }
 }

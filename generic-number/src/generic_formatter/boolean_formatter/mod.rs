@@ -34,15 +34,18 @@ impl IntegerRendererTrait for BooleanFormatter {
         match number {
             Integer::U8(v)      => format!("{}", v != 0),
             Integer::U16(v)     => format!("{}", v != 0),
+            Integer::U24(msb,lsb) => format!("{}", msb != 0 && lsb != 0),
             Integer::U32(v)     => format!("{}", v != 0),
             Integer::U64(v)     => format!("{}", v != 0),
             Integer::U128(v)    => format!("{}", v != 0),
+            Integer::USize(v)   => format!("{}", v != 0),
 
             Integer::I8(v)      => format!("{}", v != 0),
             Integer::I16(v)     => format!("{}", v != 0),
             Integer::I32(v)     => format!("{}", v != 0),
             Integer::I64(v)     => format!("{}", v != 0),
             Integer::I128(v)    => format!("{}", v != 0),
+            Integer::ISize(v)   => format!("{}", v != 0),
         }
     }
 }

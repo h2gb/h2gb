@@ -79,6 +79,7 @@ mod tests {
     use super::*;
 
     use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
 
     use generic_number::{Context, Endian, IntegerReader, CharacterReader, CharacterFormatter, CharacterReplacementPolicy, CharacterUnprintableOption};
 

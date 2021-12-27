@@ -26,3 +26,24 @@ impl FloatRenderer {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    use crate::Float;
+
+    #[test]
+    fn test_pretty() -> SimpleResult<()> {
+        assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(Float::from(3.14f32)));
+        assert_eq!("3.14",   DefaultFormatter::new_float().render(Float::from(3.14f32)));
+
+        assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(Float::from(3.14f64)));
+        assert_eq!("3.14",   DefaultFormatter::new_float().render(Float::from(3.14f64)));
+
+        Ok(())
+    }
+}

@@ -53,6 +53,8 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use generic_number::{Context, IntegerReader, Endian, HexFormatter, OctalFormatter, DefaultFormatter};
+    use pretty_assertions::assert_eq;
+
     use crate::simple::numeric::{H2Integer, H2Character};
     use crate::simple::network::IPv4;
     use crate::composite::H2Array;

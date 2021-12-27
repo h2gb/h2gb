@@ -60,6 +60,7 @@ impl H2TypeTrait for H2Array {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
 
     use generic_number::{CharacterFormatter, CharacterReader, Context};
     use crate::simple::numeric::H2Character;

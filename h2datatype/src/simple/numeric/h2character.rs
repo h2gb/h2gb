@@ -86,7 +86,7 @@ impl H2TypeTrait for H2Character {
     }
 
     fn to_display(&self, context: Context) -> SimpleResult<String> {
-        Ok(self.renderer.render(self.reader.read(context)?))
+        Ok(self.renderer.render(self.to_character(context)?))
     }
 
     fn can_be_character(&self) -> bool {
@@ -100,5 +100,37 @@ impl H2TypeTrait for H2Character {
 
 #[cfg(test)]
 mod tests {
-    // TODO: We need tests here
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_ascii() -> SimpleResult<()> {
+        let data = b"\x41\x42\xff".to_vec();
+
+        assert_eq!("'A'",     H2Character::new_ascii().to_display(Context::new_at(&data, 0))?);
+        assert_eq!("'B'",     H2Character::new_ascii().to_display(Context::new_at(&data, 1))?);
+        assert_eq!(format!("'{}'", 0xFF as char), H2Character::new_ascii().to_display(Context::new_at(&data, 2))?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_utf8() -> SimpleResult<()> {
+        //             --  --  ----------
+        //             A   B   ❄
+        let data = b"\x41\x42\xE2\x9D\x84".to_vec();
+
+        assert_eq!("'A'", H2Character::new_utf8().to_display(Context::new_at(&data, 0))?);
+        assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 0))?);
+
+        assert_eq!("'B'", H2Character::new_utf8().to_display(Context::new_at(&data, 1))?);
+        assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 1))?);
+
+        assert_eq!("'❄'", H2Character::new_utf8().to_display(Context::new_at(&data, 2))?);
+        assert_eq!(3,     H2Character::new_utf8().base_size(Context::new_at(&data, 2))?);
+
+        Ok(())
+    }
 }

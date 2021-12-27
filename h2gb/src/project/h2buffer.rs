@@ -449,6 +449,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use h2transformation::TransformHex;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_new() -> SimpleResult<()> {
