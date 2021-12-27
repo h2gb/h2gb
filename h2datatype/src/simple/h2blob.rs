@@ -48,6 +48,7 @@ impl H2TypeTrait for H2Blob {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
     use generic_number::{Context, HexFormatter, DefaultFormatter};
 
     #[test]

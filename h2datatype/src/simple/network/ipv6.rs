@@ -42,6 +42,7 @@ impl H2TypeTrait for IPv6 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
     use generic_number::{Context, Endian};
 

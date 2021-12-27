@@ -45,6 +45,7 @@ impl H2TypeTrait for Rgb {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
     use generic_number::Context;
 
     #[test]

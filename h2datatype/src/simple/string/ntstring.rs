@@ -75,6 +75,7 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use generic_number::{Context, CharacterReader, CharacterFormatter};
+    use pretty_assertions::assert_eq;
 
     use crate::composite::H2Array;
 

@@ -112,6 +112,7 @@ impl IntegerReader {
 mod tests {
     use super::*;
     use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_u32() -> SimpleResult<()> {
