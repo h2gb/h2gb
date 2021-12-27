@@ -43,7 +43,7 @@ impl H2TypeTrait for H2Integer {
     }
 
     fn to_display(&self, context: Context) -> SimpleResult<String> {
-        Ok(self.renderer.render(self.reader.read(context)?))
+        Ok(self.renderer.render(self.to_integer(context)?))
     }
 
     fn can_be_integer(&self) -> bool {

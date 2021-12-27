@@ -72,6 +72,7 @@ impl PartialOrd for Float {
         self.as_f64().partial_cmp(&other.as_f64())
     }
 }
+
 impl fmt::Display for Float {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
