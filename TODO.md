@@ -1,10 +1,13 @@
 * To-do soon / unsorted
-  * Tests and documentation
   * Change structs (and other APIey things) to take &str instead of String
-  * Bi-directional enums (so we can fetch stuff by name)
   * Figure out if we can package data files
   * Automatically create a default "Layer"
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
+
+* External data
+  * Enums / bitmasks need to be loadable dynamically, and be bi-directional
+  * There should be a DATA_DIRECTORY env that can load CSV's and stuff
+  * We can probably define more types there - structs and such
 
 * Nested bumpy vectors
   * Print structs and such more nicely
