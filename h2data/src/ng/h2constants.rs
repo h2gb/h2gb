@@ -256,7 +256,7 @@ mod tests {
     fn test_csv_file() -> SimpleResult<()> {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/test1.csv");
+        d.push("testdata/constants/test1.csv");
 
         let constants = H2Constants::load_from_csv_file(&d)?;
 
@@ -305,7 +305,7 @@ mod tests {
     fn test_json_file() -> SimpleResult<()> {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/test2.json");
+        d.push("testdata/constants/test2.json");
 
         let constants = H2Constants::load_from_json_file(&d)?;
 
@@ -352,7 +352,7 @@ TEST5: 256";
     fn test_yaml_file() -> SimpleResult<()> {
         // Load the data
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/test3.yaml");
+        d.push("testdata/constants/test3.yaml");
 
         let constants = H2Constants::load_from_yaml_file(&d)?;
 
