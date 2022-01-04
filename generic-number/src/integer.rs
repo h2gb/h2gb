@@ -1,7 +1,6 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleError, SimpleResult, bail};
 use std::{fmt, mem};
-use std::cmp::Ordering;
 use std::str::FromStr;
 
 /// A number that can be any of the primitive integer types.
@@ -50,22 +49,13 @@ use std::str::FromStr;
 /// ```
 /// use generic_number::*;
 ///
+/// assert!(Integer::from(1i8) == Integer::from(1i8));
+/// assert!(Integer::from(-1i8) == Integer::from(-1i8));
 /// assert!(Integer::from(-1i8) == Integer::from(0xffffffffffffffffffffffffffffffffu128));
 /// ```
 ///
-/// When ordering numbers, if they have the same signedness, they are ordered
-/// accordingly. But if they have different signs, they're ordered as if they
-/// are all unsigned. That leads to a bit of weirdness if you mix signs:
-///
-/// ```
-/// use generic_number::*;
-///
-/// // Compare two signed numbers
-/// assert!(Integer::from(-1i8) < Integer::from(1i8));
-///
-/// // Compare a signed and unsigned
-/// assert!(Integer::from(-1i8) > Integer::from(1u8));
-/// ```
+/// We no longer implement ordering, because ordering signed and unsigned
+/// numbers together is basically impossible to do sanely.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash)]
 pub enum Integer {
     U8(u8),
@@ -81,7 +71,6 @@ pub enum Integer {
     I32(i32),
     I64(i64),
 
-    // We don't do i128 because we need to be able to convert to i128 unambiguously
     //I128(i128),
     ISize(isize),
 }
@@ -243,34 +232,6 @@ impl Integer {
             Self::ISize(v)     => Ok(v),
         }
     }
-
-    /// Private function used internally
-    fn as_i128(self) -> Option<i128> {
-        match self {
-            Self::I8(v)    => Some(v as i128),
-            Self::I16(v)   => Some(v as i128),
-            Self::I32(v)   => Some(v as i128),
-            Self::I64(v)   => Some(v as i128),
-            // Self::I128(v)  => Some(v as i128),
-            Self::ISize(v) => Some(v as i128),
-
-            _              => None,
-        }
-    }
-
-    /// Private function used internally
-    // fn as_u128(self) -> Option<u128> {
-    //     match self {
-    //         Self::U8(v)        => Some(v as u128),
-    //         Self::U16(v)       => Some(v as u128),
-    //         Self::U24(msb,lsb) => Some(((msb as u128)) << 16 | (lsb as u128)),
-    //         Self::U32(v)       => Some(v as u128),
-    //         Self::U64(v)       => Some(v as u128),
-    //         Self::U128(v)      => Some(v as u128),
-    //         Self::USize(v)     => Some(v as u128),
-    //         _                  => None,
-    //     }
-    // }
 
     /// Force-convert to a u128, even if signed.
     ///
@@ -451,19 +412,21 @@ impl Eq for Integer {
     // Automatically uses PartialEq
 }
 
-impl PartialOrd for Integer {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Try to compare as signed
-        if let Some(a) = self.as_i128() {
-            if let Some(b) = other.as_i128() {
-                return a.partial_cmp(&b);
-            }
-        }
+// I decided not to implement PartialOrd at all - nothing was depending on it,
+// and comparing signed with unsigned values was harrowingly weird. :)
+// impl PartialOrd for Integer {
+//     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+//         // Try to compare as signed
+//         if let Some(a) = self.as_i128() {
+//             if let Some(b) = other.as_i128() {
+//                 return a.partial_cmp(&b);
+//             }
+//         }
 
-        // If we can't compare as signed, compare as unsigned
-        self.force_u128().partial_cmp(&other.force_u128())
-    }
-}
+//         // If we can't compare as signed, compare as unsigned
+//         self.force_u128().partial_cmp(&other.force_u128())
+//     }
+// }
 
 impl FromStr for Integer {
     type Err = SimpleError;
@@ -626,12 +589,12 @@ mod tests {
         assert_eq!(Integer::from(0u8), Integer::from(0i8));
         assert_eq!(Integer::from(0u8), Integer::from(0i64));
 
-        // Test ordering
-        assert!(Integer::from(0u8)  < Integer::from(1u32));
-        assert!(Integer::from(0u32) < Integer::from(1u8));
-        assert!(Integer::from(1u8)  > Integer::from(0u32));
-        assert!(Integer::from(1u32) > Integer::from(0u8));
-        assert!(Integer::from(-1i8) < Integer::from(1i8));
+        // Ordering no longer works, it was too weird
+        // assert!(Integer::from(0u8)  < Integer::from(1u32));
+        // assert!(Integer::from(0u32) < Integer::from(1u8));
+        // assert!(Integer::from(1u8)  > Integer::from(0u32));
+        // assert!(Integer::from(1u32) > Integer::from(0u8));
+        // assert!(Integer::from(-1i8) < Integer::from(1i8));
 
         Ok(())
     }
