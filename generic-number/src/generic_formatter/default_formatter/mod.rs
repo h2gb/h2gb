@@ -241,28 +241,28 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_default_i128() -> SimpleResult<()> {
-    //     let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF".to_vec();
+    #[test]
+    fn test_default_i128() -> SimpleResult<()> {
+        let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF".to_vec();
 
-    //     let tests = vec![
-    //         // index  expected
-    //         (  0,    "0"),
-    //         (  16,   "-1"),
-    //     ];
+        let tests = vec![
+            // index  expected
+            (  0,    "0"),
+            (  16,   "-1"),
+        ];
 
-    //     for (index, expected) in tests {
-    //         let context = Context::new_at(&data, index);
-    //         let number = IntegerReader::I128(Endian::Big).read(context)?;
+        for (index, expected) in tests {
+            let context = Context::new_at(&data, index);
+            let number = IntegerReader::I128(Endian::Big).read(context)?;
 
-    //         assert_eq!(
-    //             expected,
-    //             DefaultFormatter::new_integer().render(number),
-    //         );
-    //     }
+            assert_eq!(
+                expected,
+                DefaultFormatter::new_integer().render(number),
+            );
+        }
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
     #[test]
     fn test_default_f32() -> SimpleResult<()> {
