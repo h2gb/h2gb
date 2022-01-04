@@ -44,7 +44,7 @@ impl IntegerRendererTrait for BooleanFormatter {
             Integer::I16(v)     => format!("{}", v != 0),
             Integer::I32(v)     => format!("{}", v != 0),
             Integer::I64(v)     => format!("{}", v != 0),
-            Integer::I128(v)    => format!("{}", v != 0),
+            // Integer::I128(v)    => format!("{}", v != 0),
             Integer::ISize(v)   => format!("{}", v != 0),
         }
     }

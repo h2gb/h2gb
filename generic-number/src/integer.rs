@@ -38,12 +38,34 @@ use std::str::FromStr;
 /// will endeavour to compare types of different sizes by converting them to the
 /// best shared size - as always, [`usize`] and [`isize`] if possible.
 ///
-/// Signed variables are never equal to unsigned variables, and can't be
-/// meaningfully compared!
-///
 /// While this is helpful when analyzing binaries in `h2gb`, I probably wouldn't
 /// use this with normal programming - there's a reason Rust strongly types
 /// stuff!
+///
+/// # Note on mixed signedness
+///
+/// When comparing numbers, they are always compared as unsigned u128 values.
+/// That means that equations like this technically work:
+///
+/// ```
+/// use generic_number::*;
+///
+/// assert!(Integer::from(-1i8) == Integer::from(0xffffffffffffffffffffffffffffffffu128));
+/// ```
+///
+/// When ordering numbers, if they have the same signedness, they are ordered
+/// accordingly. But if they have different signs, they're ordered as if they
+/// are all unsigned. That leads to a bit of weirdness if you mix signs:
+///
+/// ```
+/// use generic_number::*;
+///
+/// // Compare two signed numbers
+/// assert!(Integer::from(-1i8) < Integer::from(1i8));
+///
+/// // Compare a signed and unsigned
+/// assert!(Integer::from(-1i8) > Integer::from(1u8));
+/// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash)]
 pub enum Integer {
     U8(u8),
@@ -58,7 +80,9 @@ pub enum Integer {
     I16(i16),
     I32(i32),
     I64(i64),
-    I128(i128),
+
+    // We don't do i128 because we need to be able to convert to i128 unambiguously
+    //I128(i128),
     ISize(isize),
 }
 
@@ -75,7 +99,7 @@ impl From<i8>    for Integer { fn from(o: i8)   -> Self { Self::I8(o)   } }
 impl From<i16>   for Integer { fn from(o: i16)  -> Self { Self::I16(o)  } }
 impl From<i32>   for Integer { fn from(o: i32)  -> Self { Self::I32(o)  } }
 impl From<i64>   for Integer { fn from(o: i64)  -> Self { Self::I64(o)  } }
-impl From<i128>  for Integer { fn from(o: i128) -> Self { Self::I128(o) } }
+//impl From<i128>  for Integer { fn from(o: i128) -> Self { Self::I128(o) } }
 impl From<isize> for Integer { fn from(o: isize) -> Self { Self::ISize(o) } }
 
 impl Integer {
@@ -94,7 +118,7 @@ impl Integer {
             Self::I16(_)   => mem::size_of::<i16>(),
             Self::I32(_)   => mem::size_of::<i32>(),
             Self::I64(_)   => mem::size_of::<i64>(),
-            Self::I128(_)  => mem::size_of::<i128>(),
+            //Self::I128(_)  => mem::size_of::<i128>(),
             Self::ISize(_) => mem::size_of::<isize>(),
         }
     }
@@ -114,7 +138,7 @@ impl Integer {
             Self::I16(_)   => true,
             Self::I32(_)   => true,
             Self::I64(_)   => true,
-            Self::I128(_)  => true,
+            //Self::I128(_)  => true,
             Self::ISize(_) => true,
         }
     }
@@ -136,7 +160,7 @@ impl Integer {
             Self::I16(_)     => false,
             Self::I32(_)     => false,
             Self::I64(_)     => false,
-            Self::I128(_)    => false,
+            //Self::I128(_)    => false,
             Self::ISize(_)   => false,
         }
     }
@@ -165,7 +189,7 @@ impl Integer {
             Self::I16(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
             Self::I32(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
             Self::I64(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I128(_)  => bail!("Can't convert {:?} into an unsigned size value", self),
+            //Self::I128(_)  => bail!("Can't convert {:?} into an unsigned size value", self),
             Self::ISize(_) => bail!("Can't convert {:?} into an unsigned size value", self),
         }
     }
@@ -187,7 +211,7 @@ impl Integer {
             Self::I16(_)     => (mem::size_of::<i16>()  <= mem::size_of::<isize>()),
             Self::I32(_)     => (mem::size_of::<i32>()  <= mem::size_of::<isize>()),
             Self::I64(_)     => (mem::size_of::<i64>()  <= mem::size_of::<isize>()),
-            Self::I128(_)    => (mem::size_of::<i128>() <= mem::size_of::<isize>()),
+            //Self::I128(_)    => (mem::size_of::<i128>() <= mem::size_of::<isize>()),
             Self::ISize(_)   => true,
         }
     }
@@ -213,7 +237,7 @@ impl Integer {
 
             // These may be unreachable - it depends if can_be_isize() passes
             Self::I64(v)       => Ok(v as isize),
-            Self::I128(v)      => Ok(v as isize),
+            //Self::I128(v)      => Ok(v as isize),
 
             // Easy!
             Self::ISize(v)     => Ok(v),
@@ -227,7 +251,7 @@ impl Integer {
             Self::I16(v)   => Some(v as i128),
             Self::I32(v)   => Some(v as i128),
             Self::I64(v)   => Some(v as i128),
-            Self::I128(v)  => Some(v as i128),
+            // Self::I128(v)  => Some(v as i128),
             Self::ISize(v) => Some(v as i128),
 
             _              => None,
@@ -235,16 +259,37 @@ impl Integer {
     }
 
     /// Private function used internally
-    fn as_u128(self) -> Option<u128> {
+    // fn as_u128(self) -> Option<u128> {
+    //     match self {
+    //         Self::U8(v)        => Some(v as u128),
+    //         Self::U16(v)       => Some(v as u128),
+    //         Self::U24(msb,lsb) => Some(((msb as u128)) << 16 | (lsb as u128)),
+    //         Self::U32(v)       => Some(v as u128),
+    //         Self::U64(v)       => Some(v as u128),
+    //         Self::U128(v)      => Some(v as u128),
+    //         Self::USize(v)     => Some(v as u128),
+    //         _                  => None,
+    //     }
+    // }
+
+    /// Force-convert to a u128, even if signed.
+    ///
+    /// Used for comparisons.
+    fn force_u128(self) -> u128 {
         match self {
-            Self::U8(v)        => Some(v as u128),
-            Self::U16(v)       => Some(v as u128),
-            Self::U24(msb,lsb) => Some(((msb as u128)) << 16 | (lsb as u128)),
-            Self::U32(v)       => Some(v as u128),
-            Self::U64(v)       => Some(v as u128),
-            Self::U128(v)      => Some(v as u128),
-            Self::USize(v)     => Some(v as u128),
-            _                  => None,
+            Self::U8(v)        => v as u128,
+            Self::U16(v)       => v as u128,
+            Self::U24(msb,lsb) => ((msb as u128)) << 16 | (lsb as u128),
+            Self::U32(v)       => v as u128,
+            Self::U64(v)       => v as u128,
+            Self::U128(v)      => v as u128,
+            Self::USize(v)     => v as u128,
+            Self::I8(v)        => v as u128,
+            Self::I16(v)       => v as u128,
+            Self::I32(v)       => v as u128,
+            Self::I64(v)       => v as u128,
+            //Self::I128(v)      => v as u128,
+            Self::ISize(v)     => v as u128,
         }
     }
 }
@@ -264,7 +309,7 @@ impl fmt::Display for Integer {
             Self::I16(v)   => fmt::Display::fmt(&v, f),
             Self::I32(v)   => fmt::Display::fmt(&v, f),
             Self::I64(v)   => fmt::Display::fmt(&v, f),
-            Self::I128(v)  => fmt::Display::fmt(&v, f),
+            //Self::I128(v)  => fmt::Display::fmt(&v, f),
             Self::ISize(v) => fmt::Display::fmt(&v, f),
         }
     }
@@ -285,7 +330,7 @@ impl fmt::LowerHex for Integer {
             Self::I16(v)   => fmt::LowerHex::fmt(&v, f),
             Self::I32(v)   => fmt::LowerHex::fmt(&v, f),
             Self::I64(v)   => fmt::LowerHex::fmt(&v, f),
-            Self::I128(v)  => fmt::LowerHex::fmt(&v, f),
+            //Self::I128(v)  => fmt::LowerHex::fmt(&v, f),
             Self::ISize(v) => fmt::LowerHex::fmt(&v, f),
         }
     }
@@ -306,7 +351,7 @@ impl fmt::UpperHex for Integer {
             Self::I16(v)   => fmt::UpperHex::fmt(&v, f),
             Self::I32(v)   => fmt::UpperHex::fmt(&v, f),
             Self::I64(v)   => fmt::UpperHex::fmt(&v, f),
-            Self::I128(v)  => fmt::UpperHex::fmt(&v, f),
+            //Self::I128(v)  => fmt::UpperHex::fmt(&v, f),
             Self::ISize(v) => fmt::UpperHex::fmt(&v, f),
         }
     }
@@ -327,7 +372,7 @@ impl fmt::Octal for Integer {
             Self::I16(v)   => fmt::Octal::fmt(&v, f),
             Self::I32(v)   => fmt::Octal::fmt(&v, f),
             Self::I64(v)   => fmt::Octal::fmt(&v, f),
-            Self::I128(v)  => fmt::Octal::fmt(&v, f),
+            //Self::I128(v)  => fmt::Octal::fmt(&v, f),
             Self::ISize(v) => fmt::Octal::fmt(&v, f),
         }
     }
@@ -348,7 +393,7 @@ impl fmt::LowerExp for Integer {
             Self::I16(v)   => fmt::LowerExp::fmt(&v, f),
             Self::I32(v)   => fmt::LowerExp::fmt(&v, f),
             Self::I64(v)   => fmt::LowerExp::fmt(&v, f),
-            Self::I128(v)  => fmt::LowerExp::fmt(&v, f),
+            //Self::I128(v)  => fmt::LowerExp::fmt(&v, f),
             Self::ISize(v) => fmt::LowerExp::fmt(&v, f),
         }
     }
@@ -369,7 +414,7 @@ impl fmt::UpperExp for Integer {
             Self::I16(v)   => fmt::UpperExp::fmt(&v, f),
             Self::I32(v)   => fmt::UpperExp::fmt(&v, f),
             Self::I64(v)   => fmt::UpperExp::fmt(&v, f),
-            Self::I128(v)  => fmt::UpperExp::fmt(&v, f),
+            //Self::I128(v)  => fmt::UpperExp::fmt(&v, f),
             Self::ISize(v) => fmt::UpperExp::fmt(&v, f),
         }
     }
@@ -390,7 +435,7 @@ impl fmt::Binary for Integer {
             Self::I16(v)   => fmt::Binary::fmt(&v, f),
             Self::I32(v)   => fmt::Binary::fmt(&v, f),
             Self::I64(v)   => fmt::Binary::fmt(&v, f),
-            Self::I128(v)  => fmt::Binary::fmt(&v, f),
+            //Self::I128(v)  => fmt::Binary::fmt(&v, f),
             Self::ISize(v) => fmt::Binary::fmt(&v, f),
         }
     }
@@ -398,29 +443,7 @@ impl fmt::Binary for Integer {
 
 impl PartialEq for Integer {
     fn eq(&self, other: &Self) -> bool {
-        if self.can_be_usize() && other.can_be_usize() {
-            // Try to compare as usize
-            self.as_usize() == other.as_usize()
-
-        } else if self.can_be_isize() && other.can_be_isize() {
-            // Try to compare as isize
-            self.as_isize() == other.as_isize()
-
-        } else if self.is_signed() && other.is_signed() {
-            let v1 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-
-            v1 == v2
-
-        } else if !self.is_signed() && !other.is_signed() {
-            let v1 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-
-            v1 == v2
-        } else {
-            // If one is signed and the other is unsigned, there's simply nothing we can do
-            false
-        }
+        self.force_u128().eq(&other.force_u128())
     }
 }
 
@@ -430,29 +453,15 @@ impl Eq for Integer {
 
 impl PartialOrd for Integer {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.can_be_usize() && other.can_be_usize() {
-            // Try to compare as usize
-            self.as_usize().unwrap().partial_cmp(&other.as_usize().unwrap())
-
-        } else if self.can_be_isize() && other.can_be_isize() {
-            // Try to compare as isize
-            self.as_isize().unwrap().partial_cmp(&other.as_isize().unwrap())
-
-        } else if self.is_signed() && other.is_signed() {
-            let v1 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-
-            v1.partial_cmp(&v2)
-
-        } else if !self.is_signed() && !other.is_signed() {
-            let v1 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-
-            v1.partial_cmp(&v2)
-        } else {
-            // If one is signed and the other is unsigned, there's simply nothing we can do
-            None
+        // Try to compare as signed
+        if let Some(a) = self.as_i128() {
+            if let Some(b) = other.as_i128() {
+                return a.partial_cmp(&b);
+            }
         }
+
+        // If we can't compare as signed, compare as unsigned
+        self.force_u128().partial_cmp(&other.force_u128())
     }
 }
 
@@ -511,10 +520,10 @@ impl FromStr for Integer {
             return Ok(i)
         }
 
-        let i = i128::from_str_radix(s, radix).map(|i| Integer::from(i));
-        if let Ok(i) = i {
-            return Ok(i)
-        }
+        // let i = i128::from_str_radix(s, radix).map(|i| Integer::from(i));
+        // if let Ok(i) = i {
+        //     return Ok(i)
+        // }
 
         // Give up
         bail!("String does not appear to be a valid integer: {}", s);
@@ -525,7 +534,7 @@ impl FromStr for Integer {
 mod tests {
     use super::*;
 
-    use pretty_assertions::{assert_eq, assert_ne};
+    use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
     use crate::{Context, Integer, IntegerReader, Endian, DefaultFormatter};
@@ -594,7 +603,7 @@ mod tests {
         assert!(IntegerReader::U16(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
         assert!(IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
         assert!(IntegerReader::U64(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
-        assert!(IntegerReader::I128(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
+        //assert!(IntegerReader::I128(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
 
         Ok(())
     }
@@ -611,17 +620,18 @@ mod tests {
         assert_eq!(Integer::from(0i8), Integer::from(0i8));
         assert_eq!(Integer::from(0i8), Integer::from(0i16));
         assert_eq!(Integer::from(0i8), Integer::from(0i64));
-        assert_eq!(Integer::from(0i8), Integer::from(0i128));
+        //assert_eq!(Integer::from(0i8), Integer::from(0i128));
 
-        // Signed -> unsigned (never equal)
-        assert_ne!(Integer::from(0u8), Integer::from(0i8));
-        assert_ne!(Integer::from(0u8), Integer::from(0i128));
+        // Signed -> unsigned should still be equal
+        assert_eq!(Integer::from(0u8), Integer::from(0i8));
+        assert_eq!(Integer::from(0u8), Integer::from(0i64));
 
         // Test ordering
         assert!(Integer::from(0u8)  < Integer::from(1u32));
         assert!(Integer::from(0u32) < Integer::from(1u8));
         assert!(Integer::from(1u8)  > Integer::from(0u32));
         assert!(Integer::from(1u32) > Integer::from(0u8));
+        assert!(Integer::from(-1i8) < Integer::from(1i8));
 
         Ok(())
     }

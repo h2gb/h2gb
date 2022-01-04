@@ -327,6 +327,7 @@ version = "0.1.0"
 dependencies = [
  "bimap",
  "csv",
+ "generic-number",
  "lazy_static",
  "pretty_assertions",
  "ron",

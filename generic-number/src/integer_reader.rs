@@ -40,8 +40,8 @@ pub enum IntegerReader {
     /// Signed 64-bit integer
     I64(Endian),
 
-    /// Signed 128-bit integer
-    I128(Endian),
+    // /// Signed 128-bit integer
+    //I128(Endian),
 }
 
 impl IntegerReader {
@@ -58,7 +58,7 @@ impl IntegerReader {
             Self::I16(endian)    => Ok(Integer::from(context.read_i16(endian)?)),
             Self::I32(endian)    => Ok(Integer::from(context.read_i32(endian)?)),
             Self::I64(endian)    => Ok(Integer::from(context.read_i64(endian)?)),
-            Self::I128(endian)   => Ok(Integer::from(context.read_i128(endian)?)),
+            // Self::I128(endian)   => Ok(Integer::from(context.read_i128(endian)?)),
 
             Self::U8             => Ok(Integer::from(context.read_u8()?)),
             Self::U16(endian)    => Ok(Integer::from(context.read_u16(endian)?)),
@@ -83,7 +83,7 @@ impl IntegerReader {
             Self::I16(_)  => mem::size_of::<i16>(),
             Self::I32(_)  => mem::size_of::<i32>(),
             Self::I64(_)  => mem::size_of::<i64>(),
-            Self::I128(_) => mem::size_of::<i128>(),
+            // Self::I128(_) => mem::size_of::<i128>(),
         }
     }
 
@@ -103,7 +103,7 @@ impl IntegerReader {
             Self::I16(_)     => false,
             Self::I32(_)     => false,
             Self::I64(_)     => false,
-            Self::I128(_)    => false,
+            // Self::I128(_)    => false,
         }
     }
 }
@@ -146,7 +146,7 @@ mod tests {
 
         let data = b"AAAAAAAAAAAAAAA".to_vec();
         assert!(IntegerReader::I64(Endian::Big).read(Context::new(&data)).is_ok());
-        assert!(IntegerReader::I128(Endian::Big).read(Context::new(&data)).is_err());
+        // assert!(IntegerReader::I128(Endian::Big).read(Context::new(&data)).is_err());
 
         Ok(())
     }

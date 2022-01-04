@@ -64,7 +64,7 @@ impl IntegerRendererTrait for OctalFormatter {
                 Integer::I16(_)   => 6,
                 Integer::I32(_)   => 11,
                 Integer::I64(_)   => 22,
-                Integer::I128(_)  => 43,
+                // Integer::I128(_)  => 43,
                 Integer::ISize(_) => {
                     match mem::size_of::<isize>() {
                         1  => 3,
