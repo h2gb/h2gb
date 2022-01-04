@@ -1,19 +1,50 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
+use simple_error::{SimpleError, SimpleResult, bail};
 use std::{fmt, mem};
 use std::cmp::Ordering;
+use std::str::FromStr;
 
 /// A number that can be any of the primitive integer types.
 ///
 /// The goal of creating this enum is to wrap around *any* integer type, with
 /// serialize, deserialize, and easy conversion / rendering.
 ///
-/// Typically, you'd use a [`crate::IntegerReader`] to create an
-/// [`Integer`], then a formatter such as [`crate::HexFormatter`] to render it.
+/// # Creation
 ///
-/// This class can also safely convert to [`usize`] and [`isize`], based on the
-/// actual size on the host system.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+/// An [`Integer`] can be created in a bunch of different ways depending on
+/// your needs.
+///
+/// The simplest way is using the [`From`] trait - `Integer::From(1u8)` for
+/// example.
+///
+/// The most common way in `h2gb` is by using a [`crate::IntegerReader`], which
+/// reads an [`Integer`] from a [`crate::Context`], which represents binary
+/// data.
+///
+/// This also implements [`str::FromStr`], allowing numbers to be read from
+/// a string. When possible it'll convert things to a [`usize`] or [`isize`],
+/// falling back to larger datatypes as needed. We also support radix prefixes
+/// - specifically, `0x` for hex, `0b` for binary, and `0o` for octal. We
+/// anticipate using those to store configurations.
+///
+/// # Usage
+///
+/// Integers are generally displayed using a formatter such as
+/// [`crate::HexFormatter`], which renders a number with a bunch of formatting
+/// options.
+///
+/// More importantly, this implements the whole suite of comparison and ordering
+/// traits - `Eq`, `PartialEq`, `Ord`, and so on. Unlike standard Rust, this
+/// will endeavour to compare types of different sizes by converting them to the
+/// best shared size - as always, [`usize`] and [`isize`] if possible.
+///
+/// Signed variables are never equal to unsigned variables, and can't be
+/// meaningfully compared!
+///
+/// While this is helpful when analyzing binaries in `h2gb`, I probably wouldn't
+/// use this with normal programming - there's a reason Rust strongly types
+/// stuff!
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash)]
 pub enum Integer {
     U8(u8),
     U16(u16),
@@ -425,8 +456,75 @@ impl PartialOrd for Integer {
     }
 }
 
+impl FromStr for Integer {
+    type Err = SimpleError;
+
+    fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
+        // Handle other types
+        let (radix, s) = if s.len() > 2 {
+            match &s[0..2] {
+                "0b" => (2,  &s[2..]), // Binary
+                "0o" => (8,  &s[2..]), // Octal
+                "0x" => (16, &s[2..]), // Hex
+                _    => (10, s),
+            }
+        } else {
+            (10, s)
+        };
+
+        // Try usize/isize first
+        let i = usize::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        let i = isize::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Try u64/i64
+        let i = u64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        let i = i64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Try u64/i64
+        let i = u64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        let i = i64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Not sure if we really need to, but try u128/i128
+        let i = u128::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        let i = i128::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Give up
+        bail!("String does not appear to be a valid integer: {}", s);
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use pretty_assertions::{assert_eq, assert_ne};
     use simple_error::SimpleResult;
 
@@ -550,6 +648,36 @@ mod tests {
             let reader = IntegerReader::U24(endian);
 
             assert_eq!(Integer::from(expected), reader.read(c)?);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_from_str() -> SimpleResult<()> {
+        let tests = vec![
+            // string                  expected
+            (  "1",                    Integer::from(1u8)), // <-- the Eq implementation means we can vary the types
+            (  "1",                    Integer::from(1usize)),
+
+            (  "-1",                   Integer::from(-1)),
+            (  "-65535",               Integer::from(-65535)),
+
+            (  "255",                  Integer::from(0xffusize)),
+            (  "65535",                Integer::from(0xffffu32)),
+            (  "18446744073709551615", Integer::from(0xffffffffffffffffu64)),
+            (  "79228162514264337593543950335", Integer::from(0xffffffffffffffffffffffffu128)),
+
+            (  "0xff",                 Integer::from(0xffu32)),
+            (  "0xf",                  Integer::from(0xfu32)),
+
+            (  "0o777",                Integer::from(511u32)),
+            (  "0b1111",               Integer::from(15u32)),
+
+        ];
+
+        for (s, expected) in tests {
+            assert_eq!(Integer::from_str(s)?, expected);
         }
 
         Ok(())
