@@ -43,3 +43,7 @@ pub use enums::{from_enum, enum_exists};
 
 mod bitmasks;
 pub use bitmasks::{from_bitmask, from_bitmask_str, bitmask_exists};
+
+
+// TODO: This shouldn't be public
+pub mod ng;
