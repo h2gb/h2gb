@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{SimpleError, SimpleResult, bail};
 use std::{fmt, mem};
 use std::str::FromStr;
+use std::hash::{Hash, Hasher};
 
 /// A number that can be any of the primitive integer types.
 ///
@@ -56,7 +57,7 @@ use std::str::FromStr;
 ///
 /// We no longer implement ordering, because ordering signed and unsigned
 /// numbers together is basically impossible to do sanely.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Integer {
     U8(u8),
     U16(u16),
@@ -410,6 +411,12 @@ impl PartialEq for Integer {
 
 impl Eq for Integer {
     // Automatically uses PartialEq
+}
+
+impl Hash for Integer {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.force_u128().hash(state)
+    }
 }
 
 // I decided not to implement PartialOrd at all - nothing was depending on it,
