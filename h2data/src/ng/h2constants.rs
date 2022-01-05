@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::collections::HashMap;
 
-use bimap::BiMap;
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
@@ -12,20 +11,35 @@ use generic_number::Integer;
 /// A named collection of constants
 #[derive(Debug)]
 pub struct H2Constants {
-    constants: BiMap<String, Integer>,
+    by_name: HashMap<String, Integer>,
+    by_value: HashMap<Integer, Vec<String>>,
 }
 
 impl H2Constants {
-    pub fn new_empty() -> Self {
+    fn new_empty() -> Self {
         Self {
-            constants: BiMap::new(),
+            by_name: HashMap::new(),
+            by_value: HashMap::new(),
         }
     }
 
-    fn read_csv<R>(reader: R) -> SimpleResult<BiMap<String, Integer>>
+    fn add_entry(&mut self, name: String, value: Integer) -> SimpleResult<()> {
+        // Insert and prevent duplicates
+        if let Some(_) = self.by_name.insert(name.clone(), value) {
+            bail!("Duplicate constant value: {}", name);
+        }
+
+        // Insert or append to the by_value map
+        let e = self.by_value.entry(value).or_insert(vec![]);
+        e.push(name);
+
+        Ok(())
+    }
+
+    fn load_csv<R>(reader: R) -> SimpleResult<Self>
     where R: io::Read
     {
-        let mut out = BiMap::new();
+        let mut out = Self::new_empty();
 
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(false)
@@ -36,48 +50,46 @@ impl H2Constants {
                 SimpleError::new(format!("Couldn't read CSV: {}", e))
             })?;
 
+            // Ensure that there are only two entries per line
             if record.len() != 2 {
                 bail!("CSV must be 2 records per line, this line was {}", record.len());
             }
 
+            // Get the first (the name) as a String
             let name = record.get(0).ok_or(
                 SimpleError::new("Couldn't parse the CSV")
             )?.to_string();
 
-            let number: Integer = record.get(1).ok_or(
+            // Get the second (the value) as an Integer
+            let value: Integer = record.get(1).ok_or(
                 SimpleError::new("Error reading the CSV file")
             )?.parse().map_err(|_| {
                 SimpleError::new(format!("Couldn't parse second CSV field as integer"))
             })?;
 
-            out.insert_no_overwrite(name, number).map_err(|e| {
-                SimpleError::new(format!("Duplicate key or value while reading CSV: {:?}", e))
-            })?;
+            // Insert it
+            out.add_entry(name, value)?;
         }
 
         Ok(out)
     }
 
     pub fn load_from_csv_string(data: &str) -> SimpleResult<Self> {
-        Ok(Self {
-            constants: Self::read_csv(data.as_bytes())?
-        })
+        Self::load_csv(data.as_bytes())
     }
 
     pub fn load_from_csv_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Ok(Self {
-            constants: Self::read_csv(io::BufReader::new(File::open(filename).map_err(|e| {
-                SimpleError::new(format!("Could not read file: {}", e))
-            })?))?
-        })
+        Self::load_csv(io::BufReader::new(File::open(filename).map_err(|e| {
+            SimpleError::new(format!("Could not read file: {}", e))
+        })?))
     }
 
     pub fn to_csv(&self) -> SimpleResult<String> {
         // Convert to String->String
         let mut w = csv::WriterBuilder::new().has_headers(false).from_writer(vec![]);
 
-        for (k, v) in &self.constants {
-            w.write_record(&[k.clone(), v.to_string()]).map_err(|e| {
+        for (name, value) in &self.by_name {
+            w.write_record(&[name.clone(), value.to_string()]).map_err(|e| {
                 SimpleError::new(format!("Could not create CSV record: {:?}", e))
             })?;
         }
@@ -92,50 +104,44 @@ impl H2Constants {
 
     }
 
-    fn read_yaml<R>(reader: R) -> SimpleResult<BiMap<String, Integer>>
+    fn load_yaml<R>(reader: R) -> SimpleResult<Self>
     where
         R: io::Read
     {
-        // Read as String->String
+        // Initially read as String->String
         let h: HashMap<String, String> = serde_yaml::from_reader(reader).map_err(|e| {
             SimpleError::new(format!("Couldn't read YAML file as String->String mapping: {:?}", e))
         })?;
 
         // Convert to String->Integer
-        let mut out: BiMap<String, Integer> = BiMap::new();
-        for (k, v) in h.into_iter() {
+        let mut out = Self::new_empty();
+        for (name, value) in h.into_iter() {
             // Get the integer
-            let i = Integer::from_str(&v).map_err(|e| {
+            let value = Integer::from_str(&value).map_err(|e| {
                 SimpleError::new(format!("Couldn't parse integer from YAML: {:?}", e))
             })?;
 
-            out.insert_no_overwrite(k, i).map_err(|e| {
-                SimpleError::new(format!("Duplicate key or value while reading YAML: {:?}", e))
-            })?;
+            out.add_entry(name, value)?;
         }
 
         Ok(out)
     }
 
     pub fn load_from_yaml_string(data: &str) -> SimpleResult<Self> {
-        Ok(Self {
-            constants: Self::read_yaml(data.as_bytes())?
-        })
+        Self::load_yaml(data.as_bytes())
     }
 
     pub fn load_from_yaml_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Ok(Self {
-            constants: Self::read_yaml(io::BufReader::new(File::open(filename).map_err(|e| {
-                SimpleError::new(format!("Could not read file: {}", e))
-            })?))?
-        })
+        Self::load_yaml(io::BufReader::new(File::open(filename).map_err(|e| {
+            SimpleError::new(format!("Could not read file: {}", e))
+        })?))
     }
 
     pub fn to_yaml(&self) -> SimpleResult<String> {
         // Convert to String->String
         let mut h: HashMap<String, String> = HashMap::new();
 
-        for (k, v) in &self.constants {
+        for (k, v) in &self.by_name {
             h.insert(k.clone(), v.to_string());
         }
 
@@ -144,7 +150,7 @@ impl H2Constants {
         })
     }
 
-    fn read_json<R>(reader: R) -> SimpleResult<BiMap<String, Integer>>
+    fn load_json<R>(reader: R) -> SimpleResult<Self>
     where
         R: io::Read
     {
@@ -154,40 +160,34 @@ impl H2Constants {
         })?;
 
         // Convert to String->Integer
-        let mut out: BiMap<String, Integer> = BiMap::new();
-        for (k, v) in h.into_iter() {
+        let mut out = Self::new_empty();
+        for (name, value) in h.into_iter() {
             // Get the integer
-            let i = Integer::from_str(&v).map_err(|e| {
+            let value = Integer::from_str(&value).map_err(|e| {
                 SimpleError::new(format!("Couldn't parse integer from JSON: {:?}", e))
             })?;
 
-            out.insert_no_overwrite(k, i).map_err(|e| {
-                SimpleError::new(format!("Duplicate key or value while reading JSON: {:?}", e))
-            })?;
+            out.add_entry(name, value)?;
         }
 
         Ok(out)
     }
 
     pub fn load_from_json_string(data: &str) -> SimpleResult<Self> {
-        Ok(Self {
-            constants: Self::read_json(data.as_bytes())?
-        })
+        Self::load_json(data.as_bytes())
     }
 
     pub fn load_from_json_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Ok(Self {
-            constants: Self::read_json(io::BufReader::new(File::open(filename).map_err(|e| {
-                SimpleError::new(format!("Could not read file: {}", e))
-            })?))?
-        })
+        Self::load_json(io::BufReader::new(File::open(filename).map_err(|e| {
+            SimpleError::new(format!("Could not read file: {}", e))
+        })?))
     }
 
     pub fn to_json(&self) -> SimpleResult<String> {
         // Convert to String->String
         let mut h: HashMap<String, String> = HashMap::new();
 
-        for (k, v) in &self.constants {
+        for (k, v) in &self.by_name {
             h.insert(k.clone(), v.to_string());
         }
 
@@ -197,15 +197,15 @@ impl H2Constants {
     }
 
     pub fn get_by_name(&self, name: &str) -> Option<&Integer> {
-        self.constants.get_by_left(name)
+        self.by_name.get(name)
     }
 
-    pub fn get_by_value(&self, value: &Integer) -> Option<&str> {
-        self.constants.get_by_right(value).map(|v| &v[..])
+    pub fn get_by_value(&self, value: &Integer) -> Option<&Vec<String>> {
+        self.by_value.get(value)
     }
 
     pub fn len(&self) -> usize {
-        self.constants.len()
+        self.by_name.len()
     }
 }
 
@@ -235,8 +235,7 @@ mod tests {
         // Blank lines are ignored
         assert_eq!(2, H2Constants::load_from_csv_string("TEST1,100\n\n\n\n\nTEST3,200\n")?.len());
 
-        // Duplicates fail in both directions
-        assert!(H2Constants::load_from_csv_string("TEST1,1\nTEST2,1\n").is_err());
+        // Duplicate names fail
         assert!(H2Constants::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
 
         // Check if we can convert it back and forth
@@ -248,6 +247,16 @@ mod tests {
         assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
         assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+
+        // Duplicate values are reverse-fetched correctly
+        let constants: H2Constants = H2Constants::load_from_csv_string("TEST1,1\nTEST2,0o1\nTEST3,0x1\nTEST4,2\nTEST5,0x100\n")?;
+        assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
+        assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST2"));
+        assert_eq!(Some(&Integer::from(1i32)), constants.get_by_name("TEST3"));
+
+        let mut names = constants.get_by_value(&Integer::from(1u32)).unwrap().clone();
+        names.sort();
+        assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string(), "TEST3".to_string()], names);
 
         Ok(())
     }
