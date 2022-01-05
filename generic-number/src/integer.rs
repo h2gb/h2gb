@@ -254,6 +254,37 @@ impl Integer {
             Self::ISize(v)     => v as u128,
         }
     }
+
+    /// Increment the value
+    #[must_use] // So users don't assume this is mutable
+    pub fn increment(self) -> Option<Self> {
+        Some(match self {
+            Self::U8(v)        => Self::from(v.checked_add(1)?),
+            Self::U16(v)       => Self::from(v.checked_add(1)?),
+            Self::U24(_,_) => {
+                // We have to handle U24 specially, unfortunately
+                let i = self.force_u128() + 1;
+                if i > 0x00FFFFFF {
+                    return None;
+                }
+
+                Self::from((
+                        ((i as u32) >> 16 & 0x000000FF) as u8, // MSB
+                        ((i as u32) & 0x0000FFFFu32) as u16,   // LSB
+                ))
+            },
+            Self::U32(v)       => Self::from(v.checked_add(1)?),
+            Self::U64(v)       => Self::from(v.checked_add(1)?),
+            Self::U128(v)      => Self::from(v.checked_add(1)?),
+            Self::USize(v)     => Self::from(v.checked_add(1)?),
+            Self::I8(v)        => Self::from(v.checked_add(1)?),
+            Self::I16(v)       => Self::from(v.checked_add(1)?),
+            Self::I32(v)       => Self::from(v.checked_add(1)?),
+            Self::I64(v)       => Self::from(v.checked_add(1)?),
+            Self::I128(v)      => Self::from(v.checked_add(1)?),
+            Self::ISize(v)     => Self::from(v.checked_add(1)?),
+        })
+    }
 }
 
 impl fmt::Display for Integer {
@@ -667,6 +698,35 @@ mod tests {
         for (s, expected) in tests {
             assert_eq!(Integer::from_str(s)?, expected);
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_increment() -> SimpleResult<()> {
+        // Test normal stuff
+        let i = Integer::from(1u8);
+        assert_eq!(Some(Integer::from(2u8)), i.increment());
+
+        // Test overflow
+        let i = Integer::from(255u8);
+        assert_eq!(None, i.increment());
+
+        // Test u24, because it's special
+        let i = Integer::from((0x00u8, 0x0000u16));
+        assert_eq!(Some(Integer::from(0x000001u32)), i.increment());
+
+        // Just a middling u24 value
+        let i = Integer::from((0x12u8, 0x1234u16));
+        assert_eq!(Some(Integer::from(0x121235u32)), i.increment());
+
+        // Test first overflow
+        let i = Integer::from((0x00u8, 0xFFFFu16));
+        assert_eq!(Some(Integer::from(0x010000u32)), i.increment());
+
+        // But what about second overflow?
+        let i = Integer::from((0xFFu8, 0xFFFFu16));
+        assert_eq!(None, i.increment());
 
         Ok(())
     }
