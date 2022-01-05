@@ -1,21 +1,46 @@
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::collections::HashMap;
 
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
 
-/// A named collection of constants, fetched by name or value.
+/// An enumeration - ie, a list of numbered values / options.
 ///
-/// Constants in h2gb are simply name->value pairs, where within each set of
-/// constants, the names are unique but values may not be.
+/// An enum consists of a bunch of names, with "optional" values - that is, the
+/// values don't need to be specified, but if they aren't, sequential values
+/// will be assigned.
 ///
-/// Constants can be fetched either by name or by value. Fetching by value
-/// returns a list of names associated with it (and that's probably the most
-/// common usecase - looking up constants).
+/// We automatically generate values the same way that C does - that is, if
+/// a value is specified, we use it; if a value is not specified, we use either
+/// `0` (if it's first), or one more than the previous value (otherwise). For
+/// example, the following code outputs `2, 10, 1, 2`:
+///
+/// ```c
+/// #include <stdio.h>
+///
+/// typedef enum {
+///   A = 2,
+///   B = 10,
+///   C = 1,
+///   D
+/// } test_t;
+///
+/// int main(int argc, char *argv[])
+/// {
+///   printf("%d %d %d %d\n", A, B, C, D);
+///   return 0;
+/// }
+/// ```
+///
+/// Obviously, much like constants, enumerations do not require unique values,
+/// but do require unique names.
+///
+/// Enums can be fetched either by name or by value. Fetching by value
+/// returns the name associated with it (and that's probably the most
+/// common use case)
 ///
 /// These values can be loaded from a variety of file formats, and are parsed
 /// into [`generic_number::Integer`] instances. The formats are all, ultimately,
@@ -24,20 +49,45 @@ use generic_number::Integer;
 /// `Integer`. We also support prefixes (like `0x` for hex, `0o` for octal,
 /// etc).
 #[derive(Debug)]
-pub struct H2Constants {
+pub struct H2Enums {
     by_name: HashMap<String, Integer>,
     by_value: HashMap<Integer, Vec<String>>,
+
+    // Making this "next value" because we need to start at 0
+    last_value_added: Option<Integer>,
 }
 
-impl H2Constants {
+impl H2Enums {
     fn new_empty() -> Self {
         Self {
             by_name: HashMap::new(),
             by_value: HashMap::new(),
+            last_value_added: None,
         }
     }
 
-    fn add_entry(&mut self, name: String, value: Integer) -> SimpleResult<()> {
+    /// Retrieve the next automatic value, but does NOT update it
+    fn autovalue(&self) -> SimpleResult<Integer> {
+        // Check the last value
+        match self.last_value_added {
+            // If it exists, increment it
+            Some(i) => match i.increment() {
+                Some(i) => Ok(i),
+                // Check for overflows
+                None => bail!("Overflow"),
+            },
+            // If there's no previous value, start at 0
+            None  => Ok(Integer::from(0u32)),
+        }
+    }
+
+    fn add_entry(&mut self, name: String, value: Option<Integer>) -> SimpleResult<()> {
+        // Get the value, or the next incremental value
+        let value = match value {
+            Some(v) => v,
+            None    => self.autovalue()?,
+        };
+
         // Insert and prevent duplicates
         if let Some(_) = self.by_name.insert(name.clone(), value) {
             bail!("Duplicate constant value: {}", name);
@@ -46,6 +96,9 @@ impl H2Constants {
         // Insert or append to the by_value map
         let e = self.by_value.entry(value).or_insert(vec![]);
         e.push(name);
+
+        // Update the incremental value
+        self.last_value_added = Some(value);
 
         Ok(())
     }
@@ -57,6 +110,7 @@ impl H2Constants {
 
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(false)
+            .flexible(true)
             .from_reader(reader);
 
         for result in rdr.records() {
@@ -65,8 +119,8 @@ impl H2Constants {
             })?;
 
             // Ensure that there are only two entries per line
-            if record.len() != 2 {
-                bail!("CSV must be 2 records per line, this line was {}", record.len());
+            if record.len() > 2 {
+                bail!("CSV must be 1 or 2 records per line, this line had {} records", record.len());
             }
 
             // Get the first (the name) as a String
@@ -75,11 +129,10 @@ impl H2Constants {
             )?.to_string();
 
             // Get the second (the value) as an Integer
-            let value: Integer = record.get(1).ok_or(
-                SimpleError::new("Error reading the CSV file")
-            )?.parse().map_err(|_| {
-                SimpleError::new(format!("Couldn't parse second CSV field as integer"))
-            })?;
+            let value: Option<Integer> = match record.get(1) {
+                Some(v) => Some(v.parse().map_err(|_| SimpleError::new(format!("Couldn't parse second CSV field as integer")))?),
+                None => None,
+            };
 
             // Insert it
             out.add_entry(name, value)?;
@@ -123,7 +176,7 @@ impl H2Constants {
         R: io::Read
     {
         // Initially read as String->String
-        let h: HashMap<String, String> = serde_yaml::from_reader(reader).map_err(|e| {
+        let h: HashMap<String, Option<String>> = serde_yaml::from_reader(reader).map_err(|e| {
             SimpleError::new(format!("Couldn't read YAML file as String->String mapping: {:?}", e))
         })?;
 
@@ -131,9 +184,10 @@ impl H2Constants {
         let mut out = Self::new_empty();
         for (name, value) in h.into_iter() {
             // Get the integer
-            let value = Integer::from_str(&value).map_err(|e| {
-                SimpleError::new(format!("Couldn't parse integer from YAML: {:?}", e))
-            })?;
+            let value: Option<Integer> = match value {
+                Some(v) => Some(v.parse().map_err(|_| SimpleError::new(format!("Couldn't parse second YAML field as integer")))?),
+                None => None,
+            };
 
             out.add_entry(name, value)?;
         }
@@ -169,7 +223,7 @@ impl H2Constants {
         R: io::Read
     {
         // Read as String->String
-        let h: HashMap<String, String> = serde_json::from_reader(reader).map_err(|e| {
+        let h: HashMap<String, Option<String>> = serde_json::from_reader(reader).map_err(|e| {
             SimpleError::new(format!("Couldn't read JSON file as String->String mapping: {:?}", e))
         })?;
 
@@ -177,9 +231,10 @@ impl H2Constants {
         let mut out = Self::new_empty();
         for (name, value) in h.into_iter() {
             // Get the integer
-            let value = Integer::from_str(&value).map_err(|e| {
-                SimpleError::new(format!("Couldn't parse integer from JSON: {:?}", e))
-            })?;
+            let value: Option<Integer> = match value {
+                Some(v) => Some(v.parse().map_err(|_| SimpleError::new(format!("Couldn't parse second JSON field as integer")))?),
+                None => None,
+            };
 
             out.add_entry(name, value)?;
         }
@@ -233,28 +288,28 @@ mod tests {
     #[test]
     fn test_csv() -> SimpleResult<()> {
         // Most stuff works
-        let constants: H2Constants = H2Constants::load_from_csv_string("TEST1,1\nTEST2,100\nTEST3,5\nTEST4,-10000\nTEST5,0x100\n")?;
+        let constants: H2Enums = H2Enums::load_from_csv_string("TEST1,1\nTEST2,100\nTEST3,5\nTEST4,-10000\nTEST5,0x100\n")?;
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
         assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
 
-        // Missing entries fails
-        assert!(H2Constants::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_err());
+        // Missing entries work
+        assert!(H2Enums::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_ok());
 
         // Non-numbers fail
-        assert!(H2Constants::load_from_csv_string("100,TEST1\n").is_err());
+        assert!(H2Enums::load_from_csv_string("100,TEST1\n").is_err());
 
         // Blank lines are ignored
-        assert_eq!(2, H2Constants::load_from_csv_string("TEST1,100\n\n\n\n\nTEST3,200\n")?.len());
+        assert_eq!(2, H2Enums::load_from_csv_string("TEST1,100\n\n\n\n\nTEST3,200\n")?.len());
 
         // Duplicate names fail
-        assert!(H2Constants::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
+        assert!(H2Enums::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
 
         // Check if we can convert it back and forth
         let data = constants.to_csv()?;
-        let constants = H2Constants::load_from_csv_string(&data)?;
+        let constants = H2Enums::load_from_csv_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -263,7 +318,7 @@ mod tests {
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
 
         // Duplicate values are reverse-fetched correctly
-        let constants: H2Constants = H2Constants::load_from_csv_string("TEST1,1\nTEST2,0o1\nTEST3,0x1\nTEST4,2\nTEST5,0x100\n")?;
+        let constants: H2Enums = H2Enums::load_from_csv_string("TEST1,1\nTEST2,0o1\nTEST3,0x1\nTEST4,2\nTEST5,0x100\n")?;
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(1i32)), constants.get_by_name("TEST3"));
@@ -281,7 +336,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/constants/test1.csv");
 
-        let constants = H2Constants::load_from_csv_file(&d)?;
+        let constants = H2Enums::load_from_csv_file(&d)?;
 
         // Do all the same tests as test_csv()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
@@ -295,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_csv_empty() -> SimpleResult<()> {
-        assert_eq!(0, H2Constants::load_from_csv_string("")?.len());
+        assert_eq!(0, H2Enums::load_from_csv_string("")?.len());
 
         Ok(())
     }
@@ -303,7 +358,7 @@ mod tests {
     #[test]
     fn test_json() -> SimpleResult<()> {
         let data = "{ \"TEST1\": \"1\", \"TEST3\": \"5\", \"TEST2\": \"100\", \"TEST4\": \"-10000\", \"TEST5\": \"0x100\" }";
-        let constants: H2Constants = H2Constants::load_from_json_string(data)?;
+        let constants: H2Enums = H2Enums::load_from_json_string(data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -313,7 +368,7 @@ mod tests {
 
         // Check if we can convert it back and forth
         let data = constants.to_json()?;
-        let constants = H2Constants::load_from_json_string(&data)?;
+        let constants = H2Enums::load_from_json_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -330,7 +385,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/constants/test2.json");
 
-        let constants = H2Constants::load_from_json_file(&d)?;
+        let constants = H2Enums::load_from_json_file(&d)?;
 
         // Do all the same tests as test_json()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
@@ -351,7 +406,7 @@ TEST2: 100
 TEST3: 5
 TEST5: 256";
 
-        let constants: H2Constants = H2Constants::load_from_yaml_string(data)?;
+        let constants: H2Enums = H2Enums::load_from_yaml_string(data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -360,7 +415,7 @@ TEST5: 256";
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
 
         let data = constants.to_yaml()?;
-        let constants = H2Constants::load_from_yaml_string(&data)?;
+        let constants = H2Enums::load_from_yaml_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -377,7 +432,7 @@ TEST5: 256";
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/constants/test3.yaml");
 
-        let constants = H2Constants::load_from_yaml_file(&d)?;
+        let constants = H2Enums::load_from_yaml_file(&d)?;
 
         // Do all the same tests as test_yaml()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
@@ -385,6 +440,30 @@ TEST5: 256";
         assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
         assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_autonumber() -> SimpleResult<()> {
+        // Most stuff works
+        let constants: H2Enums = H2Enums::load_from_csv_string("TEST1\nTEST2\nTEST3\n")?;
+        assert_eq!(Some(&Integer::from(0u32)), constants.get_by_name("TEST1"));
+        assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST2"));
+        assert_eq!(Some(&Integer::from(2u32)), constants.get_by_name("TEST3"));
+
+        // Jumping ahead works
+        let constants: H2Enums = H2Enums::load_from_csv_string("TEST1\nTEST2,100\nTEST3\n")?;
+        assert_eq!(Some(&Integer::from(0u32)), constants.get_by_name("TEST1"));
+        assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
+        assert_eq!(Some(&Integer::from(101u32)), constants.get_by_name("TEST3"));
+
+        // Negatives too
+        let constants: H2Enums = H2Enums::load_from_csv_string("TEST1,-100\nTEST2\nTEST3,-1\nTEST4\n")?;
+        assert_eq!(Some(&Integer::from(-100i32)), constants.get_by_name("TEST1"));
+        assert_eq!(Some(&Integer::from( -99i32)), constants.get_by_name("TEST2"));
+        assert_eq!(Some(&Integer::from(  -1i32)), constants.get_by_name("TEST3"));
+        assert_eq!(Some(&Integer::from(   0u32)), constants.get_by_name("TEST4"));
 
         Ok(())
     }

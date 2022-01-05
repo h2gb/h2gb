@@ -7,6 +7,9 @@ use simple_error::SimpleResult;
 mod h2constants;
 use h2constants::*;
 
+mod h2enums;
+use h2enums::*;
+
 struct H2DataNg {
     // constants: HashMap<String, H2Constants>,
     //enums: HashMap<String, H2Enum>,

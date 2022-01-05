@@ -82,15 +82,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
 
 [[package]]
-name = "bimap"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50ae17cabbc8a38a1e3e4c1a6a664e9a09672dc14d0896fa8d865d3a5a446b07"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.57.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -325,7 +316,6 @@ checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 name = "h2data"
 version = "0.1.0"
 dependencies = [
- "bimap",
  "csv",
  "generic-number",
  "lazy_static",
