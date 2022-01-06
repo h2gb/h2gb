@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use simple_error::{SimpleResult, SimpleError, bail};
 
-use generic_number::Integer;
+use generic_number::{Integer, IntegerRenderer};
 
 /// A bitmask - ie, a list of binary flags (0/1).
 ///
@@ -15,6 +15,9 @@ use generic_number::Integer;
 pub struct H2Bitmasks {
     by_name: HashMap<String, u8>,
     by_position: HashMap<u8, String>,
+
+    // Prefix + renderer
+    unknown_renderer: Option<(String, IntegerRenderer)>,
 }
 
 impl H2Bitmasks {
@@ -22,7 +25,14 @@ impl H2Bitmasks {
         Self {
             by_name: HashMap::new(),
             by_position: HashMap::new(),
+
+            unknown_renderer: None,
         }
+    }
+
+    /// Set to `None` to disable unknowns
+    pub fn set_unknown_renderer(&mut self, prefix_and_renderer: Option<(String, IntegerRenderer)>) {
+        self.unknown_renderer = prefix_and_renderer;
     }
 
     fn add_entry(&mut self, name: &str, position: Integer) -> SimpleResult<()> {
@@ -224,10 +234,14 @@ impl H2Bitmasks {
         for bit in 0..128 {
             // Check the right-most bit
             if value & (1 << bit) != 0 {
-                out.push(match self.by_position.get(&bit) {
-                    Some(s) => s.to_string(),
-                    None    => format!("Unknown_0x{:x}", 1 << bit),
-                });
+                match (self.by_position.get(&bit), &self.unknown_renderer) {
+                    // If the bitmask exists, use it
+                    (Some(s), _) => out.push(s.to_string()),
+
+                    // If it doesn't exist, check if we have a renderer
+                    (None, Some((s,r))) => out.push(format!("{}{}", s, r.render(Integer::from(1 << bit)))),
+                    (None, None) => (),
+                };
             }
 
             // Turn off the bit and check if we're done
@@ -251,12 +265,13 @@ mod tests {
     use super::*;
 
     use simple_error::SimpleResult;
+    use generic_number::HexFormatter;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn test_csv() -> SimpleResult<()> {
         // Most stuff works
-        let bitmasks: H2Bitmasks = H2Bitmasks::load_from_csv_string("TEST1,0\nTEST2,2\nTEST3,5\nTEST4,100\n")?;
+        let mut bitmasks: H2Bitmasks = H2Bitmasks::load_from_csv_string("TEST1,0\nTEST2,2\nTEST3,5\nTEST4,100\n")?;
 
         // Test the simple way
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -273,7 +288,12 @@ mod tests {
         let flags = bitmasks.get_by_value(&Integer::from(5u32));
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string()], flags);
 
-        // Test 0111 => 7
+        // Test 0111 => 7 - no unknown_renderer set
+        let flags = bitmasks.get_by_value(&Integer::from(7u32));
+        assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string()], flags);
+
+        // Test 0111 => 7 - unknown_renderer set
+        bitmasks.set_unknown_renderer(Some(("Unknown_".to_string(), HexFormatter::new_integer(false, true, false))));
         let flags = bitmasks.get_by_value(&Integer::from(7u32));
         assert_eq!(vec!["TEST1".to_string(), "Unknown_0x2".to_string(), "TEST2".to_string()], flags);
 
@@ -302,18 +322,6 @@ mod tests {
         assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
         assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
         assert_eq!(None, bitmasks.get_by_name("TEST5"));
-
-        // Test the more complicated way
-        let flags = bitmasks.get_by_value(&Integer::from(1u32));
-        assert_eq!(vec!["TEST1".to_string()], flags);
-
-        // Test 0101 => 5
-        let flags = bitmasks.get_by_value(&Integer::from(5u32));
-        assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string()], flags);
-
-        // Test 0111 => 7
-        let flags = bitmasks.get_by_value(&Integer::from(7u32));
-        assert_eq!(vec!["TEST1".to_string(), "Unknown_0x2".to_string(), "TEST2".to_string()], flags);
 
         Ok(())
     }
