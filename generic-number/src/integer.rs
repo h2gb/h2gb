@@ -234,10 +234,10 @@ impl Integer {
         }
     }
 
-    /// Force-convert to a u128, even if signed.
+    /// Convert to a u128.
     ///
-    /// Used for comparisons.
-    fn force_u128(self) -> u128 {
+    /// Used for comparisons, arithmetic, etc.
+    pub fn as_u128(self) -> u128 {
         match self {
             Self::U8(v)        => v as u128,
             Self::U16(v)       => v as u128,
@@ -263,7 +263,7 @@ impl Integer {
             Self::U16(v)       => Self::from(v.checked_add(1)?),
             Self::U24(_,_) => {
                 // We have to handle U24 specially, unfortunately
-                let i = self.force_u128() + 1;
+                let i = self.as_u128() + 1;
                 if i > 0x00FFFFFF {
                     return None;
                 }
@@ -436,7 +436,7 @@ impl fmt::Binary for Integer {
 
 impl PartialEq for Integer {
     fn eq(&self, other: &Self) -> bool {
-        self.force_u128().eq(&other.force_u128())
+        self.as_u128().eq(&other.as_u128())
     }
 }
 
@@ -446,7 +446,7 @@ impl Eq for Integer {
 
 impl Hash for Integer {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.force_u128().hash(state)
+        self.as_u128().hash(state)
     }
 }
 
@@ -462,7 +462,7 @@ impl Hash for Integer {
 //         }
 
 //         // If we can't compare as signed, compare as unsigned
-//         self.force_u128().partial_cmp(&other.force_u128())
+//         self.as_u128().partial_cmp(&other.as_u128())
 //     }
 // }
 

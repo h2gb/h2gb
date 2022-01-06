@@ -10,8 +10,9 @@ use generic_number::Integer;
 /// An enumeration - ie, a list of numbered values / options.
 ///
 /// An enum consists of a bunch of names, with "optional" values - that is, the
-/// values don't need to be specified, but if they aren't, sequential values
-/// will be assigned.
+/// values don't need to be specified in CSV, and if they aren't, sequential
+/// values will be assigned. Values DO need to be included in JSON and YAML,
+/// since they are technically unordered.
 ///
 /// We automatically generate values the same way that C does - that is, if
 /// a value is specified, we use it; if a value is not specified, we use either
@@ -81,21 +82,24 @@ impl H2Enums {
         }
     }
 
-    fn add_entry(&mut self, name: String, value: Option<Integer>) -> SimpleResult<()> {
+    fn add_entry(&mut self, name: &str, value: Option<Integer>) -> SimpleResult<()> {
+        // Check for duplicate names
+        if self.by_name.contains_key(name) {
+            bail!("Duplicate constant value: {}", name);
+        }
+
         // Get the value, or the next incremental value
         let value = match value {
             Some(v) => v,
             None    => self.autovalue()?,
         };
 
-        // Insert and prevent duplicates
-        if let Some(_) = self.by_name.insert(name.clone(), value) {
-            bail!("Duplicate constant value: {}", name);
-        }
+        // Insert
+        self.by_name.insert(name.to_string(), value);
 
         // Insert or append to the by_value map
         let e = self.by_value.entry(value).or_insert(vec![]);
-        e.push(name);
+        e.push(name.to_string());
 
         // Update the incremental value
         self.last_value_added = Some(value);
@@ -135,7 +139,7 @@ impl H2Enums {
             };
 
             // Insert it
-            out.add_entry(name, value)?;
+            out.add_entry(&name, value)?;
         }
 
         Ok(out)
@@ -189,7 +193,7 @@ impl H2Enums {
                 None => None,
             };
 
-            out.add_entry(name, value)?;
+            out.add_entry(&name, value)?;
         }
 
         Ok(out)
@@ -236,7 +240,7 @@ impl H2Enums {
                 None => None,
             };
 
-            out.add_entry(name, value)?;
+            out.add_entry(&name, value)?;
         }
 
         Ok(out)

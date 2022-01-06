@@ -10,6 +10,9 @@ use h2constants::*;
 mod h2enums;
 use h2enums::*;
 
+mod h2bitmasks;
+use h2bitmasks::*;
+
 struct H2DataNg {
     // constants: HashMap<String, H2Constants>,
     //enums: HashMap<String, H2Enum>,

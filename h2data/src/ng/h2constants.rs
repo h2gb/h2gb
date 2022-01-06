@@ -37,15 +37,18 @@ impl H2Constants {
         }
     }
 
-    fn add_entry(&mut self, name: String, value: Integer) -> SimpleResult<()> {
-        // Insert and prevent duplicates
-        if let Some(_) = self.by_name.insert(name.clone(), value) {
+    fn add_entry(&mut self, name: &str, value: Integer) -> SimpleResult<()> {
+        // Check for duplicate names
+        if self.by_name.contains_key(name) {
             bail!("Duplicate constant value: {}", name);
         }
 
+        // Insert
+        self.by_name.insert(name.to_string(), value);
+
         // Insert or append to the by_value map
         let e = self.by_value.entry(value).or_insert(vec![]);
-        e.push(name);
+        e.push(name.to_string());
 
         Ok(())
     }
@@ -82,7 +85,7 @@ impl H2Constants {
             })?;
 
             // Insert it
-            out.add_entry(name, value)?;
+            out.add_entry(&name, value)?;
         }
 
         Ok(out)
@@ -135,7 +138,7 @@ impl H2Constants {
                 SimpleError::new(format!("Couldn't parse integer from YAML: {:?}", e))
             })?;
 
-            out.add_entry(name, value)?;
+            out.add_entry(&name, value)?;
         }
 
         Ok(out)
@@ -181,7 +184,7 @@ impl H2Constants {
                 SimpleError::new(format!("Couldn't parse integer from JSON: {:?}", e))
             })?;
 
-            out.add_entry(name, value)?;
+            out.add_entry(&name, value)?;
         }
 
         Ok(out)
