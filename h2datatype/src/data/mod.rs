@@ -2,22 +2,22 @@ use std::collections::HashMap;
 
 use simple_error::SimpleResult;
 
-mod h2constants;
-use h2constants::*;
+mod constants;
+use constants::*;
 
-mod h2enums;
-use h2enums::*;
+mod enums;
+use enums::*;
 
-mod h2bitmasks;
-use h2bitmasks::*;
+mod bitmasks;
+use bitmasks::*;
 
-struct H2DataNg {
-    // constants: HashMap<String, H2Constants>,
-    //enums: HashMap<String, H2Enum>,
-    //bitmasks: HashMap<String, H2Bitmask>,
+struct DataNg {
+    // constants: HashMap<String, Constants>,
+    //enums: HashMap<String, Enum>,
+    //bitmasks: HashMap<String, Bitmask>,
 }
 
-impl H2DataNg {
+impl DataNg {
     fn load_constants_from_directory(&mut self, directory_name: &str) -> SimpleResult<()> {
         Ok(())
     }

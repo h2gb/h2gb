@@ -50,7 +50,7 @@ use generic_number::Integer;
 /// `Integer`. We also support prefixes (like `0x` for hex, `0o` for octal,
 /// etc).
 #[derive(Debug)]
-pub struct H2Enums {
+pub struct Enums {
     by_name: HashMap<String, Integer>,
     by_value: HashMap<Integer, Vec<String>>,
 
@@ -58,7 +58,7 @@ pub struct H2Enums {
     last_value_added: Option<Integer>,
 }
 
-impl H2Enums {
+impl Enums {
     fn new_empty() -> Self {
         Self {
             by_name: HashMap::new(),
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn test_csv() -> SimpleResult<()> {
         // Most stuff works
-        let enums: H2Enums = H2Enums::load_from_csv_string("TEST1,1\nTEST2,100\nTEST3,5\nTEST4,-10000\nTEST5,0x100\n")?;
+        let enums: Enums = Enums::load_from_csv_string("TEST1,1\nTEST2,100\nTEST3,5\nTEST4,-10000\nTEST5,0x100\n")?;
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(5u8)), enums.get_by_name("TEST3"));
@@ -300,20 +300,20 @@ mod tests {
         assert_eq!(Some(&Integer::from(0x100u32)), enums.get_by_name("TEST5"));
 
         // Missing entries work
-        assert!(H2Enums::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_ok());
+        assert!(Enums::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_ok());
 
         // Non-numbers fail
-        assert!(H2Enums::load_from_csv_string("100,TEST1\n").is_err());
+        assert!(Enums::load_from_csv_string("100,TEST1\n").is_err());
 
         // Blank lines are ignored
-        assert_eq!(2, H2Enums::load_from_csv_string("TEST1,100\n\n\n\n\nTEST3,200\n")?.len());
+        assert_eq!(2, Enums::load_from_csv_string("TEST1,100\n\n\n\n\nTEST3,200\n")?.len());
 
         // Duplicate names fail
-        assert!(H2Enums::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
+        assert!(Enums::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
 
         // Check if we can convert it back and forth
         let data = enums.to_csv()?;
-        let enums = H2Enums::load_from_csv_string(&data)?;
+        let enums = Enums::load_from_csv_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
@@ -322,7 +322,7 @@ mod tests {
         assert_eq!(Some(&Integer::from(0x100u32)), enums.get_by_name("TEST5"));
 
         // Duplicate values are reverse-fetched correctly
-        let enums: H2Enums = H2Enums::load_from_csv_string("TEST1,1\nTEST2,0o1\nTEST3,0x1\nTEST4,2\nTEST5,0x100\n")?;
+        let enums: Enums = Enums::load_from_csv_string("TEST1,1\nTEST2,0o1\nTEST3,0x1\nTEST4,2\nTEST5,0x100\n")?;
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(1i32)), enums.get_by_name("TEST3"));
@@ -340,7 +340,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/enums/test1.csv");
 
-        let enums = H2Enums::load_from_csv_file(&d)?;
+        let enums = Enums::load_from_csv_file(&d)?;
 
         // Do all the same tests as test_csv()
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_csv_empty() -> SimpleResult<()> {
-        assert_eq!(0, H2Enums::load_from_csv_string("")?.len());
+        assert_eq!(0, Enums::load_from_csv_string("")?.len());
 
         Ok(())
     }
@@ -362,7 +362,7 @@ mod tests {
     #[test]
     fn test_json() -> SimpleResult<()> {
         let data = "{ \"TEST1\": \"1\", \"TEST3\": \"5\", \"TEST2\": \"100\", \"TEST4\": \"-10000\", \"TEST5\": \"0x100\" }";
-        let enums: H2Enums = H2Enums::load_from_json_string(data)?;
+        let enums: Enums = Enums::load_from_json_string(data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
@@ -372,7 +372,7 @@ mod tests {
 
         // Check if we can convert it back and forth
         let data = enums.to_json()?;
-        let enums = H2Enums::load_from_json_string(&data)?;
+        let enums = Enums::load_from_json_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
@@ -389,7 +389,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/enums/test2.json");
 
-        let enums = H2Enums::load_from_json_file(&d)?;
+        let enums = Enums::load_from_json_file(&d)?;
 
         // Do all the same tests as test_json()
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
@@ -410,7 +410,7 @@ TEST2: 100
 TEST3: 5
 TEST5: 256";
 
-        let enums: H2Enums = H2Enums::load_from_yaml_string(data)?;
+        let enums: Enums = Enums::load_from_yaml_string(data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
@@ -419,7 +419,7 @@ TEST5: 256";
         assert_eq!(Some(&Integer::from(0x100u32)), enums.get_by_name("TEST5"));
 
         let data = enums.to_yaml()?;
-        let enums = H2Enums::load_from_yaml_string(&data)?;
+        let enums = Enums::load_from_yaml_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
@@ -436,7 +436,7 @@ TEST5: 256";
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/enums/test3.yaml");
 
-        let enums = H2Enums::load_from_yaml_file(&d)?;
+        let enums = Enums::load_from_yaml_file(&d)?;
 
         // Do all the same tests as test_yaml()
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
@@ -451,19 +451,19 @@ TEST5: 256";
     #[test]
     fn test_autonumber() -> SimpleResult<()> {
         // Most stuff works
-        let enums: H2Enums = H2Enums::load_from_csv_string("TEST1\nTEST2\nTEST3\n")?;
+        let enums: Enums = Enums::load_from_csv_string("TEST1\nTEST2\nTEST3\n")?;
         assert_eq!(Some(&Integer::from(0u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(2u32)), enums.get_by_name("TEST3"));
 
         // Jumping ahead works
-        let enums: H2Enums = H2Enums::load_from_csv_string("TEST1\nTEST2,100\nTEST3\n")?;
+        let enums: Enums = Enums::load_from_csv_string("TEST1\nTEST2,100\nTEST3\n")?;
         assert_eq!(Some(&Integer::from(0u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(101u32)), enums.get_by_name("TEST3"));
 
         // Negatives too
-        let enums: H2Enums = H2Enums::load_from_csv_string("TEST1,-100\nTEST2\nTEST3,-1\nTEST4\n")?;
+        let enums: Enums = Enums::load_from_csv_string("TEST1,-100\nTEST2\nTEST3,-1\nTEST4\n")?;
         assert_eq!(Some(&Integer::from(-100i32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from( -99i32)), enums.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(  -1i32)), enums.get_by_name("TEST3"));

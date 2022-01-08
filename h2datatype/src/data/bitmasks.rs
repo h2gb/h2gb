@@ -12,7 +12,7 @@ use generic_number::{Integer, IntegerRenderer};
 ///
 
 #[derive(Debug)]
-pub struct H2Bitmasks {
+pub struct Bitmasks {
     by_name: HashMap<String, u8>,
     by_position: HashMap<u8, String>,
 
@@ -20,7 +20,7 @@ pub struct H2Bitmasks {
     unknown_renderer: Option<(String, IntegerRenderer)>,
 }
 
-impl H2Bitmasks {
+impl Bitmasks {
     fn new_empty() -> Self {
         Self {
             by_name: HashMap::new(),
@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn test_csv() -> SimpleResult<()> {
         // Most stuff works
-        let mut bitmasks: H2Bitmasks = H2Bitmasks::load_from_csv_string("TEST1,0\nTEST2,2\nTEST3,5\nTEST4,100\n")?;
+        let mut bitmasks: Bitmasks = Bitmasks::load_from_csv_string("TEST1,0\nTEST2,2\nTEST3,5\nTEST4,100\n")?;
 
         // Test the simple way
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -298,23 +298,23 @@ mod tests {
         assert_eq!(vec!["TEST1".to_string(), "Unknown_0x2".to_string(), "TEST2".to_string()], flags);
 
         // Missing entries fail
-        assert!(H2Bitmasks::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_err());
+        assert!(Bitmasks::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_err());
 
         // Non-numbers fail
-        assert!(H2Bitmasks::load_from_csv_string("100,TEST1\n").is_err());
+        assert!(Bitmasks::load_from_csv_string("100,TEST1\n").is_err());
 
         // Values in a bad range fail
-        assert!(H2Bitmasks::load_from_csv_string("TEST1,129\n").is_err());
+        assert!(Bitmasks::load_from_csv_string("TEST1,129\n").is_err());
 
         // Blank lines are ignored
-        assert_eq!(2, H2Bitmasks::load_from_csv_string("TEST1,5\n\n\n\n\nTEST3,50\n")?.len());
+        assert_eq!(2, Bitmasks::load_from_csv_string("TEST1,5\n\n\n\n\nTEST3,50\n")?.len());
 
         // Duplicate names fail
-        assert!(H2Bitmasks::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
+        assert!(Bitmasks::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
 
         // Check if we can convert it back and forth
         let data = bitmasks.to_csv()?;
-        let bitmasks = H2Bitmasks::load_from_csv_string(&data)?;
+        let bitmasks = Bitmasks::load_from_csv_string(&data)?;
 
         // Test the simple way
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -332,7 +332,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/bitmasks/test1.csv");
 
-        let bitmasks = H2Bitmasks::load_from_csv_file(&d)?;
+        let bitmasks = Bitmasks::load_from_csv_file(&d)?;
 
         // Do all the same tests as test_csv()
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn test_csv_empty() -> SimpleResult<()> {
-        assert_eq!(0, H2Bitmasks::load_from_csv_string("")?.len());
+        assert_eq!(0, Bitmasks::load_from_csv_string("")?.len());
 
         Ok(())
     }
@@ -355,7 +355,7 @@ mod tests {
     fn test_json() -> SimpleResult<()> {
         // Most stuff works
         let data = "{ \"TEST1\": \"0\", \"TEST3\": \"5\", \"TEST2\": \"2\", \"TEST4\": \"100\" }";
-        let bitmasks: H2Bitmasks = H2Bitmasks::load_from_json_string(data)?;
+        let bitmasks: Bitmasks = Bitmasks::load_from_json_string(data)?;
 
         // Test the simple way
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -366,7 +366,7 @@ mod tests {
 
         // Check if we can convert it back and forth
         let data = bitmasks.to_json()?;
-        let bitmasks = H2Bitmasks::load_from_json_string(&data)?;
+        let bitmasks = Bitmasks::load_from_json_string(&data)?;
 
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
         assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
@@ -383,7 +383,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/bitmasks/test2.json");
 
-        let bitmasks = H2Bitmasks::load_from_json_file(&d)?;
+        let bitmasks = Bitmasks::load_from_json_file(&d)?;
 
         // Do all the same tests as test_json()
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -403,7 +403,7 @@ TEST1: 0
 TEST2: 2
 TEST3: 5";
 
-        let bitmasks: H2Bitmasks = H2Bitmasks::load_from_yaml_string(data)?;
+        let bitmasks: Bitmasks = Bitmasks::load_from_yaml_string(data)?;
 
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
         assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
@@ -412,7 +412,7 @@ TEST3: 5";
         assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
         let data = bitmasks.to_yaml()?;
-        let bitmasks = H2Bitmasks::load_from_yaml_string(&data)?;
+        let bitmasks = Bitmasks::load_from_yaml_string(&data)?;
 
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
         assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
@@ -429,7 +429,7 @@ TEST3: 5";
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/bitmasks/test3.yaml");
 
-        let bitmasks = H2Bitmasks::load_from_yaml_file(&d)?;
+        let bitmasks = Bitmasks::load_from_yaml_file(&d)?;
 
         // Do all the same tests as test_yaml()
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));

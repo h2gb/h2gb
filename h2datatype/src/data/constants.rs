@@ -24,12 +24,12 @@ use generic_number::Integer;
 /// `Integer`. We also support prefixes (like `0x` for hex, `0o` for octal,
 /// etc).
 #[derive(Debug)]
-pub struct H2Constants {
+pub struct Constants {
     by_name: HashMap<String, Integer>,
     by_value: HashMap<Integer, Vec<String>>,
 }
 
-impl H2Constants {
+impl Constants {
     fn new_empty() -> Self {
         Self {
             by_name: HashMap::new(),
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn test_csv() -> SimpleResult<()> {
         // Most stuff works
-        let constants: H2Constants = H2Constants::load_from_csv_string("TEST1,1\nTEST2,100\nTEST3,5\nTEST4,-10000\nTEST5,0x100\n")?;
+        let constants: Constants = Constants::load_from_csv_string("TEST1,1\nTEST2,100\nTEST3,5\nTEST4,-10000\nTEST5,0x100\n")?;
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
@@ -244,20 +244,20 @@ mod tests {
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
 
         // Missing entries fails
-        assert!(H2Constants::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_err());
+        assert!(Constants::load_from_csv_string("TEST1,1\nTEST2\nTEST3,10\n").is_err());
 
         // Non-numbers fail
-        assert!(H2Constants::load_from_csv_string("100,TEST1\n").is_err());
+        assert!(Constants::load_from_csv_string("100,TEST1\n").is_err());
 
         // Blank lines are ignored
-        assert_eq!(2, H2Constants::load_from_csv_string("TEST1,100\n\n\n\n\nTEST3,200\n")?.len());
+        assert_eq!(2, Constants::load_from_csv_string("TEST1,100\n\n\n\n\nTEST3,200\n")?.len());
 
         // Duplicate names fail
-        assert!(H2Constants::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
+        assert!(Constants::load_from_csv_string("TEST1,1\nTEST1,2\n").is_err());
 
         // Check if we can convert it back and forth
         let data = constants.to_csv()?;
-        let constants = H2Constants::load_from_csv_string(&data)?;
+        let constants = Constants::load_from_csv_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -266,7 +266,7 @@ mod tests {
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
 
         // Duplicate values are reverse-fetched correctly
-        let constants: H2Constants = H2Constants::load_from_csv_string("TEST1,1\nTEST2,0o1\nTEST3,0x1\nTEST4,2\nTEST5,0x100\n")?;
+        let constants: Constants = Constants::load_from_csv_string("TEST1,1\nTEST2,0o1\nTEST3,0x1\nTEST4,2\nTEST5,0x100\n")?;
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(1i32)), constants.get_by_name("TEST3"));
@@ -284,7 +284,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/constants/test1.csv");
 
-        let constants = H2Constants::load_from_csv_file(&d)?;
+        let constants = Constants::load_from_csv_file(&d)?;
 
         // Do all the same tests as test_csv()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_csv_empty() -> SimpleResult<()> {
-        assert_eq!(0, H2Constants::load_from_csv_string("")?.len());
+        assert_eq!(0, Constants::load_from_csv_string("")?.len());
 
         Ok(())
     }
@@ -306,7 +306,7 @@ mod tests {
     #[test]
     fn test_json() -> SimpleResult<()> {
         let data = "{ \"TEST1\": \"1\", \"TEST3\": \"5\", \"TEST2\": \"100\", \"TEST4\": \"-10000\", \"TEST5\": \"0x100\" }";
-        let constants: H2Constants = H2Constants::load_from_json_string(data)?;
+        let constants: Constants = Constants::load_from_json_string(data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -316,7 +316,7 @@ mod tests {
 
         // Check if we can convert it back and forth
         let data = constants.to_json()?;
-        let constants = H2Constants::load_from_json_string(&data)?;
+        let constants = Constants::load_from_json_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -333,7 +333,7 @@ mod tests {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/constants/test2.json");
 
-        let constants = H2Constants::load_from_json_file(&d)?;
+        let constants = Constants::load_from_json_file(&d)?;
 
         // Do all the same tests as test_json()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
@@ -354,7 +354,7 @@ TEST2: 100
 TEST3: 5
 TEST5: 256";
 
-        let constants: H2Constants = H2Constants::load_from_yaml_string(data)?;
+        let constants: Constants = Constants::load_from_yaml_string(data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -363,7 +363,7 @@ TEST5: 256";
         assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
 
         let data = constants.to_yaml()?;
-        let constants = H2Constants::load_from_yaml_string(&data)?;
+        let constants = Constants::load_from_yaml_string(&data)?;
 
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
@@ -380,7 +380,7 @@ TEST5: 256";
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("testdata/constants/test3.yaml");
 
-        let constants = H2Constants::load_from_yaml_file(&d)?;
+        let constants = Constants::load_from_yaml_file(&d)?;
 
         // Do all the same tests as test_yaml()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
