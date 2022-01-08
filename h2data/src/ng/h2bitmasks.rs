@@ -326,141 +326,118 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_csv_file() -> SimpleResult<()> {
-    //     // Load the data
-    //     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    //     d.push("testdata/constants/test1.csv");
+    #[test]
+    fn test_csv_file() -> SimpleResult<()> {
+        // Load the data
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("testdata/bitmasks/test1.csv");
 
-    //     let constants = H2Bitmasks::load_from_csv_file(&d)?;
+        let bitmasks = H2Bitmasks::load_from_csv_file(&d)?;
 
-    //     // Do all the same tests as test_csv()
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
-    //     assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+        // Do all the same tests as test_csv()
+        assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
+        assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
+        assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
+        assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
+        assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
-    // #[test]
-    // fn test_csv_empty() -> SimpleResult<()> {
-    //     assert_eq!(0, H2Bitmasks::load_from_csv_string("")?.len());
+    #[test]
+    fn test_csv_empty() -> SimpleResult<()> {
+        assert_eq!(0, H2Bitmasks::load_from_csv_string("")?.len());
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
-    // #[test]
-    // fn test_json() -> SimpleResult<()> {
-    //     let data = "{ \"TEST1\": \"1\", \"TEST3\": \"5\", \"TEST2\": \"100\", \"TEST4\": \"-10000\", \"TEST5\": \"0x100\" }";
-    //     let constants: H2Bitmasks = H2Bitmasks::load_from_json_string(data)?;
+    #[test]
+    fn test_json() -> SimpleResult<()> {
+        // Most stuff works
+        let data = "{ \"TEST1\": \"0\", \"TEST3\": \"5\", \"TEST2\": \"2\", \"TEST4\": \"100\" }";
+        let bitmasks: H2Bitmasks = H2Bitmasks::load_from_json_string(data)?;
 
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
-    //     assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+        // Test the simple way
+        assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
+        assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
+        assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
+        assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
+        assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
-    //     // Check if we can convert it back and forth
-    //     let data = constants.to_json()?;
-    //     let constants = H2Bitmasks::load_from_json_string(&data)?;
+        // Check if we can convert it back and forth
+        let data = bitmasks.to_json()?;
+        let bitmasks = H2Bitmasks::load_from_json_string(&data)?;
 
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
-    //     assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+        assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
+        assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
+        assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
+        assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
+        assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
-    // #[test]
-    // fn test_json_file() -> SimpleResult<()> {
-    //     // Load the data
-    //     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    //     d.push("testdata/constants/test2.json");
+    #[test]
+    fn test_json_file() -> SimpleResult<()> {
+        // Load the data
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("testdata/bitmasks/test2.json");
 
-    //     let constants = H2Bitmasks::load_from_json_file(&d)?;
+        let bitmasks = H2Bitmasks::load_from_json_file(&d)?;
 
-    //     // Do all the same tests as test_json()
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
-    //     assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+        // Do all the same tests as test_json()
+        assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
+        assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
+        assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
+        assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
+        assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
-    // #[test]
-    // fn test_yaml() -> SimpleResult<()> {
-    //     let data = "---
-// TEST4: -10000
-// TEST1: 1
-// TEST2: 100
-// TEST3: 5
-// TEST5: 256";
+    #[test]
+    fn test_yaml() -> SimpleResult<()> {
+        let data = "---
+TEST4: 0x64
+TEST1: 0
+TEST2: 2
+TEST3: 5";
 
-    //     let constants: H2Bitmasks = H2Bitmasks::load_from_yaml_string(data)?;
+        let bitmasks: H2Bitmasks = H2Bitmasks::load_from_yaml_string(data)?;
 
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
-    //     assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+        assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
+        assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
+        assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
+        assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
+        assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
-    //     let data = constants.to_yaml()?;
-    //     let constants = H2Bitmasks::load_from_yaml_string(&data)?;
+        let data = bitmasks.to_yaml()?;
+        let bitmasks = H2Bitmasks::load_from_yaml_string(&data)?;
 
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
-    //     assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+        assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
+        assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
+        assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
+        assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
+        assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
-    // #[test]
-    // fn test_yaml_file() -> SimpleResult<()> {
-    //     // Load the data
-    //     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    //     d.push("testdata/constants/test3.yaml");
+    #[test]
+    fn test_yaml_file() -> SimpleResult<()> {
+        // Load the data
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("testdata/bitmasks/test3.yaml");
 
-    //     let constants = H2Bitmasks::load_from_yaml_file(&d)?;
+        let bitmasks = H2Bitmasks::load_from_yaml_file(&d)?;
 
-    //     // Do all the same tests as test_yaml()
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
-    //     assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+        // Do all the same tests as test_yaml()
+        assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
+        assert_eq!(Some(Integer::from(2u32)), bitmasks.get_by_name("TEST2"));
+        assert_eq!(Some(Integer::from(5u32)), bitmasks.get_by_name("TEST3"));
+        assert_eq!(Some(Integer::from(100u32)), bitmasks.get_by_name("TEST4"));
+        assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
-    //     Ok(())
-    // }
-
-    // #[test]
-    // fn test_autonumber() -> SimpleResult<()> {
-    //     // Most stuff works
-    //     let constants: H2Bitmasks = H2Bitmasks::load_from_csv_string("TEST1\nTEST2\nTEST3\n")?;
-    //     assert_eq!(Some(&Integer::from(0u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(2u32)), constants.get_by_name("TEST3"));
-
-    //     // Jumping ahead works
-    //     let constants: H2Bitmasks = H2Bitmasks::load_from_csv_string("TEST1\nTEST2,100\nTEST3\n")?;
-    //     assert_eq!(Some(&Integer::from(0u32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(101u32)), constants.get_by_name("TEST3"));
-
-    //     // Negatives too
-    //     let constants: H2Bitmasks = H2Bitmasks::load_from_csv_string("TEST1,-100\nTEST2\nTEST3,-1\nTEST4\n")?;
-    //     assert_eq!(Some(&Integer::from(-100i32)), constants.get_by_name("TEST1"));
-    //     assert_eq!(Some(&Integer::from( -99i32)), constants.get_by_name("TEST2"));
-    //     assert_eq!(Some(&Integer::from(  -1i32)), constants.get_by_name("TEST3"));
-    //     assert_eq!(Some(&Integer::from(   0u32)), constants.get_by_name("TEST4"));
-
-    //     Ok(())
-    // }
+        Ok(())
+    }
 }

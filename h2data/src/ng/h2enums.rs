@@ -345,8 +345,8 @@ mod tests {
         // Do all the same tests as test_csv()
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST1"));
         assert_eq!(Some(&Integer::from(100u32)), enums.get_by_name("TEST2"));
-        assert_eq!(Some(&Integer::from(5u8)), enums.get_by_name("TEST3"));
-        assert_eq!(Some(&Integer::from(-10000i32)), enums.get_by_name("TEST4"));
+        assert_eq!(Some(&Integer::from(101u8)), enums.get_by_name("TEST3"));
+        assert_eq!(Some(&Integer::from(102i32)), enums.get_by_name("TEST4"));
         assert_eq!(Some(&Integer::from(0x100u32)), enums.get_by_name("TEST5"));
 
         Ok(())
