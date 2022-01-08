@@ -103,7 +103,7 @@ impl H2Type {
             H2Types::H2Struct(t)  => t,
 
             // Strings
-            H2Types::H2String(t)   => t,
+            H2Types::H2String(t)  => t,
             H2Types::NTString(t)  => t,
             H2Types::LPString(t)  => t,
         }

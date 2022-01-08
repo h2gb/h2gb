@@ -11,6 +11,9 @@ use enums::*;
 mod bitmasks;
 use bitmasks::*;
 
+mod types;
+use types::*;
+
 struct DataNg {
     // constants: HashMap<String, Constants>,
     //enums: HashMap<String, Enum>,
