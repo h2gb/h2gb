@@ -331,12 +331,15 @@ dependencies = [
 name = "h2datatype"
 version = "0.1.0"
 dependencies = [
+ "csv",
  "generic-number",
  "h2data",
  "macaddr",
  "pretty_assertions",
  "ron",
  "serde",
+ "serde_json",
+ "serde_yaml",
  "simple-error",
  "uuid",
 ]

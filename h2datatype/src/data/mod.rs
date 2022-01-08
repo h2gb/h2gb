@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO: Disable this
-
 use std::collections::HashMap;
 
 use simple_error::SimpleResult;
