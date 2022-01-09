@@ -95,7 +95,7 @@ impl Enums {
 }
 
 impl DataTrait for Enums {
-    type SerializedType = HashMap<String, Option<String>>; // TODO: Does this need to be option?
+    type SerializedType = HashMap<String, String>;
 
     /// Load the data from the type that was serialized.
     fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
@@ -103,10 +103,7 @@ impl DataTrait for Enums {
         let mut out = Self::new_empty();
         for (name, value) in data {
             // Get the integer
-            let value: Integer = match value {
-                Some(v) => v.parse().map_err(|e| SimpleError::new(format!("Couldn't parse integer: {:?}", e)))?,
-                None => bail!("Missing value for key {}", name),
-            };
+            let value: Integer = value.parse().map_err(|e| SimpleError::new(format!("Couldn't parse integer: {:?}", e)))?;
 
             // Check for duplicate names
             if out.by_name.contains_key(name) {
@@ -128,7 +125,7 @@ impl DataTrait for Enums {
     }
 
     fn load_str(data: Vec<(String, Option<Integer>)>) -> SimpleResult<Self> {
-        let mut out: HashMap<String, Option<String>> = HashMap::new();
+        let mut out: HashMap<String, String> = HashMap::new();
         let mut last_value_added: Option<Integer> = None;
 
         for (name, value) in data {
@@ -159,19 +156,19 @@ impl DataTrait for Enums {
             // Save the value
             last_value_added = Some(value);
 
-            out.insert(name, Some(value.to_string()));
+            out.insert(name, value.to_string());
         }
 
         Self::load(&out)
     }
 
     /// Get the data in a format that can be serialized
-    fn save(&self) -> SimpleResult<HashMap<String, Option<String>>> {
+    fn save(&self) -> SimpleResult<HashMap<String, String>> {
         // Convert to String->String
-        let mut h: HashMap<String, Option<String>> = HashMap::new();
+        let mut h: HashMap<String, String> = HashMap::new();
 
         for (k, v) in &self.by_name {
-            h.insert(k.clone(), Some(v.to_string()));
+            h.insert(k.clone(), v.to_string());
         }
 
         Ok(h)
