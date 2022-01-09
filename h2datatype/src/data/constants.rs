@@ -1,6 +1,3 @@
-use std::fs::File;
-use std::io;
-use std::path::PathBuf;
 use std::str::FromStr;
 use std::collections::HashMap;
 
@@ -39,113 +36,6 @@ impl Constants {
         }
     }
 
-    fn add_entry(&mut self, name: &str, value: Integer) -> SimpleResult<()> {
-        // Check for duplicate names
-        if self.by_name.contains_key(name) {
-            bail!("Duplicate constant value: {}", name);
-        }
-
-        // Insert
-        self.by_name.insert(name.to_string(), value);
-
-        // Insert or append to the by_value map
-        let e = self.by_value.entry(value).or_insert(vec![]);
-        e.push(name.to_string());
-
-        Ok(())
-    }
-
-    fn load_csv<R>(reader: R) -> SimpleResult<Self>
-    where R: io::Read
-    {
-        let mut out = Self::new_empty();
-
-        let mut rdr = csv::ReaderBuilder::new()
-            .has_headers(false)
-            .from_reader(reader);
-
-        for result in rdr.records() {
-            let record = result.map_err(|e| {
-                SimpleError::new(format!("Couldn't read CSV: {}", e))
-            })?;
-
-            // Ensure that there are only two entries per line
-            if record.len() != 2 {
-                bail!("CSV must be 2 records per line, this line was {}", record.len());
-            }
-
-            // Get the first (the name) as a String
-            let name = record.get(0).ok_or(
-                SimpleError::new("Couldn't parse the CSV")
-            )?.to_string();
-
-            // Get the second (the value) as an Integer
-            let value: Integer = record.get(1).ok_or(
-                SimpleError::new("Error reading the CSV file")
-            )?.parse().map_err(|_| {
-                SimpleError::new(format!("Couldn't parse second CSV field as integer"))
-            })?;
-
-            // Insert it
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_csv_string(data: &str) -> SimpleResult<Self> {
-        Self::load_csv(data.as_bytes())
-    }
-
-    pub fn load_from_csv_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_csv(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_csv(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut w = csv::WriterBuilder::new().has_headers(false).from_writer(vec![]);
-
-        for (name, value) in &self.by_name {
-            w.write_record(&[name.clone(), value.to_string()]).map_err(|e| {
-                SimpleError::new(format!("Could not create CSV record: {:?}", e))
-            })?;
-        }
-
-        let bytes = w.into_inner().map_err(|e| {
-            SimpleError::new(format!("Couldn't write CSV: {:?}", e))
-        })?;
-
-        String::from_utf8(bytes).map_err(|e| {
-            SimpleError::new(format!("Couldn't write CSV: {:?}", e))
-        })
-
-    }
-
-    fn load_yaml<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Initially read as String->String
-        let h: HashMap<String, String> = serde_yaml::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read YAML file as String->String mapping: {:?}", e))
-        })?;
-
-        // Convert to String->Integer
-        let mut out = Self::new_empty();
-        for (name, value) in h.into_iter() {
-            // Get the integer
-            let value = Integer::from_str(&value).map_err(|e| {
-                SimpleError::new(format!("Couldn't parse integer from YAML: {:?}", e))
-            })?;
-
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
     pub fn get_by_name(&self, name: &str) -> Option<&Integer> {
         self.by_name.get(name)
     }
@@ -163,7 +53,7 @@ impl DataTrait for Constants {
     type SerializedType = HashMap<String, String>;
 
     /// Load the data from the type that was serialized.
-    fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
+    fn load(data: &HashMap<String, String>) -> SimpleResult<Self> {
         // Convert the data to String->Integer
         let mut out = Self::new_empty();
         for (name, value) in data {
@@ -172,7 +62,7 @@ impl DataTrait for Constants {
                 SimpleError::new(format!("Couldn't parse integer: {:?}", e))
             })?;
 
-            // Check for duplicate names
+            // Check for duplicate names (I don't think this can actually happen)
             if out.by_name.contains_key(name) {
                 bail!("Duplicate constant value: {}", name);
             }
@@ -188,6 +78,25 @@ impl DataTrait for Constants {
         Ok(out)
     }
 
+    fn load_str(data: Vec<(String, Option<Integer>)>) -> SimpleResult<Self> {
+        let mut out: HashMap<String, String> = HashMap::new();
+
+        for (name, value) in data {
+            let value = match value {
+                Some(v) => v,
+                None => bail!("Constant is missing a value: {}", name),
+            };
+
+            if out.contains_key(&name) {
+                bail!("Duplicate key: {}", name);
+            }
+
+            out.insert(name, value.to_string());
+        }
+
+        Self::load(&out)
+    }
+
     /// Get the data in a format that can be serialized
     fn save(&self) -> SimpleResult<HashMap<String, String>> {
         // Convert to String->String
@@ -199,11 +108,23 @@ impl DataTrait for Constants {
 
         Ok(h)
     }
+
+    fn save_str(&self) -> SimpleResult<Vec<(String, Integer)>> {
+        let mut out: Vec<(String, Integer)> = vec![];
+
+        for (name, value) in &self.by_name {
+            out.push((name.clone(), *value))
+        }
+
+        Ok(out)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::path::PathBuf;
 
     use simple_error::SimpleResult;
     use pretty_assertions::assert_eq;

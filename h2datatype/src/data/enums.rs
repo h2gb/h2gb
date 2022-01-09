@@ -1,6 +1,3 @@
-use std::fs::File;
-use std::io;
-use std::path::PathBuf;
 use std::collections::HashMap;
 
 use simple_error::{SimpleResult, SimpleError, bail};
@@ -84,99 +81,6 @@ impl Enums {
         }
     }
 
-    fn add_entry(&mut self, name: &str, value: Option<Integer>) -> SimpleResult<()> {
-        // Check for duplicate names
-        if self.by_name.contains_key(name) {
-            bail!("Duplicate constant value: {}", name);
-        }
-
-        // Get the value, or the next incremental value
-        let value = match value {
-            Some(v) => v,
-            None    => self.autovalue()?,
-        };
-
-        // Insert
-        self.by_name.insert(name.to_string(), value);
-
-        // Insert or append to the by_value map
-        let e = self.by_value.entry(value).or_insert(vec![]);
-        e.push(name.to_string());
-
-        // Update the incremental value
-        self.last_value_added = Some(value);
-
-        Ok(())
-    }
-
-    fn load_csv<R>(reader: R) -> SimpleResult<Self>
-    where R: io::Read
-    {
-        let mut out = Self::new_empty();
-
-        let mut rdr = csv::ReaderBuilder::new()
-            .has_headers(false)
-            .flexible(true)
-            .from_reader(reader);
-
-        for result in rdr.records() {
-            let record = result.map_err(|e| {
-                SimpleError::new(format!("Couldn't read CSV: {}", e))
-            })?;
-
-            // Ensure that there are only two entries per line
-            if record.len() > 2 {
-                bail!("CSV must be 1 or 2 records per line, this line had {} records", record.len());
-            }
-
-            // Get the first (the name) as a String
-            let name = record.get(0).ok_or(
-                SimpleError::new("Couldn't parse the CSV")
-            )?.to_string();
-
-            // Get the second (the value) as an Integer
-            let value: Option<Integer> = match record.get(1) {
-                Some(v) => Some(v.parse().map_err(|_| SimpleError::new(format!("Couldn't parse second CSV field as integer")))?),
-                None => None,
-            };
-
-            // Insert it
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_csv_string(data: &str) -> SimpleResult<Self> {
-        Self::load_csv(data.as_bytes())
-    }
-
-    pub fn load_from_csv_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_csv(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_csv(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut w = csv::WriterBuilder::new().has_headers(false).from_writer(vec![]);
-
-        for (name, value) in &self.by_name {
-            w.write_record(&[name.clone(), value.to_string()]).map_err(|e| {
-                SimpleError::new(format!("Could not create CSV record: {:?}", e))
-            })?;
-        }
-
-        let bytes = w.into_inner().map_err(|e| {
-            SimpleError::new(format!("Couldn't write CSV: {:?}", e))
-        })?;
-
-        String::from_utf8(bytes).map_err(|e| {
-            SimpleError::new(format!("Couldn't write CSV: {:?}", e))
-        })
-
-    }
-
     pub fn get_by_name(&self, name: &str) -> Option<&Integer> {
         self.by_name.get(name)
     }
@@ -191,7 +95,7 @@ impl Enums {
 }
 
 impl DataTrait for Enums {
-    type SerializedType = HashMap<String, Option<String>>;
+    type SerializedType = HashMap<String, Option<String>>; // TODO: Does this need to be option?
 
     /// Load the data from the type that was serialized.
     fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
@@ -199,22 +103,15 @@ impl DataTrait for Enums {
         let mut out = Self::new_empty();
         for (name, value) in data {
             // Get the integer
-            let value: Option<Integer> = match value {
-                Some(v) => Some(v.parse().map_err(|e| SimpleError::new(format!("Couldn't parse integer: {:?}", e)))?),
-                None => None,
+            let value: Integer = match value {
+                Some(v) => v.parse().map_err(|e| SimpleError::new(format!("Couldn't parse integer: {:?}", e)))?,
+                None => bail!("Missing value for key {}", name),
             };
 
             // Check for duplicate names
             if out.by_name.contains_key(name) {
                 bail!("Duplicate constant value: {}", name);
             }
-
-            // Get the value, or the next incremental value
-            let value = match value {
-                Some(v) => v,
-                // TODO: This doesn't really work on JSON, due to lack of ordering.. what can we do?
-                None    => out.autovalue()?,
-            };
 
             // Insert
             out.by_name.insert(name.to_string(), value);
@@ -230,6 +127,44 @@ impl DataTrait for Enums {
         Ok(out)
     }
 
+    fn load_str(data: Vec<(String, Option<Integer>)>) -> SimpleResult<Self> {
+        let mut out: HashMap<String, Option<String>> = HashMap::new();
+        let mut last_value_added: Option<Integer> = None;
+
+        for (name, value) in data {
+            // Handle missing values
+            let value = match value {
+                // If it was set, use it
+                Some(v) => v,
+
+                // If it was not set, take the next
+                None => {
+                    match last_value_added {
+                        // If we had a last value, increment it
+                        Some(i) => match i.increment() {
+                            Some(i) => i,
+                            None => bail!("Overflow"),
+                        },
+
+                        // If we did not, use 0
+                        None => Integer::from(0u32),
+                    }
+                }
+            };
+
+            if out.contains_key(&name) {
+                bail!("Duplicate key: {}", name);
+            }
+
+            // Save the value
+            last_value_added = Some(value);
+
+            out.insert(name, Some(value.to_string()));
+        }
+
+        Self::load(&out)
+    }
+
     /// Get the data in a format that can be serialized
     fn save(&self) -> SimpleResult<HashMap<String, Option<String>>> {
         // Convert to String->String
@@ -241,11 +176,22 @@ impl DataTrait for Enums {
 
         Ok(h)
     }
+
+    fn save_str(&self) -> SimpleResult<Vec<(String, Integer)>> {
+        let mut out: Vec<(String, Integer)> = vec![];
+
+        for (name, value) in &self.by_name {
+            out.push((name.clone(), *value))
+        }
+
+        Ok(out)
+    }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use std::path::PathBuf;
     use simple_error::SimpleResult;
     use pretty_assertions::assert_eq;
 

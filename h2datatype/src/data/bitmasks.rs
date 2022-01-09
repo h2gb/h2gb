@@ -37,102 +37,6 @@ impl Bitmasks {
         self.unknown_renderer = prefix_and_renderer;
     }
 
-    fn add_entry(&mut self, name: &str, position: Integer) -> SimpleResult<()> {
-        // Check duplicates
-        if self.by_name.contains_key(name) {
-            bail!("Duplicate bitmask name: {} -> {}", name, position);
-        }
-
-        // Convert it to a u8 since we don't need the full Integer
-        let position = position.as_u128();
-        if position > 127 {
-            bail!("Value {} out of bitmask range");
-        }
-
-        // Convert down to a u8 now that we know it's possible
-        let position = position as u8;
-
-        // Check duplicates
-        if self.by_position.contains_key(&position) {
-            bail!("Duplicate bitmask position: {} -> {}", name, position);
-        }
-
-        // Insert and prevent duplicates
-        self.by_name.insert(name.to_string(), position);
-        self.by_position.insert(position, name.to_string());
-
-        Ok(())
-    }
-
-    fn load_csv<R>(reader: R) -> SimpleResult<Self>
-    where R: io::Read
-    {
-        let mut out = Self::new_empty();
-
-        let mut rdr = csv::ReaderBuilder::new()
-            .has_headers(false)
-            .flexible(true)
-            .from_reader(reader);
-
-        for result in rdr.records() {
-            let record = result.map_err(|e| {
-                SimpleError::new(format!("Couldn't read CSV: {}", e))
-            })?;
-
-            // Ensure that there are only two entries per line
-            if record.len() > 2 {
-                bail!("CSV must be 1 or 2 records per line, this line had {} records", record.len());
-            }
-
-            // Get the first (the name) as a String
-            let name = record.get(0).ok_or(
-                SimpleError::new("Couldn't parse the CSV")
-            )?.to_string();
-
-            // Get the second (the value) as an Integer
-            let value: Integer = record.get(1).ok_or(
-                SimpleError::new("Error reading the CSV file")
-            )?.parse().map_err(|_| {
-                SimpleError::new(format!("Couldn't parse second CSV field as integer"))
-            })?;
-
-            // Insert it
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_csv_string(data: &str) -> SimpleResult<Self> {
-        Self::load_csv(data.as_bytes())
-    }
-
-    pub fn load_from_csv_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_csv(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_csv(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut w = csv::WriterBuilder::new().has_headers(false).from_writer(vec![]);
-
-        for (name, value) in &self.by_name {
-            w.write_record(&[name.clone(), value.to_string()]).map_err(|e| {
-                SimpleError::new(format!("Could not create CSV record: {:?}", e))
-            })?;
-        }
-
-        let bytes = w.into_inner().map_err(|e| {
-            SimpleError::new(format!("Couldn't write CSV: {:?}", e))
-        })?;
-
-        String::from_utf8(bytes).map_err(|e| {
-            SimpleError::new(format!("Couldn't write CSV: {:?}", e))
-        })
-
-    }
-
     pub fn get_by_name(&self, name: &str) -> Option<Integer> {
         self.by_name.get(name).map(|i| Integer::from(*i))
     }
@@ -210,6 +114,26 @@ impl DataTrait for Bitmasks {
         Ok(out)
     }
 
+    fn load_str(data: Vec<(String, Option<Integer>)>) -> SimpleResult<Self> {
+        let mut out: HashMap<String, String> = HashMap::new();
+
+        for (name, value) in data {
+            let value = match value {
+                Some(v) => v,
+                None => bail!("Constant is missing a value: {}", name),
+            };
+
+            if out.contains_key(&name) {
+                bail!("Duplicate key: {}", name);
+            }
+
+            out.insert(name, value.to_string());
+        }
+
+        Self::load(&out)
+    }
+
+
     /// Get the data in a format that can be serialized
     fn save(&self) -> SimpleResult<HashMap<String, String>> {
         // Convert to String->String
@@ -220,6 +144,16 @@ impl DataTrait for Bitmasks {
         }
 
         Ok(h)
+    }
+
+    fn save_str(&self) -> SimpleResult<Vec<(String, Integer)>> {
+        let mut out: Vec<(String, Integer)> = vec![];
+
+        for (name, value) in &self.by_name {
+            out.push((name.clone(), Integer::from(*value)))
+        }
+
+        Ok(out)
     }
 }
 
