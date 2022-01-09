@@ -1,10 +1,7 @@
-use std::fs::File;
-use std::io;
-use std::path::PathBuf;
-
-use simple_error::{SimpleResult, SimpleError};
+use simple_error::SimpleResult;
 
 use crate::H2Type;
+use crate::data::DataTrait;
 
 #[derive(Debug)]
 pub struct Types {
@@ -12,74 +9,32 @@ pub struct Types {
 }
 
 impl Types {
-    fn load_yaml<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Initially read as String->String
-        let t: H2Type = serde_yaml::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read YAML file as an H2Type object: {}", e))
-        })?;
-
-        Ok(Self {
-            h2type: t,
-        })
-    }
-
-    pub fn load_from_yaml_string(data: &str) -> SimpleResult<Self> {
-        Self::load_yaml(data.as_bytes())
-    }
-
-    pub fn load_from_yaml_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_yaml(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_yaml(&self) -> SimpleResult<String> {
-        serde_yaml::to_string(&self.h2type).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to YAML: {}", e))
-        })
-    }
-
-    fn load_json<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Initially read as String->String
-        let t: H2Type = serde_json::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read JSON file as an H2Type object: {}", e))
-        })?;
-
-        Ok(Self {
-            h2type: t,
-        })
-    }
-
-    pub fn load_from_json_string(data: &str) -> SimpleResult<Self> {
-        Self::load_json(data.as_bytes())
-    }
-
-    pub fn load_from_json_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_json(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_json(&self) -> SimpleResult<String> {
-        serde_json::to_string_pretty(&self.h2type).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to JSON: {}", e))
-        })
-    }
-
     pub fn get(&self) -> &H2Type {
         &self.h2type
+    }
+}
+
+impl DataTrait for Types {
+    type SerializedType = H2Type;
+
+    /// Load the data from the type that was serialized.
+    fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
+        Ok(Self {
+            h2type: data.clone(),
+        })
+    }
+
+    /// Get the data in a format that can be serialized
+    fn save(&self) -> SimpleResult<Self::SerializedType> {
+        Ok(self.h2type.clone())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::path::PathBuf;
 
     use simple_error::SimpleResult;
     use pretty_assertions::assert_eq;

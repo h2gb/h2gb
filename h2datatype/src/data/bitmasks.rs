@@ -8,6 +8,8 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::{Integer, IntegerRenderer};
 
+use crate::data::DataTrait;
+
 /// A bitmask - ie, a list of binary flags (0/1).
 ///
 
@@ -131,98 +133,6 @@ impl Bitmasks {
 
     }
 
-    fn load_yaml<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Initially read as String->String
-        let h: HashMap<String, String> = serde_yaml::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read YAML file as String->String mapping: {:?}", e))
-        })?;
-
-        // Convert to String->Integer
-        let mut out = Self::new_empty();
-        for (name, value) in h.into_iter() {
-            // Get the integer
-            let value = Integer::from_str(&value).map_err(|e| {
-                SimpleError::new(format!("Couldn't parse integer from YAML: {:?}", e))
-            })?;
-
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_yaml_string(data: &str) -> SimpleResult<Self> {
-        Self::load_yaml(data.as_bytes())
-    }
-
-    pub fn load_from_yaml_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_yaml(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_yaml(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut h: HashMap<String, String> = HashMap::new();
-
-        for (k, v) in &self.by_name {
-            h.insert(k.clone(), v.to_string());
-        }
-
-        serde_yaml::to_string(&h).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to YAML: {}", e))
-        })
-    }
-
-    fn load_json<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Read as String->String
-        let h: HashMap<String, String> = serde_json::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read JSON file as String->String mapping: {:?}", e))
-        })?;
-
-        // Convert to String->Integer
-        let mut out = Self::new_empty();
-        for (name, value) in h.into_iter() {
-            // Get the integer
-            let value = Integer::from_str(&value).map_err(|e| {
-                SimpleError::new(format!("Couldn't parse integer from JSON: {:?}", e))
-            })?;
-
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_json_string(data: &str) -> SimpleResult<Self> {
-        Self::load_json(data.as_bytes())
-    }
-
-    pub fn load_from_json_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_json(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_json(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut h: HashMap<String, String> = HashMap::new();
-
-        for (k, v) in &self.by_name {
-            h.insert(k.clone(), v.to_string());
-        }
-
-        serde_json::to_string_pretty(&h).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to JSON: {}", e))
-        })
-    }
-
     pub fn get_by_name(&self, name: &str) -> Option<Integer> {
         self.by_name.get(name).map(|i| Integer::from(*i))
     }
@@ -257,6 +167,59 @@ impl Bitmasks {
 
     pub fn len(&self) -> usize {
         self.by_name.len()
+    }
+}
+
+impl DataTrait for Bitmasks {
+    type SerializedType = HashMap<String, String>;
+
+    /// Load the data from the type that was serialized.
+    fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
+        // Convert to String->Integer
+        let mut out = Self::new_empty();
+        for (name, value) in data {
+            // Get the integer
+            let position = Integer::from_str(&value).map_err(|e| {
+                SimpleError::new(format!("Couldn't parse integer: {:?}", e))
+            })?;
+
+            // Check duplicates
+            if out.by_name.contains_key(name) {
+                bail!("Duplicate bitmask name: {} -> {}", name, position);
+            }
+
+            // Convert it to a u8 since we don't need the full Integer
+            let position = position.as_u128();
+            if position > 127 {
+                bail!("Value {} out of bitmask range");
+            }
+
+            // Convert down to a u8 now that we know it's possible
+            let position = position as u8;
+
+            // Check duplicates
+            if out.by_position.contains_key(&position) {
+                bail!("Duplicate bitmask position: {} -> {}", name, position);
+            }
+
+            // Insert and prevent duplicates
+            out.by_name.insert(name.to_string(), position);
+            out.by_position.insert(position, name.to_string());
+        }
+
+        Ok(out)
+    }
+
+    /// Get the data in a format that can be serialized
+    fn save(&self) -> SimpleResult<HashMap<String, String>> {
+        // Convert to String->String
+        let mut h: HashMap<String, String> = HashMap::new();
+
+        for (k, v) in &self.by_name {
+            h.insert(k.clone(), v.to_string());
+        }
+
+        Ok(h)
     }
 }
 

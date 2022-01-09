@@ -8,6 +8,8 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
 
+use crate::data::DataTrait;
+
 /// A named collection of constants, fetched by name or value.
 ///
 /// Constants in h2gb are simply name->value pairs, where within each set of
@@ -144,75 +146,6 @@ impl Constants {
         Ok(out)
     }
 
-    pub fn load_from_yaml_string(data: &str) -> SimpleResult<Self> {
-        Self::load_yaml(data.as_bytes())
-    }
-
-    pub fn load_from_yaml_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_yaml(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_yaml(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut h: HashMap<String, String> = HashMap::new();
-
-        for (k, v) in &self.by_name {
-            h.insert(k.clone(), v.to_string());
-        }
-
-        serde_yaml::to_string(&h).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to YAML: {}", e))
-        })
-    }
-
-    fn load_json<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Read as String->String
-        let h: HashMap<String, String> = serde_json::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read JSON file as String->String mapping: {:?}", e))
-        })?;
-
-        // Convert to String->Integer
-        let mut out = Self::new_empty();
-        for (name, value) in h.into_iter() {
-            // Get the integer
-            let value = Integer::from_str(&value).map_err(|e| {
-                SimpleError::new(format!("Couldn't parse integer from JSON: {:?}", e))
-            })?;
-
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_json_string(data: &str) -> SimpleResult<Self> {
-        Self::load_json(data.as_bytes())
-    }
-
-    pub fn load_from_json_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_json(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_json(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut h: HashMap<String, String> = HashMap::new();
-
-        for (k, v) in &self.by_name {
-            h.insert(k.clone(), v.to_string());
-        }
-
-        serde_json::to_string_pretty(&h).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to JSON: {}", e))
-        })
-    }
-
     pub fn get_by_name(&self, name: &str) -> Option<&Integer> {
         self.by_name.get(name)
     }
@@ -223,6 +156,48 @@ impl Constants {
 
     pub fn len(&self) -> usize {
         self.by_name.len()
+    }
+}
+
+impl DataTrait for Constants {
+    type SerializedType = HashMap<String, String>;
+
+    /// Load the data from the type that was serialized.
+    fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
+        // Convert the data to String->Integer
+        let mut out = Self::new_empty();
+        for (name, value) in data {
+            // Get the integer
+            let value = Integer::from_str(&value).map_err(|e| {
+                SimpleError::new(format!("Couldn't parse integer: {:?}", e))
+            })?;
+
+            // Check for duplicate names
+            if out.by_name.contains_key(name) {
+                bail!("Duplicate constant value: {}", name);
+            }
+
+            // Insert
+            out.by_name.insert(name.to_string(), value);
+
+            // Insert or append to the by_value map
+            let e = out.by_value.entry(value).or_insert(vec![]);
+            e.push(name.to_string());
+        }
+
+        Ok(out)
+    }
+
+    /// Get the data in a format that can be serialized
+    fn save(&self) -> SimpleResult<HashMap<String, String>> {
+        // Convert to String->String
+        let mut h: HashMap<String, String> = HashMap::new();
+
+        for (k, v) in &self.by_name {
+            h.insert(k.clone(), v.to_string());
+        }
+
+        Ok(h)
     }
 }
 

@@ -7,6 +7,8 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
 
+use crate::data::DataTrait;
+
 /// An enumeration - ie, a list of numbered values / options.
 ///
 /// An enum consists of a bunch of names, with "optional" values - that is, the
@@ -175,100 +177,6 @@ impl Enums {
 
     }
 
-    fn load_yaml<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Initially read as String->String
-        let h: HashMap<String, Option<String>> = serde_yaml::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read YAML file as String->String mapping: {:?}", e))
-        })?;
-
-        // Convert to String->Integer
-        let mut out = Self::new_empty();
-        for (name, value) in h.into_iter() {
-            // Get the integer
-            let value: Option<Integer> = match value {
-                Some(v) => Some(v.parse().map_err(|_| SimpleError::new(format!("Couldn't parse second YAML field as integer")))?),
-                None => None,
-            };
-
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_yaml_string(data: &str) -> SimpleResult<Self> {
-        Self::load_yaml(data.as_bytes())
-    }
-
-    pub fn load_from_yaml_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_yaml(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_yaml(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut h: HashMap<String, String> = HashMap::new();
-
-        for (k, v) in &self.by_name {
-            h.insert(k.clone(), v.to_string());
-        }
-
-        serde_yaml::to_string(&h).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to YAML: {}", e))
-        })
-    }
-
-    fn load_json<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
-        // Read as String->String
-        let h: HashMap<String, Option<String>> = serde_json::from_reader(reader).map_err(|e| {
-            SimpleError::new(format!("Couldn't read JSON file as String->String mapping: {:?}", e))
-        })?;
-
-        // Convert to String->Integer
-        let mut out = Self::new_empty();
-        for (name, value) in h.into_iter() {
-            // Get the integer
-            let value: Option<Integer> = match value {
-                Some(v) => Some(v.parse().map_err(|_| SimpleError::new(format!("Couldn't parse second JSON field as integer")))?),
-                None => None,
-            };
-
-            out.add_entry(&name, value)?;
-        }
-
-        Ok(out)
-    }
-
-    pub fn load_from_json_string(data: &str) -> SimpleResult<Self> {
-        Self::load_json(data.as_bytes())
-    }
-
-    pub fn load_from_json_file(filename: &PathBuf) -> SimpleResult<Self> {
-        Self::load_json(io::BufReader::new(File::open(filename).map_err(|e| {
-            SimpleError::new(format!("Could not read file: {}", e))
-        })?))
-    }
-
-    pub fn to_json(&self) -> SimpleResult<String> {
-        // Convert to String->String
-        let mut h: HashMap<String, String> = HashMap::new();
-
-        for (k, v) in &self.by_name {
-            h.insert(k.clone(), v.to_string());
-        }
-
-        serde_json::to_string_pretty(&h).map_err(|e| {
-            SimpleError::new(format!("Failed to serialize to JSON: {}", e))
-        })
-    }
-
     pub fn get_by_name(&self, name: &str) -> Option<&Integer> {
         self.by_name.get(name)
     }
@@ -282,6 +190,58 @@ impl Enums {
     }
 }
 
+impl DataTrait for Enums {
+    type SerializedType = HashMap<String, Option<String>>;
+
+    /// Load the data from the type that was serialized.
+    fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
+        // Convert to String->Integer
+        let mut out = Self::new_empty();
+        for (name, value) in data {
+            // Get the integer
+            let value: Option<Integer> = match value {
+                Some(v) => Some(v.parse().map_err(|e| SimpleError::new(format!("Couldn't parse integer: {:?}", e)))?),
+                None => None,
+            };
+
+            // Check for duplicate names
+            if out.by_name.contains_key(name) {
+                bail!("Duplicate constant value: {}", name);
+            }
+
+            // Get the value, or the next incremental value
+            let value = match value {
+                Some(v) => v,
+                // TODO: This doesn't really work on JSON, due to lack of ordering.. what can we do?
+                None    => out.autovalue()?,
+            };
+
+            // Insert
+            out.by_name.insert(name.to_string(), value);
+
+            // Insert or append to the by_value map
+            let e = out.by_value.entry(value).or_insert(vec![]);
+            e.push(name.to_string());
+
+            // Update the incremental value
+            out.last_value_added = Some(value);
+        }
+
+        Ok(out)
+    }
+
+    /// Get the data in a format that can be serialized
+    fn save(&self) -> SimpleResult<HashMap<String, Option<String>>> {
+        // Convert to String->String
+        let mut h: HashMap<String, Option<String>> = HashMap::new();
+
+        for (k, v) in &self.by_name {
+            h.insert(k.clone(), Some(v.to_string()));
+        }
+
+        Ok(h)
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
