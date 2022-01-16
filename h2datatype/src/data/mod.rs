@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-use simple_error::{SimpleError, SimpleResult, bail};
+use simple_error::{SimpleResult, bail};
 use walkdir::WalkDir;
 
 mod constants;
@@ -18,6 +18,21 @@ use types::*;
 
 mod data_trait;
 use data_trait::*;
+
+/// Extend a [`HashMap`] without allowing duplicates.
+fn extend_no_duplicates<T>(orig: &mut HashMap<String, T>, new: Vec<(String, T)>) -> SimpleResult<()> {
+    // Loop through to ensure no duplicates
+    let new = new.into_iter().map(|(key, value)| {
+        match orig.contains_key(&key) {
+            true => bail!("Duplicate key: {}", key),
+            false => Ok((key, value))
+        }
+    }).collect::<SimpleResult<HashMap<String, T>>>()?;
+
+    orig.extend(new);
+
+    Ok(())
+}
 
 enum FileType {
     YAML,
@@ -80,13 +95,25 @@ impl DataNg {
         }
     }
 
+
     fn load_directory<T: DataTrait>(path: &Path, prefix: Option<&str>) -> SimpleResult<Vec<(String, T)>> {
+        // This is kinda clunky, but it ensures that we don't have duplicates
+        // within a set
+        let mut duplicates: HashSet<String> = HashSet::new();
+
         WalkDir::new(path)
             .into_iter()
             .filter_map(Result::ok)
             .filter(|e| !e.file_type().is_dir())
             .map(|e| {
                 let name = Self::get_name(e.path(), prefix)?;
+
+                // Check for duplicates
+                if duplicates.contains(&name) {
+                    bail!("Duplicate name: {} (from path {:?})", name, path);
+                }
+                duplicates.insert(name.clone());
+
                 let data = Self::load_file(e.path())?;
 
                 Ok((name, data))
@@ -95,24 +122,19 @@ impl DataNg {
     }
 
     fn load_constants_dir(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<()> {
-        // TODO: Figure out how to disallow duplicates
-        self.constants.extend(Self::load_directory(path, prefix)?);
-        Ok(())
+        extend_no_duplicates(&mut self.constants, Self::load_directory(path, prefix)?)
     }
 
     fn load_enums_dir(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<()> {
-        self.enums.extend(Self::load_directory(path, prefix)?);
-        Ok(())
+        extend_no_duplicates(&mut self.enums, Self::load_directory(path, prefix)?)
     }
 
     fn load_bitmasks_dir(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<()> {
-        self.bitmasks.extend(Self::load_directory(path, prefix)?);
-        Ok(())
+        extend_no_duplicates(&mut self.bitmasks, Self::load_directory(path, prefix)?)
     }
 
     fn load_types_dir(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<()> {
-        self.types.extend(Self::load_directory(path, prefix)?);
-        Ok(())
+        extend_no_duplicates(&mut self.types, Self::load_directory(path, prefix)?)
     }
 }
 
@@ -126,7 +148,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_TEST() -> SimpleResult<()> {
+    fn test_load_directory() -> SimpleResult<()> {
         let mut data = DataNg::new();
 
         // Load the data
@@ -135,5 +157,20 @@ mod tests {
         data.load_constants_dir(&d, None)?;
 
         Ok(())
+    }
+
+    #[test]
+    fn test_load_multiple_steps() -> SimpleResult<()> {
+        todo!()
+    }
+
+    #[test]
+    fn test_nested() -> SimpleResult<()> {
+        todo!()
+    }
+
+    #[test]
+    fn test_ambiguous() -> SimpleResult<()> {
+        todo!()
     }
 }
