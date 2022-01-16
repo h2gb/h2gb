@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io;
-use std::path::PathBuf;
+use std::path::Path;
 use std::str::FromStr;
 
 use serde::de::DeserializeOwned;
@@ -79,7 +79,7 @@ pub trait DataTrait : Sized {
         Self::load_csv(data.as_bytes())
     }
 
-    fn load_from_csv_file(filename: &PathBuf) -> SimpleResult<Self> {
+    fn load_from_csv_file(filename: &Path) -> SimpleResult<Self> {
         Self::load_csv(io::BufReader::new(File::open(filename).map_err(|e| {
             SimpleError::new(format!("Could not read file: {}", e))
         })?))
@@ -120,7 +120,7 @@ pub trait DataTrait : Sized {
         Self::load_yaml(data.as_bytes())
     }
 
-    fn load_from_yaml_file(filename: &PathBuf) -> SimpleResult<Self> {
+    fn load_from_yaml_file(filename: &Path) -> SimpleResult<Self> {
         Self::load_yaml(io::BufReader::new(File::open(filename).map_err(|e| {
             SimpleError::new(format!("Could not read file: {}", e))
         })?))
@@ -148,7 +148,7 @@ pub trait DataTrait : Sized {
         Self::load_json(data.as_bytes())
     }
 
-    fn load_from_json_file(filename: &PathBuf) -> SimpleResult<Self> {
+    fn load_from_json_file(filename: &Path) -> SimpleResult<Self> {
         Self::load_json(io::BufReader::new(File::open(filename).map_err(|e| {
             SimpleError::new(format!("Could not read file: {}", e))
         })?))

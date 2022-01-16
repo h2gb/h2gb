@@ -18,7 +18,11 @@ csv = "~1.1.6"
 macaddr = "~1.0.1"
 uuid = "~0.8.2"
 
+# Error handling
 simple-error = "~0.2.1"
+
+# Loading data
+walkdir = "~2.3.2"
 
 [dev-dependencies]
 pretty_assertions = "~0.6.1"
