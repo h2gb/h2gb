@@ -4,7 +4,7 @@ use simple_error::{SimpleResult, bail};
 use h2data::{bitmask_exists, from_bitmask_str};
 use generic_number::{Context, IntegerReader, Integer};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, DataNg, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -56,7 +56,7 @@ impl H2TypeTrait for H2Bitmask {
         Ok(self.reader.size())
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &DataNg) -> SimpleResult<String> {
         self.render(self.reader.read(context)?.as_usize()?)
     }
 
@@ -104,7 +104,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                t.to_display(context.at(o))?,
+                t.to_display(context.at(o), &DataNg::default())?,
             );
         }
 

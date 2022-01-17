@@ -112,6 +112,7 @@ mod tests {
 
     use crate::actions::{Action, ActionBufferCreateFromBytes, ActionLayerCreate};
 
+    use h2datatype::DataNg;
     use h2datatype::simple::numeric::H2Integer;
     use h2datatype::simple::string::LPString;
 
@@ -131,7 +132,7 @@ mod tests {
         let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
         let resolved = record.target()
             .buffer_get_or_err("buffer")?
-            .peek(&datatype, 0)?;
+            .peek(&datatype, 0, &DataNg::default())?;
 
         let action = ActionEntryCreate::new("buffer", "default", resolved, None);
         record.apply(action)?;
@@ -160,7 +161,7 @@ mod tests {
         )?;
         let resolved = record.target()
             .buffer_get_or_err("buffer")?
-            .peek(&datatype, 4)?;
+            .peek(&datatype, 4, &DataNg::default())?;
 
         let action = ActionEntryCreate::new("buffer", "default", resolved, None);
         record.apply(action)?;
@@ -252,23 +253,23 @@ mod tests {
         let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
 
         // Resolve it
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &DataNg::default())?;
 
         // Insert it
         let action = ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()));
         record.apply(action)?;
 
         // Make sure we can't overlap it
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
 
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 1)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 1, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
 
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 2)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 2, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
 
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 3)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 3, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
 
         // Going off the end should also be an error
@@ -277,11 +278,11 @@ mod tests {
 
         // Create the entry with the new, longer buffer, and insert it into the
         // original buffer
-        let bad_resolved = record.target().buffer_get_or_err("longbuffer")?.peek(&datatype.clone(), 5)?;
+        let bad_resolved = record.target().buffer_get_or_err("longbuffer")?.peek(&datatype.clone(), 5, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", bad_resolved, Some(datatype.clone()))).is_err());
 
         // But 4, like the third bed, should be jussst right
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone(), 4)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone(), 4, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_ok());
 
         Ok(())
@@ -300,18 +301,18 @@ mod tests {
 
         // Create an entry
         let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &DataNg::default())?;
         let action = ActionEntryCreate::new("buffer", "default", resolved, None);
         record.apply(action)?;
 
         // Make sure we can't overlap it on the same layer
         let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, None)).is_err());
 
         // But we can on the other
         let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0)?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &DataNg::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default2", resolved, None)).is_ok());
 
         Ok(())

@@ -1,8 +1,9 @@
 use simple_error::{bail, SimpleResult};
 use std::ops::Range;
 
-use crate::{Alignment, ResolvedType, H2Type};
 use generic_number::{Context, Integer, Float, Character};
+
+use crate::{Alignment, DataNg, ResolvedType, H2Type};
 
 /// The core trait that makes a type into a type. All types must implement this.
 ///
@@ -79,7 +80,7 @@ pub trait H2TypeTrait {
     ///
     /// This String value is ultimately what is displayed by users, and should
     /// have any formatting that a user would want to see.
-    fn to_display(&self, context: Context) -> SimpleResult<String>;
+    fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String>;
 
     /// Get "related" values - ie, what a pointer points to.
     fn related(&self, _context: Context) -> SimpleResult<Vec<(usize, H2Type)>> {
@@ -129,23 +130,23 @@ pub trait H2TypeTrait {
     ///
     /// A resolved type has all the values calculated, and is therefore very
     /// quick to use.
-    fn resolve(&self, context: Context, alignment: Alignment, field_name: Option<String>) -> SimpleResult<ResolvedType> {
+    fn resolve(&self, context: Context, alignment: Alignment, field_name: Option<String>, data: &DataNg) -> SimpleResult<ResolvedType> {
         Ok(ResolvedType {
             actual_range: self.range(context, Alignment::None)?,
             aligned_range: self.range(context, alignment)?,
 
             field_name: field_name,
-            display: self.to_display(context)?,
+            display: self.to_display(context, data)?,
 
             // Resolve the children here and now
             children: self.children_with_range(context)?.into_iter().map(|(range, name, child)| {
                 // Errors here will be handled by the collect
-                child.resolve(context.at(range.start), name)
+                child.resolve(context.at(range.start), name, data)
             }).collect::<SimpleResult<Vec<ResolvedType>>>()?,
 
             related: self.related(context)?,
 
-            as_string: self.to_string(context).ok(),
+            as_string: self.to_string(context, data).ok(),
 
             as_integer: self.to_integer(context).ok(),
             as_float: self.to_float(context).ok(),
@@ -161,7 +162,7 @@ pub trait H2TypeTrait {
     }
 
     /// Convert to a [`String`], if it's sensible for this type.
-    fn to_string(&self, _context: Context) -> SimpleResult<String> {
+    fn to_string(&self, _context: Context, _data: &DataNg) -> SimpleResult<String> {
         bail!("This type cannot be converted to a string");
     }
 

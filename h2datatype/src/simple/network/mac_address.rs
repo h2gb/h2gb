@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 
 use generic_number::Context;
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, DataNg, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a MAC address in EUI-48 format.
 ///
@@ -29,7 +29,7 @@ impl H2TypeTrait for MacAddress {
         Ok(6)
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &DataNg) -> SimpleResult<String> {
         let b = context.read_bytes(6)?;
         let b: [u8; 6] = [
             b[0],
@@ -56,7 +56,7 @@ mod tests {
         let data = b"\x01\x23\x45\x67\x89\xab".to_vec();
         let context = Context::new(&data);
 
-        assert_eq!("01:23:45:67:89:AB", MacAddress::new().to_display(context)?);
+        assert_eq!("01:23:45:67:89:AB", MacAddress::new().to_display(context, &DataNg::default())?);
 
         Ok(())
     }

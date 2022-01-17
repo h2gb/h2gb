@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::Context;
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, DataNg, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a struct.
 ///
@@ -37,11 +37,11 @@ impl H2TypeTrait for H2Struct {
         }).collect())
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
         // Because the collect() expects a result, this will end and bubble
         // up errors automatically!
         let strings: Vec<String> = self.children_with_range(context)?.iter().map(|(range, name, child)| {
-            Ok(format!("{}: {}", name.clone().unwrap_or("<name unknown>".to_string()), child.to_display(context.at(range.start))?))
+            Ok(format!("{}: {}", name.clone().unwrap_or("<name unknown>".to_string()), child.to_display(context.at(range.start), data)?))
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("{{ {} }}", strings.join(", ")))
@@ -103,12 +103,12 @@ mod tests {
         assert_eq!(15, t.aligned_size(context)?);
         assert_eq!(0..15, t.actual_range(context)?);
         assert_eq!(0..15, t.aligned_range(context)?);
-        assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", t.to_display(context)?);
+        assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", t.to_display(context, &DataNg::default())?);
         assert_eq!(0, t.related(context)?.len());
         assert_eq!(4, t.children(context)?.len());
 
         // Resolve and validate the resolved version
-        let r = t.resolve(context, None)?;
+        let r = t.resolve(context, None, &DataNg::default())?;
         assert_eq!(15, r.base_size());
         assert_eq!(15, r.aligned_size());
         assert_eq!(0..15, r.actual_range);
@@ -181,12 +181,12 @@ mod tests {
         assert_eq!(20, t.aligned_size(context)?);
         assert_eq!(3..23, t.actual_range(context)?);
         assert_eq!(3..23, t.aligned_range(context)?);
-        assert_eq!("{ hex: 0x0001, struct: { A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }, ipv4: 127.0.0.1 }", t.to_display(context)?);
+        assert_eq!("{ hex: 0x0001, struct: { A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }, ipv4: 127.0.0.1 }", t.to_display(context, &DataNg::default())?);
         assert_eq!(0, t.related(context)?.len());
         assert_eq!(3, t.children(context)?.len());
 
         // Make sure it resolves sanely
-        let r = t.resolve(context, None)?;
+        let r = t.resolve(context, None, &DataNg::default())?;
         assert_eq!(20, r.base_size());
         assert_eq!(20, r.aligned_size());
         assert_eq!(3..23, r.actual_range);

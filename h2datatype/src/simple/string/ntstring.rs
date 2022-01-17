@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
+use crate::{H2Type, H2Types, H2TypeTrait, Alignment, DataNg};
 
 /// Defines a null-terminated string.
 ///
@@ -57,7 +57,7 @@ impl H2TypeTrait for NTString {
         true
     }
 
-    fn to_string(&self, offset: Context) -> SimpleResult<String> {
+    fn to_string(&self, offset: Context, _data: &DataNg) -> SimpleResult<String> {
         // Get the length so we can truncate
         let (_, chars) = self.analyze(offset)?;
 
@@ -65,8 +65,8 @@ impl H2TypeTrait for NTString {
         Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
     }
 
-    fn to_display(&self, offset: Context) -> SimpleResult<String> {
-        Ok(format!("\"{}\"", self.to_string(offset)?))
+    fn to_display(&self, offset: Context, data: &DataNg) -> SimpleResult<String> {
+        Ok(format!("\"{}\"", self.to_string(offset, data)?))
     }
 }
 
@@ -86,7 +86,7 @@ mod tests {
         let offset = Context::new(&data);
 
         let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
-        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset)?);
+        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset, &DataNg::default())?);
 
         Ok(())
     }
@@ -97,7 +97,7 @@ mod tests {
         let offset = Context::new(&data);
 
         let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
-        assert_eq!("\"\"", a.to_display(offset)?);
+        assert_eq!("\"\"", a.to_display(offset, &DataNg::default())?);
 
         Ok(())
     }
@@ -108,7 +108,7 @@ mod tests {
         let offset = Context::new(&data);
 
         let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
-        assert!(a.to_display(offset).is_err());
+        assert!(a.to_display(offset, &DataNg::default()).is_err());
 
         Ok(())
     }
@@ -120,7 +120,7 @@ mod tests {
         let offset = Context::new(&data);
 
         let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
-        assert!(a.to_display(offset).is_err());
+        assert!(a.to_display(offset, &DataNg::default()).is_err());
 
         Ok(())
     }
@@ -132,7 +132,7 @@ mod tests {
         let offset = Context::new(&data);
 
         let a: H2Type = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
-        let array = a.resolve(offset, None)?;
+        let array = a.resolve(offset, None, &DataNg::default())?;
 
         // Should just have one child - the array
         assert_eq!("AB❄☢𝄞😈÷", array.as_string.unwrap());
@@ -153,7 +153,7 @@ mod tests {
 
         assert_eq!(12, t.base_size(offset).unwrap());
 
-        assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset).unwrap());
+        assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(offset, &DataNg::default()).unwrap());
 
         Ok(())
     }

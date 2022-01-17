@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, IntegerRenderer, Integer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
+use crate::{H2Type, H2Types, H2TypeTrait, Alignment, DataNg};
 
 /// Defines a string with a configured length.
 ///
@@ -39,7 +39,7 @@ impl H2TypeTrait for H2Blob {
         Ok(self.length)
     }
 
-    fn to_display(&self, _context: Context) -> SimpleResult<String> {
+    fn to_display(&self, _context: Context, _data: &DataNg) -> SimpleResult<String> {
         Ok(format!("Binary blob ({} bytes)", self.length_display.render(Integer::from(self.length))))
     }
 }
@@ -56,10 +56,10 @@ mod tests {
         let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
         let context = Context::new(&data);
 
-        assert_eq!("Binary blob (16 bytes)", H2Blob::new(16, DefaultFormatter::new_integer())?.to_display(context)?);
+        assert_eq!("Binary blob (16 bytes)", H2Blob::new(16, DefaultFormatter::new_integer())?.to_display(context, &DataNg::default())?);
         assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context)?);
 
-        assert_eq!("Binary blob (0x10 bytes)", H2Blob::new(16, HexFormatter::new_integer(false, true, false))?.to_display(context)?);
+        assert_eq!("Binary blob (0x10 bytes)", H2Blob::new(16, HexFormatter::new_integer(false, true, false))?.to_display(context, &DataNg::default())?);
         assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context)?);
 
         Ok(())

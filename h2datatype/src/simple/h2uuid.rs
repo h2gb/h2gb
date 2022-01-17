@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 use uuid::{Uuid, Version};
 
 use generic_number::{Context, Endian};
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, DataNg, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a UUID.
 ///
@@ -34,7 +34,7 @@ impl H2TypeTrait for H2UUID {
         Ok(16)
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &DataNg) -> SimpleResult<String> {
         let number = context.read_u128(self.endian)?;
         let uuid = Uuid::from_u128(number);
 
@@ -105,10 +105,10 @@ mod tests {
             let context = Context::new(&data);
 
             // Don't display version
-            assert_eq!(uuid, H2UUID::new(Endian::Big, false).to_display(context)?);
+            assert_eq!(uuid, H2UUID::new(Endian::Big, false).to_display(context, &DataNg::default())?);
 
             // Do display version
-            assert_eq!(format!("{} ({})", uuid, version), H2UUID::new(Endian::Big, true).to_display(context)?);
+            assert_eq!(format!("{} ({})", uuid, version), H2UUID::new(Endian::Big, true).to_display(context, &DataNg::default())?);
         }
 
         Ok(())

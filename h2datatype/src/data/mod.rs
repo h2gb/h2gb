@@ -54,7 +54,7 @@ impl FileType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DataNg {
     pub constants: HashMap<String, Constants>,
     pub enums:     HashMap<String, Enums>,

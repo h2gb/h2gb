@@ -4,7 +4,7 @@ use simple_error::{SimpleResult, bail};
 use generic_number::{Context, IntegerReader, Integer};
 use h2data::{enum_exists, from_enum};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, DataNg, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -43,7 +43,7 @@ impl H2Enum {
         Self::new_aligned(Alignment::None, reader, enum_type)
     }
 
-    fn render(&self, value: usize) -> SimpleResult<String> {
+    fn render(&self, value: usize, _data: &DataNg) -> SimpleResult<String> {
         let output = match from_enum(&self.enum_type, value)? {
             Some(o) => o.to_string(),
             None => format!("Unknown_0x{:x}", value),
@@ -58,17 +58,17 @@ impl H2TypeTrait for H2Enum {
         Ok(self.reader.size())
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
         let as_usize = self.reader.read(context)?.as_usize()?;
-        self.render(as_usize)
+        self.render(as_usize, data)
     }
 
     fn can_be_string(&self) -> bool {
         true
     }
 
-    fn to_string(&self, context: Context) -> SimpleResult<String> {
-        self.render(self.reader.read(context)?.as_usize()?)
+    fn to_string(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
+        self.render(self.reader.read(context)?.as_usize()?, data)
     }
 
     fn can_be_integer(&self) -> bool {
@@ -109,7 +109,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                t.to_display(context.at(o))?,
+                t.to_display(context.at(o), &DataNg::default())?,
             );
         }
 
