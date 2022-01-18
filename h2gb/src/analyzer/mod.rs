@@ -1,9 +1,11 @@
 //! So far, this is a simple demonstration of what we can do
 
+use std::path::PathBuf;
+use std::time::Duration;
+
 use redo::Record;
 use simple_error::SimpleResult;
 use lazy_static::lazy_static;
-use std::time::Duration;
 use hhmmss::Hhmmss;
 
 use h2transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
@@ -62,7 +64,20 @@ struct TerrariaOffsets {
 }
 
 lazy_static! {
-    static ref DATA: DataNg = DataNg::default(); // XXX: This needs to be filled in
+    static ref DATA: DataNg = {
+        let mut data: DataNg = DataNg::new();
+
+        let mut enums = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        enums.push("testdata/terraria/enums/");
+        data.load_enums(&enums, Some("TERRARIA")).unwrap();
+
+        let mut bitmasks = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        bitmasks.push("testdata/terraria/bitmasks/");
+        data.load_bitmasks(&bitmasks, Some("TERRARIA")).unwrap();
+
+
+        DataNg::default()
+    };
 
     /// Offsets for Terraria address from pre-1.4
     static ref TERRARIA_OLD_OFFSETS: TerrariaOffsets = {
@@ -606,3 +621,7 @@ mod tests {
         Ok(())
     }
 }
+        // let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        // d.push("testdata/bitmasks/test1.csv");
+
+        // let bitmasks = Bitmasks::load_from_csv_file(&d)?;

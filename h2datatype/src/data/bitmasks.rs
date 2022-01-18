@@ -1,7 +1,4 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io;
-use std::path::PathBuf;
 use std::str::FromStr;
 
 use simple_error::{SimpleResult, SimpleError, bail};
@@ -160,6 +157,8 @@ impl DataTrait for Bitmasks {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::path::PathBuf;
 
     use simple_error::SimpleResult;
     use generic_number::HexFormatter;
