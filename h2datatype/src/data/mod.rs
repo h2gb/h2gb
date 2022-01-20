@@ -131,13 +131,8 @@ impl DataNg {
     ///
     /// Supports: YAML, CSV, JSON (based on extension)
     pub fn load_constants(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        // TODO: We should have better error messages here
-        let data = match Self::load(path, prefix) {
-            Ok(d) => d,
-            Err(e) => bail!("Could not load constants from {:?}: {}", path, e),
-        };
-
-        if let Err(e) = extend_no_duplicates(&mut self.constants, data) {
+        // TODO: We should bubble up better error messages
+        if let Err(e) = extend_no_duplicates(&mut self.constants, Self::load(path, prefix)?) {
             bail!("Could not load constants from {:?}: {}", path, e);
         }
 
@@ -148,12 +143,7 @@ impl DataNg {
     ///
     /// Supports: YAML, CSV, JSON (based on extension)
     pub fn load_enums(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        let data = match Self::load(path, prefix) {
-            Ok(d) => d,
-            Err(e) => bail!("Could not load enums from {:?}: {}", path, e),
-        };
-
-        if let Err(e) = extend_no_duplicates(&mut self.enums, data) {
+        if let Err(e) = extend_no_duplicates(&mut self.enums, Self::load(path, prefix)?) {
             bail!("Could not load enums from {:?}: {}", path, e);
         }
 
@@ -164,13 +154,8 @@ impl DataNg {
     ///
     /// Supports: YAML, CSV, JSON (based on extension)
     pub fn load_bitmasks(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        let data = match Self::load(path, prefix) {
-            Ok(d) => d,
-            Err(e) => bail!("Could not load bitmasks from {:?}: {}", path, e),
-        };
-
-        if let Err(e) = extend_no_duplicates(&mut self.bitmasks, data) {
-            bail!("Could not load bitmasks from {:?}: {}", path, e);
+        if let Err(e) = extend_no_duplicates(&mut self.bitmasks, Self::load(path, prefix)?) {
+            bail!("Could not load enums from {:?}: {}", path, e);
         }
 
         Ok(self)
@@ -180,13 +165,8 @@ impl DataNg {
     ///
     /// Supports: YAML, JSON (based on extension) - does not support CSV
     pub fn load_types(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        let data = match Self::load(path, prefix) {
-            Ok(d) => d,
-            Err(e) => bail!("Could not load types from {:?}: {}", path, e),
-        };
-
-        if let Err(e) = extend_no_duplicates(&mut self.types, data) {
-            bail!("Could not load types from {:?}: {}", path, e);
+        if let Err(e) = extend_no_duplicates(&mut self.types, Self::load(path, prefix)?) {
+            bail!("Could not load enums from {:?}: {}", path, e);
         }
 
         Ok(self)

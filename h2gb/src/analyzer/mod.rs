@@ -75,8 +75,7 @@ lazy_static! {
         bitmasks.push("testdata/terraria/bitmasks/");
         data.load_bitmasks(&bitmasks, Some("TERRARIA")).unwrap();
 
-
-        DataNg::default()
+        data
     };
 
     /// Offsets for Terraria address from pre-1.4
@@ -189,31 +188,31 @@ lazy_static! {
 
     static ref INVENTORY_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaItem").unwrap()),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "TERRARIA::items", &DATA).unwrap()),
             ("quantity".to_string(),    H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
-            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, "TerrariaAffix").unwrap()),
+            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "TERRARIA::item_affix", &DATA).unwrap()),
             ("is_favorite".to_string(), H2Integer::new(IntegerReader::U8, BooleanFormatter::new_integer())),
         ]).unwrap()
     };
 
     static ref STORED_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaItem").unwrap()),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "TERRARIA::items", &DATA).unwrap()),
             ("quantity".to_string(),    H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
-            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, "TerrariaAffix").unwrap()),
+            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "TERRARIA::item_affix", &DATA).unwrap()),
         ]).unwrap()
     };
 
     static ref EQUIPPED_ITEM: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaItem").unwrap()),
-            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, "TerrariaAffix").unwrap()),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "TERRARIA::items", &DATA).unwrap()),
+            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "TERRARIA::item_affix", &DATA).unwrap()),
         ]).unwrap()
     };
 
     static ref BUFF: H2Type = {
         H2Struct::new(vec![
-            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaBuff").unwrap()),
+            ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "TERRARIA::buffs", &DATA).unwrap()),
             ("duration".to_string(),    H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())),
         ]).unwrap()
     };
@@ -511,7 +510,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     record.apply(ActionLayerCreate::new(buffer, LAYER))?;
 
     // Create an entry for the version
-    let version_number = create_entry_integer(record, buffer, LAYER, &H2Enum::new(IntegerReader::U32(Endian::Little), "TerrariaVersion")?, 0x00, Some("Version number"), &DATA)?;
+    let version_number = create_entry_integer(record, buffer, LAYER, &H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "TERRARIA::versions", &DATA)?, 0x00, Some("Version number"), &DATA)?;
 
     // Get the offsets for later
     let offsets = if version_number.as_usize()? < 230 {
@@ -541,7 +540,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
 
     // Clothing is an enumeration (this also includes gender, and oddly enough
     // it's not in the same order as the UI shows)
-    create_entry(record, buffer, LAYER, &H2Enum::new(IntegerReader::U8, "TerrariaClothing")?, base + offsets.clothing, Some("Character clothing"), &DATA)?;
+    create_entry(record, buffer, LAYER, &H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "TERRARIA::clothing", &DATA)?, base + offsets.clothing, Some("Character clothing"), &DATA)?;
 
     // Health and mana are both a simple struct with current + max
     create_entry(record, buffer, LAYER, &*HEALTH_MANA, base + offsets.health, Some("Health"), &DATA)?;
@@ -549,7 +548,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
 
     // Create an entry for the game mode - we'll need this later to determine
     // if we have Journey Mode data
-    let game_mode = create_entry_string(record, buffer, LAYER, &H2Enum::new(IntegerReader::U8, "TerrariaGameMode")?, base + offsets.game_mode, Some("Game mode"), &DATA)?;
+    let game_mode = create_entry_integer(record, buffer, LAYER, &H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "TERRARIA::game_modes", &DATA)?, base + offsets.game_mode, Some("Game mode"), &DATA)?;
 
     // Parse character colours
     create_entry(record, buffer, LAYER, &*COLOURS, base + offsets.colours, Some("Colours"), &DATA)?;
@@ -579,7 +578,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     let new_base = parse_spawnpoints(record, buffer, base + offsets.spawnpoints)?;
 
     // game_mode 3 == Journey Mode
-    if game_mode == "TerrariaGameMode::JourneyMode" {
+    if game_mode == *DATA.enums.get("TERRARIA::game_modes").unwrap().get_by_name("JourneyMode").unwrap() {
         // Only parse this if we have a journey_data offset (1.4+)
         if let Some(offset) = offsets.journey_data {
             parse_journeymode(record, buffer, new_base + offset)?;
@@ -617,6 +616,8 @@ mod tests {
         record.apply(action)?;
 
         analyze_terraria(&mut record, "buffer")?;
+
+        println!("{}", record.target());
 
         Ok(())
     }

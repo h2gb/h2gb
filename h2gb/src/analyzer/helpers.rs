@@ -45,7 +45,7 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
 /// [`Integer`] - I found myself doing this a lot.
 pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &DataNg) -> SimpleResult<Integer> {
     if !datatype.can_be_integer() {
-        bail!("Attempting to create a numeric entry from a non-numeric datatype");
+        bail!("Attempting to create a numeric entry from a non-numeric datatype: {:?}", datatype);
     }
 
     create_entry(record, buffer, layer, datatype, offset, comment, data)?.as_integer.ok_or(
@@ -57,7 +57,7 @@ pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &s
 /// String - I found myself doing this a lot.
 pub fn create_entry_string(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &DataNg) -> SimpleResult<String> {
     if !datatype.can_be_string() {
-        bail!("Attempting to create a numeric entry from a non-numeric datatype");
+        bail!("Attempting to create a string entry from a non-string datatype: {:?}", datatype);
     }
 
     create_entry(record, buffer, layer, datatype, offset, comment, data)?.as_string.ok_or(

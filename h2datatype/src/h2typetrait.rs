@@ -126,16 +126,30 @@ pub trait H2TypeTrait {
         }).collect::<SimpleResult<Vec<_>>>()
     }
 
+    /// Try to get name(s) for the field.
+    ///
+    /// The goal of this is to handle fields of types like constants or enums,
+    /// where a numeric field can represent a string value.
+    ///
+    /// Since constants and enums are both optional and non-unique, this can
+    /// return [`None`], or a [`Vec`] of possible values.
+    ///
+    /// When resolve() consumes this, it will assign a single name to
+    /// `field_name`, or multiple names to `possible_field_names`.
+    fn field_name_options(&self, _context: Context) -> SimpleResult<Option<Vec<String>>> {
+        Ok(None)
+    }
+
     /// Create a [`ResolvedType`] from this [`H2Type`] and context.
     ///
     /// A resolved type has all the values calculated, and is therefore very
     /// quick to use.
-    fn resolve(&self, context: Context, alignment: Alignment, field_name: Option<String>, data: &DataNg) -> SimpleResult<ResolvedType> {
+    fn resolve(&self, context: Context, alignment: Alignment, field_name_override: Option<String>, data: &DataNg) -> SimpleResult<ResolvedType> {
         Ok(ResolvedType {
             actual_range: self.range(context, Alignment::None)?,
             aligned_range: self.range(context, alignment)?,
 
-            field_name: field_name,
+            field_name: field_name_override,
             display: self.to_display(context, data)?,
 
             // Resolve the children here and now
