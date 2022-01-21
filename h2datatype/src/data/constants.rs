@@ -47,6 +47,10 @@ impl Constants {
     pub fn len(&self) -> usize {
         self.by_name.len()
     }
+
+    pub fn list(&self) -> Vec<(&String, &Integer)> {
+        self.by_name.iter().collect()
+    }
 }
 
 impl DataTrait for Constants {

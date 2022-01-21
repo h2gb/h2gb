@@ -89,6 +89,10 @@ impl Enums {
         self.by_value.get(value)
     }
 
+    pub fn list(&self) -> Vec<(&String, &Integer)> {
+        self.by_name.iter().collect()
+    }
+
     pub fn len(&self) -> usize {
         self.by_name.len()
     }

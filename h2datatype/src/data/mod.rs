@@ -4,6 +4,8 @@ use std::path::Path;
 use simple_error::{SimpleResult, bail};
 use walkdir::WalkDir;
 
+use generic_number::Integer;
+
 mod constants;
 use constants::*;
 
@@ -171,6 +173,54 @@ impl DataNg {
 
         Ok(self)
     }
+
+    pub fn enums(&self) -> Vec<&str> {
+        self.enums.keys().into_iter().map(|s| &s[..]).collect()
+    }
+
+    pub fn enum_values(&self, enum_name: &str) -> Option<Vec<(&String, &Integer)>> {
+        Some(self.enums.get(enum_name)?.list())
+    }
+
+    pub fn get_from_enum_by_name(&self, enum_name: &str, field_name: &str) -> Option<&Integer> {
+        self.enums.get(enum_name)?.get_by_name(field_name)
+    }
+
+    pub fn get_from_enum_by_value(&self, enum_name: &str, value: &Integer) -> Option<&Vec<String>> {
+        self.enums.get(enum_name)?.get_by_value(value)
+    }
+
+    pub fn constants(&self) -> Vec<&str> {
+        self.constants.keys().into_iter().map(|s| &s[..]).collect()
+    }
+
+    pub fn constant_values(&self, constant_group: &str) -> Option<Vec<(&String, &Integer)>> {
+        Some(self.constants.get(constant_group)?.list())
+    }
+
+    pub fn get_from_constant_by_group(&self, constant_group: &str, field_group: &str) -> Option<&Integer> {
+        self.constants.get(constant_group)?.get_by_name(field_group)
+    }
+
+    pub fn get_from_constant_by_value(&self, constant_group: &str, value: &Integer) -> Option<&Vec<String>> {
+        self.constants.get(constant_group)?.get_by_value(value)
+    }
+
+    pub fn bitmasks(&self) -> Vec<&str> {
+        self.bitmasks.keys().into_iter().map(|s| &s[..]).collect()
+    }
+
+    pub fn bitmask_values(&self, bitmask_group: &str) -> Option<Vec<(&String, &u8)>> {
+        Some(self.bitmasks.get(bitmask_group)?.list())
+    }
+
+    pub fn get_from_bitmask_by_group(&self, bitmask_group: &str, field_group: &str) -> Option<Integer> {
+        self.bitmasks.get(bitmask_group)?.get_by_name(field_group)
+    }
+
+    pub fn get_from_bitmask_by_value(&self, bitmask_group: &str, value: &Integer) -> Option<Vec<String>> {
+        Some(self.bitmasks.get(bitmask_group)?.get_by_value(value))
+    }
 }
 
 #[cfg(test)]
@@ -234,19 +284,25 @@ mod tests {
     #[test]
     fn test_load_directory() -> SimpleResult<()> {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/");
+        d.push("testdata/enums/");
         let mut data = DataNg::new();
 
-        data.load_constants(&d, None)?;
+        data.load_enums(&d, None)?;
 
         // Make sure the output is sensible
-        assert_eq!(3, data.constants.len());
-        assert_eq!(0, data.enums.len());
+        assert_eq!(0, data.constants.len());
+        assert_eq!(3, data.enums.len());
         assert_eq!(0, data.bitmasks.len());
         assert_eq!(0, data.types.len());
 
-        // Check a value
-        assert_eq!(&Integer::from(100), data.constants.get("test1").unwrap().get_by_name("TEST2").unwrap());
+        // Check the names
+        let mut e = data.enums();
+        e.sort();
+        assert_eq!(vec!["test1", "test2", "test3"], e);
+
+        // Retrieve a value - both ways
+        assert_eq!(&Integer::from(100), data.get_from_enum_by_name("test1", "TEST2").unwrap());
+        assert_eq!(&vec!["TEST2".to_string()], data.get_from_enum_by_value("test1", &Integer::from(100)).unwrap());
 
         Ok(())
     }

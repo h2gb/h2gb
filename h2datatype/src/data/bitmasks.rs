@@ -66,6 +66,10 @@ impl Bitmasks {
         out
     }
 
+    pub fn list(&self) -> Vec<(&String, &u8)> {
+        self.by_name.iter().collect()
+    }
+
     pub fn len(&self) -> usize {
         self.by_name.len()
     }
