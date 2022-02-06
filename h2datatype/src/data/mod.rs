@@ -4,7 +4,7 @@ use std::path::Path;
 use simple_error::{SimpleResult, bail};
 use walkdir::WalkDir;
 
-use generic_number::Integer;
+use generic_number::{Integer, IntegerRenderer};
 
 use crate::H2Type;
 
@@ -191,9 +191,9 @@ impl DataNg {
         self.bitmasks.keys().into_iter().map(|s| &s[..]).collect()
     }
 
-    pub fn lookup_bitmask(&self, bitmask_name: &str, value: &Integer) -> SimpleResult<Vec<String>> {
+    pub fn lookup_bitmask(&self, bitmask_name: &str, value: &Integer, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
         match self.bitmasks.get(bitmask_name) {
-            Some(e) => Ok(e.get_by_value(value)),
+            Some(e) => Ok(e.get_by_value(value, unknown_renderer, show_negatives)),
             None => bail!("No such bitmask: {}", bitmask_name),
         }
     }

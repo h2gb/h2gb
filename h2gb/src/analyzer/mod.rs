@@ -252,7 +252,7 @@ fn parse_visibility(record: &mut Record<Action>, buffer: &str, offset: usize) ->
         record,
         buffer,
         LAYER,
-        &H2Bitmask::new(IntegerReader::U16(Endian::Little), "TerrariaVisibility", false)?,
+        &H2Bitmask::new(IntegerReader::U16(Endian::Little), None, "TERRARIA::Visibility", false, &DATA)?,
         offset, // Offset
         Some("Equipment visibility"),
         &DATA,
@@ -531,7 +531,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     create_entry(record, buffer, LAYER, &H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer()), base + offsets.face, Some("Character face"), &DATA)?;
 
     // Equipment visibility is a 10-bit bitmask that we've created a definition for
-    create_entry(record, buffer, LAYER, &H2Bitmask::new(IntegerReader::U16(Endian::Little), "TerrariaVisibility", false)?, base + offsets.visibility, Some("Equipment visibility"), &DATA)?;
+    create_entry(record, buffer, LAYER, &H2Bitmask::new(IntegerReader::U16(Endian::Little), None, "TERRARIA::visibility", false, &DATA)?, base + offsets.visibility, Some("Equipment visibility"), &DATA)?;
 
     // Clothing is an enumeration (this also includes gender, and oddly enough
     // it's not in the same order as the UI shows)
