@@ -67,13 +67,8 @@ lazy_static! {
     static ref DATA: DataNg = {
         let mut data: DataNg = DataNg::new();
 
-        let mut enums = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        enums.push("testdata/terraria/enums/");
-        data.load_enums(&enums, Some("TERRARIA")).unwrap();
-
-        let mut bitmasks = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        bitmasks.push("testdata/terraria/bitmasks/");
-        data.load_bitmasks(&bitmasks, Some("TERRARIA")).unwrap();
+        data.load_enums(   &[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/enums"   ].iter().collect::<PathBuf>(), Some("TERRARIA")).unwrap();
+        data.load_bitmasks(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/bitmasks"].iter().collect::<PathBuf>(), Some("TERRARIA")).unwrap();
 
         data
     };
@@ -602,27 +597,21 @@ mod tests {
     #[test]
     fn test_analyze() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("../testdata/terraria/ManySpawnPoints.plr");
+        let path = &[env!("CARGO_MANIFEST_DIR"), "../testdata/terraria/ManySpawnPoints.plr"].iter().collect::<PathBuf>();
+        let data = fs::read(path).unwrap();
 
         // Create a fresh record
         let mut record: Record<Action> = Record::new(
             H2Project::new("Terraria Test", "1.0")
         );
 
-        // Load the file data into a new buffer
-        let data = fs::read(d).unwrap();
         let action = ActionBufferCreateFromBytes::new("buffer", &data, 0x0);
         record.apply(action)?;
 
         analyze_terraria(&mut record, "buffer")?;
 
-        println!("{}", record.target());
+        //println!("{}", record.target());
 
         Ok(())
     }
 }
-        // let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        // d.push("testdata/bitmasks/test1.csv");
-
-        // let bitmasks = Bitmasks::load_from_csv_file(&d)?;

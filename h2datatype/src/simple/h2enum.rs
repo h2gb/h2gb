@@ -44,20 +44,21 @@ impl H2Enum {
     }
 
     fn render(&self, value: Integer, data: &DataNg) -> SimpleResult<String> {
-        match data.enums.get(&self.enum_type) {
-            Some(enums) => {
-                match enums.get_by_value(&value) {
-                    Some(v) => {
-                        if v.len() == 0 {
-                            Ok(format!("{}::Unknown_{}", self.enum_type, self.fallback_renderer.render(value)))
-                        } else {
-                            Ok(v.join(" / "))
-                        }
+        match data.lookup_enum(&self.enum_type, &value) {
+            Ok(v) => {
+                match v.len() {
+                    0 => {
+                        Ok(format!("{}::Unknown_{}", self.enum_type, self.fallback_renderer.render(value)))
                     },
-                    None => Ok(format!("{}::Unknown_{}", self.enum_type, self.fallback_renderer.render(value))),
+                    1 => {
+                        Ok(format!("{}::{}", self.enum_type, v[0]))
+                    },
+                    _ => {
+                        Ok(format!("{}::(ambiguous)", self.enum_type))
+                    }
                 }
             },
-            None => bail!("Unknown enum type: {}", self.enum_type),
+            Err(e) => bail!("Could not render Enum: {}", e),
         }
     }
 }
@@ -87,43 +88,24 @@ mod tests {
     use std::path::PathBuf;
 
     use simple_error::SimpleResult;
-    use generic_number::{Context, IntegerReader, HexFormatter};
+    use generic_number::{Context, Endian, IntegerReader, HexFormatter};
     use pretty_assertions::assert_eq;
 
-    // TODO: We need tests for enums
-    // #[test]
-    // fn test_enum_reader() -> SimpleResult<()> {
-    //     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    //     d.push("testdata/terraria/enums/");
-    //     let mut data = DataNg::new();
-    //     data.load_enums(&d, Some("Terraria"))?;
+    #[test]
+    fn test_enum_reader() -> SimpleResult<()> {
+        let mut data = DataNg::new();
+        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), None)?;
 
-    //     let test_buffer = b"\x00\x01\x02\x03\x20".to_vec();
-    //     let context = Context::new(&test_buffer);
+        let test_buffer = b"\x01\x64\xff\xff\x01\x00\x00\x00".to_vec();
 
-    //     let tests = vec![
-    //       // offset  expected
-    //         (0,      "TerrariaGameMode::Classic"),
-    //         (1,      "TerrariaGameMode::MediumCore"),
-    //         (2,      "TerrariaGameMode::HardCore"),
-    //         (3,      "TerrariaGameMode::JourneyMode"),
-    //         (4,      "TerrariaGameMode::Unknown_0x20"),
-    //     ];
+        let t = H2Enum::new(IntegerReader::U8, HexFormatter::pretty_integer(), "test1", &data)?;
+        assert_eq!("test1::TEST1",        t.resolve(Context::new_at(&test_buffer, 0), None, &data)?.display);
+        assert_eq!("test1::TEST2",        t.resolve(Context::new_at(&test_buffer, 1), None, &data)?.display);
+        assert_eq!("test1::Unknown_0xff", t.resolve(Context::new_at(&test_buffer, 2), None, &data)?.display);
 
-    //     for (o, expected) in tests {
-    //         let t = H2Enum::new(
-    //             IntegerReader::U8,
-    //             HexFormatter::pretty_integer(),
-    //             "TerrariaGameMode",
-    //             &data,
-    //         )?;
+        let t = H2Enum::new(IntegerReader::U32(Endian::Little), HexFormatter::pretty_integer(), "test1", &data)?;
+        assert_eq!("test1::TEST1",        t.resolve(Context::new_at(&test_buffer, 4), None, &data)?.display);
 
-    //         assert_eq!(
-    //             expected,
-    //             t.to_display(context.at(o), &DataNg::default())?,
-    //         );
-    //     }
-
-    //     Ok(())
-    // }
+        Ok(())
+    }
 }

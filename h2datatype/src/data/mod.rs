@@ -6,6 +6,8 @@ use walkdir::WalkDir;
 
 use generic_number::Integer;
 
+use crate::H2Type;
+
 mod constants;
 use constants::*;
 
@@ -174,52 +176,48 @@ impl DataNg {
         Ok(self)
     }
 
-    pub fn enums(&self) -> Vec<&str> {
+    pub fn list_enums(&self) -> Vec<&str> {
         self.enums.keys().into_iter().map(|s| &s[..]).collect()
     }
 
-    pub fn enum_values(&self, enum_name: &str) -> Option<Vec<(&String, &Integer)>> {
-        Some(self.enums.get(enum_name)?.list())
+    pub fn lookup_enum(&self, enum_name: &str, value: &Integer) -> SimpleResult<Vec<String>> {
+        match self.enums.get(enum_name) {
+            Some(e) => Ok(e.get_by_value(value)),
+            None => bail!("No such enum: {}", enum_name),
+        }
     }
 
-    pub fn get_from_enum_by_name(&self, enum_name: &str, field_name: &str) -> Option<&Integer> {
-        self.enums.get(enum_name)?.get_by_name(field_name)
-    }
-
-    pub fn get_from_enum_by_value(&self, enum_name: &str, value: &Integer) -> Option<&Vec<String>> {
-        self.enums.get(enum_name)?.get_by_value(value)
-    }
-
-    pub fn constants(&self) -> Vec<&str> {
-        self.constants.keys().into_iter().map(|s| &s[..]).collect()
-    }
-
-    pub fn constant_values(&self, constant_group: &str) -> Option<Vec<(&String, &Integer)>> {
-        Some(self.constants.get(constant_group)?.list())
-    }
-
-    pub fn get_from_constant_by_group(&self, constant_group: &str, field_group: &str) -> Option<&Integer> {
-        self.constants.get(constant_group)?.get_by_name(field_group)
-    }
-
-    pub fn get_from_constant_by_value(&self, constant_group: &str, value: &Integer) -> Option<&Vec<String>> {
-        self.constants.get(constant_group)?.get_by_value(value)
-    }
-
-    pub fn bitmasks(&self) -> Vec<&str> {
+    pub fn list_bitmasks(&self) -> Vec<&str> {
         self.bitmasks.keys().into_iter().map(|s| &s[..]).collect()
     }
 
-    pub fn bitmask_values(&self, bitmask_group: &str) -> Option<Vec<(&String, &u8)>> {
-        Some(self.bitmasks.get(bitmask_group)?.list())
+    pub fn lookup_bitmask(&self, bitmask_name: &str, value: &Integer) -> SimpleResult<Vec<String>> {
+        match self.bitmasks.get(bitmask_name) {
+            Some(e) => Ok(e.get_by_value(value)),
+            None => bail!("No such bitmask: {}", bitmask_name),
+        }
     }
 
-    pub fn get_from_bitmask_by_group(&self, bitmask_group: &str, field_group: &str) -> Option<Integer> {
-        self.bitmasks.get(bitmask_group)?.get_by_name(field_group)
+    pub fn list_constant_groups(&self) -> Vec<&str> {
+        self.constants.keys().into_iter().map(|s| &s[..]).collect()
     }
 
-    pub fn get_from_bitmask_by_value(&self, bitmask_group: &str, value: &Integer) -> Option<Vec<String>> {
-        Some(self.bitmasks.get(bitmask_group)?.get_by_value(value))
+    pub fn lookup_constant(&self, constant_group: &str, value: &Integer) -> SimpleResult<Vec<String>> {
+        match self.constants.get(constant_group) {
+            Some(e) => Ok(e.get_by_value(value)),
+            None => bail!("No such constant: {}", constant_group),
+        }
+    }
+
+    pub fn list_types(&self) -> Vec<&str> {
+        self.types.keys().into_iter().map(|s| &s[..]).collect()
+    }
+
+    pub fn lookup_type(&self, type_name: &str) -> SimpleResult<&H2Type> {
+        match self.types.get(type_name) {
+            Some(t) => Ok(t.get()),
+            None => bail!("No such type: {}", type_name),
+        }
     }
 }
 
@@ -236,11 +234,9 @@ mod tests {
 
     #[test]
     fn test_load_file() -> SimpleResult<()> {
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test1.csv");
-        let mut data = DataNg::new();
 
-        data.load_constants(&d, None)?;
+        let mut data = DataNg::new();
+        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
         assert_eq!(1, data.constants.len());
@@ -249,9 +245,7 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Load a second file
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test2.json");
-        data.load_constants(&d, None)?;
+        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
         assert_eq!(2, data.constants.len());
@@ -260,9 +254,7 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Load an enum
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/enums/test1.csv");
-        data.load_enums(&d, None)?;
+        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/test1.csv"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
         assert_eq!(2, data.constants.len());
@@ -271,9 +263,7 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Correctly error on bad filename
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/NOSUCHFILE");
-        assert!(data.load_enums(&d, None).is_err());
+        assert!(data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/NOSUCHFILE"].iter().collect::<PathBuf>(), None).is_err());
 
         // Check a value
         assert_eq!(&Integer::from(100), data.constants.get("test1").unwrap().get_by_name("TEST2").unwrap());
@@ -283,11 +273,8 @@ mod tests {
 
     #[test]
     fn test_load_directory() -> SimpleResult<()> {
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/enums/");
         let mut data = DataNg::new();
-
-        data.load_enums(&d, None)?;
+        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
         assert_eq!(0, data.constants.len());
@@ -296,24 +283,20 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Check the names
-        let mut e = data.enums();
+        let mut e = data.list_enums();
         e.sort();
         assert_eq!(vec!["test1", "test2", "test3"], e);
 
-        // Retrieve a value - both ways
-        assert_eq!(&Integer::from(100), data.get_from_enum_by_name("test1", "TEST2").unwrap());
-        assert_eq!(&vec!["TEST2".to_string()], data.get_from_enum_by_value("test1", &Integer::from(100)).unwrap());
+        // Retrieve a value
+        assert_eq!(vec!["TEST2".to_string()], data.lookup_enum("test1", &Integer::from(100))?);
 
         Ok(())
     }
 
     #[test]
     fn test_deeply_nested() -> SimpleResult<()> {
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/nested/");
         let mut data = DataNg::new();
-
-        data.load_constants(&d, None)?;
+        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
         assert_eq!(1, data.constants.len());
@@ -329,11 +312,8 @@ mod tests {
 
     #[test]
     fn test_prefix() -> SimpleResult<()> {
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test1.csv");
         let mut data = DataNg::new();
-
-        data.load_constants(&d, Some("MY_PREFIX"))?;
+        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), Some("MY_PREFIX"))?;
 
         // Make sure the output is sensible
         assert_eq!(1, data.constants.len());
@@ -350,46 +330,40 @@ mod tests {
     #[test]
     fn test_ambiguous_two_steps() -> SimpleResult<()> {
         // Tests ambiguity from loading one, then loading a duplciate
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test1.csv");
         let mut data = DataNg::new();
 
-        // First time works, second time fails
-        data.load_constants(&d, None)?;
+        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
-        assert!(data.load_constants(&d, None).is_err());
+        // Works the first time, not the second
+        data.load_constants(&path, None)?;
+        assert!(data.load_constants(&path, None).is_err());
 
         Ok(())
     }
 
     #[test]
     fn test_ambiguous_one_step() -> SimpleResult<()> {
-        // Tests ambiguity from loading a directory with two different names
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/ambiguous");
-
         // Immediately fails
-        assert!(DataNg::new().load_constants(&d, None).is_err());
+        assert!(DataNg::new().load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>(), None).is_err());
 
         Ok(())
     }
 
     #[test]
     fn test_prefix_resolves_ambiguity() -> SimpleResult<()> {
-        // Tests ambiguity from loading one, then loading a duplciate
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test1.csv");
+        // Tests ambiguity from loading one, then loading a duplicate
         let mut data = DataNg::new();
+        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
         // First time works
-        data.load_constants(&d, None)?;
+        data.load_constants(&path, None)?;
         assert_eq!(1, data.constants.len());
 
         // Second time fails, when bare
-        assert!(data.load_constants(&d, None).is_err());
+        assert!(data.load_constants(&path, None).is_err());
 
         // Second time works, when we give it a name
-        data.load_constants(&d, Some("MY_PREFIX"))?;
+        data.load_constants(&path, Some("MY_PREFIX"))?;
         assert_eq!(2, data.constants.len());
 
         Ok(())
@@ -398,19 +372,18 @@ mod tests {
     #[test]
     fn test_prefix_resolves_ambiguity_directory() -> SimpleResult<()> {
         // Tests ambiguity from loading one, then loading a duplciate
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/");
         let mut data = DataNg::new();
+        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants"].iter().collect::<PathBuf>();
 
         // First time works
-        data.load_constants(&d, None)?;
+        data.load_constants(&path, None)?;
         assert_eq!(3, data.constants.len());
 
         // Second time fails, when bare
-        assert!(data.load_constants(&d, None).is_err());
+        assert!(data.load_constants(&path, None).is_err());
 
         // Second time works, when we give it a name
-        data.load_constants(&d, Some("MY_PREFIX"))?;
+        data.load_constants(&path, Some("MY_PREFIX"))?;
         assert_eq!(6, data.constants.len());
 
         Ok(())

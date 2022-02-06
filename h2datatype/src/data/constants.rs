@@ -40,8 +40,11 @@ impl Constants {
         self.by_name.get(name)
     }
 
-    pub fn get_by_value(&self, value: &Integer) -> Option<&Vec<String>> {
-        self.by_value.get(value)
+    pub fn get_by_value(&self, value: &Integer) -> Vec<String> {
+        match self.by_value.get(value) {
+            Some(v) => v.to_owned(),
+            None => Vec::new(),
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -171,7 +174,7 @@ mod tests {
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(1i32)), constants.get_by_name("TEST3"));
 
-        let mut names = constants.get_by_value(&Integer::from(1u32)).unwrap().clone();
+        let mut names = constants.get_by_value(&Integer::from(1u32));
         names.sort();
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string(), "TEST3".to_string()], names);
 
@@ -181,10 +184,7 @@ mod tests {
     #[test]
     fn test_csv_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test1.csv");
-
-        let constants = Constants::load_from_csv_file(&d)?;
+        let constants = Constants::load_from_csv_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>())?;
 
         // Do all the same tests as test_csv()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
@@ -230,10 +230,7 @@ mod tests {
     #[test]
     fn test_json_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test2.json");
-
-        let constants = Constants::load_from_json_file(&d)?;
+        let constants = Constants::load_from_json_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>())?;
 
         // Do all the same tests as test_json()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
@@ -277,10 +274,7 @@ TEST5: 256";
     #[test]
     fn test_yaml_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/constants/test3.yaml");
-
-        let constants = Constants::load_from_yaml_file(&d)?;
+        let constants = Constants::load_from_yaml_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test3.yaml"].iter().collect::<PathBuf>())?;
 
         // Do all the same tests as test_yaml()
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));

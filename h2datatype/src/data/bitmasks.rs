@@ -229,10 +229,7 @@ mod tests {
     #[test]
     fn test_csv_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/bitmasks/test1.csv");
-
-        let bitmasks = Bitmasks::load_from_csv_file(&d)?;
+        let bitmasks = Bitmasks::load_from_csv_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/bitmasks/test1.csv"].iter().collect::<PathBuf>())?;
 
         // Do all the same tests as test_csv()
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -280,10 +277,7 @@ mod tests {
     #[test]
     fn test_json_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/bitmasks/test2.json");
-
-        let bitmasks = Bitmasks::load_from_json_file(&d)?;
+        let bitmasks = Bitmasks::load_from_json_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/bitmasks/test2.json"].iter().collect::<PathBuf>())?;
 
         // Do all the same tests as test_json()
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));
@@ -326,10 +320,7 @@ TEST3: 5";
     #[test]
     fn test_yaml_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/bitmasks/test3.yaml");
-
-        let bitmasks = Bitmasks::load_from_yaml_file(&d)?;
+        let bitmasks = Bitmasks::load_from_yaml_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/bitmasks/test3.yaml"].iter().collect::<PathBuf>())?;
 
         // Do all the same tests as test_yaml()
         assert_eq!(Some(Integer::from(0u32)), bitmasks.get_by_name("TEST1"));

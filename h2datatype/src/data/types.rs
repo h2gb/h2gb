@@ -46,9 +46,7 @@ mod tests {
     #[test]
     fn test_json_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/types/struct.json");
-        let constants = Types::load_from_json_file(&d)?;
+        let constants = Types::load_from_json_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/types/struct.json"].iter().collect::<PathBuf>())?;
 
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields
@@ -64,9 +62,7 @@ mod tests {
     #[test]
     fn test_yaml_file() -> SimpleResult<()> {
         // Load the data
-        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("testdata/types/struct.yaml");
-        let constants = Types::load_from_yaml_file(&d)?;
+        let constants = Types::load_from_yaml_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/types/struct.yaml"].iter().collect::<PathBuf>())?;
 
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields
