@@ -4,7 +4,6 @@ members = [
     "bumpy-vector",
     "generic-number",
     "h2datatype",
-    "h2data",
     "h2gb",
     "h2transformation",
 ]

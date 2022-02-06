@@ -5,7 +5,6 @@ edition = "2018"
 
 [dependencies]
 generic-number = { path = "../generic-number" }
-h2data         = { path = "../h2data" }
 
 # Serialization
 serde = { version = "~1.0.110", features = ["derive"] }
