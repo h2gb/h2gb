@@ -3,7 +3,7 @@ use simple_error::{SimpleResult, bail};
 
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, DataNg, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -20,12 +20,12 @@ pub struct H2Enum {
     /// The fallback renderer, for when the enum_type doesn't work
     fallback_renderer: IntegerRenderer,
 
-    /// The enum type, as loaded into the [`DataNg`] structure.
+    /// The enum type, as loaded into the [`Data`] structure.
     enum_type: String,
 }
 
 impl H2Enum {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &DataNg) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
         // Make sure the enum type exists
         if !data.enums.contains_key(enum_type) {
             bail!("No such Enum: {}", enum_type);
@@ -39,11 +39,11 @@ impl H2Enum {
 
     }
 
-    pub fn new(reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &DataNg) -> SimpleResult<H2Type> {
+    pub fn new(reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, reader, fallback_renderer, enum_type, data)
     }
 
-    fn render(&self, value: Integer, data: &DataNg) -> SimpleResult<String> {
+    fn render(&self, value: Integer, data: &Data) -> SimpleResult<String> {
         match data.lookup_enum(&self.enum_type, &value) {
             Ok(v) => {
                 match v.len() {
@@ -68,7 +68,7 @@ impl H2TypeTrait for H2Enum {
         Ok(self.reader.size())
     }
 
-    fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         self.render(self.reader.read(context)?, data)
     }
 
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_enum_reader() -> SimpleResult<()> {
-        let mut data = DataNg::new();
+        let mut data = Data::new();
         data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), None)?;
 
         let test_buffer = b"\x01\x64\xff\xff\x01\x00\x00\x00".to_vec();

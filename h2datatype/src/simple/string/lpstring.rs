@@ -4,7 +4,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, IntegerReader, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, DataNg};
+use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
 
 /// Defines a length-prefixed string.
 ///
@@ -61,7 +61,7 @@ impl H2TypeTrait for LPString {
         true
     }
 
-    fn to_string(&self, context: Context, _data: &DataNg) -> SimpleResult<String> {
+    fn to_string(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         // Get the length so we can truncate
         let (_, chars) = self.analyze(context)?;
 
@@ -69,7 +69,7 @@ impl H2TypeTrait for LPString {
         Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
     }
 
-    fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(context, data)?))
     }
 }
@@ -97,7 +97,7 @@ mod tests {
             CharacterReader::UTF8,
             CharacterFormatter::pretty_str_character(),
         )?;
-        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context, &DataNg::default())?);
+        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context, &Data::default())?);
 
         Ok(())
     }
@@ -114,11 +114,11 @@ mod tests {
         )?;
 
         // Ensure it can display
-        assert_eq!("\"\"", a.to_display(context, &DataNg::default())?);
+        assert_eq!("\"\"", a.to_display(context, &Data::default())?);
 
         // Ensure it can resolve (this was breaking due to the string being an
         // empty array)
-        a.resolve(context, None, &DataNg::default())?;
+        a.resolve(context, None, &Data::default())?;
 
         Ok(())
     }
@@ -133,7 +133,7 @@ mod tests {
             CharacterReader::UTF8,
             CharacterFormatter::pretty_str_character(),
         )?;
-        assert!(a.to_display(context, &DataNg::default()).is_err());
+        assert!(a.to_display(context, &Data::default()).is_err());
 
         Ok(())
     }
@@ -150,7 +150,7 @@ mod tests {
             CharacterFormatter::pretty_str_character(),
         )?;
 
-        let resolved = a.resolve(context, None, &DataNg::default())?;
+        let resolved = a.resolve(context, None, &Data::default())?;
 
         // The second child should be an array of the characters
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
@@ -171,7 +171,7 @@ mod tests {
         )?)?;
 
         assert_eq!(12, t.base_size(context)?);
-        assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(context, &DataNg::default())?);
+        assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(context, &Data::default())?);
 
         Ok(())
     }
@@ -182,7 +182,7 @@ mod tests {
         let context = Context::new(&data);
 
         let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
-        assert_eq!("\"A\\x10\\t\"", a.to_display(context, &DataNg::default())?);
+        assert_eq!("\"A\\x10\\t\"", a.to_display(context, &Data::default())?);
 
         let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new_character(
                 false, // show_single_quotes
@@ -190,7 +190,7 @@ mod tests {
                 CharacterUnprintableOption::URLEncode,
 
         ))?;
-        assert_eq!("\"%41%10%09\"", a.to_display(context, &DataNg::default())?);
+        assert_eq!("\"%41%10%09\"", a.to_display(context, &Data::default())?);
 
         Ok(())
     }

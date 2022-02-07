@@ -3,7 +3,7 @@ use simple_error::{SimpleResult, bail};
 
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, DataNg, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -20,7 +20,7 @@ pub struct H2Bitmask {
     /// The unknown renderer, for when the value isn't found
     unknown_renderer: Option<IntegerRenderer>,
 
-    /// The bitmask type, as loaded into the [`DataNg`] structure
+    /// The bitmask type, as loaded into the [`Data`] structure
     bitmask_type: String,
 
     /// Show negative bitmask elements?
@@ -28,7 +28,7 @@ pub struct H2Bitmask {
 }
 
 impl H2Bitmask {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &DataNg) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
         // Make sure the bitmask type exists
         if !data.bitmasks.contains_key(bitmask_type) {
             bail!("No such Bitmask: {}", bitmask_type);
@@ -43,17 +43,17 @@ impl H2Bitmask {
 
     }
 
-    pub fn new(reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &DataNg) -> SimpleResult<H2Type> {
+    pub fn new(reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, reader, unknown_renderer, bitmask_type, show_negative, data)
     }
 
-    fn render(&self, value: Integer, data: &DataNg) -> SimpleResult<String> {
+    fn render(&self, value: Integer, data: &Data) -> SimpleResult<String> {
         let unknown_renderer = self.unknown_renderer.map(|r| ("Unknown_", r));
 
         match data.lookup_bitmask(&self.bitmask_type, &value, unknown_renderer, self.show_negative) {
             Ok(v) => {
                 if v.len() == 0 {
-                    Ok(format!("{}::(none)", self.bitmask_type))
+                    Ok("(n/a)".to_string())
                 } else {
                     Ok(v.join(" | "))
                 }
@@ -68,7 +68,7 @@ impl H2TypeTrait for H2Bitmask {
         Ok(self.reader.size())
     }
 
-    fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         self.render(self.reader.read(context)?, data)
     }
 
@@ -81,45 +81,53 @@ impl H2TypeTrait for H2Bitmask {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use simple_error::SimpleResult;
-//     use generic_number::{Context, IntegerReader, Endian};
-//     use pretty_assertions::assert_eq;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn test_bitmask_reader() -> SimpleResult<()> {
-//         let test_buffer = b"\x00\x00\x00\x01\x00\x02\x00\x03\x80\x01".to_vec();
-//         let context = Context::new(&test_buffer);
+    use std::path::PathBuf;
 
-//         let tests = vec![
-//           // offset  show_negative  expected
-//             (0,      false,         "(n/a)"),
-//             (2,      false,         "HIDE_SLOT_HEAD"),
-//             (4,      false,         "HIDE_SLOT_BODY"),
-//             (6,      false,         "HIDE_SLOT_HEAD | HIDE_SLOT_BODY"),
+    use simple_error::SimpleResult;
+    use generic_number::{Context, IntegerReader, Endian, HexFormatter};
+    use pretty_assertions::assert_eq;
 
-//             // With negatives
-//             (2,      true,          "HIDE_SLOT_HEAD | ~HIDE_SLOT_BODY | ~HIDE_SLOT_LEGS | ~HIDE_SLOT_ACCESSORY1 | ~HIDE_SLOT_ACCESSORY2 | ~HIDE_SLOT_ACCESSORY3 | ~HIDE_SLOT_ACCESSORY4 | ~HIDE_SLOT_ACCESSORY5 | ~HIDE_SLOT_ACCESSORY6 | ~HIDE_SLOT_ACCESSORY8"),
+    #[test]
+    fn test_bitmask_reader() -> SimpleResult<()> {
+        let mut data = Data::new();
+        data.load_bitmasks(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/visibility.csv"].iter().collect::<PathBuf>(), Some("Terraria"))?;
 
-//             // With an unknown value
-//             (8,      false,         "HIDE_SLOT_HEAD | Unknown_0x8000"),
-//         ];
+        let test_buffer = b"\x00\x00\x00\x01\x00\x02\x00\x03\x80\x01".to_vec();
+        let context = Context::new(&test_buffer);
 
-//         for (o, show_negative, expected) in tests {
-//             let t = H2Bitmask::new(
-//                 IntegerReader::U16(Endian::Big),
-//                 "TerrariaVisibility",
-//                 show_negative,
-//             )?;
+        let tests = vec![
+          // offset  show_negative  expected
+            (0,      false,         "(n/a)"),
+            (2,      false,         "HIDE_SLOT_HEAD"),
+            (4,      false,         "HIDE_SLOT_BODY"),
+            (6,      false,         "HIDE_SLOT_HEAD | HIDE_SLOT_BODY"),
 
-//             assert_eq!(
-//                 expected,
-//                 t.to_display(context.at(o), &DataNg::default())?,
-//             );
-//         }
+            // With negatives
+            (2,      true,          "HIDE_SLOT_HEAD | ~HIDE_SLOT_BODY | ~HIDE_SLOT_LEGS | ~HIDE_SLOT_ACCESSORY1 | ~HIDE_SLOT_ACCESSORY2 | ~HIDE_SLOT_ACCESSORY3 | ~HIDE_SLOT_ACCESSORY4 | ~HIDE_SLOT_ACCESSORY5 | ~HIDE_SLOT_ACCESSORY6 | ~HIDE_SLOT_ACCESSORY8"),
 
-//         Ok(())
-//     }
-// }
+            // With an unknown value
+            (8,      false,         "HIDE_SLOT_HEAD | Unknown_0x00008000"),
+        ];
+
+        for (o, show_negative, expected) in tests {
+            let t = H2Bitmask::new(
+                IntegerReader::U16(Endian::Big),
+                Some(HexFormatter::pretty_integer()),
+                "Terraria::visibility",
+                show_negative,
+                &data
+            )?;
+
+            assert_eq!(
+                expected,
+                t.to_display(context.at(o), &data)?,
+            );
+        }
+
+        Ok(())
+    }
+}

@@ -2,11 +2,11 @@ use redo::Record;
 use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
-use h2datatype::{DataNg, H2Type, ResolvedType};
+use h2datatype::{Data, H2Type, ResolvedType};
 
 use crate::actions::*;
 
-pub fn peek_entry(record: &mut Record<Action>, buffer: &str, datatype: &H2Type, offset: usize, data: &DataNg) -> SimpleResult<ResolvedType> {
+pub fn peek_entry(record: &mut Record<Action>, buffer: &str, datatype: &H2Type, offset: usize, data: &Data) -> SimpleResult<ResolvedType> {
     record.target().buffer_get_or_err(buffer)?.peek(&datatype, offset, data)
 }
 
@@ -31,7 +31,7 @@ pub fn add_comment(record: &mut Record<Action>, buffer: &str, layer: &str, offse
     record.apply(ActionEntrySetComment::new(buffer, layer, offset, Some(comment.to_string())))
 }
 
-pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &DataNg) -> SimpleResult<ResolvedType> {
+pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &Data) -> SimpleResult<ResolvedType> {
     // Resolve the entry
     let resolved = peek_entry(record, buffer, datatype, offset, data)?;
 
@@ -43,7 +43,7 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
 
 /// This is a helper function that creates a record, then returns it as an
 /// [`Integer`] - I found myself doing this a lot.
-pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &DataNg) -> SimpleResult<Integer> {
+pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &Data) -> SimpleResult<Integer> {
     if !datatype.can_be_integer() {
         bail!("Attempting to create a numeric entry from a non-numeric datatype: {:?}", datatype);
     }
@@ -55,7 +55,7 @@ pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &s
 
 /// This is a helper function that creates a record, then returns it as a simple
 /// String - I found myself doing this a lot.
-pub fn create_entry_string(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &DataNg) -> SimpleResult<String> {
+pub fn create_entry_string(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &Data) -> SimpleResult<String> {
     if !datatype.can_be_string() {
         bail!("Attempting to create a string entry from a non-string datatype: {:?}", datatype);
     }

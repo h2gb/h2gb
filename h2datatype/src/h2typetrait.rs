@@ -3,7 +3,7 @@ use std::ops::Range;
 
 use generic_number::{Context, Integer, Float, Character};
 
-use crate::{Alignment, DataNg, ResolvedType, H2Type};
+use crate::{Alignment, Data, ResolvedType, H2Type};
 
 /// The core trait that makes a type into a type. All types must implement this.
 ///
@@ -80,7 +80,7 @@ pub trait H2TypeTrait {
     ///
     /// This String value is ultimately what is displayed by users, and should
     /// have any formatting that a user would want to see.
-    fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String>;
+    fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String>;
 
     /// Get "related" values - ie, what a pointer points to.
     fn related(&self, _context: Context) -> SimpleResult<Vec<(usize, H2Type)>> {
@@ -144,7 +144,7 @@ pub trait H2TypeTrait {
     ///
     /// A resolved type has all the values calculated, and is therefore very
     /// quick to use.
-    fn resolve(&self, context: Context, alignment: Alignment, field_name_override: Option<String>, data: &DataNg) -> SimpleResult<ResolvedType> {
+    fn resolve(&self, context: Context, alignment: Alignment, field_name_override: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
         Ok(ResolvedType {
             actual_range: self.range(context, Alignment::None)?,
             aligned_range: self.range(context, alignment)?,
@@ -176,7 +176,7 @@ pub trait H2TypeTrait {
     }
 
     /// Convert to a [`String`], if it's sensible for this type.
-    fn to_string(&self, _context: Context, _data: &DataNg) -> SimpleResult<String> {
+    fn to_string(&self, _context: Context, _data: &Data) -> SimpleResult<String> {
         bail!("This type cannot be converted to a string");
     }
 

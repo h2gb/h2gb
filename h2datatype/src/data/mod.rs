@@ -21,15 +21,15 @@
 //!
 //! ## Loading
 //!
-//! In general, you'll want a single instance of [`DataNg`] for the application,
+//! In general, you'll want a single instance of [`Data`] for the application,
 //! to load data into it at startup, and to pass it around as needed.
 //!
 //! To load initially, use the various load functions:
 //!
-//! * [`DataNg::load_constants`]
-//! * [`DataNg::load_enums`]
-//! * [`DataNg::load_bitmasks`]
-//! * [`DataNg::load_types`]
+//! * [`Data::load_constants`]
+//! * [`Data::load_enums`]
+//! * [`Data::load_bitmasks`]
+//! * [`Data::load_types`]
 //!
 //! Those functions all take a [`&Path`] argument, which is the path to load.
 //! That can either be a filename or a directory. If it's a directory, it will
@@ -102,16 +102,16 @@ impl FileType {
     }
 }
 
-/// The core [`DataNg`] struct, which holds all data data that has been loaded.
+/// The core [`Data`] struct, which holds all data data that has been loaded.
 #[derive(Debug, Default)]
-pub struct DataNg {
+pub struct Data {
     pub constants: HashMap<String, Constants>,
     pub enums:     HashMap<String, Enums>,
     pub bitmasks:  HashMap<String, Bitmasks>,
     pub types:     HashMap<String, Types>,
 }
 
-impl DataNg {
+impl Data {
     /// Create a new, empty instance.
     pub fn new() -> Self {
         Self {
@@ -304,7 +304,7 @@ mod tests {
     #[test]
     fn test_load_file() -> SimpleResult<()> {
 
-        let mut data = DataNg::new();
+        let mut data = Data::new();
         data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_load_directory() -> SimpleResult<()> {
-        let mut data = DataNg::new();
+        let mut data = Data::new();
         data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
@@ -364,7 +364,7 @@ mod tests {
 
     #[test]
     fn test_deeply_nested() -> SimpleResult<()> {
-        let mut data = DataNg::new();
+        let mut data = Data::new();
         data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>(), None)?;
 
         // Make sure the output is sensible
@@ -381,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_prefix() -> SimpleResult<()> {
-        let mut data = DataNg::new();
+        let mut data = Data::new();
         data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), Some("MY_PREFIX"))?;
 
         // Make sure the output is sensible
@@ -399,7 +399,7 @@ mod tests {
     #[test]
     fn test_ambiguous_two_steps() -> SimpleResult<()> {
         // Tests ambiguity from loading one, then loading a duplciate
-        let mut data = DataNg::new();
+        let mut data = Data::new();
 
         let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
@@ -413,7 +413,7 @@ mod tests {
     #[test]
     fn test_ambiguous_one_step() -> SimpleResult<()> {
         // Immediately fails
-        assert!(DataNg::new().load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>(), None).is_err());
+        assert!(Data::new().load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>(), None).is_err());
 
         Ok(())
     }
@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn test_prefix_resolves_ambiguity() -> SimpleResult<()> {
         // Tests ambiguity from loading one, then loading a duplicate
-        let mut data = DataNg::new();
+        let mut data = Data::new();
         let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
         // First time works
@@ -441,7 +441,7 @@ mod tests {
     #[test]
     fn test_prefix_resolves_ambiguity_directory() -> SimpleResult<()> {
         // Tests ambiguity from loading one, then loading a duplciate
-        let mut data = DataNg::new();
+        let mut data = Data::new();
         let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants"].iter().collect::<PathBuf>();
 
         // First time works

@@ -10,7 +10,7 @@ use hhmmss::Hhmmss;
 
 use h2transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 
-use h2datatype::{DataNg, H2Type};
+use h2datatype::{Data, H2Type};
 use h2datatype::simple::{H2Bitmask, H2Enum, Rgb};
 use h2datatype::simple::numeric::H2Integer;
 use h2datatype::simple::string::{H2String, LPString};
@@ -64,8 +64,8 @@ struct TerrariaOffsets {
 }
 
 lazy_static! {
-    static ref DATA: DataNg = {
-        let mut data: DataNg = DataNg::new();
+    static ref DATA: Data = {
+        let mut data: Data = Data::new();
 
         data.load_enums(   &[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/enums"   ].iter().collect::<PathBuf>(), Some("TERRARIA")).unwrap();
         data.load_bitmasks(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/bitmasks"].iter().collect::<PathBuf>(), Some("TERRARIA")).unwrap();

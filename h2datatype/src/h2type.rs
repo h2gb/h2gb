@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use generic_number::{Context, Integer, Float, Character};
 
-use crate::{H2TypeTrait, Alignment, DataNg, ResolvedType};
+use crate::{H2TypeTrait, Alignment, Data, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
 use crate::simple::numeric::*;
@@ -153,12 +153,12 @@ impl H2Type {
     /// Once a type is resolved, the size, range, data, string value, and so on
     /// are "written in stone", so to speak, which means they no longer need to
     /// be calculated.
-    pub fn resolve(&self, context: Context, name: Option<String>, data: &DataNg) -> SimpleResult<ResolvedType> {
+    pub fn resolve(&self, context: Context, name: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
         self.field_type().resolve(context, self.alignment, name, data)
     }
 
     /// Get a user-consumeable string
-    pub fn to_display(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
+    pub fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         self.field_type().to_display(context, data)
     }
 
@@ -168,7 +168,7 @@ impl H2Type {
     }
 
     /// Try to convert to a [`String`].
-    pub fn to_string(&self, context: Context, data: &DataNg) -> SimpleResult<String> {
+    pub fn to_string(&self, context: Context, data: &Data) -> SimpleResult<String> {
         self.field_type().to_string(context, data)
     }
 
