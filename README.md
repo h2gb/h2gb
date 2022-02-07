@@ -23,9 +23,7 @@ License: MIT
 
 * [generic-number/src](/generic-number/src/README.md) - A library for reading and formatting differently-sized integers and floats.
 
-* [h2data/src](/h2data/src/README.md) - A library for loading data that analyzers and users can consume.
-
-* [h2datatype/src](/h2datatype/src/README.md) - A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
+* [h2datatype/src/data](/h2datatype/src/data/README.md) - Pre-canned datatypes for easier analysis.
 
 * [h2gb/src/analyzer](/h2gb/src/analyzer/README.md) - So far, this is a simple demonstration of what we can do
 

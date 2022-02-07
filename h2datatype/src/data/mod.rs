@@ -1,3 +1,47 @@
+//! Pre-canned datatypes for easier analysis.
+//!
+//! This module is a layer designed for accessing information that is stored on-
+//! disk. Definitions of constants, lists of enums, stuff like that.
+//!
+//! As of writing, we support the following datatypes:
+//!
+//! * Constants - a group of named values, grouped under a single filename
+//! * Enums - a group of named values, usually unique, and usually incremental values
+//! * Bitmasks - a group of values that each represent a bit in an integer
+//! * Types - a single datatype
+//!
+//! With some limitations, they can be loaded from any of these file types:
+//!
+//! * YAML
+//! * JSON
+//! * CSV
+//!
+//! Types cannot use CSV, and enums can only have incremental values
+//! (automatically generated) in CSV format, since YAML and JSON are unordered.
+//!
+//! ## Loading
+//!
+//! In general, you'll want a single instance of [`DataNg`] for the application,
+//! to load data into it at startup, and to pass it around as needed.
+//!
+//! To load initially, use the various load functions:
+//!
+//! * [`DataNg::load_constants`]
+//! * [`DataNg::load_enums`]
+//! * [`DataNg::load_bitmasks`]
+//! * [`DataNg::load_types`]
+//!
+//! Those functions all take a [`&Path`] argument, which is the path to load.
+//! That can either be a filename or a directory. If it's a directory, it will
+//! recurse to find files. The extensions of the files determine how the file is
+//! parsed.
+//!
+//! The loaded data will be named based on the filename is it loaded from, which
+//! must be unique. The optional `prefix` string can be used to ensure
+//! uniqueness, since it renames it to `<prefix>::<filename>`.
+//!
+//! The various `list_*` and `lookup_*` functions can be used to retrieve data.
+
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -58,6 +102,7 @@ impl FileType {
     }
 }
 
+/// The core [`DataNg`] struct, which holds all data data that has been loaded.
 #[derive(Debug, Default)]
 pub struct DataNg {
     pub constants: HashMap<String, Constants>,
@@ -67,6 +112,7 @@ pub struct DataNg {
 }
 
 impl DataNg {
+    /// Create a new, empty instance.
     pub fn new() -> Self {
         Self {
             constants: HashMap::new(),
@@ -76,6 +122,9 @@ impl DataNg {
         }
     }
 
+    /// Get the name from the path.
+    ///
+    /// Returns the filename with no path and no extension.
     fn get_name(path: &Path, prefix: Option<&str>) -> SimpleResult<String> {
         let file = match path.file_stem() {
             Some(file) => {
@@ -90,7 +139,7 @@ impl DataNg {
         }
     }
 
-    /// Internal function to load any [`DataTrait`] type.
+    /// Internal function to load any [`DataTrait`] type form a file or folder.
     fn load<T: DataTrait>(path: &Path, prefix: Option<&str>) -> SimpleResult<Vec<(String, T)>> {
         // This is kinda clunky, but it ensures that we don't have duplicates
         // within a set
@@ -170,16 +219,21 @@ impl DataNg {
     /// Supports: YAML, JSON (based on extension) - does not support CSV
     pub fn load_types(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
         if let Err(e) = extend_no_duplicates(&mut self.types, Self::load(path, prefix)?) {
-            bail!("Could not load enums from {:?}: {}", path, e);
+            bail!("Could not load types from {:?}: {}", path, e);
         }
 
         Ok(self)
     }
 
+    /// Get the names of all available enums
     pub fn list_enums(&self) -> Vec<&str> {
         self.enums.keys().into_iter().map(|s| &s[..]).collect()
     }
 
+    /// Find a specific value in an enum based on an [`Integer`].
+    ///
+    /// Empty list means no value was found, an `Err` is returned if the name does
+    /// not exist.
     pub fn lookup_enum(&self, enum_name: &str, value: &Integer) -> SimpleResult<Vec<String>> {
         match self.enums.get(enum_name) {
             Some(e) => Ok(e.get_by_value(value)),
@@ -187,10 +241,18 @@ impl DataNg {
         }
     }
 
+    /// Get the names of all available bitmasks
     pub fn list_bitmasks(&self) -> Vec<&str> {
         self.bitmasks.keys().into_iter().map(|s| &s[..]).collect()
     }
 
+    /// Find a specific bitmask matches based on an [`Integer`].
+    ///
+    /// An optional `unknown_renderer` can be supplied, which will be used to
+    /// render unknown values using the (prefix, renderer) tuple.
+    ///
+    /// Additionally, "negative" matches can be included. That means that the
+    /// output will look like `X | Y | ~Z`)
     pub fn lookup_bitmask(&self, bitmask_name: &str, value: &Integer, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
         match self.bitmasks.get(bitmask_name) {
             Some(e) => Ok(e.get_by_value(value, unknown_renderer, show_negatives)),
@@ -198,10 +260,15 @@ impl DataNg {
         }
     }
 
+    /// Get the names of all available groups of constants
     pub fn list_constant_groups(&self) -> Vec<&str> {
         self.constants.keys().into_iter().map(|s| &s[..]).collect()
     }
 
+    /// Find a specific constant or constants based on an [`Integer`].
+    ///
+    /// Empty list means no value was found, an `Err` is returned if the name does
+    /// not exist.
     pub fn lookup_constant(&self, constant_group: &str, value: &Integer) -> SimpleResult<Vec<String>> {
         match self.constants.get(constant_group) {
             Some(e) => Ok(e.get_by_value(value)),
@@ -209,10 +276,12 @@ impl DataNg {
         }
     }
 
+    /// Get the names of all available types.
     pub fn list_types(&self) -> Vec<&str> {
         self.types.keys().into_iter().map(|s| &s[..]).collect()
     }
 
+    /// Find a specific type by name.
     pub fn lookup_type(&self, type_name: &str) -> SimpleResult<&H2Type> {
         match self.types.get(type_name) {
             Some(t) => Ok(t.get()),
