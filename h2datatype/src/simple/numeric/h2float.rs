@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Float, FloatReader, FloatRenderer};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -42,7 +42,7 @@ impl H2TypeTrait for H2Float {
         Ok(self.reader.size())
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         Ok(self.renderer.render(self.to_float(context)?))
     }
 
@@ -71,7 +71,7 @@ mod tests {
 
         let t = H2Float::new(FloatReader::F32(Endian::Big), DefaultFormatter::new_float());
 
-        assert_eq!("3.14", t.to_display(Context::new_at(&data, 0))?);
+        assert_eq!("3.14", t.to_display(Context::new_at(&data, 0), &Data::default())?);
         assert_eq!(4,      t.base_size(Context::new_at(&data, 0))?);
 
         Ok(())
@@ -82,7 +82,7 @@ mod tests {
         // Should be ~3.14
         let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f".to_vec();
 
-        assert_eq!("3.14", H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new_float()).to_display(Context::new_at(&data, 0))?);
+        assert_eq!("3.14", H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new_float()).to_display(Context::new_at(&data, 0), &Data::default())?);
         assert_eq!(8,      H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new_float()).base_size(Context::new_at(&data, 0))?);
 
         Ok(())

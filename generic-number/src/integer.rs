@@ -1,18 +1,62 @@
 use serde::{Serialize, Deserialize};
-use simple_error::{SimpleResult, bail};
+use simple_error::{SimpleError, SimpleResult, bail};
 use std::{fmt, mem};
-use std::cmp::Ordering;
+use std::str::FromStr;
+use std::hash::{Hash, Hasher};
 
 /// A number that can be any of the primitive integer types.
 ///
 /// The goal of creating this enum is to wrap around *any* integer type, with
 /// serialize, deserialize, and easy conversion / rendering.
 ///
-/// Typically, you'd use a [`crate::IntegerReader`] to create an
-/// [`Integer`], then a formatter such as [`crate::HexFormatter`] to render it.
+/// # Creation
 ///
-/// This class can also safely convert to [`usize`] and [`isize`], based on the
-/// actual size on the host system.
+/// An [`Integer`] can be created in a bunch of different ways depending on
+/// your needs.
+///
+/// The simplest way is using the [`From`] trait - `Integer::From(1u8)` for
+/// example.
+///
+/// The most common way in `h2gb` is by using a [`crate::IntegerReader`], which
+/// reads an [`Integer`] from a [`crate::Context`], which represents binary
+/// data.
+///
+/// This also implements [`str::FromStr`], allowing numbers to be read from
+/// a string. When possible it'll convert things to a [`usize`] or [`isize`],
+/// falling back to larger datatypes as needed. We also support radix prefixes
+/// - specifically, `0x` for hex, `0b` for binary, and `0o` for octal. We
+/// anticipate using those to store configurations.
+///
+/// # Usage
+///
+/// Integers are generally displayed using a formatter such as
+/// [`crate::HexFormatter`], which renders a number with a bunch of formatting
+/// options.
+///
+/// More importantly, this implements the whole suite of comparison and ordering
+/// traits - `Eq`, `PartialEq`, `Ord`, and so on. Unlike standard Rust, this
+/// will endeavour to compare types of different sizes by converting them to the
+/// best shared size - as always, [`usize`] and [`isize`] if possible.
+///
+/// While this is helpful when analyzing binaries in `h2gb`, I probably wouldn't
+/// use this with normal programming - there's a reason Rust strongly types
+/// stuff!
+///
+/// # Note on mixed signedness
+///
+/// When comparing numbers, they are always compared as unsigned u128 values.
+/// That means that equations like this technically work:
+///
+/// ```
+/// use generic_number::*;
+///
+/// assert!(Integer::from(1i8) == Integer::from(1i8));
+/// assert!(Integer::from(-1i8) == Integer::from(-1i8));
+/// assert!(Integer::from(-1i8) == Integer::from(0xffffffffffffffffffffffffffffffffu128));
+/// ```
+///
+/// We no longer implement ordering, because ordering signed and unsigned
+/// numbers together is basically impossible to do sanely.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Integer {
     U8(u8),
@@ -27,6 +71,7 @@ pub enum Integer {
     I16(i16),
     I32(i32),
     I64(i64),
+
     I128(i128),
     ISize(isize),
 }
@@ -189,32 +234,56 @@ impl Integer {
         }
     }
 
-    /// Private function used internally
-    fn as_i128(self) -> Option<i128> {
+    /// Convert to a u128.
+    ///
+    /// Used for comparisons, arithmetic, etc.
+    pub fn as_u128(self) -> u128 {
         match self {
-            Self::I8(v)    => Some(v as i128),
-            Self::I16(v)   => Some(v as i128),
-            Self::I32(v)   => Some(v as i128),
-            Self::I64(v)   => Some(v as i128),
-            Self::I128(v)  => Some(v as i128),
-            Self::ISize(v) => Some(v as i128),
-
-            _              => None,
+            Self::U8(v)        => v as u128,
+            Self::U16(v)       => v as u128,
+            Self::U24(msb,lsb) => ((msb as u128)) << 16 | (lsb as u128),
+            Self::U32(v)       => v as u128,
+            Self::U64(v)       => v as u128,
+            Self::U128(v)      => v as u128,
+            Self::USize(v)     => v as u128,
+            Self::I8(v)        => v as u128,
+            Self::I16(v)       => v as u128,
+            Self::I32(v)       => v as u128,
+            Self::I64(v)       => v as u128,
+            Self::I128(v)      => v as u128,
+            Self::ISize(v)     => v as u128,
         }
     }
 
-    /// Private function used internally
-    fn as_u128(self) -> Option<u128> {
-        match self {
-            Self::U8(v)        => Some(v as u128),
-            Self::U16(v)       => Some(v as u128),
-            Self::U24(msb,lsb) => Some(((msb as u128)) << 16 | (lsb as u128)),
-            Self::U32(v)       => Some(v as u128),
-            Self::U64(v)       => Some(v as u128),
-            Self::U128(v)      => Some(v as u128),
-            Self::USize(v)     => Some(v as u128),
-            _                  => None,
-        }
+    /// Increment the value
+    #[must_use] // So users don't assume this is mutable
+    pub fn increment(self) -> Option<Self> {
+        Some(match self {
+            Self::U8(v)        => Self::from(v.checked_add(1)?),
+            Self::U16(v)       => Self::from(v.checked_add(1)?),
+            Self::U24(_,_) => {
+                // We have to handle U24 specially, unfortunately
+                let i = self.as_u128() + 1;
+                if i > 0x00FFFFFF {
+                    return None;
+                }
+
+                Self::from((
+                        ((i as u32) >> 16 & 0x000000FF) as u8, // MSB
+                        ((i as u32) & 0x0000FFFFu32) as u16,   // LSB
+                ))
+            },
+            Self::U32(v)       => Self::from(v.checked_add(1)?),
+            Self::U64(v)       => Self::from(v.checked_add(1)?),
+            Self::U128(v)      => Self::from(v.checked_add(1)?),
+            Self::USize(v)     => Self::from(v.checked_add(1)?),
+            Self::I8(v)        => Self::from(v.checked_add(1)?),
+            Self::I16(v)       => Self::from(v.checked_add(1)?),
+            Self::I32(v)       => Self::from(v.checked_add(1)?),
+            Self::I64(v)       => Self::from(v.checked_add(1)?),
+            Self::I128(v)      => Self::from(v.checked_add(1)?),
+            Self::ISize(v)     => Self::from(v.checked_add(1)?),
+        })
     }
 }
 
@@ -367,29 +436,7 @@ impl fmt::Binary for Integer {
 
 impl PartialEq for Integer {
     fn eq(&self, other: &Self) -> bool {
-        if self.can_be_usize() && other.can_be_usize() {
-            // Try to compare as usize
-            self.as_usize() == other.as_usize()
-
-        } else if self.can_be_isize() && other.can_be_isize() {
-            // Try to compare as isize
-            self.as_isize() == other.as_isize()
-
-        } else if self.is_signed() && other.is_signed() {
-            let v1 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-
-            v1 == v2
-
-        } else if !self.is_signed() && !other.is_signed() {
-            let v1 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-
-            v1 == v2
-        } else {
-            // If one is signed and the other is unsigned, there's simply nothing we can do
-            false
-        }
+        self.as_u128().eq(&other.as_u128())
     }
 }
 
@@ -397,36 +444,97 @@ impl Eq for Integer {
     // Automatically uses PartialEq
 }
 
-impl PartialOrd for Integer {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.can_be_usize() && other.can_be_usize() {
-            // Try to compare as usize
-            self.as_usize().unwrap().partial_cmp(&other.as_usize().unwrap())
+impl Hash for Integer {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_u128().hash(state)
+    }
+}
 
-        } else if self.can_be_isize() && other.can_be_isize() {
-            // Try to compare as isize
-            self.as_isize().unwrap().partial_cmp(&other.as_isize().unwrap())
+// I decided not to implement PartialOrd at all - nothing was depending on it,
+// and comparing signed with unsigned values was harrowingly weird. :)
+// impl PartialOrd for Integer {
+//     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+//         // Try to compare as signed
+//         if let Some(a) = self.as_i128() {
+//             if let Some(b) = other.as_i128() {
+//                 return a.partial_cmp(&b);
+//             }
+//         }
 
-        } else if self.is_signed() && other.is_signed() {
-            let v1 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_i128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
+//         // If we can't compare as signed, compare as unsigned
+//         self.as_u128().partial_cmp(&other.as_u128())
+//     }
+// }
 
-            v1.partial_cmp(&v2)
+impl FromStr for Integer {
+    type Err = SimpleError;
 
-        } else if !self.is_signed() && !other.is_signed() {
-            let v1 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-            let v2 = self.as_u128().unwrap_or_else(|| panic!("Serious signed/unsigned problem in GenericNumber"));
-
-            v1.partial_cmp(&v2)
+    fn from_str(s: &str) -> Result<Self, <Self as FromStr>::Err> {
+        // Handle other types
+        let (radix, s) = if s.len() > 2 {
+            match &s[0..2] {
+                "0b" => (2,  &s[2..]), // Binary
+                "0o" => (8,  &s[2..]), // Octal
+                "0x" => (16, &s[2..]), // Hex
+                _    => (10, s),
+            }
         } else {
-            // If one is signed and the other is unsigned, there's simply nothing we can do
-            None
+            (10, s)
+        };
+
+        // Try usize/isize first
+        let i = usize::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
         }
+
+        let i = isize::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Try u64/i64
+        let i = u64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        let i = i64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Try u64/i64
+        let i = u64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        let i = i64::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Not sure if we really need to, but try u128/i128
+        let i = u128::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        let i = i128::from_str_radix(s, radix).map(|i| Integer::from(i));
+        if let Ok(i) = i {
+            return Ok(i)
+        }
+
+        // Give up
+        bail!("String does not appear to be a valid integer: {}", s);
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use pretty_assertions::{assert_eq, assert_ne};
     use simple_error::SimpleResult;
 
@@ -515,15 +623,24 @@ mod tests {
         assert_eq!(Integer::from(0i8), Integer::from(0i64));
         assert_eq!(Integer::from(0i8), Integer::from(0i128));
 
-        // Signed -> unsigned (never equal)
-        assert_ne!(Integer::from(0u8), Integer::from(0i8));
-        assert_ne!(Integer::from(0u8), Integer::from(0i128));
+        // Signed -> unsigned should still be equal
+        assert_eq!(Integer::from(0u8), Integer::from(0i8));
+        assert_eq!(Integer::from(0u8), Integer::from(0i64));
 
-        // Test ordering
-        assert!(Integer::from(0u8)  < Integer::from(1u32));
-        assert!(Integer::from(0u32) < Integer::from(1u8));
-        assert!(Integer::from(1u8)  > Integer::from(0u32));
-        assert!(Integer::from(1u32) > Integer::from(0u8));
+        // We accept that signed/unsigned comparisons can be a bit weird
+        assert_eq!(Integer::from(-1i8), Integer::from(0xffffffffffffffffffffffffffffffffu128));
+
+        // But that shouldn't affect most comparisons
+        // Note that these are NE!!
+        assert_ne!(Integer::from(0x80u8), Integer::from(-128i8));
+        assert_ne!(Integer::from(-1i16),  Integer::from(0xffffu16));
+
+        // Ordering no longer works, it was too weird
+        // assert!(Integer::from(0u8)  < Integer::from(1u32));
+        // assert!(Integer::from(0u32) < Integer::from(1u8));
+        // assert!(Integer::from(1u8)  > Integer::from(0u32));
+        // assert!(Integer::from(1u32) > Integer::from(0u8));
+        // assert!(Integer::from(-1i8) < Integer::from(1i8));
 
         Ok(())
     }
@@ -551,6 +668,65 @@ mod tests {
 
             assert_eq!(Integer::from(expected), reader.read(c)?);
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_from_str() -> SimpleResult<()> {
+        let tests = vec![
+            // string                  expected
+            (  "1",                    Integer::from(1u8)), // <-- the Eq implementation means we can vary the types
+            (  "1",                    Integer::from(1usize)),
+
+            (  "-1",                   Integer::from(-1)),
+            (  "-65535",               Integer::from(-65535)),
+
+            (  "255",                  Integer::from(0xffusize)),
+            (  "65535",                Integer::from(0xffffu32)),
+            (  "18446744073709551615", Integer::from(0xffffffffffffffffu64)),
+            (  "79228162514264337593543950335", Integer::from(0xffffffffffffffffffffffffu128)),
+
+            (  "0xff",                 Integer::from(0xffu32)),
+            (  "0xf",                  Integer::from(0xfu32)),
+
+            (  "0o777",                Integer::from(511u32)),
+            (  "0b1111",               Integer::from(15u32)),
+
+        ];
+
+        for (s, expected) in tests {
+            assert_eq!(Integer::from_str(s)?, expected);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_increment() -> SimpleResult<()> {
+        // Test normal stuff
+        let i = Integer::from(1u8);
+        assert_eq!(Some(Integer::from(2u8)), i.increment());
+
+        // Test overflow
+        let i = Integer::from(255u8);
+        assert_eq!(None, i.increment());
+
+        // Test u24, because it's special
+        let i = Integer::from((0x00u8, 0x0000u16));
+        assert_eq!(Some(Integer::from(0x000001u32)), i.increment());
+
+        // Just a middling u24 value
+        let i = Integer::from((0x12u8, 0x1234u16));
+        assert_eq!(Some(Integer::from(0x121235u32)), i.increment());
+
+        // Test first overflow
+        let i = Integer::from((0x00u8, 0xFFFFu16));
+        assert_eq!(Some(Integer::from(0x010000u32)), i.increment());
+
+        // But what about second overflow?
+        let i = Integer::from((0xFFu8, 0xFFFFu16));
+        assert_eq!(None, i.increment());
 
         Ok(())
     }

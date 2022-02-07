@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 use generic_number::{Context, Endian};
 use std::net::Ipv4Addr;
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines an IPv4 address.
 ///
@@ -32,7 +32,7 @@ impl H2TypeTrait for IPv4 {
         Ok(4)
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         let number = context.read_u32(self.endian)?;
 
         Ok(Ipv4Addr::from(number).to_string())
@@ -51,7 +51,7 @@ mod tests {
         let data = b"\x7f\x00\x00\x01".to_vec();
         let context = Context::new(&data);
 
-        assert_eq!("127.0.0.1", IPv4::new(Endian::Big).to_display(context)?);
+        assert_eq!("127.0.0.1", IPv4::new(Endian::Big).to_display(context, &Data::default())?);
 
         Ok(())
     }
@@ -61,7 +61,7 @@ mod tests {
         let data = b"\x01\x02\x02\x04".to_vec();
         let context = Context::new(&data);
 
-        assert_eq!("4.2.2.1", IPv4::new(Endian::Little).to_display(context)?);
+        assert_eq!("4.2.2.1", IPv4::new(Endian::Little).to_display(context, &Data::default())?);
 
         Ok(())
     }
@@ -71,7 +71,7 @@ mod tests {
         let data = b"\x7f\x00\x00".to_vec();
         let context = Context::new(&data);
 
-        assert!(IPv4::new(Endian::Big).to_display(context).is_err());
+        assert!(IPv4::new(Endian::Big).to_display(context, &Data::default()).is_err());
 
         Ok(())
     }

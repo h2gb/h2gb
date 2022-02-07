@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -42,7 +42,7 @@ impl H2TypeTrait for H2Integer {
         Ok(self.reader.size())
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         Ok(self.renderer.render(self.to_integer(context)?))
     }
 
@@ -75,10 +75,10 @@ mod tests {
         assert_eq!(1, t.base_size(context).unwrap());
         assert_eq!(0, t.related(context)?.len());
 
-        assert_eq!("0x00", t.to_display(context.at(0))?);
-        assert_eq!("0x7f", t.to_display(context.at(1))?);
-        assert_eq!("0x80", t.to_display(context.at(2))?);
-        assert_eq!("0xff", t.to_display(context.at(3))?);
+        assert_eq!("0x00", t.to_display(context.at(0), &Data::default())?);
+        assert_eq!("0x7f", t.to_display(context.at(1), &Data::default())?);
+        assert_eq!("0x80", t.to_display(context.at(2), &Data::default())?);
+        assert_eq!("0xff", t.to_display(context.at(3), &Data::default())?);
 
         Ok(())
     }
@@ -96,10 +96,10 @@ mod tests {
         assert_eq!(2, t.base_size(context).unwrap());
         assert_eq!(0, t.related(context)?.len());
 
-        assert_eq!("0",      t.to_display(context.at(0))?);
-        assert_eq!("32767",  t.to_display(context.at(2))?);
-        assert_eq!("-32768", t.to_display(context.at(4))?);
-        assert_eq!("-1",     t.to_display(context.at(6))?);
+        assert_eq!("0",      t.to_display(context.at(0), &Data::default())?);
+        assert_eq!("32767",  t.to_display(context.at(2), &Data::default())?);
+        assert_eq!("-32768", t.to_display(context.at(4), &Data::default())?);
+        assert_eq!("-1",     t.to_display(context.at(6), &Data::default())?);
 
         Ok(())
     }
@@ -140,10 +140,10 @@ mod tests {
         assert_eq!(7..15, t.aligned_range(this_context)?);
 
         // Make sure the strings are correct
-        assert_eq!("0",      t.to_display(context.at(0))?);
-        assert_eq!("32767",  t.to_display(context.at(2))?);
-        assert_eq!("-32768", t.to_display(context.at(4))?);
-        assert_eq!("-1",     t.to_display(context.at(6))?);
+        assert_eq!("0",      t.to_display(context.at(0), &Data::default())?);
+        assert_eq!("32767",  t.to_display(context.at(2), &Data::default())?);
+        assert_eq!("-32768", t.to_display(context.at(4), &Data::default())?);
+        assert_eq!("-1",     t.to_display(context.at(6), &Data::default())?);
 
         Ok(())
     }

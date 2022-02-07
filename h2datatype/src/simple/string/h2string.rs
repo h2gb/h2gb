@@ -4,7 +4,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment};
+use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
 
 /// Defines a string with a configured length.
 ///
@@ -66,7 +66,7 @@ impl H2TypeTrait for H2String {
         true
     }
 
-    fn to_string(&self, context: Context) -> SimpleResult<String> {
+    fn to_string(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         // Get the length so we can truncate
         let (_, chars) = self.analyze(context)?;
 
@@ -74,8 +74,8 @@ impl H2TypeTrait for H2String {
         Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
-        Ok(format!("\"{}\"", self.to_string(context)?))
+    fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
+        Ok(format!("\"{}\"", self.to_string(context, data)?))
     }
 }
 
@@ -95,7 +95,7 @@ mod tests {
         let context = Context::new(&data);
 
         let a = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
-        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context)?);
+        assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context, &Data::default())?);
 
         Ok(())
     }
@@ -113,7 +113,7 @@ mod tests {
         let context = Context::new(&data);
 
         let a = H2String::new(2, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
-        assert!(a.to_display(context).is_err());
+        assert!(a.to_display(context, &Data::default()).is_err());
 
         Ok(())
     }
@@ -125,7 +125,7 @@ mod tests {
         let context = Context::new(&data);
 
         let a: H2Type = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
-        let resolved = a.resolve(context, None)?;
+        let resolved = a.resolve(context, None, &Data::default())?;
 
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
 
@@ -140,7 +140,7 @@ mod tests {
         let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?)?;
 
         assert_eq!(16, t.base_size(context).unwrap());
-        assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(context).unwrap());
+        assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(context, &Data::default()).unwrap());
 
         Ok(())
     }
@@ -151,7 +151,7 @@ mod tests {
         let context = Context::new(&data);
 
         let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
-        assert_eq!("\"A\\x10\\t\"", a.to_display(context)?);
+        assert_eq!("\"A\\x10\\t\"", a.to_display(context, &Data::default())?);
 
         let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::new_character(
                 false, // show_single_quotes
@@ -159,7 +159,7 @@ mod tests {
                 CharacterUnprintableOption::URLEncode,
 
         ))?;
-        assert_eq!("\"%41%10%09\"", a.to_display(context)?);
+        assert_eq!("\"%41%10%09\"", a.to_display(context, &Data::default())?);
 
         Ok(())
     }

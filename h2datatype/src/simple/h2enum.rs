@@ -1,10 +1,9 @@
 use serde::{Serialize, Deserialize};
 use simple_error::{SimpleResult, bail};
 
-use generic_number::{Context, IntegerReader, Integer};
-use h2data::{enum_exists, from_enum};
+use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -18,38 +17,49 @@ pub struct H2Enum {
     /// The sign, signedness, and endianness of the value.
     reader: IntegerReader,
 
+    /// The fallback renderer, for when the enum_type doesn't work
+    fallback_renderer: IntegerRenderer,
+
+    /// The enum type, as loaded into the [`Data`] structure.
     enum_type: String,
 }
 
 impl H2Enum {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, enum_type: &str) -> SimpleResult<H2Type> {
-        if !reader.can_be_usize() {
-            bail!("Enum types must be compatible with usize values");
-        }
-
+    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
         // Make sure the enum type exists
-        if !enum_exists(enum_type) {
+        if !data.enums.contains_key(enum_type) {
             bail!("No such Enum: {}", enum_type);
         }
 
         Ok(H2Type::new(alignment, H2Types::H2Enum(Self {
             reader: reader,
+            fallback_renderer: fallback_renderer,
             enum_type: enum_type.to_string(),
         })))
 
     }
 
-    pub fn new(reader: IntegerReader, enum_type: &str) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, reader, enum_type)
+    pub fn new(reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
+        Self::new_aligned(Alignment::None, reader, fallback_renderer, enum_type, data)
     }
 
-    fn render(&self, value: usize) -> SimpleResult<String> {
-        let output = match from_enum(&self.enum_type, value)? {
-            Some(o) => o.to_string(),
-            None => format!("Unknown_0x{:x}", value),
-        };
-
-        Ok(format!("{}::{}", self.enum_type, output))
+    fn render(&self, value: Integer, data: &Data) -> SimpleResult<String> {
+        match data.lookup_enum(&self.enum_type, &value) {
+            Ok(v) => {
+                match v.len() {
+                    0 => {
+                        Ok(format!("{}::Unknown_{}", self.enum_type, self.fallback_renderer.render(value)))
+                    },
+                    1 => {
+                        Ok(format!("{}::{}", self.enum_type, v[0]))
+                    },
+                    _ => {
+                        Ok(format!("{}::(ambiguous)", self.enum_type))
+                    }
+                }
+            },
+            Err(e) => bail!("Could not render Enum: {}", e),
+        }
     }
 }
 
@@ -58,17 +68,8 @@ impl H2TypeTrait for H2Enum {
         Ok(self.reader.size())
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
-        let as_usize = self.reader.read(context)?.as_usize()?;
-        self.render(as_usize)
-    }
-
-    fn can_be_string(&self) -> bool {
-        true
-    }
-
-    fn to_string(&self, context: Context) -> SimpleResult<String> {
-        self.render(self.reader.read(context)?.as_usize()?)
+    fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
+        self.render(self.reader.read(context)?, data)
     }
 
     fn can_be_integer(&self) -> bool {
@@ -83,35 +84,27 @@ impl H2TypeTrait for H2Enum {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::path::PathBuf;
+
     use simple_error::SimpleResult;
-    use generic_number::{Context, IntegerReader};
+    use generic_number::{Context, Endian, IntegerReader, HexFormatter};
     use pretty_assertions::assert_eq;
 
     #[test]
     fn test_enum_reader() -> SimpleResult<()> {
-        let test_buffer = b"\x00\x01\x02\x03\x20".to_vec();
-        let context = Context::new(&test_buffer);
+        let mut data = Data::new();
+        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), None)?;
 
-        let tests = vec![
-          // offset  expected
-            (0,      "TerrariaGameMode::Classic"),
-            (1,      "TerrariaGameMode::MediumCore"),
-            (2,      "TerrariaGameMode::HardCore"),
-            (3,      "TerrariaGameMode::JourneyMode"),
-            (4,      "TerrariaGameMode::Unknown_0x20"),
-        ];
+        let test_buffer = b"\x01\x64\xff\xff\x01\x00\x00\x00".to_vec();
 
-        for (o, expected) in tests {
-            let t = H2Enum::new(
-                IntegerReader::U8,
-                "TerrariaGameMode",
-            )?;
+        let t = H2Enum::new(IntegerReader::U8, HexFormatter::pretty_integer(), "test1", &data)?;
+        assert_eq!("test1::TEST1",        t.resolve(Context::new_at(&test_buffer, 0), None, &data)?.display);
+        assert_eq!("test1::TEST2",        t.resolve(Context::new_at(&test_buffer, 1), None, &data)?.display);
+        assert_eq!("test1::Unknown_0xff", t.resolve(Context::new_at(&test_buffer, 2), None, &data)?.display);
 
-            assert_eq!(
-                expected,
-                t.to_display(context.at(o))?,
-            );
-        }
+        let t = H2Enum::new(IntegerReader::U32(Endian::Little), HexFormatter::pretty_integer(), "test1", &data)?;
+        assert_eq!("test1::TEST1",        t.resolve(Context::new_at(&test_buffer, 4), None, &data)?.display);
 
         Ok(())
     }

@@ -24,7 +24,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::{bail, SimpleResult, SimpleError};
 
 use generic_number::Context;
-use h2datatype::{H2Type, ResolvedType};
+use h2datatype::{Data, H2Type, ResolvedType};
 use h2transformation::Transformation;
 
 use crate::project::H2Layer;
@@ -437,10 +437,10 @@ impl H2Buffer {
         )
     }
 
-    pub fn peek(&self, abstract_type: &H2Type, offset: usize) -> SimpleResult<ResolvedType> {
+    pub fn peek(&self, abstract_type: &H2Type, offset: usize, data: &Data) -> SimpleResult<ResolvedType> {
         let offset = Context::new_at(&self.data, offset);
 
-        abstract_type.resolve(offset, None)
+        abstract_type.resolve(offset, None, data)
     }
 }
 

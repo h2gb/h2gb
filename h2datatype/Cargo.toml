@@ -5,13 +5,23 @@ edition = "2018"
 
 [dependencies]
 generic-number = { path = "../generic-number" }
-h2data         = { path = "../h2data" }
 
+# Serialization
 serde = { version = "~1.0.110", features = ["derive"] }
-simple-error = "~0.2.1"
+serde_yaml = "~0.8.23"
+serde_json = "~1.0.74"
+ron = "~0.5.1"
+csv = "~1.1.6"
+
+# Used for certain types
 macaddr = "~1.0.1"
 uuid = "~0.8.2"
 
+# Error handling
+simple-error = "~0.2.1"
+
+# Loading data
+walkdir = "~2.3.2"
+
 [dev-dependencies]
 pretty_assertions = "~0.6.1"
-ron = "~0.5.1" # Used in a unit test, but not the actual crate

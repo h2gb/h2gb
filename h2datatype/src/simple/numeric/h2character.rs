@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer, CharacterFormatter};
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -85,7 +85,7 @@ impl H2TypeTrait for H2Character {
         }
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         Ok(self.renderer.render(self.to_character(context)?))
     }
 
@@ -109,9 +109,9 @@ mod tests {
     fn test_ascii() -> SimpleResult<()> {
         let data = b"\x41\x42\xff".to_vec();
 
-        assert_eq!("'A'",     H2Character::new_ascii().to_display(Context::new_at(&data, 0))?);
-        assert_eq!("'B'",     H2Character::new_ascii().to_display(Context::new_at(&data, 1))?);
-        assert_eq!(format!("'{}'", 0xFF as char), H2Character::new_ascii().to_display(Context::new_at(&data, 2))?);
+        assert_eq!("'A'",     H2Character::new_ascii().to_display(Context::new_at(&data, 0), &Data::default())?);
+        assert_eq!("'B'",     H2Character::new_ascii().to_display(Context::new_at(&data, 1), &Data::default())?);
+        assert_eq!(format!("'{}'", 0xFF as char), H2Character::new_ascii().to_display(Context::new_at(&data, 2), &Data::default())?);
 
         Ok(())
     }
@@ -122,13 +122,13 @@ mod tests {
         //             A   B   ❄
         let data = b"\x41\x42\xE2\x9D\x84".to_vec();
 
-        assert_eq!("'A'", H2Character::new_utf8().to_display(Context::new_at(&data, 0))?);
+        assert_eq!("'A'", H2Character::new_utf8().to_display(Context::new_at(&data, 0), &Data::default())?);
         assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 0))?);
 
-        assert_eq!("'B'", H2Character::new_utf8().to_display(Context::new_at(&data, 1))?);
+        assert_eq!("'B'", H2Character::new_utf8().to_display(Context::new_at(&data, 1), &Data::default())?);
         assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 1))?);
 
-        assert_eq!("'❄'", H2Character::new_utf8().to_display(Context::new_at(&data, 2))?);
+        assert_eq!("'❄'", H2Character::new_utf8().to_display(Context::new_at(&data, 2), &Data::default())?);
         assert_eq!(3,     H2Character::new_utf8().base_size(Context::new_at(&data, 2))?);
 
         Ok(())

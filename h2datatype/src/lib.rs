@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO: Disable this
+
 //! A library for reading well-defined datatypes from, ultimately, a [`Vec<u8>`].
 //!
 //! # Overview
@@ -85,10 +87,10 @@
 //! assert_eq!(2, t.aligned_size(context).unwrap());
 //!
 //! // Read the values at 0, 2, 4, and 8 bytes into the buffer
-//! assert_eq!("0",      t.to_display(context.at(0)).unwrap());
-//! assert_eq!("32767",  t.to_display(context.at(2)).unwrap());
-//! assert_eq!("-32768", t.to_display(context.at(4)).unwrap());
-//! assert_eq!("-1",     t.to_display(context.at(6)).unwrap());
+//! assert_eq!("0",      t.to_display(context.at(0), &Data::default()).unwrap());
+//! assert_eq!("32767",  t.to_display(context.at(2), &Data::default()).unwrap());
+//! assert_eq!("-32768", t.to_display(context.at(4), &Data::default()).unwrap());
+//! assert_eq!("-1",     t.to_display(context.at(6), &Data::default()).unwrap());
 //! ```
 //!
 //! ## Alignment
@@ -120,10 +122,10 @@
 //! assert_eq!(4, t.aligned_size(context).unwrap());
 //!
 //! // Even though it takes up the extra space, the values don't change
-//! assert_eq!("0x0000", t.to_display(context.at(0)).unwrap());
-//! assert_eq!("0x7fff", t.to_display(context.at(4)).unwrap());
-//! assert_eq!("0x8000", t.to_display(context.at(8)).unwrap());
-//! assert_eq!("0xffff", t.to_display(context.at(12)).unwrap());
+//! assert_eq!("0x0000", t.to_display(context.at(0), &Data::default()).unwrap());
+//! assert_eq!("0x7fff", t.to_display(context.at(4), &Data::default()).unwrap());
+//! assert_eq!("0x8000", t.to_display(context.at(8), &Data::default()).unwrap());
+//! assert_eq!("0xffff", t.to_display(context.at(12), &Data::default()).unwrap());
 //! ```
 //!
 //! ## Composite types
@@ -153,7 +155,7 @@
 //! assert_eq!(16, t.aligned_size(context).unwrap());
 //!
 //! // Even though it takes up the extra space, the values don't change
-//! assert_eq!("[ 0x0000, 0x7fff, 0x8000, 0xffff ]", t.to_display(context.at(0)).unwrap());
+//! assert_eq!("[ 0x0000, 0x7fff, 0x8000, 0xffff ]", t.to_display(context.at(0), &Data::default()).unwrap());
 //! ```
 //!
 //! ## Dynamic array
@@ -192,7 +194,7 @@
 //! assert_eq!(12, t.base_size(context).unwrap());
 //!
 //! // Even though it takes up the extra space, the values don't change
-//! assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(context).unwrap());
+//! assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(context, &Data::default()).unwrap());
 //! ```
 
 mod alignment;
@@ -206,6 +208,9 @@ pub use h2typetrait::H2TypeTrait;
 
 mod h2type;
 pub use h2type::{H2Types, H2Type};
+
+pub mod data;
+pub use data::Data;
 
 pub mod simple;
 pub mod composite;

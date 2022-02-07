@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use generic_number::{Context, Integer, Float, Character};
 
-use crate::{H2TypeTrait, Alignment, ResolvedType};
+use crate::{H2TypeTrait, Alignment, Data, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
 use crate::simple::numeric::*;
@@ -103,7 +103,7 @@ impl H2Type {
             H2Types::H2Struct(t)  => t,
 
             // Strings
-            H2Types::H2String(t)   => t,
+            H2Types::H2String(t)  => t,
             H2Types::NTString(t)  => t,
             H2Types::LPString(t)  => t,
         }
@@ -153,13 +153,13 @@ impl H2Type {
     /// Once a type is resolved, the size, range, data, string value, and so on
     /// are "written in stone", so to speak, which means they no longer need to
     /// be calculated.
-    pub fn resolve(&self, context: Context, name: Option<String>) -> SimpleResult<ResolvedType> {
-        self.field_type().resolve(context, self.alignment, name)
+    pub fn resolve(&self, context: Context, name: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
+        self.field_type().resolve(context, self.alignment, name, data)
     }
 
     /// Get a user-consumeable string
-    pub fn to_display(&self, context: Context) -> SimpleResult<String> {
-        self.field_type().to_display(context)
+    pub fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
+        self.field_type().to_display(context, data)
     }
 
     /// Can this value represent a [`String`]?
@@ -168,8 +168,8 @@ impl H2Type {
     }
 
     /// Try to convert to a [`String`].
-    pub fn to_string(&self, context: Context) -> SimpleResult<String> {
-        self.field_type().to_string(context)
+    pub fn to_string(&self, context: Context, data: &Data) -> SimpleResult<String> {
+        self.field_type().to_string(context, data)
     }
 
     pub fn can_be_integer(&self) -> bool {

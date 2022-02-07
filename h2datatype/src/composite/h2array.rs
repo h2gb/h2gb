@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::Context;
 
-use crate::{Alignment, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines an array of values.
 ///
@@ -45,11 +45,11 @@ impl H2TypeTrait for H2Array {
         }).collect())
     }
 
-    fn to_display(&self, context: Context) -> SimpleResult<String> {
+    fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         // Because the collect() expects a result, this will end and bubble
         // up errors automatically!
         let strings: Vec<String> = self.children_with_range(context)?.iter().map(|(range, _name, child)| {
-            child.to_display(context.at(range.start))
+            child.to_display(context.at(range.start), &Data::default())
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("[ {} ]", strings.join(", ")))
@@ -76,12 +76,12 @@ mod tests {
         assert_eq!(4, a.aligned_size(context)?);
         assert_eq!(0..4, a.actual_range(context)?);
         assert_eq!(0..4, a.aligned_range(context)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
         assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(context, None)?;
+        let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(4, r.base_size());
         assert_eq!(4, r.aligned_size());
         assert_eq!(0..4, r.actual_range);
@@ -116,12 +116,12 @@ mod tests {
         assert_eq!(8, a.aligned_size(context)?);
         assert_eq!(0..4, a.actual_range(context)?);
         assert_eq!(0..8, a.aligned_range(context)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
         assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(context, None)?;
+        let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(4, r.base_size());
         assert_eq!(8, r.aligned_size());
         assert_eq!(0..4, r.actual_range);
@@ -163,12 +163,12 @@ mod tests {
         assert_eq!(16, a.aligned_size(context)?);
         assert_eq!(0..16,  a.actual_range(context)?);
         assert_eq!(0..16, a.aligned_range(context)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
         assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(context, None)?;
+        let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(16, r.base_size());
         assert_eq!(16, r.aligned_size());
         assert_eq!(0..16, r.actual_range);
@@ -217,12 +217,12 @@ mod tests {
         assert_eq!(20, a.aligned_size(context)?);
         assert_eq!(0..16,  a.actual_range(context)?);
         assert_eq!(0..20, a.aligned_range(context)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
         assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(context, None)?;
+        let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(16, r.base_size());
         assert_eq!(20, r.aligned_size());
         assert_eq!(0..16, r.actual_range);
@@ -269,12 +269,12 @@ mod tests {
         assert_eq!(16, a.aligned_size(context)?);
         assert_eq!(1..17,  a.actual_range(context)?);
         assert_eq!(1..17, a.aligned_range(context)?);
-        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context)?);
+        assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
         assert_eq!(4, a.children(context)?.len());
 
         // Check the resolved version
-        let r = a.resolve(context, None)?;
+        let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(16, r.base_size());
         assert_eq!(16, r.aligned_size());
         assert_eq!(1..17, r.actual_range);
@@ -312,7 +312,7 @@ mod tests {
 
         let a = H2Array::new(7, H2Character::new_utf8())?;
         assert_eq!(18, a.base_size(context)?);
-        assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", a.to_display(context)?);
+        assert_eq!("[ 'A', 'B', '❄', '☢', '𝄞', '😈', '÷' ]", a.to_display(context, &Data::default())?);
 
         Ok(())
     }
