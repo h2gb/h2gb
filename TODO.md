@@ -1,13 +1,8 @@
 * To-do soon / unsorted
   * Change structs (and other APIey things) to take &str instead of String
-  * Figure out if we can package data files
   * Automatically create a default "Layer"
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
-
-* External data
-  * Enums / bitmasks need to be loadable dynamically, and be bi-directional
-  * There should be a DATA_DIRECTORY env that can load CSV's and stuff
-  * We can probably define more types there - structs and such
+  * Look at doing a "nicer" format for types - ie, a C-style struct definition, or something that elides most of the complexity that the current "exported" types have
 
 * Nested bumpy vectors
   * Print structs and such more nicely
