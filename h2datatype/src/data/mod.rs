@@ -15,9 +15,11 @@
 //! * YAML
 //! * JSON
 //! * CSV
+//! * RON - Rust Object Notation
 //!
 //! Types cannot use CSV, and enums can only have incremental values
-//! (automatically generated) in CSV format, since YAML and JSON are unordered.
+//! (automatically generated) in CSV format, since the other formats are
+//! unordered.
 //!
 //! ## Loading
 //!
@@ -86,6 +88,7 @@ enum FileType {
     YAML,
     JSON,
     CSV,
+    RON,
 }
 
 impl FileType {
@@ -97,6 +100,7 @@ impl FileType {
             "yml"  => Some(Self::YAML),
             "json" => Some(Self::JSON),
             "csv"  => Some(Self::CSV),
+            "ron"  => Some(Self::RON),
             _ => None,
         }
     }
@@ -171,6 +175,7 @@ impl Data {
                 let data = match FileType::from_filename(path) {
                     Some(FileType::YAML) => T::load_from_yaml_file(path)?,
                     Some(FileType::JSON) => T::load_from_json_file(path)?,
+                    Some(FileType::RON)  => T::load_from_ron_file(path)?,
                     Some(FileType::CSV)  => T::load_from_csv_file(path)?,
                     None => bail!("Unrecognized file type: {:?}", path),
                 };
@@ -182,7 +187,7 @@ impl Data {
 
     /// Load constants from a [`Path`] (either a file or directory)
     ///
-    /// Supports: YAML, CSV, JSON (based on extension)
+    /// Supports: YAML, CSV, JSON, and RON (based on extension)
     pub fn load_constants(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
         // TODO: We should bubble up better error messages
         if let Err(e) = extend_no_duplicates(&mut self.constants, Self::load(path, prefix)?) {
@@ -194,7 +199,7 @@ impl Data {
 
     /// Load enums from a [`Path`] (either a file or directory)
     ///
-    /// Supports: YAML, CSV, JSON (based on extension)
+    /// Supports: YAML, CSV, JSON, and RON (based on extension)
     pub fn load_enums(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
         if let Err(e) = extend_no_duplicates(&mut self.enums, Self::load(path, prefix)?) {
             bail!("Could not load enums from {:?}: {}", path, e);
@@ -205,7 +210,7 @@ impl Data {
 
     /// Load bitmasks from a [`Path`] (either a file or directory)
     ///
-    /// Supports: YAML, CSV, JSON (based on extension)
+    /// Supports: YAML, CSV, JSON, and RON (based on extension)
     pub fn load_bitmasks(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
         if let Err(e) = extend_no_duplicates(&mut self.bitmasks, Self::load(path, prefix)?) {
             bail!("Could not load enums from {:?}: {}", path, e);
@@ -216,7 +221,8 @@ impl Data {
 
     /// Load types from a [`Path`] (either a file or directory)
     ///
-    /// Supports: YAML, JSON (based on extension) - does not support CSV
+    /// Supports: YAML, JSON, and RON (based on extension) - does not support
+    /// CSV
     pub fn load_types(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
         if let Err(e) = extend_no_duplicates(&mut self.types, Self::load(path, prefix)?) {
             bail!("Could not load types from {:?}: {}", path, e);
@@ -303,7 +309,6 @@ mod tests {
 
     #[test]
     fn test_load_file() -> SimpleResult<()> {
-
         let mut data = Data::new();
         data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), None)?;
 
@@ -327,6 +332,13 @@ mod tests {
 
         // Make sure the output is sensible
         assert_eq!(2, data.constants.len());
+        assert_eq!(1, data.enums.len());
+        assert_eq!(0, data.bitmasks.len());
+        assert_eq!(0, data.types.len());
+
+        // Load a .ron file
+        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test4.ron"].iter().collect::<PathBuf>(), None)?;
+        assert_eq!(3, data.constants.len());
         assert_eq!(1, data.enums.len());
         assert_eq!(0, data.bitmasks.len());
         assert_eq!(0, data.types.len());
@@ -446,14 +458,14 @@ mod tests {
 
         // First time works
         data.load_constants(&path, None)?;
-        assert_eq!(3, data.constants.len());
+        assert_eq!(4, data.constants.len());
 
         // Second time fails, when bare
         assert!(data.load_constants(&path, None).is_err());
 
         // Second time works, when we give it a name
         data.load_constants(&path, Some("MY_PREFIX"))?;
-        assert_eq!(6, data.constants.len());
+        assert_eq!(8, data.constants.len());
 
         Ok(())
     }

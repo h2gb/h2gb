@@ -132,6 +132,34 @@ pub trait DataTrait : Sized {
         })
     }
 
+    fn load_ron<R>(reader: R) -> SimpleResult<Self>
+    where
+        R: io::Read
+    {
+        // Initially read as String->String
+        let d: Self::SerializedType = ron::de::from_reader(reader).map_err(|e| {
+            SimpleError::new(format!("Couldn't parse RON file: {:?}", e))
+        })?;
+
+        Self::load(&d)
+    }
+
+    fn load_from_ron_string(data: &str) -> SimpleResult<Self> {
+        Self::load_ron(data.as_bytes())
+    }
+
+    fn load_from_ron_file(filename: &Path) -> SimpleResult<Self> {
+        Self::load_ron(io::BufReader::new(File::open(filename).map_err(|e| {
+            SimpleError::new(format!("Could not read file: {}", e))
+        })?))
+    }
+
+    fn to_ron(&self) -> SimpleResult<String> {
+        ron::to_string(&self.save()?).map_err(|e| {
+            SimpleError::new(format!("Failed to serialize to RON: {}", e))
+        })
+    }
+
     fn load_json<R>(reader: R) -> SimpleResult<Self>
     where
         R: io::Read

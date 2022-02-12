@@ -10,7 +10,7 @@ generic-number = { path = "../generic-number" }
 serde = { version = "~1.0.110", features = ["derive"] }
 serde_yaml = "~0.8.23"
 serde_json = "~1.0.74"
-ron = "~0.5.1"
+ron = "~0.7.0"
 csv = "~1.1.6"
 
 # Used for certain types

@@ -285,4 +285,29 @@ TEST5: 256";
 
         Ok(())
     }
+
+    #[test]
+    fn test_ron() -> SimpleResult<()> {
+        let data = "{ \"TEST1\": \"1\", \"TEST3\": \"5\", \"TEST2\": \"100\", \"TEST4\": \"-10000\", \"TEST5\": \"0x100\" }";
+        let constants: Constants = Constants::load_from_ron_string(data)?;
+
+        assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
+        assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
+        assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
+        assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
+        assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+
+        // Check if we can convert it back and forth
+        let data = constants.to_json()?;
+        let constants = Constants::load_from_json_string(&data)?;
+
+        assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST1"));
+        assert_eq!(Some(&Integer::from(100u32)), constants.get_by_name("TEST2"));
+        assert_eq!(Some(&Integer::from(5u8)), constants.get_by_name("TEST3"));
+        assert_eq!(Some(&Integer::from(-10000i32)), constants.get_by_name("TEST4"));
+        assert_eq!(Some(&Integer::from(0x100u32)), constants.get_by_name("TEST5"));
+
+        Ok(())
+    }
+
 }
