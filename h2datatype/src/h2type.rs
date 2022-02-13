@@ -47,6 +47,12 @@ pub enum H2Types {
 
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum H2TypeType {
+    Inline(H2Types),
+    Named(String),
+}
+
 /// The core of this crate - defines any type of value abstractly.
 ///
 /// In general, when consuming this crate, you probably won't be creating an
@@ -63,22 +69,40 @@ pub enum H2Types {
 /// In terms of implementation, this basically passes everything through to
 /// [`H2TypeTrait`]. The biggest reason for having this layer above the trait
 /// is to store an alignment value.
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Type {
-    pub field: H2Types,
+    pub field: H2TypeType,
     pub alignment: Alignment,
 }
 
 impl H2Type {
+    // XXX Rename this to new_inline
     pub fn new(alignment: Alignment, field: H2Types) -> Self {
         Self {
-            field: field,
+            field: H2TypeType::Inline(field),
             alignment: alignment,
         }
     }
 
-    fn field_type(&self) -> &dyn H2TypeTrait {
+    pub fn new_named(alignment: Alignment, name: String, data: &Data) -> Self {
+        // XXX: Error handling
+        Self {
+            field: H2TypeType::Named(name),
+            alignment: alignment,
+        }
+    }
+
+    fn field<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a H2Types> {
+        // XXX: Handle infinite recursion
         match &self.field {
+            H2TypeType::Inline(t) => Ok(t),
+            H2TypeType::Named(n) => data.lookup_type(&n)?.field(data),
+        }
+    }
+
+    fn field_type<'a>(&'a self, data: &'a Data) -> &'a dyn H2TypeTrait {
+        match self.field(data).unwrap() { // XXX Unwrap is bad
             // Simple
             //H2Types::H2Pointer(t) => t,
             H2Types::Rgb(t)       => t,
@@ -114,29 +138,29 @@ impl H2Type {
     /// Note that if the type has children (such as a
     /// [`crate::composite::H2Array`], the alignment on THAT is
     /// included since that's part of the actual object.
-    pub fn base_size(&self, context: Context) -> SimpleResult<usize> {
-        self.field_type().base_size(context)
+    pub fn base_size(&self, context: Context, data: &Data) -> SimpleResult<usize> {
+        self.field_type(data).base_size(context, data)
     }
 
     /// Get the size of the field, including the alignment.
-    pub fn aligned_size(&self, context: Context) -> SimpleResult<usize> {
-        self.field_type().aligned_size(context, self.alignment)
+    pub fn aligned_size(&self, context: Context, data: &Data) -> SimpleResult<usize> {
+        self.field_type(data).aligned_size(context, self.alignment, data)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, starting at the
     /// given [`Context`], if it can be known, without adding padding.
-    pub fn actual_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().range(context, Alignment::None)
+    pub fn actual_range(&self, context: Context, data: &Data) -> SimpleResult<Range<usize>> {
+        self.field_type(data).range(context, Alignment::None, data)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, with padding.
-    pub fn aligned_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().range(context, self.alignment)
+    pub fn aligned_range(&self, context: Context, data: &Data) -> SimpleResult<Range<usize>> {
+        self.field_type(data).range(context, self.alignment, data)
     }
 
     /// Get *related* nodes - ie, other fields that a pointer points to
-    pub fn related(&self, context: Context) -> SimpleResult<Vec<(usize, H2Type)>> {
-        self.field_type().related(context)
+    pub fn related(&self, context: Context, data: &Data) -> SimpleResult<Vec<(usize, H2Type)>> {
+        self.field_type(data).related(context)
     }
 
     /// Get the types that make up the given type.
@@ -144,8 +168,8 @@ impl H2Type {
     /// Some types don't have children, they are essentially leaf notes. Others
     /// (such as [`H2Array`] and
     /// [`NTString`]) do.
-    pub fn children(&self, context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        self.field_type().children(context)
+    pub fn children(&self, context: Context, data: &Data) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
+        self.field_type(data).children(context)
     }
 
     /// Resolve this type into a concrete type.
@@ -154,45 +178,45 @@ impl H2Type {
     /// are "written in stone", so to speak, which means they no longer need to
     /// be calculated.
     pub fn resolve(&self, context: Context, name: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
-        self.field_type().resolve(context, self.alignment, name, data)
+        self.field_type(data).resolve(context, self.alignment, name, data)
     }
 
     /// Get a user-consumeable string
     pub fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
-        self.field_type().to_display(context, data)
+        self.field_type(data).to_display(context, data)
     }
 
     /// Can this value represent a [`String`]?
-    pub fn can_be_string(&self) -> bool {
-        self.field_type().can_be_string()
+    pub fn can_be_string(&self, data: &Data) -> bool {
+        self.field_type(data).can_be_string()
     }
 
     /// Try to convert to a [`String`].
     pub fn to_string(&self, context: Context, data: &Data) -> SimpleResult<String> {
-        self.field_type().to_string(context, data)
+        self.field_type(data).to_string(context, data)
     }
 
-    pub fn can_be_integer(&self) -> bool {
-        self.field_type().can_be_integer()
+    pub fn can_be_integer(&self, data: &Data) -> bool {
+        self.field_type(data).can_be_integer()
     }
 
-    pub fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
-        self.field_type().to_integer(context)
+    pub fn to_integer(&self, context: Context, data: &Data) -> SimpleResult<Integer> {
+        self.field_type(data).to_integer(context)
     }
 
-    pub fn can_be_float(&self) -> bool {
-        self.field_type().can_be_float()
+    pub fn can_be_float(&self, data: &Data) -> bool {
+        self.field_type(data).can_be_float()
     }
 
-    pub fn to_float(&self, context: Context) -> SimpleResult<Float> {
-        self.field_type().to_float(context)
+    pub fn to_float(&self, context: Context, data: &Data) -> SimpleResult<Float> {
+        self.field_type(data).to_float(context)
     }
 
-    pub fn can_be_character(&self) -> bool {
-        self.field_type().can_be_character()
+    pub fn can_be_character(&self, data: &Data) -> bool {
+        self.field_type(data).can_be_character()
     }
 
-    pub fn to_character(&self, context: Context) -> SimpleResult<Character> {
-        self.field_type().to_character(context)
+    pub fn to_character(&self, context: Context, data: &Data) -> SimpleResult<Character> {
+        self.field_type(data).to_character(context)
     }
 }

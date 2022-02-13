@@ -53,7 +53,7 @@ impl LPString {
 }
 
 impl H2TypeTrait for LPString {
-    fn base_size(&self, context: Context) -> SimpleResult<usize> {
+    fn base_size(&self, context: Context, _data: &Data) -> SimpleResult<usize> {
         Ok(self.analyze(context)?.0)
     }
 
@@ -170,7 +170,7 @@ mod tests {
           CharacterFormatter::pretty_str_character(),
         )?)?;
 
-        assert_eq!(12, t.base_size(context)?);
+        assert_eq!(12, t.base_size(context, &Data::default())?);
         assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(context, &Data::default())?);
 
         Ok(())

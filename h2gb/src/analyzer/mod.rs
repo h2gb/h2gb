@@ -610,7 +610,18 @@ mod tests {
 
         analyze_terraria(&mut record, "buffer")?;
 
-        //println!("{}", record.target());
+        // 151:    static ref TERRARIA_LPSTRING: H2Type = {
+        // 159:    static ref SPAWNPOINT_ENTRY: H2Type = {
+        // 172:    static ref JOURNEYMODE_ITEM_ENTRY: H2Type = {
+        // 184:    static ref INVENTORY_ITEM: H2Type = {
+        // 193:    static ref STORED_ITEM: H2Type = {
+
+        // 201:    static ref EQUIPPED_ITEM: H2Type = {
+        // 208:    static ref BUFF: H2Type = {
+        // 215:    static ref HEALTH_MANA: H2Type = {
+        // 222:    static ref COLOURS: H2Type = {
+        //TERRARIA_LPSTRING
+        println!("{}", ron::to_string(&*EQUIPPED_ITEM).unwrap());
 
         Ok(())
     }

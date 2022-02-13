@@ -35,7 +35,7 @@ impl H2Blob {
 }
 
 impl H2TypeTrait for H2Blob {
-    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
+    fn base_size(&self, _context: Context, _data: &Data) -> SimpleResult<usize> {
         Ok(self.length)
     }
 
@@ -57,10 +57,10 @@ mod tests {
         let context = Context::new(&data);
 
         assert_eq!("Binary blob (16 bytes)", H2Blob::new(16, DefaultFormatter::new_integer())?.to_display(context, &Data::default())?);
-        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context)?);
+        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context, &Data::default())?);
 
         assert_eq!("Binary blob (0x10 bytes)", H2Blob::new(16, HexFormatter::new_integer(false, true, false))?.to_display(context, &Data::default())?);
-        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context)?);
+        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context, &Data::default())?);
 
         Ok(())
     }

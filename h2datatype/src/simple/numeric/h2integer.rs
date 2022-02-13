@@ -38,7 +38,7 @@ impl H2Integer {
 }
 
 impl H2TypeTrait for H2Integer {
-    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
+    fn base_size(&self, _context: Context, _data: &Data) -> SimpleResult<usize> {
         Ok(self.reader.size())
     }
 
@@ -72,8 +72,8 @@ mod tests {
             HexFormatter::pretty_integer(),
         );
 
-        assert_eq!(1, t.base_size(context).unwrap());
-        assert_eq!(0, t.related(context)?.len());
+        assert_eq!(1, t.base_size(context, &Data::default()).unwrap());
+        assert_eq!(0, t.related(context, &Data::default())?.len());
 
         assert_eq!("0x00", t.to_display(context.at(0), &Data::default())?);
         assert_eq!("0x7f", t.to_display(context.at(1), &Data::default())?);
@@ -93,8 +93,8 @@ mod tests {
             DefaultFormatter::new_integer(),
         );
 
-        assert_eq!(2, t.base_size(context).unwrap());
-        assert_eq!(0, t.related(context)?.len());
+        assert_eq!(2, t.base_size(context, &Data::default()).unwrap());
+        assert_eq!(0, t.related(context, &Data::default())?.len());
 
         assert_eq!("0",      t.to_display(context.at(0), &Data::default())?);
         assert_eq!("32767",  t.to_display(context.at(2), &Data::default())?);
@@ -117,27 +117,27 @@ mod tests {
 
         // Starting at 0
         let this_context = context.at(0);
-        assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(0..2, t.actual_range(this_context)?);
+        assert_eq!(2, t.base_size(this_context, &Data::default())?);
+        assert_eq!(0..2, t.actual_range(this_context, &Data::default())?);
 
-        assert_eq!(8, t.aligned_size(this_context)?);
-        assert_eq!(0..8, t.aligned_range(this_context)?);
+        assert_eq!(8, t.aligned_size(this_context, &Data::default())?);
+        assert_eq!(0..8, t.aligned_range(this_context, &Data::default())?);
 
         // Starting at 2
         let this_context = context.at(2);
-        assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(2..4, t.actual_range(this_context)?);
+        assert_eq!(2, t.base_size(this_context, &Data::default())?);
+        assert_eq!(2..4, t.actual_range(this_context, &Data::default())?);
 
-        assert_eq!(8, t.aligned_size(this_context)?);
-        assert_eq!(2..10, t.aligned_range(this_context)?);
+        assert_eq!(8, t.aligned_size(this_context, &Data::default())?);
+        assert_eq!(2..10, t.aligned_range(this_context, &Data::default())?);
 
         // Starting at 7
         let this_context = context.at(7);
-        assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(7..9, t.actual_range(this_context)?);
+        assert_eq!(2, t.base_size(this_context, &Data::default())?);
+        assert_eq!(7..9, t.actual_range(this_context, &Data::default())?);
 
-        assert_eq!(8, t.aligned_size(this_context)?);
-        assert_eq!(7..15, t.aligned_range(this_context)?);
+        assert_eq!(8, t.aligned_size(this_context, &Data::default())?);
+        assert_eq!(7..15, t.aligned_range(this_context, &Data::default())?);
 
         // Make sure the strings are correct
         assert_eq!("0",      t.to_display(context.at(0), &Data::default())?);
@@ -158,10 +158,10 @@ mod tests {
             DefaultFormatter::new_integer(),
         );
 
-        assert_eq!(0,      t.to_integer(context.at(0))?.as_isize()?);
-        assert_eq!(32767,  t.to_integer(context.at(2))?.as_isize()?);
-        assert_eq!(-32768, t.to_integer(context.at(4))?.as_isize()?);
-        assert_eq!(-1,     t.to_integer(context.at(6))?.as_isize()?);
+        assert_eq!(0,      t.to_integer(context.at(0), &Data::default())?.as_isize()?);
+        assert_eq!(32767,  t.to_integer(context.at(2), &Data::default())?.as_isize()?);
+        assert_eq!(-32768, t.to_integer(context.at(4), &Data::default())?.as_isize()?);
+        assert_eq!(-1,     t.to_integer(context.at(6), &Data::default())?.as_isize()?);
 
         Ok(())
     }
@@ -176,10 +176,10 @@ mod tests {
             DefaultFormatter::new_integer(),
         );
 
-        assert_eq!(0,      t.to_integer(context.at(0))?.as_usize()?);
-        assert_eq!(32767,  t.to_integer(context.at(2))?.as_usize()?);
-        assert_eq!(32768,  t.to_integer(context.at(4))?.as_usize()?);
-        assert_eq!(65535,  t.to_integer(context.at(6))?.as_usize()?);
+        assert_eq!(0,      t.to_integer(context.at(0), &Data::default())?.as_usize()?);
+        assert_eq!(32767,  t.to_integer(context.at(2), &Data::default())?.as_usize()?);
+        assert_eq!(32768,  t.to_integer(context.at(4), &Data::default())?.as_usize()?);
+        assert_eq!(65535,  t.to_integer(context.at(6), &Data::default())?.as_usize()?);
 
         Ok(())
     }

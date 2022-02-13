@@ -44,7 +44,7 @@ pub fn create_entry(record: &mut Record<Action>, buffer: &str, layer: &str, data
 /// This is a helper function that creates a record, then returns it as an
 /// [`Integer`] - I found myself doing this a lot.
 pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &Data) -> SimpleResult<Integer> {
-    if !datatype.can_be_integer() {
+    if !datatype.can_be_integer(data) {
         bail!("Attempting to create a numeric entry from a non-numeric datatype: {:?}", datatype);
     }
 
@@ -56,7 +56,7 @@ pub fn create_entry_integer(record: &mut Record<Action>, buffer: &str, layer: &s
 /// This is a helper function that creates a record, then returns it as a simple
 /// String - I found myself doing this a lot.
 pub fn create_entry_string(record: &mut Record<Action>, buffer: &str, layer: &str, datatype: &H2Type, offset: usize, comment: Option<&str>, data: &Data) -> SimpleResult<String> {
-    if !datatype.can_be_string() {
+    if !datatype.can_be_string(data) {
         bail!("Attempting to create a string entry from a non-string datatype: {:?}", datatype);
     }
 
