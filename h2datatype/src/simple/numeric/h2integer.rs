@@ -26,7 +26,7 @@ pub struct H2Integer {
 
 impl H2Integer {
     pub fn new_aligned(alignment: Alignment, reader: IntegerReader, renderer: IntegerRenderer) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Integer(Self {
+        H2Type::new_inline(alignment, H2Types::H2Integer(Self {
             reader: reader,
             renderer: renderer,
         }))

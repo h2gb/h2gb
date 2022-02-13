@@ -18,7 +18,7 @@ pub struct NTString {
 
 impl NTString {
     pub fn new_aligned(alignment: Alignment, character: CharacterReader, renderer: CharacterRenderer) -> H2Type {
-        H2Type::new(alignment, H2Types::NTString(Self {
+        H2Type::new_inline(alignment, H2Types::NTString(Self {
             character: character,
             renderer: renderer,
         }))

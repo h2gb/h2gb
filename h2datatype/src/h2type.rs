@@ -78,7 +78,7 @@ pub struct H2Type {
 
 impl H2Type {
     // XXX Rename this to new_inline
-    pub fn new(alignment: Alignment, field: H2Types) -> Self {
+    pub fn new_inline(alignment: Alignment, field: H2Types) -> Self {
         Self {
             field: H2TypeType::Inline(field),
             alignment: alignment,

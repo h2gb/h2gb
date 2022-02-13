@@ -18,7 +18,7 @@ pub struct Rgb {
 
 impl Rgb {
     pub fn new_aligned(alignment: Alignment) -> H2Type {
-        H2Type::new(alignment, H2Types::Rgb(Self {
+        H2Type::new_inline(alignment, H2Types::Rgb(Self {
         }))
     }
 

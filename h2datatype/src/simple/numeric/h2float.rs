@@ -26,7 +26,7 @@ pub struct H2Float {
 
 impl H2Float {
     pub fn new_aligned(alignment: Alignment, reader: FloatReader, renderer: FloatRenderer) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Float(Self {
+        H2Type::new_inline(alignment, H2Types::H2Float(Self {
             reader: reader,
             renderer: renderer,
         }))

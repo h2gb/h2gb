@@ -15,7 +15,7 @@ pub struct MacAddress {
 
 impl MacAddress {
     pub fn new_aligned(alignment: Alignment) -> H2Type {
-        H2Type::new(alignment, H2Types::MacAddress(Self {
+        H2Type::new_inline(alignment, H2Types::MacAddress(Self {
         }))
     }
 

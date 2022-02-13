@@ -17,7 +17,7 @@ pub struct IPv4 {
 
 impl IPv4 {
     pub fn new_aligned(alignment: Alignment, endian: Endian) -> H2Type {
-        H2Type::new(alignment, H2Types::IPv4(Self {
+        H2Type::new_inline(alignment, H2Types::IPv4(Self {
             endian: endian
         }))
     }

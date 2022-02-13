@@ -26,7 +26,7 @@ pub struct H2Character {
 
 impl H2Character {
     pub fn new_aligned(alignment: Alignment, reader: CharacterReader, renderer: CharacterRenderer) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Character(Self {
+        H2Type::new_inline(alignment, H2Types::H2Character(Self {
             reader: reader,
             renderer: renderer,
         }))
