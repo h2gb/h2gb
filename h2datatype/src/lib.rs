@@ -83,8 +83,8 @@
 //! let t = H2Integer::new(IntegerReader::I16(Endian::Big), DefaultFormatter::new_integer());
 //!
 //! // It takes up two bytes of memory, including aligned (it's not aligned)
-//! assert_eq!(2, t.base_size(context).unwrap());
-//! assert_eq!(2, t.aligned_size(context).unwrap());
+//! assert_eq!(2, t.base_size(context, &Data::default()).unwrap());
+//! assert_eq!(2, t.aligned_size(context, &Data::default()).unwrap());
 //!
 //! // Read the values at 0, 2, 4, and 8 bytes into the buffer
 //! assert_eq!("0",      t.to_display(context.at(0), &Data::default()).unwrap());
@@ -116,10 +116,10 @@
 //! );
 //!
 //! // It takes up two bytes of memory normally...
-//! assert_eq!(2, t.base_size(context).unwrap());
+//! assert_eq!(2, t.base_size(context, &Data::default()).unwrap());
 //!
 //! // ...but 4 bytes when aligned
-//! assert_eq!(4, t.aligned_size(context).unwrap());
+//! assert_eq!(4, t.aligned_size(context, &Data::default()).unwrap());
 //!
 //! // Even though it takes up the extra space, the values don't change
 //! assert_eq!("0x0000", t.to_display(context.at(0), &Data::default()).unwrap());
@@ -151,8 +151,8 @@
 //! )).unwrap();
 //!
 //! // The array takes up 16 bytes of memory, aligned and not
-//! assert_eq!(16, t.base_size(context).unwrap());
-//! assert_eq!(16, t.aligned_size(context).unwrap());
+//! assert_eq!(16, t.base_size(context, &Data::default()).unwrap());
+//! assert_eq!(16, t.aligned_size(context, &Data::default()).unwrap());
 //!
 //! // Even though it takes up the extra space, the values don't change
 //! assert_eq!("[ 0x0000, 0x7fff, 0x8000, 0xffff ]", t.to_display(context.at(0), &Data::default()).unwrap());
@@ -191,7 +191,7 @@
 //! ).unwrap()).unwrap();
 //!
 //! // The array takes up 12 bytes of memory, all-in
-//! assert_eq!(12, t.base_size(context).unwrap());
+//! assert_eq!(12, t.base_size(context, &Data::default()).unwrap());
 //!
 //! // Even though it takes up the extra space, the values don't change
 //! assert_eq!("[ \"hi\", \"bye\", \"test\" ]", t.to_display(context, &Data::default()).unwrap());
