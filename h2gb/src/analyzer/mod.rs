@@ -16,7 +16,7 @@ use h2datatype::simple::numeric::H2Integer;
 use h2datatype::simple::string::{H2String, LPString};
 use h2datatype::composite::H2Struct;
 
-use generic_number::{IntegerReader, CharacterReader, CharacterFormatter, Endian, DefaultFormatter, BooleanFormatter};
+use generic_number::{Integer, IntegerReader, CharacterReader, CharacterFormatter, Endian, DefaultFormatter, BooleanFormatter};
 
 use crate::actions::*;
 
@@ -463,10 +463,11 @@ fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset:
     let mut current_journey_offset = starting_offset;
 
     loop {
+        // Terminate when the name length is 0
         let terminator_type = H2Integer::new(IntegerReader::U8, DefaultFormatter::new_integer());
         let possible_terminator = peek_entry(record, buffer, &terminator_type, current_journey_offset, &DATA)?;
         if let Some(n) = possible_terminator.as_integer {
-            if n.as_usize()? == 8 {
+            if n == Integer::from(0) {
                 create_entry(record, buffer, LAYER, &terminator_type, current_journey_offset, Some("Journey mode entry sentinel value (terminator)"), &DATA)?;
                 break;
             }
@@ -572,7 +573,6 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     let new_base = parse_spawnpoints(record, buffer, base + offsets.spawnpoints)?;
 
     // game_mode 3 == Journey Mode
-    // XXX This isn't working
     if game_mode == *DATA.enums.get("Terraria::game_modes").unwrap().get_by_name("JourneyMode").unwrap() {
         // Only parse this if we have a journey_data offset (1.4+)
         if let Some(offset) = offsets.journey_data {
