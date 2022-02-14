@@ -108,7 +108,7 @@ impl H2Type {
     }
 
     fn field_type<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
-        Ok(match self.field(data)? { // XXX Unwrap is bad
+        Ok(match self.field(data)? {
             // Simple
             //H2InnerType::H2Pointer(t) => t,
             H2InnerType::Rgb(t)       => t,
