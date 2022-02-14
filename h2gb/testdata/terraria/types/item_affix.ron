@@ -1,0 +1,13 @@
+
+(
+  field:Inline(
+    H2Enum((
+        reader:U8,
+        fallback_renderer:Default(()),
+        enum_type:"Terraria::item_affix"
+    ))
+  ),
+  alignment:None
+)
+
+

@@ -177,7 +177,7 @@ lazy_static! {
         H2Struct::new(vec![
             ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "Terraria::items", &DATA).unwrap()),
             ("quantity".to_string(),    H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
-            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "Terraria::item_affix", &DATA).unwrap()),
+            ("affix".to_string(),       H2Type::new_named("Terraria::item_affix", &DATA).unwrap()),
             ("is_favorite".to_string(), H2Integer::new(IntegerReader::U8, BooleanFormatter::new_integer())),
         ]).unwrap()
     };
@@ -186,7 +186,7 @@ lazy_static! {
         H2Struct::new(vec![
             ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "Terraria::items", &DATA).unwrap()),
             ("quantity".to_string(),    H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
-            ("affix".to_string(),       H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "Terraria::item_affix", &DATA).unwrap()),
+            ("affix".to_string(),       H2Type::new_named("Terraria::item_affix", &DATA).unwrap()),
         ]).unwrap()
     };
 
@@ -614,6 +614,7 @@ mod tests {
 
         // 151:    static ref TERRARIA_LPSTRING: H2Type = {
         // 159:    static ref SPAWNPOINT_ENTRY: H2Type = {
+
         // 172:    static ref JOURNEYMODE_ITEM_ENTRY: H2Type = {
         // 184:    static ref INVENTORY_ITEM: H2Type = {
         // 193:    static ref STORED_ITEM: H2Type = {
@@ -626,14 +627,23 @@ mod tests {
         //println!("{}", ron::to_string(&*TERRARIA_LPSTRING).unwrap());
         println!("{}", &record.target());
 
-        println!();
-        let mut data: Data = Data::default();
-
-        // data.insert_type("uint32", &H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())).unwrap();
-        // println!("{}", data.types.get("uint32").unwrap().to_ron().unwrap());
+        // println!();
+        // let mut data: Data = Data::default();
+        // data.insert_type("item_affix", &H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "Terraria::item_affix", &DATA).unwrap()).unwrap();
+        // // data.insert_type("uint32", &H2Integer::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer())).unwrap();
+        //  println!();
+        //  println!("Rusty Object Notation:");
+        //  println!("{}", data.types.get("item_affix").unwrap().to_ron().unwrap());
+        //  println!();
+        //  println!("JSON:");
+        //  println!("{}", data.types.get("item_affix").unwrap().to_json().unwrap());
+        //  println!();
+        //  println!("YAML:");
+        //  println!("{}", data.types.get("item_affix").unwrap().to_yaml().unwrap());
+        //  println!();
 
         // println!("{}", serde_json::to_string_pretty(&*TERRARIA_LPSTRING).unwrap());
-        println!("{}", ron::to_string(&*SPAWNPOINT_ENTRY).unwrap());
+        //println!("{}", serde_json::to_string_pretty(&*INVENTORY_ITEM).unwrap());
 
         Ok(())
     }
