@@ -45,7 +45,6 @@ mod tests {
 
     #[test]
     fn test_json_file() -> SimpleResult<()> {
-        // Load the data
         let constants = Types::load_from_json_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/types/struct.json"].iter().collect::<PathBuf>())?;
 
         // We can't equate types, but we know it it's a struct with two U32 LE

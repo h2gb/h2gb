@@ -1,40 +1,46 @@
 {
   "field": {
-    "H2Struct": {
-      "fields": [
-        [
-          "field1",
-          {
-            "field": {
-              "H2Integer": {
-                "reader": {
-                  "U32": "Little"
-                },
-                "renderer": {
-                  "Default": {}
+    "Inline": {
+      "H2Struct": {
+        "fields": [
+          [
+            "field1",
+            {
+              "field": {
+                "Inline": {
+                  "H2Integer": {
+                    "reader": {
+                      "U32": "Little"
+                    },
+                    "renderer": {
+                      "Default": {}
+                    }
+                  }
                 }
-              }
-            },
-            "alignment": "None"
-          }
-        ],
-        [
-          "field2",
-          {
-            "field": {
-              "H2Integer": {
-                "reader": {
-                  "U32": "Little"
-                },
-                "renderer": {
-                  "Default": {}
+              },
+              "alignment": "None"
+            }
+          ],
+          [
+            "field2",
+            {
+              "field": {
+                "Inline": {
+                  "H2Integer": {
+                    "reader": {
+                      "U32": "Little"
+                    },
+                    "renderer": {
+                      "Default": {}
+                    }
+                  }
                 }
-              }
-            },
-            "alignment": "None"
-          }
+              },
+              "alignment": "None"
+            }
+          ]
         ]
-      ]
+      }
     }
   },
   "alignment": "None"
