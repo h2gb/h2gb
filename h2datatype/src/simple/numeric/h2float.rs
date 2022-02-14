@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Float, FloatReader, FloatRenderer};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2InnerType, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -26,7 +26,7 @@ pub struct H2Float {
 
 impl H2Float {
     pub fn new_aligned(alignment: Alignment, reader: FloatReader, renderer: FloatRenderer) -> H2Type {
-        H2Type::new_inline(alignment, H2Types::H2Float(Self {
+        H2Type::new_inline(alignment, H2InnerType::H2Float(Self {
             reader: reader,
             renderer: renderer,
         }))

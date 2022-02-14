@@ -4,7 +4,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, IntegerReader, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2InnerType, H2TypeTrait, Alignment, Data};
 
 /// Defines a length-prefixed string.
 ///
@@ -25,7 +25,7 @@ impl LPString {
             bail!("Length type isn't numeric!");
         }
 
-        Ok(H2Type::new_inline(alignment, H2Types::LPString(Self {
+        Ok(H2Type::new_inline(alignment, H2InnerType::LPString(Self {
             length: length,
             character: character,
             renderer: renderer,

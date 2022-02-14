@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::Context;
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2InnerType, H2TypeTrait};
 
 /// Defines an array of values.
 ///
@@ -26,7 +26,7 @@ impl H2Array {
             bail!("Arrays must be at least one element long");
         }
 
-        Ok(H2Type::new_inline(alignment, H2Types::H2Array(Self {
+        Ok(H2Type::new_inline(alignment, H2InnerType::H2Array(Self {
             field_type: Box::new(field_type),
             length: length,
         })))

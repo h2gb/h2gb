@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 
 use generic_number::{Context, Endian, IntegerReader, HexFormatter};
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2InnerType, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -18,7 +18,7 @@ pub struct Rgb {
 
 impl Rgb {
     pub fn new_aligned(alignment: Alignment) -> H2Type {
-        H2Type::new_inline(alignment, H2Types::Rgb(Self {
+        H2Type::new_inline(alignment, H2InnerType::Rgb(Self {
         }))
     }
 

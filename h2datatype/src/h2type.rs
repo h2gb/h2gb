@@ -16,7 +16,7 @@ use crate::composite::*;
 ///
 /// Consumers of this library probably won't have to use this directly.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum H2Types {
+pub enum H2InnerType {
     // Simple
     //H2Pointer(H2Pointer),
     Rgb(Rgb),
@@ -49,7 +49,7 @@ pub enum H2Types {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum H2TypeType {
-    Inline(H2Types),
+    Inline(H2InnerType),
     Named(String),
 }
 
@@ -78,14 +78,14 @@ pub struct H2Type {
 
 impl H2Type {
     // XXX Rename this to new_inline
-    pub fn new_inline(alignment: Alignment, field: H2Types) -> Self {
+    pub fn new_inline(alignment: Alignment, field: H2InnerType) -> Self {
         Self {
             field: H2TypeType::Inline(field),
             alignment: alignment,
         }
     }
 
-    pub fn new_named(alignment: Alignment, name: String, data: &Data) -> Self {
+    pub fn new_named_aligned(alignment: Alignment, name: String, data: &Data) -> Self {
         // XXX: Error handling
         Self {
             field: H2TypeType::Named(name),
@@ -93,7 +93,11 @@ impl H2Type {
         }
     }
 
-    fn field<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a H2Types> {
+    pub fn new_named(name: String, data: &Data) -> Self {
+        Self::new_named_aligned(Alignment::None, name, data)
+    }
+
+    fn field<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a H2InnerType> {
         // XXX: Handle infinite recursion
         match &self.field {
             H2TypeType::Inline(t) => Ok(t),
@@ -104,32 +108,32 @@ impl H2Type {
     fn field_type<'a>(&'a self, data: &'a Data) -> &'a dyn H2TypeTrait {
         match self.field(data).unwrap() { // XXX Unwrap is bad
             // Simple
-            //H2Types::H2Pointer(t) => t,
-            H2Types::Rgb(t)       => t,
-            H2Types::H2Bitmask(t) => t,
-            H2Types::H2Enum(t)    => t,
-            H2Types::H2UUID(t)    => t,
-            H2Types::H2Blob(t)    => t,
+            //H2InnerType::H2Pointer(t) => t,
+            H2InnerType::Rgb(t)       => t,
+            H2InnerType::H2Bitmask(t) => t,
+            H2InnerType::H2Enum(t)    => t,
+            H2InnerType::H2UUID(t)    => t,
+            H2InnerType::H2Blob(t)    => t,
 
             // Numeric
-            H2Types::H2Float(t)     => t,
-            H2Types::H2Character(t) => t,
-            H2Types::H2Integer(t)   => t,
+            H2InnerType::H2Float(t)     => t,
+            H2InnerType::H2Character(t) => t,
+            H2InnerType::H2Integer(t)   => t,
 
             // Network
-            H2Types::IPv4(t)        => t,
-            H2Types::IPv6(t)        => t,
-            H2Types::MacAddress(t)  => t,
-            H2Types::MacAddress8(t) => t,
+            H2InnerType::IPv4(t)        => t,
+            H2InnerType::IPv6(t)        => t,
+            H2InnerType::MacAddress(t)  => t,
+            H2InnerType::MacAddress8(t) => t,
 
             // Complex
-            H2Types::H2Array(t)   => t,
-            H2Types::H2Struct(t)  => t,
+            H2InnerType::H2Array(t)   => t,
+            H2InnerType::H2Struct(t)  => t,
 
             // Strings
-            H2Types::H2String(t)  => t,
-            H2Types::NTString(t)  => t,
-            H2Types::LPString(t)  => t,
+            H2InnerType::H2String(t)  => t,
+            H2InnerType::NTString(t)  => t,
+            H2InnerType::LPString(t)  => t,
         }
     }
 

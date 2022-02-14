@@ -17,21 +17,23 @@ With some limitations, they can be loaded from any of these file types:
 * YAML
 * JSON
 * CSV
+* RON - Rust Object Notation
 
 Types cannot use CSV, and enums can only have incremental values
-(automatically generated) in CSV format, since YAML and JSON are unordered.
+(automatically generated) in CSV format, since the other formats are
+unordered.
 
 ### Loading
 
-In general, you'll want a single instance of [`DataNg`] for the application,
+In general, you'll want a single instance of [`Data`] for the application,
 to load data into it at startup, and to pass it around as needed.
 
 To load initially, use the various load functions:
 
-* [`DataNg::load_constants`]
-* [`DataNg::load_enums`]
-* [`DataNg::load_bitmasks`]
-* [`DataNg::load_types`]
+* [`Data::load_constants`]
+* [`Data::load_enums`]
+* [`Data::load_bitmasks`]
+* [`Data::load_types`]
 
 Those functions all take a [`&Path`] argument, which is the path to load.
 That can either be a filename or a directory. If it's a directory, it will

@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 
 use generic_number::Context;
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2InnerType, H2TypeTrait};
 
 /// Defines a MAC address in EUI-48 format.
 ///
@@ -15,7 +15,7 @@ pub struct MacAddress {
 
 impl MacAddress {
     pub fn new_aligned(alignment: Alignment) -> H2Type {
-        H2Type::new_inline(alignment, H2Types::MacAddress(Self {
+        H2Type::new_inline(alignment, H2InnerType::MacAddress(Self {
         }))
     }
 

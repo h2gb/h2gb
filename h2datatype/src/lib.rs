@@ -207,7 +207,7 @@ mod h2typetrait;
 pub use h2typetrait::H2TypeTrait;
 
 mod h2type;
-pub use h2type::{H2Types, H2Type};
+pub use h2type::{H2InnerType, H2Type};
 
 pub mod data;
 pub use data::Data;

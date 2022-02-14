@@ -3,6 +3,7 @@
   * Automatically create a default "Layer"
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
   * Look at doing a "nicer" format for types - ie, a C-style struct definition, or something that elides most of the complexity that the current "exported" types have
+  * Named H2Type fields should probably have an option to override filenames
 
 * Nested bumpy vectors
   * Print structs and such more nicely

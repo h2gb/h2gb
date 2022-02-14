@@ -2,7 +2,7 @@
 //use simple_error::SimpleResult;
 
 //use generic_number::{IntegerReader, GenericFormatter};
-//use crate::{Alignment, H2Type, H2Types, H2TypeTrait, Offset};
+//use crate::{Alignment, H2Type, H2InnerType, H2TypeTrait, Offset};
 
 ///// Defines a pointer type - a numeric type that points to another location.
 /////
@@ -19,7 +19,7 @@
 
 //impl H2Pointer {
 //    pub fn new_aligned(alignment: Alignment, definition: IntegerReader, display: GenericFormatter, target_type: H2Type) -> H2Type {
-//        H2Type::new(alignment, H2Types::H2Pointer(Self {
+//        H2Type::new(alignment, H2InnerType::H2Pointer(Self {
 //            definition: definition,
 //            display: display,
 //            target_type: Box::new(target_type),

@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 use generic_number::{Context, Endian};
 use std::net::Ipv6Addr;
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2InnerType, H2TypeTrait};
 
 /// Defines an IPv6 address.
 ///
@@ -17,7 +17,7 @@ pub struct IPv6 {
 
 impl IPv6 {
     pub fn new_aligned(alignment: Alignment, endian: Endian) -> H2Type {
-        H2Type::new_inline(alignment, H2Types::IPv6(Self {
+        H2Type::new_inline(alignment, H2InnerType::IPv6(Self {
             endian: endian
         }))
     }

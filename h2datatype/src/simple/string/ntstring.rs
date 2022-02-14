@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2InnerType, H2TypeTrait, Alignment, Data};
 
 /// Defines a null-terminated string.
 ///
@@ -18,7 +18,7 @@ pub struct NTString {
 
 impl NTString {
     pub fn new_aligned(alignment: Alignment, character: CharacterReader, renderer: CharacterRenderer) -> H2Type {
-        H2Type::new_inline(alignment, H2Types::NTString(Self {
+        H2Type::new_inline(alignment, H2InnerType::NTString(Self {
             character: character,
             renderer: renderer,
         }))
