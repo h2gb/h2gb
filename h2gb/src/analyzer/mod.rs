@@ -159,24 +159,24 @@ lazy_static! {
 
     static ref SPAWNPOINT_ENTRY: H2Type = {
         H2Struct::new(vec![
-            ("x".to_string(),     H2Type::new_named("Terraria::uint32", &DATA)),
-            ("y".to_string(),     H2Type::new_named("Terraria::uint32", &DATA)),
-            ("seed".to_string(),  H2Type::new_named("Terraria::uint32", &DATA)),
-            ("world".to_string(), H2Type::new_named("Terraria::lpstring", &DATA)),
+            ("x".to_string(),     H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
+            ("y".to_string(),     H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
+            ("seed".to_string(),  H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
+            ("world".to_string(), H2Type::new_named("Terraria::lpstring", &DATA).unwrap()),
         ]).unwrap()
     };
 
     static ref JOURNEYMODE_ITEM_ENTRY: H2Type = {
         H2Struct::new(vec![
-            ("item".to_string(),      H2Type::new_named("Terraria::lpstring", &DATA)),
-            ("quantity".to_string(),  H2Type::new_named("Terraria::uint32", &DATA)),
+            ("item".to_string(),      H2Type::new_named("Terraria::lpstring", &DATA).unwrap()),
+            ("quantity".to_string(),  H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
         ]).unwrap()
     };
 
     static ref INVENTORY_ITEM: H2Type = {
         H2Struct::new(vec![
             ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "Terraria::items", &DATA).unwrap()),
-            ("quantity".to_string(),    H2Type::new_named("Terraria::uint32", &DATA)),
+            ("quantity".to_string(),    H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
             ("affix".to_string(),       H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "Terraria::item_affix", &DATA).unwrap()),
             ("is_favorite".to_string(), H2Integer::new(IntegerReader::U8, BooleanFormatter::new_integer())),
         ]).unwrap()
@@ -185,7 +185,7 @@ lazy_static! {
     static ref STORED_ITEM: H2Type = {
         H2Struct::new(vec![
             ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "Terraria::items", &DATA).unwrap()),
-            ("quantity".to_string(),    H2Type::new_named("Terraria::uint32", &DATA)),
+            ("quantity".to_string(),    H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
             ("affix".to_string(),       H2Enum::new(IntegerReader::U8, DefaultFormatter::new_integer(), "Terraria::item_affix", &DATA).unwrap()),
         ]).unwrap()
     };
@@ -200,14 +200,14 @@ lazy_static! {
     static ref BUFF: H2Type = {
         H2Struct::new(vec![
             ("id".to_string(),          H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new_integer(), "Terraria::buffs", &DATA).unwrap()),
-            ("duration".to_string(),    H2Type::new_named("Terraria::uint32", &DATA)),
+            ("duration".to_string(),    H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
         ]).unwrap()
     };
 
     static ref HEALTH_MANA: H2Type = {
         H2Struct::new(vec![
-            ("current".to_string(),     H2Type::new_named("Terraria::uint32", &DATA)),
-            ("max".to_string(),     H2Type::new_named("Terraria::uint32", &DATA)),
+            ("current".to_string(),     H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
+            ("max".to_string(),     H2Type::new_named("Terraria::uint32", &DATA).unwrap()),
         ]).unwrap()
     };
 
@@ -446,7 +446,7 @@ fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset:
             record,
             buffer,
             LAYER,
-            &H2Type::new_named("Terraria::spawnpoint_entry", &DATA),
+            &H2Type::new_named("Terraria::spawnpoint_entry", &DATA)?,
             current_spawn_offset,
             Some("Spawn point"),
             &DATA,
@@ -514,7 +514,7 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
         record,
         buffer,
         LAYER,
-        &H2Type::new_named("Terraria::lpstring", &DATA),
+        &H2Type::new_named("Terraria::lpstring", &DATA)?,
         offsets.name, Some("Character name"),
         &DATA
     )?;

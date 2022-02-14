@@ -1,7 +1,7 @@
-use serde::{Serialize, Deserialize};
-
-use simple_error::SimpleResult;
 use std::ops::Range;
+
+use serde::{Serialize, Deserialize};
+use simple_error::{SimpleResult, bail};
 
 use generic_number::{Context, Integer, Float, Character};
 
@@ -77,7 +77,6 @@ pub struct H2Type {
 }
 
 impl H2Type {
-    // XXX Rename this to new_inline
     pub fn new_inline(alignment: Alignment, field: H2InnerType) -> Self {
         Self {
             field: H2TypeType::Inline(field),
@@ -85,15 +84,18 @@ impl H2Type {
         }
     }
 
-    pub fn new_named_aligned(alignment: Alignment, name: &str, data: &Data) -> Self {
-        // XXX: Error handling
-        Self {
+    pub fn new_named_aligned(alignment: Alignment, name: &str, data: &Data) -> SimpleResult<Self> {
+        if !data.types.contains_key(name) {
+            bail!("No such named type: {}", name);
+        }
+
+        Ok(Self {
             field: H2TypeType::Named(name.to_string()),
             alignment: alignment,
-        }
+        })
     }
 
-    pub fn new_named(name: &str, data: &Data) -> Self {
+    pub fn new_named(name: &str, data: &Data) -> SimpleResult<Self> {
         Self::new_named_aligned(Alignment::None, name, data)
     }
 
