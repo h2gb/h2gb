@@ -14,6 +14,14 @@ impl Types {
     }
 }
 
+impl From<&H2Type> for Types {
+    fn from(o: &H2Type) -> Self {
+        Self {
+            h2type: o.clone()
+        }
+    }
+}
+
 impl DataTrait for Types {
     type SerializedType = H2Type;
 

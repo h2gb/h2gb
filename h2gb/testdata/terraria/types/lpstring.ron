@@ -1,0 +1,14 @@
+(
+  field:Inline(
+    LPString((
+      length:U8,
+      character:ASCII,
+      renderer:Character((
+        show_single_quotes:false,
+        character_replacement_policy:ReplaceControl,
+        unprintable_option:CString
+      ))
+    ))
+  ),
+  alignment:None
+)

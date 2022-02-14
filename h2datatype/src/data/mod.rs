@@ -67,7 +67,7 @@ mod types;
 use types::*;
 
 mod data_trait;
-use data_trait::*;
+pub use data_trait::DataTrait;
 
 /// Extend a [`HashMap`] without allowing duplicates.
 fn extend_no_duplicates<T>(orig: &mut HashMap<String, T>, new: Vec<(String, T)>) -> SimpleResult<()> {
@@ -293,6 +293,17 @@ impl Data {
             Some(t) => Ok(t.get()),
             None => bail!("No such type: {}", type_name),
         }
+    }
+
+    /// Add a new type to the list.
+    pub fn insert_type(&mut self, type_name: &str, h2type: &H2Type) -> SimpleResult<()> {
+        if self.types.contains_key(type_name) {
+            bail!("Duplicate type: {}", type_name);
+        }
+
+        self.types.insert(type_name.to_string(), Types::from(h2type));
+
+        Ok(())
     }
 }
 

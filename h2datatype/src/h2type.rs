@@ -85,15 +85,15 @@ impl H2Type {
         }
     }
 
-    pub fn new_named_aligned(alignment: Alignment, name: String, data: &Data) -> Self {
+    pub fn new_named_aligned(alignment: Alignment, name: &str, data: &Data) -> Self {
         // XXX: Error handling
         Self {
-            field: H2TypeType::Named(name),
+            field: H2TypeType::Named(name.to_string()),
             alignment: alignment,
         }
     }
 
-    pub fn new_named(name: String, data: &Data) -> Self {
+    pub fn new_named(name: &str, data: &Data) -> Self {
         Self::new_named_aligned(Alignment::None, name, data)
     }
 
