@@ -107,8 +107,8 @@ impl H2Type {
         }
     }
 
-    fn field_type<'a>(&'a self, data: &'a Data) -> &'a dyn H2TypeTrait {
-        match self.field(data).unwrap() { // XXX Unwrap is bad
+    fn field_type<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
+        Ok(match self.field(data)? { // XXX Unwrap is bad
             // Simple
             //H2InnerType::H2Pointer(t) => t,
             H2InnerType::Rgb(t)       => t,
@@ -136,7 +136,7 @@ impl H2Type {
             H2InnerType::H2String(t)  => t,
             H2InnerType::NTString(t)  => t,
             H2InnerType::LPString(t)  => t,
-        }
+        })
     }
 
     /// Get the size of just the field - no alignment included.
@@ -145,28 +145,28 @@ impl H2Type {
     /// [`crate::composite::H2Array`], the alignment on THAT is
     /// included since that's part of the actual object.
     pub fn base_size(&self, context: Context, data: &Data) -> SimpleResult<usize> {
-        self.field_type(data).base_size(context, data)
+        self.field_type(data)?.base_size(context, data)
     }
 
     /// Get the size of the field, including the alignment.
     pub fn aligned_size(&self, context: Context, data: &Data) -> SimpleResult<usize> {
-        self.field_type(data).aligned_size(context, self.alignment, data)
+        self.field_type(data)?.aligned_size(context, self.alignment, data)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, starting at the
     /// given [`Context`], if it can be known, without adding padding.
     pub fn actual_range(&self, context: Context, data: &Data) -> SimpleResult<Range<usize>> {
-        self.field_type(data).range(context, Alignment::None, data)
+        self.field_type(data)?.range(context, Alignment::None, data)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, with padding.
     pub fn aligned_range(&self, context: Context, data: &Data) -> SimpleResult<Range<usize>> {
-        self.field_type(data).range(context, self.alignment, data)
+        self.field_type(data)?.range(context, self.alignment, data)
     }
 
     /// Get *related* nodes - ie, other fields that a pointer points to
     pub fn related(&self, context: Context, data: &Data) -> SimpleResult<Vec<(usize, H2Type)>> {
-        self.field_type(data).related(context)
+        self.field_type(data)?.related(context)
     }
 
     /// Get the types that make up the given type.
@@ -175,7 +175,7 @@ impl H2Type {
     /// (such as [`H2Array`] and
     /// [`NTString`]) do.
     pub fn children(&self, context: Context, data: &Data) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        self.field_type(data).children(context)
+        self.field_type(data)?.children(context)
     }
 
     /// Resolve this type into a concrete type.
@@ -184,45 +184,45 @@ impl H2Type {
     /// are "written in stone", so to speak, which means they no longer need to
     /// be calculated.
     pub fn resolve(&self, context: Context, name: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
-        self.field_type(data).resolve(context, self.alignment, name, data)
+        self.field_type(data)?.resolve(context, self.alignment, name, data)
     }
 
     /// Get a user-consumeable string
     pub fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
-        self.field_type(data).to_display(context, data)
+        self.field_type(data)?.to_display(context, data)
     }
 
     /// Can this value represent a [`String`]?
-    pub fn can_be_string(&self, data: &Data) -> bool {
-        self.field_type(data).can_be_string()
+    pub fn can_be_string(&self, data: &Data) -> SimpleResult<bool> {
+        Ok(self.field_type(data)?.can_be_string())
     }
 
     /// Try to convert to a [`String`].
     pub fn to_string(&self, context: Context, data: &Data) -> SimpleResult<String> {
-        self.field_type(data).to_string(context, data)
+        self.field_type(data)?.to_string(context, data)
     }
 
-    pub fn can_be_integer(&self, data: &Data) -> bool {
-        self.field_type(data).can_be_integer()
+    pub fn can_be_integer(&self, data: &Data) -> SimpleResult<bool> {
+        Ok(self.field_type(data)?.can_be_integer())
     }
 
     pub fn to_integer(&self, context: Context, data: &Data) -> SimpleResult<Integer> {
-        self.field_type(data).to_integer(context)
+        self.field_type(data)?.to_integer(context)
     }
 
-    pub fn can_be_float(&self, data: &Data) -> bool {
-        self.field_type(data).can_be_float()
+    pub fn can_be_float(&self, data: &Data) -> SimpleResult<bool> {
+        Ok(self.field_type(data)?.can_be_float())
     }
 
     pub fn to_float(&self, context: Context, data: &Data) -> SimpleResult<Float> {
-        self.field_type(data).to_float(context)
+        self.field_type(data)?.to_float(context)
     }
 
-    pub fn can_be_character(&self, data: &Data) -> bool {
-        self.field_type(data).can_be_character()
+    pub fn can_be_character(&self, data: &Data) -> SimpleResult<bool> {
+        Ok(self.field_type(data)?.can_be_character())
     }
 
     pub fn to_character(&self, context: Context, data: &Data) -> SimpleResult<Character> {
-        self.field_type(data).to_character(context)
+        self.field_type(data)?.to_character(context)
     }
 }
