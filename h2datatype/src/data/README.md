@@ -41,8 +41,7 @@ recurse to find files. The extensions of the files determine how the file is
 parsed.
 
 The loaded data will be named based on the filename is it loaded from, which
-must be unique. The optional `prefix` string can be used to ensure
-uniqueness, since it renames it to `<prefix>::<filename>`.
+must be unique.
 
 The various `list_*` and `lookup_*` functions can be used to retrieve data.
 

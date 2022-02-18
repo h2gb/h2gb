@@ -4,7 +4,7 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
 
-use crate::data::DataTrait;
+use crate::data::traits::{DataTrait, Lookupable};
 
 /// An enumeration - ie, a list of numbered values / options.
 ///
@@ -191,6 +191,21 @@ impl DataTrait for Enums {
         Ok(out)
     }
 }
+
+impl Lookupable for Enums {
+    type LookupBy = Integer;
+    type LookupResult = Vec<String>;
+    type LookupOptions = ();
+
+    /// Find a specific value in an enum based on an [`Integer`].
+    ///
+    /// Empty list means no value was found, an `Err` is returned if the name does
+    /// not exist.
+    fn lookup(&self, value: &Integer, options: ()) -> Vec<String> {
+        self.get_by_value(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
