@@ -4,7 +4,7 @@
     H2Enum((
         reader:U8,
         fallback_renderer:Default(()),
-        enum_type:"Terraria::item_affix"
+        enum_type:"item_affix"
     ))
   ),
   alignment:None

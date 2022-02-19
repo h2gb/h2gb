@@ -2,10 +2,10 @@
   field:Inline(
     H2Struct((
       fields:[
-        ("x",(field:Named("Terraria::uint32"),alignment:None)),
-        ("y",(field:Named("Terraria::uint32"),alignment:None)),
-        ("seed",(field:Named("Terraria::uint32"),alignment:None)),
-        ("world",(field:Named("Terraria::lpstring"),alignment:None))
+        ("x",(field:Named("uint32"),alignment:None)),
+        ("y",(field:Named("uint32"),alignment:None)),
+        ("seed",(field:Named("uint32"),alignment:None)),
+        ("world",(field:Named("lpstring"),alignment:None))
       ]
     ))
   ),
