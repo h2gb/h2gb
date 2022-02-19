@@ -85,7 +85,7 @@ impl H2Type {
     }
 
     pub fn new_named_aligned(alignment: Alignment, name: &str, data: &Data) -> SimpleResult<Self> {
-        if !data.types.contains_key(name) {
+        if !data.types.contains(name) {
             bail!("No such named type: {}", name);
         }
 
@@ -103,7 +103,7 @@ impl H2Type {
         // XXX: Handle infinite recursion
         match &self.field {
             H2TypeType::Inline(t) => Ok(t),
-            H2TypeType::Named(n) => data.lookup_type(&n)?.field(data),
+            H2TypeType::Named(n) => data.types.get(&n)?.get().field(data),
         }
     }
 

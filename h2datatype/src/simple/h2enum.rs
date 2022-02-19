@@ -27,7 +27,7 @@ pub struct H2Enum {
 impl H2Enum {
     pub fn new_aligned(alignment: Alignment, reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
         // Make sure the enum type exists
-        if !data.enums.contains_key(enum_type) {
+        if !data.enums.contains(enum_type) {
             bail!("No such Enum: {}", enum_type);
         }
 
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test_enum_reader() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), None)?;
+        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>())?;
 
         let test_buffer = b"\x01\x64\xff\xff\x01\x00\x00\x00".to_vec();
 

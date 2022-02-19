@@ -30,7 +30,7 @@ pub struct H2Bitmask {
 impl H2Bitmask {
     pub fn new_aligned(alignment: Alignment, reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
         // Make sure the bitmask type exists
-        if !data.bitmasks.contains_key(bitmask_type) {
+        if !data.bitmasks.contains(bitmask_type) {
             bail!("No such Bitmask: {}", bitmask_type);
         }
 
@@ -48,7 +48,7 @@ impl H2Bitmask {
     }
 
     fn render(&self, value: Integer, data: &Data) -> SimpleResult<String> {
-        let unknown_renderer = self.unknown_renderer.map(|r| ("Unknown_", r));
+        let unknown_renderer = self.unknown_renderer.map(|r| ("Unknown_".to_string(), r));
 
         match data.lookup_bitmask(&self.bitmask_type, &value, unknown_renderer, self.show_negative) {
             Ok(v) => {
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn test_bitmask_reader() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_bitmasks(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/visibility.csv"].iter().collect::<PathBuf>(), Some("Terraria"))?;
+        data.load_bitmasks(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/visibility.csv"].iter().collect::<PathBuf>())?;
 
         let test_buffer = b"\x00\x00\x00\x01\x00\x02\x00\x03\x80\x01".to_vec();
         let context = Context::new(&test_buffer);
@@ -117,7 +117,7 @@ mod tests {
             let t = H2Bitmask::new(
                 IntegerReader::U16(Endian::Big),
                 Some(HexFormatter::pretty_integer()),
-                "Terraria::visibility",
+                "visibility",
                 show_negative,
                 &data
             )?;

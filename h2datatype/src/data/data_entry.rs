@@ -124,6 +124,10 @@ impl<T: DataTrait> DataEntry<T> {
         }
     }
 
+    pub fn contains(&self, name: &str) -> bool {
+        self.data.contains_key(name)
+    }
+
     pub fn len(&self) -> usize {
         self.data.len()
     }

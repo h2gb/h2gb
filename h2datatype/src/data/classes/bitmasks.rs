@@ -62,12 +62,12 @@ impl Bitmasks {
             // Mask out the bit
             if value & (1 << bit) != 0 {
                 // Check if we have a definition for it
-                match (self.by_position.get(&bit), options.unknown_renderer) {
+                match (self.by_position.get(&bit), &options.unknown_renderer) {
                     // If the bitmask exists, use it
                     (Some(s), _) => out.push(s.to_string()),
 
                     // If it doesn't exist, check if we have a renderer
-                    (None, Some((s,r))) => out.push(format!("{}{}", s, r.render(Integer::from(1u128 << bit)))),
+                    (None, Some((s,r))) => out.push(format!("{}{}", s, r.render(Integer::from(1u32 << bit)))),
 
                     // If we have no unknown renderer, skip
                     (None, None) => (),

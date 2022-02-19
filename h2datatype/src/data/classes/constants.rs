@@ -136,7 +136,7 @@ impl Lookupable for Constants {
     ///
     /// Empty list means no value was found, an `Err` is returned if the name does
     /// not exist.
-    fn lookup(&self, value: &Integer, options: ()) -> Vec<String> {
+    fn lookup(&self, value: &Integer, _options: ()) -> Vec<String> {
         self.get_by_value(value)
     }
 }
