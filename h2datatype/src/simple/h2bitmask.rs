@@ -28,14 +28,14 @@ pub struct H2Bitmask {
 }
 
 impl H2Bitmask {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
         // Make sure the bitmask type exists
         if !data.bitmasks.contains_key(bitmask_type) {
             bail!("No such Bitmask: {}", bitmask_type);
         }
 
         Ok(H2Type::new(alignment, H2Types::H2Bitmask(Self {
-            reader: reader,
+            reader: reader.into(),
             unknown_renderer: unknown_renderer,
             bitmask_type: bitmask_type.to_string(),
             show_negative: show_negative,
@@ -43,14 +43,14 @@ impl H2Bitmask {
 
     }
 
-    pub fn new(reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
+    pub fn new(reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, reader, unknown_renderer, bitmask_type, show_negative, data)
     }
 
-    fn render(&self, value: Integer, data: &Data) -> SimpleResult<String> {
+    fn render(&self, value: impl Into<Integer>, data: &Data) -> SimpleResult<String> {
         let unknown_renderer = self.unknown_renderer.map(|r| ("Unknown_", r));
 
-        match data.lookup_bitmask(&self.bitmask_type, &value, unknown_renderer, self.show_negative) {
+        match data.lookup_bitmask(&self.bitmask_type, value, unknown_renderer, self.show_negative) {
             Ok(v) => {
                 if v.len() == 0 {
                     Ok("(n/a)".to_string())
@@ -116,7 +116,7 @@ mod tests {
         for (o, show_negative, expected) in tests {
             let t = H2Bitmask::new(
                 IntegerReader::U16(Endian::Big),
-                Some(HexFormatter::pretty_integer()),
+                Some(HexFormatter::new_pretty().into()),
                 "Terraria::visibility",
                 show_negative,
                 &data

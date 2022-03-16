@@ -156,7 +156,7 @@ mod tests {
             H2Character::new_aligned(
                 Alignment::Loose(4),
                 CharacterReader::ASCII,
-                CharacterFormatter::pretty_character(),
+                CharacterFormatter::new_pretty(),
             ),
         )?;
         assert_eq!(16,  a.base_size(context)?);
@@ -210,7 +210,7 @@ mod tests {
             H2Character::new_aligned(
                 Alignment::Loose(4),
                 CharacterReader::ASCII,
-                CharacterFormatter::pretty_character(),
+                CharacterFormatter::new_pretty(),
             ),
         )?;
         assert_eq!(16,  a.base_size(context)?);
@@ -262,7 +262,7 @@ mod tests {
             H2Character::new_aligned(
                 Alignment::Loose(4),
                 CharacterReader::ASCII,
-                CharacterFormatter::pretty_character(),
+                CharacterFormatter::new_pretty(),
             ),
         )?;
         assert_eq!(16,  a.base_size(context)?);

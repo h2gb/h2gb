@@ -28,7 +28,9 @@ impl Bitmasks {
         self.by_name.get(name).map(|i| Integer::from(*i))
     }
 
-    pub fn get_by_value(&self, value: &Integer, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> Vec<String> {
+    pub fn get_by_value(&self, value: impl Into<Integer>, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> Vec<String> {
+        let value: Integer = value.into();
+
         let mut value = value.as_u128();
         let mut out = vec![];
 
@@ -41,7 +43,10 @@ impl Bitmasks {
                     (Some(s), _) => out.push(s.to_string()),
 
                     // If it doesn't exist, check if we have a renderer
-                    (None, Some((s,r))) => out.push(format!("{}{}", s, r.render(Integer::from(1 << bit)))),
+                    (None, Some((s,r))) => {
+                        let r: IntegerRenderer = r.into();
+                        out.push(format!("{}{}", s, r.render_integer(1 << bit)))
+                    },
 
                     // If we have no unknown renderer, skip
                     (None, None) => (),
@@ -183,20 +188,20 @@ mod tests {
         assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
         // Test the more complicated way
-        let flags = bitmasks.get_by_value(&Integer::from(1u32), None, false);
+        let flags = bitmasks.get_by_value(1u32, None, false);
         assert_eq!(vec!["TEST1".to_string()], flags);
 
         // Test 0101 => 5
-        let flags = bitmasks.get_by_value(&Integer::from(5u32), None, false);
+        let flags = bitmasks.get_by_value(5u32, None, false);
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string()], flags);
 
         // Test 0111 => 7 - no unknown_renderer set
-        let flags = bitmasks.get_by_value(&Integer::from(7u32), None, false);
+        let flags = bitmasks.get_by_value(7u32, None, false);
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string()], flags);
 
         // Test 0111 => 7 - unknown_renderer set
-        let renderer = ("Unknown_", HexFormatter::new_integer(false, true, false));
-        let flags = bitmasks.get_by_value(&Integer::from(7u32), Some(renderer), false);
+        let renderer = ("Unknown_", HexFormatter::new(false, true, false).into());
+        let flags = bitmasks.get_by_value(7u32, Some(renderer), false);
         assert_eq!(vec!["TEST1".to_string(), "Unknown_0x2".to_string(), "TEST2".to_string()], flags);
 
         // Missing entries fail
@@ -340,11 +345,11 @@ TEST3: 5";
         let bitmasks: Bitmasks = Bitmasks::load_from_csv_string("TEST0,0\nTEST1,1\nTEST2,2\nTEST3,3\n")?;
 
         // Test the simple way
-        let mut out = bitmasks.get_by_value(&Integer::from(7), None, false);
+        let mut out = bitmasks.get_by_value(7, None, false);
         out.sort();
         assert_eq!(vec!["TEST0", "TEST1", "TEST2"], out);
 
-        let mut out = bitmasks.get_by_value(&Integer::from(7), None, true);
+        let mut out = bitmasks.get_by_value(7, None, true);
         out.sort();
         assert_eq!(vec!["TEST0", "TEST1", "TEST2", "~TEST3"], out);
 

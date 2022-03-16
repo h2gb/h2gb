@@ -4,7 +4,7 @@ use crate::{Float, DefaultFormatter, ScientificFormatter};
 
 /// Define the interface for rendering a [`Float`].
 pub trait FloatRendererTrait {
-    fn render_float(&self, number: Float) -> String;
+    fn render_float(&self, number: impl Into<Float>) -> String;
 }
 
 /// Configure how a [`Float`] is rendered.
@@ -19,7 +19,7 @@ pub enum FloatRenderer {
 
 impl FloatRenderer {
     /// Render the given number
-    pub fn render(&self, number: Float) -> String {
+    pub fn render_float(&self, number: impl Into<Float>) -> String {
         match self {
             Self::Default(f)    => f.render_float(number),
             Self::Scientific(f) => f.render_float(number),
@@ -38,11 +38,11 @@ mod tests {
 
     #[test]
     fn test_pretty() -> SimpleResult<()> {
-        assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(Float::from(3.14f32)));
-        assert_eq!("3.14",   DefaultFormatter::new_float().render(Float::from(3.14f32)));
+        assert_eq!("3.14e0", ScientificFormatter::new_pretty().render_float(Float::from(3.14f32)));
+        assert_eq!("3.14",   DefaultFormatter::new().render_float(Float::from(3.14f32)));
 
-        assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(Float::from(3.14f64)));
-        assert_eq!("3.14",   DefaultFormatter::new_float().render(Float::from(3.14f64)));
+        assert_eq!("3.14e0", ScientificFormatter::new_pretty().render_float(Float::from(3.14f64)));
+        assert_eq!("3.14",   DefaultFormatter::new().render_float(Float::from(3.14f64)));
 
         Ok(())
     }

@@ -80,7 +80,7 @@
 //! let context = Context::new(&data);
 //!
 //! // Create the abstract type - this is an H2Type
-//! let t = H2Integer::new(IntegerReader::I16(Endian::Big), DefaultFormatter::new_integer());
+//! let t = H2Integer::new(IntegerReader::I16(Endian::Big), DefaultFormatter::new());
 //!
 //! // It takes up two bytes of memory, including aligned (it's not aligned)
 //! assert_eq!(2, t.base_size(context).unwrap());
@@ -112,7 +112,7 @@
 //! // Create the abstract type - this is an H2Type
 //! let t = H2Integer::new_aligned(
 //!   Alignment::Loose(4), IntegerReader::U16(Endian::Big),
-//!   HexFormatter::pretty_integer(),
+//!   HexFormatter::new_pretty(),
 //! );
 //!
 //! // It takes up two bytes of memory normally...
@@ -147,7 +147,7 @@
 //! // Create an array of 4 elements, each of which is padded to 4 bytes
 //! let t = H2Array::new(4, H2Integer::new_aligned(
 //!   Alignment::Loose(4), IntegerReader::U16(Endian::Big),
-//!   HexFormatter::pretty_integer(),
+//!   HexFormatter::new_pretty(),
 //! )).unwrap();
 //!
 //! // The array takes up 16 bytes of memory, aligned and not
@@ -187,7 +187,7 @@
 //!   CharacterReader::ASCII,
 //!
 //!   // How to render the characters
-//!   CharacterFormatter::pretty_str_character(),
+//!   CharacterFormatter::new_pretty_str(),
 //! ).unwrap()).unwrap();
 //!
 //! // The array takes up 12 bytes of memory, all-in

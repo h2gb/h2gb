@@ -25,14 +25,14 @@ pub struct H2Character {
 }
 
 impl H2Character {
-    pub fn new_aligned(alignment: Alignment, reader: CharacterReader, renderer: CharacterRenderer) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
         H2Type::new(alignment, H2Types::H2Character(Self {
-            reader: reader,
-            renderer: renderer,
+            reader: reader.into(),
+            renderer: renderer.into(),
         }))
     }
 
-    pub fn new(reader: CharacterReader, renderer: CharacterRenderer) -> H2Type {
+    pub fn new(reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
         Self::new_aligned(Alignment::None, reader, renderer)
     }
 
@@ -42,7 +42,7 @@ impl H2Character {
     pub fn new_ascii() -> H2Type {
         Self::new(
             CharacterReader::ASCII,
-            CharacterFormatter::pretty_character(),
+            CharacterFormatter::new_pretty(),
         )
     }
 
@@ -52,7 +52,7 @@ impl H2Character {
     pub fn new_ascii_string() -> H2Type {
         Self::new(
             CharacterReader::ASCII,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )
     }
 
@@ -62,7 +62,7 @@ impl H2Character {
     pub fn new_utf8() -> H2Type {
         Self::new(
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_character(),
+            CharacterFormatter::new_pretty(),
         )
     }
 
@@ -72,7 +72,7 @@ impl H2Character {
     pub fn new_utf8_string() -> H2Type {
         Self::new(
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )
     }
 }
@@ -86,7 +86,7 @@ impl H2TypeTrait for H2Character {
     }
 
     fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
-        Ok(self.renderer.render(self.to_character(context)?))
+        Ok(self.renderer.render_character(self.to_character(context)?))
     }
 
     fn can_be_character(&self) -> bool {

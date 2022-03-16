@@ -10,11 +10,8 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 /// ```
 /// use generic_number::*;
 ///
-/// // Create an Integer directly - normally you'd use a IntegerReader
-/// let number = Integer::from(15u8);
-///
 /// // Default 'pretty' formatter
-/// assert_eq!("0b00001111", BinaryFormatter::pretty_integer().render(number));
+/// assert_eq!("0b00001111", BinaryFormatter::new_pretty().render_integer(15u8));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct BinaryFormatter {
@@ -35,30 +32,38 @@ pub struct BinaryFormatter {
     pub min_digits: usize,
 }
 
+impl From<BinaryFormatter> for IntegerRenderer {
+    fn from(f: BinaryFormatter) -> IntegerRenderer {
+        IntegerRenderer::Binary(f)
+    }
+}
+
 impl BinaryFormatter {
-    pub fn new_integer(prefix: bool, padded: bool) -> IntegerRenderer {
-        IntegerRenderer::Binary(Self {
+    pub fn new(prefix: bool, padded: bool) -> Self {
+        Self {
             prefix: prefix,
             padded: padded,
             min_digits: 0,
-        })
+        }
     }
 
-    pub fn new_with_min_size_integer(prefix: bool, min_digits: usize) -> IntegerRenderer {
-        IntegerRenderer::Binary(Self {
+    pub fn new_with_min_size(prefix: bool, min_digits: usize) -> Self {
+        Self {
             prefix: prefix,
             padded: false,
             min_digits: min_digits,
-        })
+        }
     }
 
-    pub fn pretty_integer() -> IntegerRenderer {
-        Self::new_integer(true, true)
+    pub fn new_pretty() -> Self {
+        Self::new(true, true)
     }
 }
 
 impl IntegerRendererTrait for BinaryFormatter {
-    fn render_integer(&self, number: Integer) -> String {
+    fn render_integer(&self, number: impl Into<Integer>) -> String {
+        let number: Integer = number.into();
+
         match (self.padded, self.prefix) {
             (true,  false) => format!("{:0width$b}", number, width=cmp::max(self.min_digits, number.size() * 8)), // *8 because it's bytes, not characters
             (false, false) => format!("{:0width$b}", number, width=self.min_digits), // Still pad to min_digits
@@ -104,7 +109,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                BinaryFormatter::new_integer(prefix, padded).render(number),
+                BinaryFormatter::new(prefix, padded).render_integer(number),
             );
         }
 
@@ -114,7 +119,7 @@ mod tests {
     #[test]
     fn test_binary_u24() -> SimpleResult<()> {
         let number = Integer::U24(0x0f, 0x0f0f);
-        assert_eq!("000011110000111100001111", BinaryFormatter::new_integer(false, true).render(number));
+        assert_eq!("000011110000111100001111", BinaryFormatter::new(false, true).render_integer(number));
 
         Ok(())
     }
@@ -123,27 +128,27 @@ mod tests {
     fn test_minimum_length() -> SimpleResult<()> {
         // No prefix
         let number = IntegerReader::U8.read(Context::new(&b"\x01".to_vec()))?;
-        assert_eq!("1",                                BinaryFormatter::new_with_min_size_integer(false, 0).render(number));
-        assert_eq!("1",                                BinaryFormatter::new_with_min_size_integer(false, 1).render(number));
-        assert_eq!("01",                               BinaryFormatter::new_with_min_size_integer(false, 2).render(number));
-        assert_eq!("00000001",                         BinaryFormatter::new_with_min_size_integer(false, 8).render(number));
-        assert_eq!("00000000000000000000000000000001", BinaryFormatter::new_with_min_size_integer(false, 32).render(number));
+        assert_eq!("1",                                BinaryFormatter::new_with_min_size(false, 0).render_integer(number));
+        assert_eq!("1",                                BinaryFormatter::new_with_min_size(false, 1).render_integer(number));
+        assert_eq!("01",                               BinaryFormatter::new_with_min_size(false, 2).render_integer(number));
+        assert_eq!("00000001",                         BinaryFormatter::new_with_min_size(false, 8).render_integer(number));
+        assert_eq!("00000000000000000000000000000001", BinaryFormatter::new_with_min_size(false, 32).render_integer(number));
 
         // Prefix
         let number = IntegerReader::U8.read(Context::new(&b"\x01".to_vec()))?;
-        assert_eq!("0b1",                                BinaryFormatter::new_with_min_size_integer(true, 0).render(number));
-        assert_eq!("0b1",                                BinaryFormatter::new_with_min_size_integer(true, 1).render(number));
-        assert_eq!("0b01",                               BinaryFormatter::new_with_min_size_integer(true, 2).render(number));
-        assert_eq!("0b00000001",                         BinaryFormatter::new_with_min_size_integer(true, 8).render(number));
-        assert_eq!("0b00000000000000000000000000000001", BinaryFormatter::new_with_min_size_integer(true, 32).render(number));
+        assert_eq!("0b1",                                BinaryFormatter::new_with_min_size(true, 0).render_integer(number));
+        assert_eq!("0b1",                                BinaryFormatter::new_with_min_size(true, 1).render_integer(number));
+        assert_eq!("0b01",                               BinaryFormatter::new_with_min_size(true, 2).render_integer(number));
+        assert_eq!("0b00000001",                         BinaryFormatter::new_with_min_size(true, 8).render_integer(number));
+        assert_eq!("0b00000000000000000000000000000001", BinaryFormatter::new_with_min_size(true, 32).render_integer(number));
 
         // Zero
         let number = IntegerReader::U8.read(Context::new(&b"\x00".to_vec()))?;
-        assert_eq!("0",                                BinaryFormatter::new_with_min_size_integer(false, 0).render(number));
-        assert_eq!("0",                                BinaryFormatter::new_with_min_size_integer(false, 1).render(number));
-        assert_eq!("00",                               BinaryFormatter::new_with_min_size_integer(false, 2).render(number));
-        assert_eq!("00000000",                         BinaryFormatter::new_with_min_size_integer(false, 8).render(number));
-        assert_eq!("00000000000000000000000000000000", BinaryFormatter::new_with_min_size_integer(false, 32).render(number));
+        assert_eq!("0",                                BinaryFormatter::new_with_min_size(false, 0).render_integer(number));
+        assert_eq!("0",                                BinaryFormatter::new_with_min_size(false, 1).render_integer(number));
+        assert_eq!("00",                               BinaryFormatter::new_with_min_size(false, 2).render_integer(number));
+        assert_eq!("00000000",                         BinaryFormatter::new_with_min_size(false, 8).render_integer(number));
+        assert_eq!("00000000000000000000000000000000", BinaryFormatter::new_with_min_size(false, 32).render_integer(number));
 
         Ok(())
     }

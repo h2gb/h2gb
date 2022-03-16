@@ -24,7 +24,6 @@ impl From<TransformBase32> for Transformation {
     }
 }
 
-
 impl TransformBase32 {
     pub fn new(no_padding: bool, permissive: bool, crockford: bool) -> Self {
         Self {

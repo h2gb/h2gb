@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
 
-use generic_number::{Context, Endian, IntegerReader, HexFormatter};
+use generic_number::{Context, Endian, IntegerReader, HexFormatter, IntegerRendererTrait};
 use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 
 /// Defines a numerical value.
@@ -35,9 +35,9 @@ impl H2TypeTrait for Rgb {
     fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         let reader = IntegerReader::U24(Endian::Big);
         let number = reader.read(context)?;
-        let renderer = HexFormatter::new_integer(false, false, true);
+        let renderer = HexFormatter::new(false, false, true);
 
-        Ok(format!("#{}", renderer.render(number)))
+        Ok(format!("#{}", renderer.render_integer(number)))
     }
 }
 

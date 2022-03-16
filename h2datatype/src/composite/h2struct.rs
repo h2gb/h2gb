@@ -69,7 +69,7 @@ mod tests {
                 "field_u32".to_string(),
                 H2Integer::new(
                     IntegerReader::U32(Endian::Big),
-                    HexFormatter::pretty_integer(),
+                    HexFormatter::new_pretty(),
                 )
             ),
             (
@@ -77,7 +77,7 @@ mod tests {
                 H2Integer::new_aligned(
                     Alignment::Loose(3),
                     IntegerReader::U16(Endian::Big),
-                    HexFormatter::pretty_integer(),
+                    HexFormatter::new_pretty(),
                 )
             ),
             (
@@ -85,14 +85,14 @@ mod tests {
                 H2Integer::new_aligned(
                     Alignment::Loose(4),
                     IntegerReader::U8,
-                    OctalFormatter::new_integer(true, false),
+                    OctalFormatter::new(true, false),
                 )
             ),
             (
                 "field_u32_little".to_string(),
                 H2Integer::new(
                     IntegerReader::U32(Endian::Little),
-                    DefaultFormatter::new_integer(),
+                    DefaultFormatter::new(),
                 )
             ),
         ])?;
@@ -132,7 +132,7 @@ mod tests {
                 H2Integer::new_aligned(
                     Alignment::Loose(4),
                     IntegerReader::U16(Endian::Big),
-                    HexFormatter::pretty_integer(),
+                    HexFormatter::new_pretty(),
                 )
             ),
             (
@@ -142,21 +142,21 @@ mod tests {
                         "A".to_string(),
                         H2Integer::new(
                             IntegerReader::U8,
-                            HexFormatter::pretty_integer(),
+                            HexFormatter::new_pretty(),
                         )
                     ),
                     (
                         "B".to_string(),
                         H2Integer::new(
                             IntegerReader::U8,
-                            HexFormatter::pretty_integer(),
+                            HexFormatter::new_pretty(),
                         )
                     ),
                     (
                         "C".to_string(),
                         H2Integer::new(
                             IntegerReader::U16(Endian::Big),
-                            HexFormatter::pretty_integer(),
+                            HexFormatter::new_pretty(),
                         )
                     ),
                     (

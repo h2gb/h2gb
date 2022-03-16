@@ -1,3 +1,6 @@
+* THIS BRANCH XXX
+  * Can we use Integer::TryInto<usize> instead of can_be_blah()?
+
 * To-do soon / unsorted
   * Change structs (and other APIey things) to take &str instead of String
   * Automatically create a default "Layer"

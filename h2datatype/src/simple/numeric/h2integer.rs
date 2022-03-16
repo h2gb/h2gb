@@ -25,14 +25,14 @@ pub struct H2Integer {
 }
 
 impl H2Integer {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, renderer: IntegerRenderer) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> H2Type {
         H2Type::new(alignment, H2Types::H2Integer(Self {
-            reader: reader,
-            renderer: renderer,
+            reader: reader.into(),
+            renderer: renderer.into(),
         }))
     }
 
-    pub fn new(reader: IntegerReader, renderer: IntegerRenderer) -> H2Type {
+    pub fn new(reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> H2Type {
         Self::new_aligned(Alignment::None, reader, renderer)
     }
 }
@@ -43,7 +43,7 @@ impl H2TypeTrait for H2Integer {
     }
 
     fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
-        Ok(self.renderer.render(self.to_integer(context)?))
+        Ok(self.renderer.render_integer(self.to_integer(context)?))
     }
 
     fn can_be_integer(&self) -> bool {
@@ -69,7 +69,7 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::U8,
-            HexFormatter::pretty_integer(),
+            HexFormatter::new_pretty(),
         );
 
         assert_eq!(1, t.base_size(context).unwrap());
@@ -90,7 +90,7 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::I16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(2, t.base_size(context).unwrap());
@@ -112,7 +112,7 @@ mod tests {
         let t = H2Integer::new_aligned(
             Alignment::Loose(8),
             IntegerReader::I16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
         // Starting at 0
@@ -155,7 +155,7 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::I16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(0,      t.to_integer(context.at(0))?.as_isize()?);
@@ -173,7 +173,7 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::U16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(0,      t.to_integer(context.at(0))?.as_usize()?);

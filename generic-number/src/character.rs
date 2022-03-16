@@ -31,7 +31,7 @@ use serde::{Serialize, Deserialize};
 ///
 /// // Display it using different formatters (these use the pretty defaults) -
 /// // these formatters can also be serialized!
-/// assert_eq!("'❄'", CharacterFormatter::pretty_character().render(c));
+/// assert_eq!("'❄'", CharacterFormatter::new_pretty().render_character(c));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Character {

@@ -20,19 +20,21 @@ pub struct LPString {
 }
 
 impl LPString {
-    pub fn new_aligned(alignment: Alignment, length: IntegerReader, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
+        let length: IntegerReader = length.into();
+
         if !length.can_be_usize() {
             bail!("Length type isn't numeric!");
         }
 
         Ok(H2Type::new(alignment, H2Types::LPString(Self {
-            length: length,
-            character: character,
-            renderer: renderer,
+            length: length.into(),
+            character: character.into(),
+            renderer: renderer.into(),
         })))
     }
 
-    pub fn new(length: IntegerReader, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+    pub fn new(length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length, character, renderer)
     }
 
@@ -66,7 +68,7 @@ impl H2TypeTrait for LPString {
         let (_, chars) = self.analyze(context)?;
 
         // Convert into a string
-        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
+        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render_character(c))))
     }
 
     fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
@@ -95,7 +97,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U16(Endian::Big),
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context, &Data::default())?);
 
@@ -110,7 +112,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
 
         // Ensure it can display
@@ -131,7 +133,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
         assert!(a.to_display(context, &Data::default()).is_err());
 
@@ -147,7 +149,7 @@ mod tests {
         let a: H2Type = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
 
         let resolved = a.resolve(context, None, &Data::default())?;
@@ -167,7 +169,7 @@ mod tests {
         let t = H2Array::new(3, LPString::new(
           IntegerReader::U8,
           CharacterReader::ASCII,
-          CharacterFormatter::pretty_str_character(),
+          CharacterFormatter::new_pretty_str(),
         )?)?;
 
         assert_eq!(12, t.base_size(context)?);
@@ -181,10 +183,10 @@ mod tests {
         let data = b"\x03\x41\x10\x09".to_vec();
         let context = Context::new(&data);
 
-        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
+        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new_pretty_str())?;
         assert_eq!("\"A\\x10\\t\"", a.to_display(context, &Data::default())?);
 
-        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new_character(
+        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new(
                 false, // show_single_quotes
                 CharacterReplacementPolicy::ReplaceEverything,
                 CharacterUnprintableOption::URLEncode,

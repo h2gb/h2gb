@@ -240,7 +240,7 @@ impl Data {
     ///
     /// Empty list means no value was found, an `Err` is returned if the name does
     /// not exist.
-    pub fn lookup_enum(&self, enum_name: &str, value: &Integer) -> SimpleResult<Vec<String>> {
+    pub fn lookup_enum(&self, enum_name: &str, value: impl Into<Integer>) -> SimpleResult<Vec<String>> {
         match self.enums.get(enum_name) {
             Some(e) => Ok(e.get_by_value(value)),
             None => bail!("No such enum: {}", enum_name),
@@ -259,7 +259,7 @@ impl Data {
     ///
     /// Additionally, "negative" matches can be included. That means that the
     /// output will look like `X | Y | ~Z`)
-    pub fn lookup_bitmask(&self, bitmask_name: &str, value: &Integer, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
+    pub fn lookup_bitmask(&self, bitmask_name: &str, value: impl Into<Integer>, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
         match self.bitmasks.get(bitmask_name) {
             Some(e) => Ok(e.get_by_value(value, unknown_renderer, show_negatives)),
             None => bail!("No such bitmask: {}", bitmask_name),
@@ -275,7 +275,7 @@ impl Data {
     ///
     /// Empty list means no value was found, an `Err` is returned if the name does
     /// not exist.
-    pub fn lookup_constant(&self, constant_group: &str, value: &Integer) -> SimpleResult<Vec<String>> {
+    pub fn lookup_constant(&self, constant_group: &str, value: impl Into<Integer>) -> SimpleResult<Vec<String>> {
         match self.constants.get(constant_group) {
             Some(e) => Ok(e.get_by_value(value)),
             None => bail!("No such constant: {}", constant_group),
@@ -369,7 +369,7 @@ mod tests {
         assert_eq!(vec!["test1", "test2", "test3"], e);
 
         // Retrieve a value
-        assert_eq!(vec!["TEST2".to_string()], data.lookup_enum("test1", &Integer::from(100))?);
+        assert_eq!(vec!["TEST2".to_string()], data.lookup_enum("test1", 100)?);
 
         Ok(())
     }

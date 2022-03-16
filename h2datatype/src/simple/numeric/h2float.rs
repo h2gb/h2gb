@@ -25,14 +25,14 @@ pub struct H2Float {
 }
 
 impl H2Float {
-    pub fn new_aligned(alignment: Alignment, reader: FloatReader, renderer: FloatRenderer) -> H2Type {
+    pub fn new_aligned(alignment: Alignment, reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> H2Type {
         H2Type::new(alignment, H2Types::H2Float(Self {
-            reader: reader,
-            renderer: renderer,
+            reader: reader.into(),
+            renderer: renderer.into(),
         }))
     }
 
-    pub fn new(reader: FloatReader, renderer: FloatRenderer) -> H2Type {
+    pub fn new(reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> H2Type {
         Self::new_aligned(Alignment::None, reader, renderer)
     }
 }
@@ -43,7 +43,7 @@ impl H2TypeTrait for H2Float {
     }
 
     fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
-        Ok(self.renderer.render(self.to_float(context)?))
+        Ok(self.renderer.render_float(self.to_float(context)?))
     }
 
     fn can_be_float(&self) -> bool {
@@ -69,7 +69,7 @@ mod tests {
         // Should be ~3.14
         let data = b"\x40\x48\xf5\xc3".to_vec();
 
-        let t = H2Float::new(FloatReader::F32(Endian::Big), DefaultFormatter::new_float());
+        let t = H2Float::new(FloatReader::F32(Endian::Big), DefaultFormatter::new());
 
         assert_eq!("3.14", t.to_display(Context::new_at(&data, 0), &Data::default())?);
         assert_eq!(4,      t.base_size(Context::new_at(&data, 0))?);
@@ -82,8 +82,8 @@ mod tests {
         // Should be ~3.14
         let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f".to_vec();
 
-        assert_eq!("3.14", H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new_float()).to_display(Context::new_at(&data, 0), &Data::default())?);
-        assert_eq!(8,      H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new_float()).base_size(Context::new_at(&data, 0))?);
+        assert_eq!("3.14", H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new()).to_display(Context::new_at(&data, 0), &Data::default())?);
+        assert_eq!(8,      H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new()).base_size(Context::new_at(&data, 0))?);
 
         Ok(())
     }

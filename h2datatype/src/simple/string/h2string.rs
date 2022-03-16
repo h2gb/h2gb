@@ -20,19 +20,19 @@ pub struct H2String {
 }
 
 impl H2String {
-    pub fn new_aligned(alignment: Alignment, length_in_characters: usize, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
         if length_in_characters == 0 {
             bail!("Length must be at least 1 character long");
         }
 
         Ok(H2Type::new(alignment, H2Types::H2String(Self {
             length: length_in_characters,
-            character: character,
-            renderer: renderer,
+            character: character.into(),
+            renderer: renderer.into(),
         })))
     }
 
-    pub fn new(length_in_characters: usize, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+    pub fn new(length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length_in_characters, character, renderer)
     }
 
@@ -71,7 +71,7 @@ impl H2TypeTrait for H2String {
         let (_, chars) = self.analyze(context)?;
 
         // Convert into a string
-        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
+        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render_character(c))))
     }
 
     fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
@@ -94,7 +94,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let context = Context::new(&data);
 
-        let a = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
+        let a = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::new_pretty_str())?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context, &Data::default())?);
 
         Ok(())
@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn test_zero_length_utf8_lstring() -> SimpleResult<()> {
-        assert!(H2String::new(0, CharacterReader::UTF8, CharacterFormatter::pretty_str_character()).is_err());
+        assert!(H2String::new(0, CharacterReader::UTF8, CharacterFormatter::new_pretty_str()).is_err());
 
         Ok(())
     }
@@ -112,7 +112,7 @@ mod tests {
         let data = b"A".to_vec();
         let context = Context::new(&data);
 
-        let a = H2String::new(2, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
+        let a = H2String::new(2, CharacterReader::UTF8, CharacterFormatter::new_pretty_str())?;
         assert!(a.to_display(context, &Data::default()).is_err());
 
         Ok(())
@@ -124,7 +124,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let context = Context::new(&data);
 
-        let a: H2Type = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::pretty_str_character())?;
+        let a: H2Type = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::new_pretty_str())?;
         let resolved = a.resolve(context, None, &Data::default())?;
 
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
@@ -137,7 +137,7 @@ mod tests {
         let data = b"AAAABBBBCCCCDDDD".to_vec();
         let context = Context::new(&data);
 
-        let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?)?;
+        let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII, CharacterFormatter::new_pretty_str())?)?;
 
         assert_eq!(16, t.base_size(context).unwrap());
         assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(context, &Data::default()).unwrap());
@@ -150,10 +150,10 @@ mod tests {
         let data = b"\x41\x10\x09".to_vec();
         let context = Context::new(&data);
 
-        let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
+        let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::new_pretty_str())?;
         assert_eq!("\"A\\x10\\t\"", a.to_display(context, &Data::default())?);
 
-        let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::new_character(
+        let a = H2String::new(3, CharacterReader::ASCII, CharacterFormatter::new(
                 false, // show_single_quotes
                 CharacterReplacementPolicy::ReplaceEverything,
                 CharacterUnprintableOption::URLEncode,

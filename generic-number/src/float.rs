@@ -29,7 +29,7 @@ use std::cmp::Ordering;
 ///
 /// // Display it using different formatters (these use the pretty defaults) -
 /// // these formatters can also be serialized!
-/// assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(f));
+/// assert_eq!("3.14e0", ScientificFormatter::new_pretty().render_float(f));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Float {

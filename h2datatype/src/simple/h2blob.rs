@@ -18,18 +18,18 @@ pub struct H2Blob {
 }
 
 impl H2Blob {
-    pub fn new_aligned(alignment: Alignment, length_in_bytes: usize, length_display: IntegerRenderer) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<H2Type> {
         if length_in_bytes == 0 {
             bail!("Length must be at least 1 character long");
         }
 
         Ok(H2Type::new(alignment, H2Types::H2Blob(Self {
             length: length_in_bytes,
-            length_display: length_display,
+            length_display: length_display.into(),
         })))
     }
 
-    pub fn new(length_in_bytes: usize, length_display: IntegerRenderer) -> SimpleResult<H2Type> {
+    pub fn new(length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length_in_bytes, length_display)
     }
 }
@@ -40,7 +40,7 @@ impl H2TypeTrait for H2Blob {
     }
 
     fn to_display(&self, _context: Context, _data: &Data) -> SimpleResult<String> {
-        Ok(format!("Binary blob ({} bytes)", self.length_display.render(Integer::from(self.length))))
+        Ok(format!("Binary blob ({} bytes)", self.length_display.render_integer(Integer::from(self.length))))
     }
 }
 
@@ -56,19 +56,19 @@ mod tests {
         let data = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".to_vec();
         let context = Context::new(&data);
 
-        assert_eq!("Binary blob (16 bytes)", H2Blob::new(16, DefaultFormatter::new_integer())?.to_display(context, &Data::default())?);
-        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context)?);
+        assert_eq!("Binary blob (16 bytes)", H2Blob::new(16, DefaultFormatter::new())?.to_display(context, &Data::default())?);
+        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new())?.base_size(context)?);
 
-        assert_eq!("Binary blob (0x10 bytes)", H2Blob::new(16, HexFormatter::new_integer(false, true, false))?.to_display(context, &Data::default())?);
-        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new_integer())?.base_size(context)?);
+        assert_eq!("Binary blob (0x10 bytes)", H2Blob::new(16, HexFormatter::new(false, true, false))?.to_display(context, &Data::default())?);
+        assert_eq!(16, H2Blob::new(16, DefaultFormatter::new())?.base_size(context)?);
 
         Ok(())
     }
 
     #[test]
     fn test_zero_length_blob() -> SimpleResult<()> {
-        assert!(H2Blob::new(0, DefaultFormatter::new_integer()).is_err());
-        assert!(H2Blob::new(1, DefaultFormatter::new_integer()).is_ok());
+        assert!(H2Blob::new(0, DefaultFormatter::new()).is_err());
+        assert!(H2Blob::new(1, DefaultFormatter::new()).is_ok());
 
         Ok(())
     }
