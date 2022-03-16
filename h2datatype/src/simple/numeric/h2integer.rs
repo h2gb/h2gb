@@ -176,10 +176,10 @@ mod tests {
             DefaultFormatter::new(),
         );
 
-        assert_eq!(0,      t.to_integer(context.at(0))?.as_usize()?);
-        assert_eq!(32767,  t.to_integer(context.at(2))?.as_usize()?);
-        assert_eq!(32768,  t.to_integer(context.at(4))?.as_usize()?);
-        assert_eq!(65535,  t.to_integer(context.at(6))?.as_usize()?);
+        assert_eq!(0usize,     TryInto::<usize>::try_into(t.to_integer(context.at(0))?)?);
+        assert_eq!(32767usize, TryInto::<usize>::try_into(t.to_integer(context.at(2))?)?);
+        assert_eq!(32768usize, TryInto::<usize>::try_into(t.to_integer(context.at(4))?)?);
+        assert_eq!(65535usize, TryInto::<usize>::try_into(t.to_integer(context.at(6))?)?);
 
         Ok(())
     }

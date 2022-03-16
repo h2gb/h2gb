@@ -142,7 +142,8 @@ mod tests {
             .buffer_get_or_err("buffer")?
             .layer_get_or_err("default")?
             .entry_get(0)?.unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_integer.unwrap().as_usize().unwrap());
+
+        assert_eq!(0x01020304usize, TryInto::<usize>::try_into(entry.resolved().as_integer.unwrap()).unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Retrieve it from the other side to make sure that works
@@ -150,7 +151,7 @@ mod tests {
             .buffer_get_or_err("buffer")?
             .layer_get_or_err("default")?
             .entry_get(3)?.unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_integer.unwrap().as_usize().unwrap());
+        assert_eq!(0x01020304usize, TryInto::<usize>::try_into(entry.resolved().as_integer.unwrap()).unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Create a string type

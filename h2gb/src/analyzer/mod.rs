@@ -241,7 +241,8 @@ fn transform_decrypt(record: &mut Record<Action>, buffer: &str) -> SimpleResult<
 fn parse_time_played(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
     let time_played = create_entry_integer( record, buffer, LAYER, &H2Integer::new(IntegerReader::U64(Endian::Little), DefaultFormatter::new()), offset, None, &DATA)?;
 
-    let duration = Duration::from_micros(time_played.as_usize()? as u64 / 10);
+    let time_played: usize = time_played.try_into()?;
+    let duration = Duration::from_micros(time_played as u64 / 10); //  TODO: This should not go to usize then u64
     add_comment(record, buffer, LAYER, offset, &format!("Playtime: {}", duration.hhmmssxxx()))?;
 
     Ok(())
@@ -474,7 +475,8 @@ fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset:
         let terminator_type = H2Integer::new(IntegerReader::U8, DefaultFormatter::new());
         let possible_terminator = peek_entry(record, buffer, &terminator_type, current_journey_offset, &DATA)?;
         if let Some(n) = possible_terminator.as_integer {
-            if n.as_usize()? == 8 {
+            let n: usize = n.try_into()?;
+            if n == 8{
                 create_entry(record, buffer, LAYER, &terminator_type, current_journey_offset, Some("Journey mode entry sentinel value (terminator)"), &DATA)?;
                 break;
             }
@@ -508,7 +510,8 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     let version_number = create_entry_integer(record, buffer, LAYER, &H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new(), "TERRARIA::versions", &DATA)?, 0x00, Some("Version number"), &DATA)?;
 
     // Get the offsets for later
-    let offsets = if version_number.as_usize()? < 230 {
+    let version_number: usize = version_number.try_into()?;
+    let offsets = if version_number < 230 {
         *TERRARIA_OLD_OFFSETS
     } else {
         *TERRARIA_NEW_OFFSETS
