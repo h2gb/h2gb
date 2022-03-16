@@ -18,36 +18,43 @@ impl fmt::Display for TransformBase32 {
     }
 }
 
+impl From<TransformBase32> for Transformation {
+    fn from(t: TransformBase32) -> Transformation {
+        Transformation::FromBase32(t)
+    }
+}
+
+
 impl TransformBase32 {
-    pub fn new(no_padding: bool, permissive: bool, crockford: bool) -> Transformation {
-        Transformation::FromBase32(Self {
+    pub fn new(no_padding: bool, permissive: bool, crockford: bool) -> Self {
+        Self {
             no_padding: no_padding,
             permissive: permissive,
             crockford: crockford,
-        })
+        }
     }
 
-    pub fn standard() -> Transformation {
+    pub fn standard() -> Self {
         Self::new(false, false, false)
     }
 
-    pub fn no_padding() -> Transformation {
+    pub fn no_padding() -> Self {
         Self::new(true, false, false)
     }
 
-    pub fn permissive() -> Transformation {
+    pub fn permissive() -> Self {
         Self::new(false, true, false)
     }
 
-    pub fn crockford() -> Transformation {
+    pub fn crockford() -> Self {
         Self::new(false, false, true)
     }
 
-    pub fn crockford_no_padding() -> Transformation {
+    pub fn crockford_no_padding() -> Self {
         Self::new(true, false, true)
     }
 
-    pub fn crockford_permissive() -> Transformation {
+    pub fn crockford_permissive() -> Self {
         Self::new(false, true, true)
     }
 
@@ -155,7 +162,7 @@ impl TransformerTrait for TransformBase32 {
         ];
 
         // Filter down to the ones that work
-        transformations.into_iter().filter(|t| t.can_transform(buffer)).collect()
+        transformations.into_iter().filter(|t| t.can_transform(buffer)).map(|t| Transformation::from(t)).collect()
     }
 }
 

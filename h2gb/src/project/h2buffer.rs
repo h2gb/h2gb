@@ -264,11 +264,14 @@ impl H2Buffer {
     /// * The buffer may not be populated
     /// * The transformation itself may fail (hex-decoding an odd-length string,
     ///   for eg)
-    pub fn transform(&mut self, transformation: Transformation) -> SimpleResult<Vec<u8>> {
+    pub fn transform(&mut self, transformation: impl Into<Transformation>) -> SimpleResult<Vec<u8>> {
         // Sanity check
         if self.is_populated() {
             bail!("Buffer contains data");
         }
+
+        // Convert into a transformation proper
+        let transformation: Transformation = transformation.into();
 
         // Transform the data - if this fails, nothing is left over
         let new_data = transformation.transform(&self.data)?;
@@ -592,7 +595,7 @@ mod tests {
         let (data, transformation) = buffer.untransform()?;
         assert_eq!(b"4a4b4c4d".to_vec(), buffer.data);
         assert_eq!(b"JKLM".to_vec(), data);
-        assert_eq!(transformation, TransformHex::new());
+        assert_eq!(transformation, TransformHex::new().into());
 
         Ok(())
     }
@@ -609,7 +612,7 @@ mod tests {
         let (data, transformation) = buffer.untransform()?;
         assert_eq!(b"4a4b4c4d".to_vec(), buffer.data);
         assert_eq!(b"JKLM".to_vec(), data);
-        assert_eq!(transformation, TransformHex::new());
+        assert_eq!(transformation, TransformHex::new().into());
 
         buffer.untransform_undo(data, transformation)?;
         assert_eq!(b"JKLM".to_vec(), buffer.data);

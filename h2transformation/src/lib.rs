@@ -19,7 +19,7 @@
 //!
 //!
 //! ```
-//! use h2transformation::TransformHex;
+//! use h2transformation::*;
 //!
 //! // Input (note that some are uppercase and some are lower - that's allowed)
 //! let i: Vec<u8> = b"48656c6C6F2c20776f726c64".to_vec();
@@ -64,7 +64,7 @@ pub enum Transformation {
     /// # Example
     ///
     /// ```
-    /// use h2transformation::TransformNull;
+    /// use h2transformation::*;
     ///
     /// // Input: "abcdef"
     /// let i: Vec<u8> = b"abcdef".to_vec();
@@ -87,7 +87,7 @@ pub enum Transformation {
     /// ## Eight bit
     ///
     /// ```
-    /// use h2transformation::{TransformXorByConstant, XorSettings};
+    /// use h2transformation::*;
     ///
     /// // Input: "\x00\x01\x02\x03", XorSettings::EightBit(0xFF)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
@@ -100,7 +100,7 @@ pub enum Transformation {
     /// ## Sixteen bit
     ///
     /// ```
-    /// use h2transformation::{TransformXorByConstant, XorSettings};
+    /// use h2transformation::*;
     ///
     /// // Input: "\x00\x01\x02\x03", XorSettings::SixteenBit(0xFF00)
     /// let i: Vec<u8> = b"\x00\x01\x02\x03".to_vec();
@@ -115,7 +115,7 @@ pub enum Transformation {
     /// The size of the input buffer must be a multiple of the XOR bit size.
     ///
     /// ```
-    /// use h2transformation::{TransformXorByConstant, XorSettings};
+    /// use h2transformation::*;
     ///
     /// let i: Vec<u8> = b"\x00".to_vec();
     ///
@@ -135,7 +135,7 @@ pub enum Transformation {
     /// # Example 1 - Standard
     ///
     /// ```
-    /// use h2transformation::TransformBase64;
+    /// use h2transformation::*;
     ///
     /// // Input: "AQIDBA=="
     /// let i: Vec<u8> = b"AQIDBA==".to_vec();
@@ -148,7 +148,7 @@ pub enum Transformation {
     ///
     /// # Example 2 - Error
     /// ```
-    /// use h2transformation::TransformBase64;
+    /// use h2transformation::*;
     ///
     /// let i: Vec<u8> = b"Not valid base64~".to_vec();
     ///
@@ -159,7 +159,7 @@ pub enum Transformation {
     /// # Example 3 - No padding
     ///
     /// ```
-    /// use h2transformation::TransformBase64;
+    /// use h2transformation::*;
     ///
     /// // Input: "AQIDBA"
     /// let i: Vec<u8> = b"AQIDBA".to_vec();
@@ -173,7 +173,7 @@ pub enum Transformation {
     /// # Example 4 - URL character set
     ///
     /// ```
-    /// use h2transformation::TransformBase64;
+    /// use h2transformation::*;
     ///
     /// // Input: "aa--_z8="
     /// let i: Vec<u8> = b"aa--_z8=".to_vec();
@@ -187,7 +187,7 @@ pub enum Transformation {
     /// # Example 5 - Permissive
     ///
     /// ```
-    /// use h2transformation::TransformBase64;
+    /// use h2transformation::*;
     ///
     /// // Input: "AQIDBA="
     /// let i: Vec<u8> = b"AQIDBA=".to_vec();
@@ -209,7 +209,7 @@ pub enum Transformation {
     /// # Example 1 - Standard
     ///
     /// ```
-    /// use h2transformation::TransformBase32;
+    /// use h2transformation::*;
     ///
     /// // Input: "AEBAGBA="
     /// let i: Vec<u8> = b"AEBAGBA=".to_vec();
@@ -223,7 +223,7 @@ pub enum Transformation {
     /// # Example 2 - Invalid transformation
     ///
     /// ```
-    /// use h2transformation::TransformBase32;
+    /// use h2transformation::*;
     ///
     /// let i: Vec<u8> = b"Not valid base32~".to_vec();
     ///
@@ -234,7 +234,7 @@ pub enum Transformation {
     /// # Example 3 - Crockford character set
     ///
     /// ```
-    /// use h2transformation::TransformBase32;
+    /// use h2transformation::*;
     ///
     /// // Input: "91JPRV3F"
     /// let i: Vec<u8> = b"91JPRV3F".to_vec();
@@ -248,7 +248,7 @@ pub enum Transformation {
     /// # Example 4 - Permissive
     ///
     /// ```
-    /// use h2transformation::TransformBase32;
+    /// use h2transformation::*;
     ///
     /// // Input: "AEBA??*GBA=" (bad characters will be ignored)
     /// let i: Vec<u8> = b"AEBA??*GBA=".to_vec();
@@ -275,7 +275,7 @@ pub enum Transformation {
     /// # Example
     ///
     /// ```
-    /// use h2transformation::TransformHex;
+    /// use h2transformation::*;
     ///
     /// // Input: "41424344"
     /// let i: Vec<u8> = b"41424344".to_vec();
@@ -449,7 +449,7 @@ mod tests {
 
     #[test]
     fn test_detect() -> SimpleResult<()> {
-        let tests: Vec<_> = vec![
+        let tests: Vec<(&'static str, Vec<u8>, Vec<Transformation>)> = vec![
             (
                 "Testcase: 'A'",
                 b"A".to_vec(),
@@ -461,11 +461,11 @@ mod tests {
                 "Testcase: 'AA'",
                 b"AA".to_vec(),
                 vec![
-                    TransformBase32::no_padding(),
-                    TransformBase32::crockford(),
-                    TransformBase64::no_padding(),
-                    TransformBase64::url_no_padding(),
-                    TransformHex::new(),
+                    TransformBase32::no_padding().into(),
+                    TransformBase32::crockford().into(),
+                    TransformBase64::no_padding().into(),
+                    TransformBase64::url_no_padding().into(),
+                    TransformHex::new().into(),
                 ],
             ),
 
@@ -473,8 +473,8 @@ mod tests {
                 "Testcase: 'AA=='",
                 b"AA==".to_vec(),
                 vec![
-                    TransformBase64::standard(),
-                    TransformBase64::url(),
+                    TransformBase64::standard().into(),
+                    TransformBase64::url().into(),
                 ],
             ),
 
@@ -482,7 +482,7 @@ mod tests {
                 "Testcase: '/+AAAA=='",
                 b"/+AAAA==".to_vec(),
                 vec![
-                    TransformBase64::standard(),
+                    TransformBase64::standard().into(),
                 ],
             ),
 
@@ -490,8 +490,8 @@ mod tests {
                 "Testcase: '-_AAAA=='",
                 b"-_AAAA==".to_vec(),
                 vec![
-                    TransformBase64::url(),
-                    TransformDeflate::without_header(),
+                    TransformBase64::url().into(),
+                    TransformDeflate::without_header().into(),
                 ],
             ),
 
@@ -499,7 +499,7 @@ mod tests {
                 "Testcase: Simple deflated",
                 b"\x03\x00\x00\x00\x00\x01".to_vec(),
                 vec![
-                    TransformDeflate::without_header(),
+                    TransformDeflate::without_header().into(),
                 ]
             ),
 
@@ -507,7 +507,7 @@ mod tests {
                 "Testcase: Zlib deflated",
                 b"\x78\x9c\x03\x00\x00\x00\x00\x01".to_vec(),
                 vec![
-                    TransformDeflate::with_header(),
+                    TransformDeflate::with_header().into(),
                 ]
             ),
 
@@ -515,7 +515,7 @@ mod tests {
                 "Testcase: Base32",
                 b"ORSXG5BRGIZSA2DFNRWG6===".to_vec(),
                 vec![
-                    TransformBase32::standard(),
+                    TransformBase32::standard().into(),
                 ]
             ),
 
@@ -523,8 +523,8 @@ mod tests {
                 "Testcase: Base32 no padding",
                 b"ORSXG5BRGIZSA2DFNRWG6".to_vec(),
                 vec![
-                    TransformBase32::no_padding(),
-                    TransformBase32::crockford(),
+                    TransformBase32::no_padding().into(),
+                    TransformBase32::crockford().into(),
                 ]
             ),
 
@@ -532,7 +532,7 @@ mod tests {
                 "Testcase: Base32 crockford",
                 b"EHJQ6X1H68SJ0T35DHP6Y".to_vec(),
                 vec![
-                    TransformBase32::crockford(),
+                    TransformBase32::crockford().into(),
                 ]
             ),
 
@@ -546,14 +546,14 @@ mod tests {
                         BlockCipherPadding::Pkcs7,
                         b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
                         None,
-                    ).unwrap(),
+                    ).unwrap().into(),
                     TransformBlockCipher::new(
                         BlockCipherType::AES,
                         BlockCipherMode::ECB,
                         BlockCipherPadding::Pkcs7,
                         b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
                         None,
-                    ).unwrap(),
+                    ).unwrap().into(),
                 ]
             ),
             (
@@ -568,7 +568,7 @@ mod tests {
                         BlockCipherPadding::Pkcs7,
                         b"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0".to_vec(),
                         None,
-                    ).unwrap(),
+                    ).unwrap().into(),
                 ]
             ),
         ];

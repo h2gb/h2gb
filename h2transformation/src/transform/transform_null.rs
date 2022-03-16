@@ -9,8 +9,8 @@ pub struct TransformNull {
 }
 
 impl TransformNull {
-    pub fn new() -> Transformation {
-        Transformation::Null(TransformNull {})
+    pub fn new() -> Self {
+        TransformNull {}
     }
 }
 
@@ -19,6 +19,13 @@ impl fmt::Display for TransformNull {
         write!(f, "{:?}", self)
     }
 }
+
+impl From<TransformNull> for Transformation {
+    fn from(t: TransformNull) -> Transformation {
+        Transformation::Null(t)
+    }
+}
+
 
 impl TransformerTrait for TransformNull {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {

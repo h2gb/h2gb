@@ -18,36 +18,42 @@ impl fmt::Display for TransformBase64 {
     }
 }
 
+impl From<TransformBase64> for Transformation {
+    fn from(t: TransformBase64) -> Transformation {
+        Transformation::FromBase64(t)
+    }
+}
+
 impl TransformBase64 {
-    pub fn new(no_padding: bool, permissive: bool, url: bool) -> Transformation {
-        Transformation::FromBase64(Self {
+    pub fn new(no_padding: bool, permissive: bool, url: bool) -> Self {
+        Self {
             no_padding: no_padding,
             permissive: permissive,
             url: url,
-        })
+        }
     }
 
-    pub fn standard() -> Transformation {
+    pub fn standard() -> Self {
         Self::new(false, false, false)
     }
 
-    pub fn no_padding() -> Transformation {
+    pub fn no_padding() -> Self {
         Self::new(true, false, false)
     }
 
-    pub fn permissive() -> Transformation {
+    pub fn permissive() -> Self {
         Self::new(false, true, false)
     }
 
-    pub fn url() -> Transformation {
+    pub fn url() -> Self {
         Self::new(false, false, true)
     }
 
-    pub fn url_no_padding() -> Transformation {
+    pub fn url_no_padding() -> Self {
         Self::new(true, false, true)
     }
 
-    pub fn url_permissive() -> Transformation {
+    pub fn url_permissive() -> Self {
         Self::new(false, true, true)
     }
 
@@ -153,7 +159,7 @@ impl TransformerTrait for TransformBase64 {
         ];
 
         // Filter down to the ones that work
-        transformations.into_iter().filter(|t| t.can_transform(buffer)).collect()
+        transformations.into_iter().filter(|t| t.can_transform(buffer)).map(|t| Transformation::from(t)).collect()
     }
 }
 

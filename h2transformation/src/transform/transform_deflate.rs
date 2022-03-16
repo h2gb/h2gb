@@ -16,18 +16,25 @@ impl fmt::Display for TransformDeflate {
     }
 }
 
+impl From<TransformDeflate> for Transformation {
+    fn from(t: TransformDeflate) -> Transformation {
+        Transformation::FromDeflated(t)
+    }
+}
+
+
 impl TransformDeflate {
-    pub fn new(zlib_header: bool) -> Transformation {
-        Transformation::FromDeflated(Self {
+    pub fn new(zlib_header: bool) -> Self {
+        Self {
             zlib_header: zlib_header,
-        })
+        }
     }
 
-    pub fn with_header() -> Transformation {
+    pub fn with_header() -> Self {
         Self::new(true)
     }
 
-    pub fn without_header() -> Transformation {
+    pub fn without_header() -> Self {
         Self::new(false)
     }
 
@@ -94,7 +101,7 @@ impl TransformerTrait for TransformDeflate {
             out.push(t);
         }
 
-        out
+        out.into_iter().map(|t| Transformation::from(t)).collect()
     }
 }
 

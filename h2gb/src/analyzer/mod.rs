@@ -8,7 +8,7 @@ use simple_error::SimpleResult;
 use lazy_static::lazy_static;
 use hhmmss::Hhmmss;
 
-use h2transformation::{Transformation, TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
+use h2transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 
 use h2datatype::{Data, H2Type};
 use h2datatype::simple::{H2Bitmask, H2Enum, Rgb};
@@ -137,7 +137,7 @@ lazy_static! {
     };
 
     /// This transformation will decrypt the Terraria savefile
-    static ref TRANSFORMATION_DECRYPT: Transformation = {
+    static ref TRANSFORMATION_DECRYPT: TransformBlockCipher = {
         TransformBlockCipher::new(
             BlockCipherType::AES,
             BlockCipherMode::CBC,
