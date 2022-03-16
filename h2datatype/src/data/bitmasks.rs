@@ -31,7 +31,7 @@ impl Bitmasks {
     pub fn get_by_value(&self, value: impl Into<Integer>, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> Vec<String> {
         let value: Integer = value.into();
 
-        let mut value = value.as_u128();
+        let mut value: u128 = value.into();
         let mut out = vec![];
 
         for bit in 0..128u8 {
@@ -101,7 +101,7 @@ impl DataTrait for Bitmasks {
             }
 
             // Convert it to a u8 since we don't need the full Integer
-            let position = position.as_u128();
+            let position: u128 = position.into();
             if position > 127 {
                 bail!("Value {} out of bitmask range");
             }

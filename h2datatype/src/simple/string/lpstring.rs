@@ -39,7 +39,7 @@ impl LPString {
     }
 
     fn analyze(&self, context: Context) -> SimpleResult<(usize, Vec<Character>)> {
-        let length = self.length.read(context)?.try_into()?;
+        let length: usize = self.length.read(context)?.try_into()?;
         let mut position = context.position() + self.length.size();
 
         let mut result = Vec::new();

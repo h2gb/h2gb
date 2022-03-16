@@ -16,7 +16,7 @@ use h2datatype::simple::numeric::H2Integer;
 use h2datatype::simple::string::{H2String, LPString};
 use h2datatype::composite::H2Struct;
 
-use generic_number::{IntegerReader, CharacterReader, CharacterFormatter, Endian, DefaultFormatter, BooleanFormatter};
+use generic_number::{Integer, IntegerReader, CharacterReader, CharacterFormatter, Endian, DefaultFormatter, BooleanFormatter};
 
 use crate::actions::*;
 
@@ -445,7 +445,7 @@ fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset:
         let terminator_type = H2Integer::new(IntegerReader::I32(Endian::Little), DefaultFormatter::new());
         let possible_terminator = peek_entry(record, buffer, &terminator_type, current_spawn_offset, &DATA)?;
         if let Some(n) = possible_terminator.as_integer {
-            if n.as_isize()? == -1 {
+            if n == Integer::from(-1) {
                 create_entry(record, buffer, LAYER, &terminator_type, current_spawn_offset, Some("Spawn point sentinel value (terminator)"), &DATA)?;
                 break;
             }
