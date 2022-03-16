@@ -49,8 +49,14 @@ pub enum H2InnerType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum H2TypeType {
+    /// An inline type
     Inline(H2InnerType),
-    Named(String),
+
+    /// A different, named type from [`Data`] in its own namespace
+    Reference(String),
+
+    /// A different, named type from [`Data`] in a specific namespace
+    ForeignReference(Option<String>, String),
 }
 
 /// The core of this crate - defines any type of value abstractly.
@@ -74,36 +80,73 @@ pub enum H2TypeType {
 pub struct H2Type {
     pub field: H2TypeType,
     pub alignment: Alignment,
+
+    /// The namespace that this type is a part of.
+    ///
+    /// We don't serialize this, because it is set when loaded.
+    #[serde(skip)]
+    pub namespace: Option<String>,
 }
 
 impl H2Type {
+    /// Create a type with an inline definition.
+    ///
+    /// By default, the namespace is set to None.
     pub fn new_inline(alignment: Alignment, field: H2InnerType) -> Self {
         Self {
             field: H2TypeType::Inline(field),
             alignment: alignment,
+            namespace: None,
         }
     }
 
-    pub fn new_named_aligned(alignment: Alignment, name: &str, data: &Data) -> SimpleResult<Self> {
-        if !data.types.contains(name) {
+    /// Create a type that's a reference to another type, in its own namespace.
+    ///
+    /// If this is saved to a file and loaded, it will use the namespace from
+    /// the file it is loaded into.
+    pub fn new_reference(alignment: Alignment, namespace: Option<&str>, name: &str, data: &Data) -> SimpleResult<Self> {
+        // Sanity check
+        if !data.namespace(namespace)?.types.contains(name) {
             bail!("No such named type: {}", name);
         }
 
         Ok(Self {
-            field: H2TypeType::Named(name.to_string()),
+            field: H2TypeType::Reference(name.to_string()),
             alignment: alignment,
+            namespace: namespace.map(|s| s.to_string()),
         })
     }
 
-    pub fn new_named(name: &str, data: &Data) -> SimpleResult<Self> {
-        Self::new_named_aligned(Alignment::None, name, data)
+    /// Create a type that's a reference to another type in a specific
+    /// namespace.
+    ///
+    /// If this is saved and loaded, the namespace will remain the same. That
+    /// makes this quasi-unsafe to put into a file.
+    ///
+    /// This sets the new object's namespace to `None`.
+    pub fn new_foreign_reference(alignment: Alignment, target_namespace: Option<&str>, name: &str, data: &Data) -> SimpleResult<Self> {
+        // Sanity check
+        if !data.namespace(target_namespace)?.types.contains(name) {
+            bail!("No such named type: {}", name);
+        }
+
+        Ok(Self {
+            field: H2TypeType::ForeignReference(target_namespace.map(|s| s.to_string()), name.to_string()),
+            alignment: alignment,
+            namespace: None,
+        })
+    }
+
+    pub fn set_namespace(&mut self, namespace: Option<&str>) {
+        self.namespace = namespace.map(|s| s.to_string());
     }
 
     fn field<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a H2InnerType> {
         // XXX: Handle infinite recursion
         match &self.field {
             H2TypeType::Inline(t) => Ok(t),
-            H2TypeType::Named(n) => data.types.get(&n)?.get().field(data),
+            H2TypeType::Reference(n) => data.namespace(self.namespace.map(|s| &s[..]))?.types.get(&n)?.get().field(data),
+            H2TypeType::ForeignReference(ns, n) => data.namespace(ns.map(|s| &s[..]))?.types.get(&n)?.get().field(data),
         }
     }
 
@@ -145,7 +188,7 @@ impl H2Type {
     /// [`crate::composite::H2Array`], the alignment on THAT is
     /// included since that's part of the actual object.
     pub fn base_size(&self, context: Context, data: &Data) -> SimpleResult<usize> {
-        self.field_type(data)?.base_size(context, data)
+        self.field_type(data)?.base_size(context, data.namespace(self.namespace.map(|s| &s[..]))?)
     }
 
     /// Get the size of the field, including the alignment.

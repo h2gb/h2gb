@@ -25,15 +25,11 @@ pub struct H2Enum {
 }
 
 impl H2Enum {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
-        // Make sure the enum type exists
-        if !data.enums.contains(enum_type) {
-            bail!("No such Enum: {}", enum_type);
-        }
-
+    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, _data: &Data) -> SimpleResult<H2Type> {
         Ok(H2Type::new_inline(alignment, H2InnerType::H2Enum(Self {
             reader: reader,
             fallback_renderer: fallback_renderer,
+            enum_namespace: enum_namespace.map(|n| n.to_string()),
             enum_type: enum_type.to_string(),
         })))
 

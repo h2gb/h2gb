@@ -195,7 +195,7 @@ impl Lookupable for Bitmasks {
     ///
     /// Empty list means no value was found, an `Err` is returned if the name does
     /// not exist.
-    fn lookup(&self, value: &Integer, options: Option<BitmaskOptions>) -> Vec<String> {
+    fn lookup_options(&self, value: &Integer, options: Option<BitmaskOptions>) -> Vec<String> {
         match options {
             Some(o) => self.get_by_value(value, &o),
             None => self.get_by_value(value, &BitmaskOptions::default()),

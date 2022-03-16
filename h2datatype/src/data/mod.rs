@@ -43,22 +43,28 @@
 //!
 //! The various `list_*` and `lookup_*` functions can be used to retrieve data.
 
+
+// Braining..... how do namespaces work?
+//
+// Goal:
+// * Data has a namespace of some sort for organization + conflicts
+// * Enums, Bitmasks, types, etc. are loaded into a namespace
+//   * Specified by the user, or by the file?
+// * By default, a type searches for data within its own namespace
+//   * So when it's loaded, the namespace is set
+//   * Namespace is in h2type, but not serialized (?)
+//
+
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::path::Path;
 
 use simple_error::{SimpleResult, bail};
 
-use generic_number::{Integer, IntegerRenderer};
-
-use crate::H2Type;
-
 mod classes;
-use classes::*;
+use classes::{Bitmasks, Enums, Types, Constants};
 
 mod traits;
-use traits::*;
 
 mod data_entry;
 use data_entry::DataEntry;
@@ -83,9 +89,14 @@ where K: Eq + Hash + Debug
     Ok(())
 }
 
-/// The core [`Data`] struct, which holds all data data that has been loaded.
+/// The struct that holds data. Not designed to be serialized or stored.
+///
+/// TODO: write more about Data
+/// This structure is recursive - data can be nested to any level, or none.
 #[derive(Default, Debug)]
 pub struct Data {
+    namespaces: HashMap<String, Data>,
+
     pub constants: DataEntry<Constants>,
     pub enums:     DataEntry<Enums>,
     pub bitmasks:  DataEntry<Bitmasks>,
@@ -96,114 +107,53 @@ impl Data {
     /// Create a new, empty instance.
     pub fn new() -> Self {
         Self {
-            constants: DataEntry::new(),
-            enums:     DataEntry::new(),
-            bitmasks:  DataEntry::new(),
-            types:     DataEntry::new(),
+            namespaces: HashMap::default(),
+
+            constants: DataEntry::default(),
+            enums:     DataEntry::default(),
+            bitmasks:  DataEntry::default(),
+            types:     DataEntry::default(),
         }
     }
 
-    /// Load constants from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load_constants(&mut self, path: &Path) -> SimpleResult<&Self> {
-        self.constants.load(path)?;
-
-        Ok(self)
+    pub fn namespace(&self, name: Option<&str>) -> SimpleResult<&Data> {
+        match name {
+            Some(n) => {
+                match self.namespaces.get(&n[..]) {
+                    Some(n) => Ok(n),
+                    None    => bail!("No such namespace: {:?}", name),
+                }
+            },
+            None => Ok(self),
+        }
     }
 
-    /// Load enums from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load_enums(&mut self, path: &Path) -> SimpleResult<&Self> {
-        self.enums.load(path)?;
-
-        Ok(self)
+    pub fn namespace_mut(&mut self, name: Option<&str>) -> SimpleResult<&mut Data> {
+        match name {
+            Some(n) => {
+                match self.namespaces.get_mut(&n[..]) {
+                    Some(n) => Ok(n),
+                    None    => bail!("No such namespace: {:?}", name),
+                }
+            },
+            None => Ok(&mut self),
+        }
     }
 
-    /// Load bitmasks from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load_bitmasks(&mut self, path: &Path) -> SimpleResult<&Self> {
-        self.bitmasks.load(path)?;
+    pub fn namespace_create(&mut self, name: &str) -> SimpleResult<()> {
+        if self.namespaces.contains_key(name) {
+            bail!("Namespace already exists: {}", name);
+        }
 
-        Ok(self)
+        self.namespaces.insert(name.to_string(), Data::default());
+
+        Ok(())
     }
 
-    /// Load types from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, JSON, and RON (based on extension) - does not support
-    /// CSV
-    pub fn load_types(&mut self, path: &Path) -> SimpleResult<&Self> {
-        self.types.load(path)?;
-
-        Ok(self)
+    /// Get a list of all namespaces.
+    pub fn namespaces(&self) -> Vec<&String> {
+        self.namespaces.keys().collect()
     }
-
-    /// Get the names of all available enums
-    pub fn list_enums(&self) -> Vec<&str> {
-        self.enums.list()
-    }
-
-    /// Find a specific value in an enum based on an [`Integer`].
-    ///
-    /// Empty list means no value was found, an `Err` is returned if the name does
-    /// not exist.
-    pub fn lookup_enum(&self, enum_name: &str, value: &Integer) -> SimpleResult<Vec<String>> {
-        self.enums.lookup(enum_name, value, ())
-    }
-
-    /// Get the names of all available bitmasks
-    pub fn list_bitmasks(&self) -> Vec<&str> {
-        self.bitmasks.list()
-    }
-
-    /// Find a specific bitmask matches based on an [`Integer`].
-    ///
-    /// An optional `unknown_renderer` can be supplied, which will be used to
-    /// render unknown values using the (prefix, renderer) tuple.
-    ///
-    /// Additionally, "negative" matches can be included. That means that the
-    /// output will look like `X | Y | ~Z`)
-    pub fn lookup_bitmask(&self, bitmask_name: &str, value: &Integer, unknown_renderer: Option<(String, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
-        let options: BitmaskOptions = BitmaskOptions::new(unknown_renderer, show_negatives);
-
-        self.bitmasks.lookup(bitmask_name, value, Some(options))
-    }
-
-    /// Get the names of all available groups of constants
-    pub fn list_constant_groups(&self) -> Vec<&str> {
-        self.constants.list()
-    }
-
-    /// Find a specific constant or constants based on an [`Integer`].
-    ///
-    /// Empty list means no value was found, an `Err` is returned if the name does
-    /// not exist.
-    pub fn lookup_constant(&self, constant_group: &str, value: &Integer) -> SimpleResult<Vec<String>> {
-        self.enums.lookup(constant_group, value, ())
-    }
-
-    /// Get the names of all available types.
-    pub fn list_types(&self) -> Vec<&str> {
-        self.types.list()
-    }
-
-    /// Find a specific type by name.
-    pub fn get_type(&self, type_name: &str) -> SimpleResult<&H2Type> {
-        Ok(self.types.get(type_name)?.get())
-    }
-
-    // /// Add a new type to the list.
-    // pub fn insert_type(&mut self, type_name: &str, h2type: &H2Type) -> SimpleResult<()> {
-    //     if self.types.contains_key(type_name) {
-    //         bail!("Duplicate type: {}", type_name);
-    //     }
-
-    //     self.types.insert(type_name.to_string(), Types::from(h2type));
-
-    //     Ok(())
-    // }
 }
 
 #[cfg(test)]
@@ -220,7 +170,7 @@ mod tests {
     #[test]
     fn test_load_file() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>())?;
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>())?;
 
         // Make sure the output is sensible
         assert_eq!(1, data.constants.len());
@@ -229,7 +179,7 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Load a second file
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>())?;
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>())?;
 
         // Make sure the output is sensible
         assert_eq!(2, data.constants.len());
@@ -238,7 +188,7 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Load an enum
-        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/test1.csv"].iter().collect::<PathBuf>())?;
+        data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/test1.csv"].iter().collect::<PathBuf>())?;
 
         // Make sure the output is sensible
         assert_eq!(2, data.constants.len());
@@ -247,17 +197,17 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Load a .ron file
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test4.ron"].iter().collect::<PathBuf>())?;
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test4.ron"].iter().collect::<PathBuf>())?;
         assert_eq!(3, data.constants.len());
         assert_eq!(1, data.enums.len());
         assert_eq!(0, data.bitmasks.len());
         assert_eq!(0, data.types.len());
 
         // Correctly error on bad filename
-        assert!(data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/NOSUCHFILE"].iter().collect::<PathBuf>()).is_err());
+        assert!(data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/NOSUCHFILE"].iter().collect::<PathBuf>()).is_err());
 
         // Check a value
-        assert_eq!(&Integer::from(100), data.constants.get("test1").unwrap().get_by_name("TEST2").unwrap());
+        assert_eq!(&Integer::from(100u32), data.constants.get("test1").unwrap().get_by_name("TEST2").unwrap());
 
         Ok(())
     }
@@ -265,7 +215,7 @@ mod tests {
     #[test]
     fn test_load_directory() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>())?;
+        data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>())?;
 
         // Make sure the output is sensible
         assert_eq!(0, data.constants.len());
@@ -274,12 +224,12 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Check the names
-        let mut e = data.list_enums();
+        let mut e = data.enums.list();
         e.sort();
         assert_eq!(vec!["test1", "test2", "test3"], e);
 
         // Retrieve a value
-        assert_eq!(vec!["TEST2".to_string()], data.lookup_enum("test1", &Integer::from(100))?);
+        assert_eq!(vec!["TEST2".to_string()], data.enums.lookup("test1", &Integer::from(100))?);
 
         Ok(())
     }
@@ -287,7 +237,7 @@ mod tests {
     #[test]
     fn test_deeply_nested() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>())?;
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>())?;
 
         // Make sure the output is sensible
         assert_eq!(1, data.constants.len());
@@ -296,13 +246,13 @@ mod tests {
         assert_eq!(0, data.types.len());
 
         // Check a value
-        assert_eq!(&Integer::from(100), data.constants.get("constants").unwrap().get_by_name("TEST2").unwrap());
+        assert_eq!(&Integer::from(100u32), data.constants.get("constants").unwrap().get_by_name("TEST2").unwrap());
 
         Ok(())
     }
 
     // #[test]
-    // fn test_prefix() -> SimpleResult<()> {
+    // fn test_namespace() -> SimpleResult<()> { XXX TEST THIS
     //     let mut data = Data::new();
     //     data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), Some("MY_PREFIX"))?;
 
@@ -326,8 +276,8 @@ mod tests {
         let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
         // Works the first time, not the second
-        data.load_constants(&path)?;
-        assert!(data.load_constants(&path).is_err());
+        data.constants.load(&path)?;
+        assert!(data.constants.load(&path).is_err());
 
         Ok(())
     }
@@ -335,7 +285,7 @@ mod tests {
     #[test]
     fn test_ambiguous_one_step() -> SimpleResult<()> {
         // Immediately fails
-        assert!(Data::new().load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>()).is_err());
+        assert!(Data::new().constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>()).is_err());
 
         Ok(())
     }

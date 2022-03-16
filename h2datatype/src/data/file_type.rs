@@ -21,5 +21,3 @@ impl FileType {
         }
     }
 }
-
-

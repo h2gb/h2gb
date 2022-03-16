@@ -1,7 +1,7 @@
 use simple_error::SimpleResult;
 
 use crate::H2Type;
-use crate::data::DataTrait;
+use crate::data::traits::DataTrait;
 
 #[derive(Debug)]
 pub struct Types {
@@ -27,6 +27,8 @@ impl DataTrait for Types {
 
     /// Load the data from the type that was serialized.
     fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
+        let t = data.clone();
+        //t.set_namesapce(...)
         Ok(Self {
             h2type: data.clone(),
         })

@@ -1,3 +1,7 @@
+* Data
+  * Add a "validate" call to h2type that ensures references are okay
+  * Deal with infinite loops in references
+
 * To-do soon / unsorted
   * Change structs (and other APIey things) to take &str instead of String
   * Automatically create a default "Layer"

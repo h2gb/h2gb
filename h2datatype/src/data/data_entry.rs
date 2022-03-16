@@ -134,9 +134,16 @@ impl<T: DataTrait> DataEntry<T> {
 }
 
 impl<T: DataTrait + Lookupable> DataEntry<T> {
-    pub fn lookup(&self, name: &str, value: &T::LookupBy, options: T::LookupOptions) -> SimpleResult<T::LookupResult> {
+    pub fn lookup(&self, name: &str, value: &T::LookupBy) -> SimpleResult<T::LookupResult> {
         match self.data.get(name) {
-            Some(e) => Ok(e.lookup(value, options)),
+            Some(e) => Ok(e.lookup(value)),
+            None => bail!("Could not find {}", name),
+        }
+    }
+
+    pub fn lookup_options(&self, name: &str, value: &T::LookupBy, options: T::LookupOptions) -> SimpleResult<T::LookupResult> {
+        match self.data.get(name) {
+            Some(e) => Ok(e.lookup_options(value, options)),
             None => bail!("Could not find {}", name),
         }
     }
