@@ -21,18 +21,18 @@ pub struct H2Array {
 }
 
 impl H2Array {
-    pub fn new_aligned(alignment: Alignment, length: usize, field_type: H2Type) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Alignment, length: usize, field_type: impl Into<H2Type>) -> SimpleResult<H2Type> {
         if length == 0 {
             bail!("Arrays must be at least one element long");
         }
 
         Ok(H2Type::new(alignment, H2Types::H2Array(Self {
-            field_type: Box::new(field_type),
+            field_type: Box::new(field_type.into()),
             length: length,
         })))
     }
 
-    pub fn new(length: usize, field_type: H2Type) -> SimpleResult<H2Type> {
+    pub fn new(length: usize, field_type: impl Into<H2Type>) -> SimpleResult<H2Type> {
         Self::new_aligned(Alignment::None, length, field_type)
     }
 }
