@@ -15,22 +15,24 @@ use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
 pub struct H2Blob {
     length: usize,
     length_display: IntegerRenderer,
+    alignment: Option<Alignment>,
 }
 
 impl H2Blob {
-    pub fn new_aligned(alignment: Alignment, length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<H2Type> {
         if length_in_bytes == 0 {
             bail!("Length must be at least 1 character long");
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Blob(Self {
+        Ok(H2Type::new(H2Types::H2Blob(Self {
             length: length_in_bytes,
             length_display: length_display.into(),
+            alignment: alignment,
         })))
     }
 
     pub fn new(length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, length_in_bytes, length_display)
+        Self::new_aligned(None, length_in_bytes, length_display)
     }
 }
 
@@ -41,6 +43,10 @@ impl H2TypeTrait for H2Blob {
 
     fn to_display(&self, _context: Context, _data: &Data) -> SimpleResult<String> {
         Ok(format!("Binary blob ({} bytes)", self.length_display.render_integer(Integer::from(self.length))))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

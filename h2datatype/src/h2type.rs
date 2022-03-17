@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use generic_number::{Context, Integer, Float, Character};
 
-use crate::{H2TypeTrait, Alignment, Data, ResolvedType};
+use crate::{H2TypeTrait, Data, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
 use crate::simple::numeric::*;
@@ -66,14 +66,12 @@ pub enum H2Types {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Type {
     pub field: H2Types,
-    pub alignment: Alignment,
 }
 
 impl H2Type {
-    pub fn new(alignment: Alignment, field: H2Types) -> Self {
+    pub fn new(field: H2Types) -> Self {
         Self {
             field: field,
-            alignment: alignment,
         }
     }
 
@@ -120,18 +118,18 @@ impl H2Type {
 
     /// Get the size of the field, including the alignment.
     pub fn aligned_size(&self, context: Context) -> SimpleResult<usize> {
-        self.field_type().aligned_size(context, self.alignment)
+        self.field_type().aligned_size(context)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, starting at the
     /// given [`Context`], if it can be known, without adding padding.
     pub fn actual_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().range(context, Alignment::None)
+        self.field_type().base_range(context)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, with padding.
     pub fn aligned_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().range(context, self.alignment)
+        self.field_type().aligned_range(context)
     }
 
     /// Get *related* nodes - ie, other fields that a pointer points to
@@ -154,7 +152,7 @@ impl H2Type {
     /// are "written in stone", so to speak, which means they no longer need to
     /// be calculated.
     pub fn resolve(&self, context: Context, name: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
-        self.field_type().resolve(context, self.alignment, name, data)
+        self.field_type().resolve(context, name, data)
     }
 
     /// Get a user-consumeable string

@@ -14,16 +14,18 @@ use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 /// The size a given numeric type is always known in advance.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rgb {
+    alignment: Option<Alignment>,
 }
 
 impl Rgb {
-    pub fn new_aligned(alignment: Alignment) -> H2Type {
-        H2Type::new(alignment, H2Types::Rgb(Self {
+    pub fn new_aligned(alignment: Option<Alignment>) -> H2Type {
+        H2Type::new(H2Types::Rgb(Self {
+            alignment: alignment,
         }))
     }
 
     pub fn new() -> H2Type {
-        Self::new_aligned(Alignment::None)
+        Self::new_aligned(None)
     }
 }
 
@@ -38,6 +40,10 @@ impl H2TypeTrait for Rgb {
         let renderer = HexFormatter::new(false, false, true);
 
         Ok(format!("#{}", renderer.render_integer(number)))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

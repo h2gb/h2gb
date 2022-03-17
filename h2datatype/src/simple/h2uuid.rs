@@ -14,18 +14,20 @@ use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 pub struct H2UUID {
     endian: Endian,
     include_version: bool,
+    alignment: Option<Alignment>,
 }
 
 impl H2UUID {
-    pub fn new_aligned(alignment: Alignment, endian: Endian, include_version: bool) -> H2Type {
-        H2Type::new(alignment, H2Types::H2UUID(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, endian: Endian, include_version: bool) -> H2Type {
+        H2Type::new(H2Types::H2UUID(Self {
             endian: endian,
             include_version: include_version,
+            alignment: alignment,
         }))
     }
 
     pub fn new(endian: Endian, include_version: bool) -> H2Type {
-        Self::new_aligned(Alignment::None, endian, include_version)
+        Self::new_aligned(None, endian, include_version)
     }
 }
 
@@ -51,6 +53,10 @@ impl H2TypeTrait for H2UUID {
         } else {
             Ok(uuid.to_string())
         }
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

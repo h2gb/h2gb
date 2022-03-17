@@ -11,16 +11,18 @@ use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 /// An EUI-48 MAC address is always 6 bytes long.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MacAddress {
+    alignment: Option<Alignment>,
 }
 
 impl MacAddress {
-    pub fn new_aligned(alignment: Alignment) -> H2Type {
-        H2Type::new(alignment, H2Types::MacAddress(Self {
+    pub fn new_aligned(alignment: Option<Alignment>) -> H2Type {
+        H2Type::new(H2Types::MacAddress(Self {
+            alignment: alignment,
         }))
     }
 
     pub fn new() -> H2Type {
-        Self::new_aligned(Alignment::None)
+        Self::new_aligned(None)
     }
 }
 
@@ -41,6 +43,10 @@ impl H2TypeTrait for MacAddress {
         ];
 
         Ok(MacAddr6::from(b).to_string())
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

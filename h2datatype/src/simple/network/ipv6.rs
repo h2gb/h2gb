@@ -13,17 +13,19 @@ use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IPv6 {
     endian: Endian,
+    alignment: Option<Alignment>,
 }
 
 impl IPv6 {
-    pub fn new_aligned(alignment: Alignment, endian: Endian) -> H2Type {
-        H2Type::new(alignment, H2Types::IPv6(Self {
-            endian: endian
+    pub fn new_aligned(alignment: Option<Alignment>, endian: Endian) -> H2Type {
+        H2Type::new(H2Types::IPv6(Self {
+            endian: endian,
+            alignment: alignment,
         }))
     }
 
     pub fn new(endian: Endian) -> H2Type {
-        Self::new_aligned(Alignment::None, endian)
+        Self::new_aligned(None, endian)
     }
 }
 
@@ -36,6 +38,10 @@ impl H2TypeTrait for IPv6 {
         let number = context.read_u128(self.endian)?;
 
         Ok(Ipv6Addr::from(number).to_string())
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

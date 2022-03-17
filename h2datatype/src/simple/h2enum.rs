@@ -22,25 +22,28 @@ pub struct H2Enum {
 
     /// The enum type, as loaded into the [`Data`] structure.
     enum_type: String,
+
+    alignment: Option<Alignment>,
 }
 
 impl H2Enum {
-    pub fn new_aligned(alignment: Alignment, reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
         // Make sure the enum type exists
         if !data.enums.contains_key(enum_type) {
             bail!("No such Enum: {}", enum_type);
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Enum(Self {
+        Ok(H2Type::new(H2Types::H2Enum(Self {
             reader: reader.into(),
             fallback_renderer: fallback_renderer.into(),
             enum_type: enum_type.to_string(),
+            alignment: alignment,
         })))
 
     }
 
     pub fn new(reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, reader, fallback_renderer, enum_type, data)
+        Self::new_aligned(None, reader, fallback_renderer, enum_type, data)
     }
 
     fn render(&self, value: impl Into<Integer> + Copy, data: &Data) -> SimpleResult<String> {
@@ -78,6 +81,10 @@ impl H2TypeTrait for H2Enum {
 
     fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
         self.reader.read(context)
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

@@ -14,18 +14,20 @@ use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
 pub struct NTString {
     character: CharacterReader,
     renderer: CharacterRenderer,
+    alignment: Option<Alignment>,
 }
 
 impl NTString {
-    pub fn new_aligned(alignment: Alignment, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
-        H2Type::new(alignment, H2Types::NTString(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
+        H2Type::new(H2Types::NTString(Self {
             character: character.into(),
             renderer: renderer.into(),
+            alignment: alignment,
         }))
     }
 
     pub fn new(character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
-        Self::new_aligned(Alignment::None, character, renderer)
+        Self::new_aligned(None, character, renderer)
     }
 
     fn analyze(&self, offset: Context) -> SimpleResult<(usize, Vec<Character>)> {
@@ -67,6 +69,10 @@ impl H2TypeTrait for NTString {
 
     fn to_display(&self, offset: Context, data: &Data) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(offset, data)?))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

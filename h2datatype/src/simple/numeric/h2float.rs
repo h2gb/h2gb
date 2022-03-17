@@ -22,18 +22,20 @@ pub struct H2Float {
     /// This is created by the various --Formatter modules in GenericNumber.
     /// For example, [`DefaultFormatter::new()`] or [`HexFormatter::pretty()`].
     renderer: FloatRenderer,
+    alignment: Option<Alignment>,
 }
 
 impl H2Float {
-    pub fn new_aligned(alignment: Alignment, reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Float(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> H2Type {
+        H2Type::new(H2Types::H2Float(Self {
             reader: reader.into(),
             renderer: renderer.into(),
+            alignment: alignment,
         }))
     }
 
     pub fn new(reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> H2Type {
-        Self::new_aligned(Alignment::None, reader, renderer)
+        Self::new_aligned(None, reader, renderer)
     }
 }
 
@@ -52,6 +54,10 @@ impl H2TypeTrait for H2Float {
 
     fn to_float(&self, context: Context) -> SimpleResult<Float> {
         self.reader.read(context)
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

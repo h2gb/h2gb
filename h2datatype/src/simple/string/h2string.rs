@@ -17,23 +17,25 @@ pub struct H2String {
     length: usize,
     character: CharacterReader,
     renderer: CharacterRenderer,
+    alignment: Option<Alignment>,
 }
 
 impl H2String {
-    pub fn new_aligned(alignment: Alignment, length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
         if length_in_characters == 0 {
             bail!("Length must be at least 1 character long");
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2String(Self {
+        Ok(H2Type::new(H2Types::H2String(Self {
             length: length_in_characters,
             character: character.into(),
             renderer: renderer.into(),
+            alignment: alignment,
         })))
     }
 
     pub fn new(length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, length_in_characters, character, renderer)
+        Self::new_aligned(None, length_in_characters, character, renderer)
     }
 
 
@@ -76,6 +78,10 @@ impl H2TypeTrait for H2String {
 
     fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(context, data)?))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

@@ -22,18 +22,20 @@ pub struct H2Character {
     /// This is created by the various --Formatter modules in GenericNumber.
     /// For example, [`DefaultFormatter::new()`] or [`HexFormatter::pretty()`].
     renderer: CharacterRenderer,
+    alignment: Option<Alignment>,
 }
 
 impl H2Character {
-    pub fn new_aligned(alignment: Alignment, reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Character(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
+        H2Type::new(H2Types::H2Character(Self {
             reader: reader.into(),
             renderer: renderer.into(),
+            alignment: alignment,
         }))
     }
 
     pub fn new(reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
-        Self::new_aligned(Alignment::None, reader, renderer)
+        Self::new_aligned(None, reader, renderer)
     }
 
     /// Convenience function to pre-set a definition.
@@ -95,6 +97,10 @@ impl H2TypeTrait for H2Character {
 
     fn to_character(&self, context: Context) -> SimpleResult<Character> {
         self.reader.read(context)
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

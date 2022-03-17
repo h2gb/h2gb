@@ -16,9 +16,6 @@ use std::ops::Range;
 /// alignment size) is attempted.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Alignment {
-    /// Don't align at all
-    None,
-
     /// Each field is padded until its length is a multiple of the padding
     /// Length.. so 0..1 aligned to 4 will be 0..4, and 1..2 aligned to 4 will
     /// be 1..5
@@ -48,9 +45,6 @@ impl Alignment {
         }
 
         match self {
-            // Do nothing
-            Self::None => Ok(range),
-
             // Ensure the size is a multiple of the pad value
             Self::Loose(m) => {
                 let new_size = Self::round_up(range.end - range.start, m);
@@ -75,24 +69,6 @@ mod tests {
     use super::*;
     use simple_error::SimpleResult;
     use pretty_assertions::assert_eq;
-
-    #[test]
-    fn test_none() -> SimpleResult<()> {
-        let tests: Vec<(Range<usize>, Range<usize>)> = vec![
-            //       value       expected
-            (         0..0,          0..0),
-            (        0..10,         0..10),
-            (         1..5,          1..5),
-            (         2..8,          2..8),
-            (10200..100000, 10200..100000),
-        ];
-
-        for (value, expected) in tests {
-            assert_eq!(expected, Alignment::None.align(value)?);
-        }
-
-        Ok(())
-    }
 
     #[test]
     fn test_loose() -> SimpleResult<()> {

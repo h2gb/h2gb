@@ -22,18 +22,20 @@ pub struct H2Integer {
     /// This is created by the various --Formatter modules in GenericNumber.
     /// For example, [`DefaultFormatter::new()`] or [`HexFormatter::pretty()`].
     renderer: IntegerRenderer,
+    alignment: Option<Alignment>,
 }
 
 impl H2Integer {
-    pub fn new_aligned(alignment: Alignment, reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Integer(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> H2Type {
+        H2Type::new(H2Types::H2Integer(Self {
             reader: reader.into(),
             renderer: renderer.into(),
+            alignment: alignment,
         }))
     }
 
     pub fn new(reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> H2Type {
-        Self::new_aligned(Alignment::None, reader, renderer)
+        Self::new_aligned(None, reader, renderer)
     }
 }
 
@@ -52,6 +54,10 @@ impl H2TypeTrait for H2Integer {
 
     fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
         self.reader.read(context)
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
@@ -110,7 +116,7 @@ mod tests {
         let context = Context::new(&data);
 
         let t = H2Integer::new_aligned(
-            Alignment::Loose(8),
+            Some(Alignment::Loose(8)),
             IntegerReader::I16(Endian::Big),
             DefaultFormatter::new(),
         );

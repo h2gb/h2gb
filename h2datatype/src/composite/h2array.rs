@@ -18,22 +18,24 @@ use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 pub struct H2Array {
     field_type: Box<H2Type>,
     length: usize,
+    alignment: Option<Alignment>,
 }
 
 impl H2Array {
-    pub fn new_aligned(alignment: Alignment, length: usize, field_type: impl Into<H2Type>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length: usize, field_type: impl Into<H2Type>) -> SimpleResult<H2Type> {
         if length == 0 {
             bail!("Arrays must be at least one element long");
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Array(Self {
+        Ok(H2Type::new(H2Types::H2Array(Self {
             field_type: Box::new(field_type.into()),
             length: length,
+            alignment: alignment,
         })))
     }
 
     pub fn new(length: usize, field_type: impl Into<H2Type>) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, length, field_type)
+        Self::new_aligned(None, length, field_type)
     }
 }
 
@@ -53,6 +55,10 @@ impl H2TypeTrait for H2Array {
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("[ {} ]", strings.join(", ")))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
@@ -111,7 +117,7 @@ mod tests {
         let context = Context::new(&data);
 
         // Check the basics
-        let a = H2Array::new_aligned(Alignment::Loose(8), 4, H2Character::new_ascii())?;
+        let a = H2Array::new_aligned(Some(Alignment::Loose(8)), 4, H2Character::new_ascii())?;
         assert_eq!(4, a.base_size(context)?);
         assert_eq!(8, a.aligned_size(context)?);
         assert_eq!(0..4, a.actual_range(context)?);
@@ -154,7 +160,7 @@ mod tests {
         let a = H2Array::new(
             4,
             H2Character::new_aligned(
-                Alignment::Loose(4),
+                Some(Alignment::Loose(4)),
                 CharacterReader::ASCII,
                 CharacterFormatter::new_pretty(),
             ),
@@ -205,10 +211,10 @@ mod tests {
 
         // Check the basics (align to 5, which is awkward but easy to check)
         let a = H2Array::new_aligned(
-            Alignment::Loose(5),
+            Some(Alignment::Loose(5)),
             4,
             H2Character::new_aligned(
-                Alignment::Loose(4),
+                Some(Alignment::Loose(4)),
                 CharacterReader::ASCII,
                 CharacterFormatter::new_pretty(),
             ),
@@ -260,7 +266,7 @@ mod tests {
         let a = H2Array::new(
             4,
             H2Character::new_aligned(
-                Alignment::Loose(4),
+                Some(Alignment::Loose(4)),
                 CharacterReader::ASCII,
                 CharacterFormatter::new_pretty(),
             ),

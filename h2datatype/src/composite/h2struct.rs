@@ -12,21 +12,23 @@ use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Struct {
     fields: Vec<(String, H2Type)>,
+    alignment: Option<Alignment>,
 }
 
 impl H2Struct {
-    pub fn new_aligned(alignment: Alignment, fields: Vec<(String, H2Type)>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, fields: Vec<(String, H2Type)>) -> SimpleResult<H2Type> {
         if fields.len() == 0 {
             bail!("Structs must contain at least one field");
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Struct(Self {
-            fields: fields
+        Ok(H2Type::new(H2Types::H2Struct(Self {
+            fields: fields,
+            alignment: alignment,
         })))
     }
 
     pub fn new(fields: Vec<(String, H2Type)>) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, fields)
+        Self::new_aligned(None, fields)
     }
 }
 
@@ -45,6 +47,10 @@ impl H2TypeTrait for H2Struct {
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("{{ {} }}", strings.join(", ")))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
@@ -75,7 +81,7 @@ mod tests {
             (
                 "field_u16".to_string(),
                 H2Integer::new_aligned(
-                    Alignment::Loose(3),
+                    Some(Alignment::Loose(3)),
                     IntegerReader::U16(Endian::Big),
                     HexFormatter::new_pretty(),
                 )
@@ -83,7 +89,7 @@ mod tests {
             (
                 "field_u8".to_string(),
                 H2Integer::new_aligned(
-                    Alignment::Loose(4),
+                    Some(Alignment::Loose(4)),
                     IntegerReader::U8,
                     OctalFormatter::new(true, false),
                 )
@@ -130,7 +136,7 @@ mod tests {
             (
                 "hex".to_string(),
                 H2Integer::new_aligned(
-                    Alignment::Loose(4),
+                    Some(Alignment::Loose(4)),
                     IntegerReader::U16(Endian::Big),
                     HexFormatter::new_pretty(),
                 )
@@ -162,7 +168,7 @@ mod tests {
                     (
                         "char_array".to_string(),
                         H2Array::new_aligned(
-                            Alignment::Loose(8),
+                            Some(Alignment::Loose(8)),
                             5,
                             H2Character::new_ascii(),
                         )?,

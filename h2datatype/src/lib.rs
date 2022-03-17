@@ -111,7 +111,8 @@
 //!
 //! // Create the abstract type - this is an H2Type
 //! let t = H2Integer::new_aligned(
-//!   Alignment::Loose(4), IntegerReader::U16(Endian::Big),
+//!   Some(Alignment::Loose(4)),
+//!   IntegerReader::U16(Endian::Big),
 //!   HexFormatter::new_pretty(),
 //! );
 //!
@@ -146,7 +147,8 @@
 //!
 //! // Create an array of 4 elements, each of which is padded to 4 bytes
 //! let t = H2Array::new(4, H2Integer::new_aligned(
-//!   Alignment::Loose(4), IntegerReader::U16(Endian::Big),
+//!   Some(Alignment::Loose(4)),
+//!   IntegerReader::U16(Endian::Big),
 //!   HexFormatter::new_pretty(),
 //! )).unwrap();
 //!

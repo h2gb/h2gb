@@ -17,25 +17,27 @@ pub struct LPString {
     length: IntegerReader,
     character: CharacterReader,
     renderer: CharacterRenderer,
+    alignment: Option<Alignment>,
 }
 
 impl LPString {
-    pub fn new_aligned(alignment: Alignment, length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
         let length: IntegerReader = length.into();
 
         if !length.can_be_usize() {
             bail!("Length type isn't numeric!");
         }
 
-        Ok(H2Type::new(alignment, H2Types::LPString(Self {
+        Ok(H2Type::new(H2Types::LPString(Self {
             length: length.into(),
             character: character.into(),
             renderer: renderer.into(),
+            alignment: alignment,
         })))
     }
 
     pub fn new(length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, length, character, renderer)
+        Self::new_aligned(None, length, character, renderer)
     }
 
     fn analyze(&self, context: Context) -> SimpleResult<(usize, Vec<Character>)> {
@@ -73,6 +75,10 @@ impl H2TypeTrait for LPString {
 
     fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(context, data)?))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
