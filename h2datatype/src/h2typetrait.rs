@@ -157,7 +157,6 @@ pub trait H2TypeTrait {
     /// quick to use.
     fn resolve(&self, context: Context, field_name_override: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
         Ok(ResolvedType {
-            /// XXX: Rename actual to base
             base_range: self.base_range(context)?,
             aligned_range: self.aligned_range(context)?,
 

@@ -55,7 +55,6 @@ pub enum H2Type {
 }
 
 impl H2Type {
-    /// XXX Can this be done by an into thing?
     fn field_type(&self) -> &dyn H2TypeTrait {
         match self {
             // Simple

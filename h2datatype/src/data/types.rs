@@ -32,16 +32,16 @@ impl DataTrait for Types {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 
-    use std::path::PathBuf;
+    // use std::path::PathBuf;
 
-    use simple_error::SimpleResult;
-    use pretty_assertions::assert_eq;
+    // use simple_error::SimpleResult;
+    // use pretty_assertions::assert_eq;
 
-    use crate::Data;
+    // use crate::Data;
 
-    use generic_number::*;
+    // use generic_number::*;
 
     // XXX These types need to be re-done
     // #[test]
