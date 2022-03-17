@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Float, FloatReader, FloatRenderer};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -25,16 +25,22 @@ pub struct H2Float {
     alignment: Option<Alignment>,
 }
 
+impl From<H2Float> for H2Type {
+    fn from(t: H2Float) -> H2Type {
+        H2Type::H2Float(t)
+    }
+}
+
 impl H2Float {
-    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> H2Type {
-        H2Type::new(H2Types::H2Float(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> Self {
+        Self {
             reader: reader.into(),
             renderer: renderer.into(),
             alignment: alignment,
-        }))
+        }
     }
 
-    pub fn new(reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> H2Type {
+    pub fn new(reader: impl Into<FloatReader>, renderer: impl Into<FloatRenderer>) -> Self {
         Self::new_aligned(None, reader, renderer)
     }
 }

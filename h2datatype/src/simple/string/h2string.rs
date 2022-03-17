@@ -4,7 +4,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2TypeTrait, Alignment, Data};
 
 /// Defines a string with a configured length.
 ///
@@ -20,21 +20,27 @@ pub struct H2String {
     alignment: Option<Alignment>,
 }
 
+impl From<H2String> for H2Type {
+    fn from(t: H2String) -> H2Type {
+        H2Type::H2String(t)
+    }
+}
+
 impl H2String {
-    pub fn new_aligned(alignment: Option<Alignment>, length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<Self> {
         if length_in_characters == 0 {
             bail!("Length must be at least 1 character long");
         }
 
-        Ok(H2Type::new(H2Types::H2String(Self {
+        Ok(Self {
             length: length_in_characters,
             character: character.into(),
             renderer: renderer.into(),
             alignment: alignment,
-        })))
+        })
     }
 
-    pub fn new(length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
+    pub fn new(length_in_characters: usize, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<Self> {
         Self::new_aligned(None, length_in_characters, character, renderer)
     }
 
@@ -130,7 +136,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let context = Context::new(&data);
 
-        let a: H2Type = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::new_pretty_str())?;
+        let a = H2String::new(7, CharacterReader::UTF8, CharacterFormatter::new_pretty_str())?;
         let resolved = a.resolve(context, None, &Data::default())?;
 
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);

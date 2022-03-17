@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::Context;
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a struct.
 ///
@@ -15,19 +15,25 @@ pub struct H2Struct {
     alignment: Option<Alignment>,
 }
 
+impl From<H2Struct> for H2Type {
+    fn from(t: H2Struct) -> H2Type {
+        H2Type::H2Struct(t)
+    }
+}
+
 impl H2Struct {
-    pub fn new_aligned(alignment: Option<Alignment>, fields: Vec<(String, H2Type)>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, fields: Vec<(String, H2Type)>) -> SimpleResult<Self> {
         if fields.len() == 0 {
             bail!("Structs must contain at least one field");
         }
 
-        Ok(H2Type::new(H2Types::H2Struct(Self {
-            fields: fields,
+        Ok(Self {
+            fields: fields.into_iter().map(|(s, t)| (s, t)).collect(),
             alignment: alignment,
-        })))
+        })
     }
 
-    pub fn new(fields: Vec<(String, H2Type)>) -> SimpleResult<H2Type> {
+    pub fn new(fields: Vec<(String, H2Type)>) -> SimpleResult<Self> {
         Self::new_aligned(None, fields)
     }
 }
@@ -76,7 +82,7 @@ mod tests {
                 H2Integer::new(
                     IntegerReader::U32(Endian::Big),
                     HexFormatter::new_pretty(),
-                )
+                ).into()
             ),
             (
                 "field_u16".to_string(),
@@ -84,7 +90,7 @@ mod tests {
                     Some(Alignment::Loose(3)),
                     IntegerReader::U16(Endian::Big),
                     HexFormatter::new_pretty(),
-                )
+                ).into()
             ),
             (
                 "field_u8".to_string(),
@@ -92,14 +98,14 @@ mod tests {
                     Some(Alignment::Loose(4)),
                     IntegerReader::U8,
                     OctalFormatter::new(true, false),
-                )
+                ).into()
             ),
             (
                 "field_u32_little".to_string(),
                 H2Integer::new(
                     IntegerReader::U32(Endian::Little),
                     DefaultFormatter::new(),
-                )
+                ).into()
             ),
         ])?;
 
@@ -107,7 +113,7 @@ mod tests {
         let context = Context::new(&data);
         assert_eq!(15, t.base_size(context)?);
         assert_eq!(15, t.aligned_size(context)?);
-        assert_eq!(0..15, t.actual_range(context)?);
+        assert_eq!(0..15, t.base_range(context)?);
         assert_eq!(0..15, t.aligned_range(context)?);
         assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", t.to_display(context, &Data::default())?);
         assert_eq!(0, t.related(context)?.len());
@@ -117,7 +123,7 @@ mod tests {
         let r = t.resolve(context, None, &Data::default())?;
         assert_eq!(15, r.base_size());
         assert_eq!(15, r.aligned_size());
-        assert_eq!(0..15, r.actual_range);
+        assert_eq!(0..15, r.base_range);
         assert_eq!(0..15, r.aligned_range);
         assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", r.display);
         assert_eq!(0, r.related.len());
@@ -139,7 +145,7 @@ mod tests {
                     Some(Alignment::Loose(4)),
                     IntegerReader::U16(Endian::Big),
                     HexFormatter::new_pretty(),
-                )
+                ).into()
             ),
             (
                 "struct".to_string(),
@@ -149,21 +155,21 @@ mod tests {
                         H2Integer::new(
                             IntegerReader::U8,
                             HexFormatter::new_pretty(),
-                        )
+                        ).into()
                     ),
                     (
                         "B".to_string(),
                         H2Integer::new(
                             IntegerReader::U8,
                             HexFormatter::new_pretty(),
-                        )
+                        ).into()
                     ),
                     (
                         "C".to_string(),
                         H2Integer::new(
                             IntegerReader::U16(Endian::Big),
                             HexFormatter::new_pretty(),
-                        )
+                        ).into()
                     ),
                     (
                         "char_array".to_string(),
@@ -171,13 +177,13 @@ mod tests {
                             Some(Alignment::Loose(8)),
                             5,
                             H2Character::new_ascii(),
-                        )?,
+                        )?.into(),
                     )
-                ])?,
+                ])?.into(),
             ),
             (
                 "ipv4".to_string(),
-                IPv4::new(Endian::Big)
+                IPv4::new(Endian::Big).into(),
             ),
         ])?;
 
@@ -185,7 +191,7 @@ mod tests {
         let context = Context::new_at(&data, 3);
         assert_eq!(20, t.base_size(context)?);
         assert_eq!(20, t.aligned_size(context)?);
-        assert_eq!(3..23, t.actual_range(context)?);
+        assert_eq!(3..23, t.base_range(context)?);
         assert_eq!(3..23, t.aligned_range(context)?);
         assert_eq!("{ hex: 0x0001, struct: { A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }, ipv4: 127.0.0.1 }", t.to_display(context, &Data::default())?);
         assert_eq!(0, t.related(context)?.len());
@@ -195,7 +201,7 @@ mod tests {
         let r = t.resolve(context, None, &Data::default())?;
         assert_eq!(20, r.base_size());
         assert_eq!(20, r.aligned_size());
-        assert_eq!(3..23, r.actual_range);
+        assert_eq!(3..23, r.base_range);
         assert_eq!(3..23, r.aligned_range);
         assert_eq!("{ hex: 0x0001, struct: { A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }, ipv4: 127.0.0.1 }", r.display);
         assert_eq!(0, r.related.len());

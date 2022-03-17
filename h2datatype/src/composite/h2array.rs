@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::Context;
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines an array of values.
 ///
@@ -21,20 +21,26 @@ pub struct H2Array {
     alignment: Option<Alignment>,
 }
 
+impl From<H2Array> for H2Type {
+    fn from(t: H2Array) -> H2Type {
+        H2Type::H2Array(t)
+    }
+}
+
 impl H2Array {
-    pub fn new_aligned(alignment: Option<Alignment>, length: usize, field_type: impl Into<H2Type>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length: usize, field_type: impl Into<H2Type>) -> SimpleResult<Self> {
         if length == 0 {
             bail!("Arrays must be at least one element long");
         }
 
-        Ok(H2Type::new(H2Types::H2Array(Self {
+        Ok(Self {
             field_type: Box::new(field_type.into()),
             length: length,
             alignment: alignment,
-        })))
+        })
     }
 
-    pub fn new(length: usize, field_type: impl Into<H2Type>) -> SimpleResult<H2Type> {
+    pub fn new(length: usize, field_type: impl Into<H2Type>) -> SimpleResult<Self> {
         Self::new_aligned(None, length, field_type)
     }
 }
@@ -80,7 +86,7 @@ mod tests {
         let a = H2Array::new(4, H2Character::new_ascii())?;
         assert_eq!(4, a.base_size(context)?);
         assert_eq!(4, a.aligned_size(context)?);
-        assert_eq!(0..4, a.actual_range(context)?);
+        assert_eq!(0..4, a.base_range(context)?);
         assert_eq!(0..4, a.aligned_range(context)?);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
@@ -90,7 +96,7 @@ mod tests {
         let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(4, r.base_size());
         assert_eq!(4, r.aligned_size());
-        assert_eq!(0..4, r.actual_range);
+        assert_eq!(0..4, r.base_range);
         assert_eq!(0..4, r.aligned_range);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", r.display);
         assert_eq!(0, r.related.len());
@@ -120,7 +126,7 @@ mod tests {
         let a = H2Array::new_aligned(Some(Alignment::Loose(8)), 4, H2Character::new_ascii())?;
         assert_eq!(4, a.base_size(context)?);
         assert_eq!(8, a.aligned_size(context)?);
-        assert_eq!(0..4, a.actual_range(context)?);
+        assert_eq!(0..4, a.base_range(context)?);
         assert_eq!(0..8, a.aligned_range(context)?);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
@@ -130,7 +136,7 @@ mod tests {
         let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(4, r.base_size());
         assert_eq!(8, r.aligned_size());
-        assert_eq!(0..4, r.actual_range);
+        assert_eq!(0..4, r.base_range);
         assert_eq!(0..8, r.aligned_range);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", r.display);
         assert_eq!(0, r.related.len());
@@ -167,7 +173,7 @@ mod tests {
         )?;
         assert_eq!(16,  a.base_size(context)?);
         assert_eq!(16, a.aligned_size(context)?);
-        assert_eq!(0..16,  a.actual_range(context)?);
+        assert_eq!(0..16, a.base_range(context)?);
         assert_eq!(0..16, a.aligned_range(context)?);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
@@ -177,17 +183,17 @@ mod tests {
         let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(16, r.base_size());
         assert_eq!(16, r.aligned_size());
-        assert_eq!(0..16, r.actual_range);
+        assert_eq!(0..16, r.base_range);
         assert_eq!(0..16, r.aligned_range);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", r.display);
         assert_eq!(0, r.related.len());
         assert_eq!(4, r.children.len());
 
         // Check the resolved children ranges
-        assert_eq!(0..1,   r.children[0].actual_range);
-        assert_eq!(4..5,   r.children[1].actual_range);
-        assert_eq!(8..9,   r.children[2].actual_range);
-        assert_eq!(12..13, r.children[3].actual_range);
+        assert_eq!(0..1,   r.children[0].base_range);
+        assert_eq!(4..5,   r.children[1].base_range);
+        assert_eq!(8..9,   r.children[2].base_range);
+        assert_eq!(12..13, r.children[3].base_range);
 
         // Make sure the aligned range is right
         assert_eq!(0..4,   r.children[0].aligned_range);
@@ -219,9 +225,9 @@ mod tests {
                 CharacterFormatter::new_pretty(),
             ),
         )?;
-        assert_eq!(16,  a.base_size(context)?);
+        assert_eq!(16, a.base_size(context)?);
         assert_eq!(20, a.aligned_size(context)?);
-        assert_eq!(0..16,  a.actual_range(context)?);
+        assert_eq!(0..16, a.base_range(context)?);
         assert_eq!(0..20, a.aligned_range(context)?);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
@@ -231,17 +237,17 @@ mod tests {
         let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(16, r.base_size());
         assert_eq!(20, r.aligned_size());
-        assert_eq!(0..16, r.actual_range);
+        assert_eq!(0..16, r.base_range);
         assert_eq!(0..20, r.aligned_range);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", r.display);
         assert_eq!(0, r.related.len());
         assert_eq!(4, r.children.len());
 
         // Check the resolved children ranges
-        assert_eq!(0..1,   r.children[0].actual_range);
-        assert_eq!(4..5,   r.children[1].actual_range);
-        assert_eq!(8..9,   r.children[2].actual_range);
-        assert_eq!(12..13, r.children[3].actual_range);
+        assert_eq!(0..1,   r.children[0].base_range);
+        assert_eq!(4..5,   r.children[1].base_range);
+        assert_eq!(8..9,   r.children[2].base_range);
+        assert_eq!(12..13, r.children[3].base_range);
 
         // Make sure the aligned range is right
         assert_eq!(0..4,   r.children[0].aligned_range);
@@ -271,9 +277,9 @@ mod tests {
                 CharacterFormatter::new_pretty(),
             ),
         )?;
-        assert_eq!(16,  a.base_size(context)?);
+        assert_eq!(16, a.base_size(context)?);
         assert_eq!(16, a.aligned_size(context)?);
-        assert_eq!(1..17,  a.actual_range(context)?);
+        assert_eq!(1..17, a.base_range(context)?);
         assert_eq!(1..17, a.aligned_range(context)?);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", a.to_display(context, &Data::default())?);
         assert_eq!(0, a.related(context)?.len());
@@ -283,17 +289,17 @@ mod tests {
         let r = a.resolve(context, None, &Data::default())?;
         assert_eq!(16, r.base_size());
         assert_eq!(16, r.aligned_size());
-        assert_eq!(1..17, r.actual_range);
+        assert_eq!(1..17, r.base_range);
         assert_eq!(1..17, r.aligned_range);
         assert_eq!("[ 'A', 'B', 'C', 'D' ]", r.display);
         assert_eq!(0, r.related.len());
         assert_eq!(4, r.children.len());
 
         // Check the resolved children ranges
-        assert_eq!(1..2,   r.children[0].actual_range);
-        assert_eq!(5..6,   r.children[1].actual_range);
-        assert_eq!(9..10,  r.children[2].actual_range);
-        assert_eq!(13..14, r.children[3].actual_range);
+        assert_eq!(1..2,   r.children[0].base_range);
+        assert_eq!(5..6,   r.children[1].base_range);
+        assert_eq!(9..10,  r.children[2].base_range);
+        assert_eq!(13..14, r.children[3].base_range);
 
         // Make sure the aligned range is right
         assert_eq!(1..5,   r.children[0].aligned_range);

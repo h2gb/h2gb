@@ -3,7 +3,7 @@ use simple_error::{SimpleResult, bail};
 
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -26,23 +26,29 @@ pub struct H2Enum {
     alignment: Option<Alignment>,
 }
 
+impl From<H2Enum> for H2Type {
+    fn from(t: H2Enum) -> H2Type {
+        H2Type::H2Enum(t)
+    }
+}
+
 impl H2Enum {
-    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<Self> {
         // Make sure the enum type exists
         if !data.enums.contains_key(enum_type) {
             bail!("No such Enum: {}", enum_type);
         }
 
-        Ok(H2Type::new(H2Types::H2Enum(Self {
+        Ok(Self {
             reader: reader.into(),
             fallback_renderer: fallback_renderer.into(),
             enum_type: enum_type.to_string(),
             alignment: alignment,
-        })))
+        })
 
     }
 
-    pub fn new(reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
+    pub fn new(reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<Self> {
         Self::new_aligned(None, reader, fallback_renderer, enum_type, data)
     }
 

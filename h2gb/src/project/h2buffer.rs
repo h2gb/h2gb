@@ -75,20 +75,20 @@ impl fmt::Display for H2Buffer {
                     Ok(Some(entry)) => {
                         // Deal with the entry
                         let resolved = entry.resolved();
-                        let actual_range = resolved.actual_range.start..resolved.actual_range.end;
+                        let base_range = resolved.base_range.start..resolved.base_range.end;
 
-                        let entry_byte_string: Vec<String> = self.data[actual_range.clone()].iter().take(self.context_bytes).map(|b| format!("{:02x}", b)).collect();
+                        let entry_byte_string: Vec<String> = self.data[base_range.clone()].iter().take(self.context_bytes).map(|b| format!("{:02x}", b)).collect();
                         let entry_byte_string = entry_byte_string.join(" ");
 
                         write!(f, " 0x{:08x} - 0x{:08x}    {}   {}",
-                                 actual_range.start + self.base_address,
-                                 actual_range.end + self.base_address - 1,
+                                 base_range.start + self.base_address,
+                                 base_range.end + self.base_address - 1,
                                  entry_byte_string,
                                  entry,
                         )?;
 
                         // Deal with comments on the entry
-                        let comments = layer.comments_get(actual_range).unwrap();
+                        let comments = layer.comments_get(base_range).unwrap();
                         if comments.len() == 0 {
                             writeln!(f, "")?;
                         } else {
@@ -97,7 +97,7 @@ impl fmt::Display for H2Buffer {
                         }
 
                         // Deal with the padding / alignment
-                        let alignment_range = (resolved.actual_range.end)..(resolved.aligned_range.end);
+                        let alignment_range = (resolved.base_range.end)..(resolved.aligned_range.end);
                         if !alignment_range.is_empty() {
                             let alignment_byte_string: Vec<String> = self.data[alignment_range.clone()].iter().map(|b| format!("{:02x}", b)).collect();
                             let alignment_byte_string = alignment_byte_string.join(" ");
@@ -442,7 +442,6 @@ impl H2Buffer {
 
     pub fn peek(&self, abstract_type: &H2Type, offset: usize, data: &Data) -> SimpleResult<ResolvedType> {
         let offset = Context::new_at(&self.data, offset);
-
         abstract_type.resolve(offset, None, data)
     }
 }

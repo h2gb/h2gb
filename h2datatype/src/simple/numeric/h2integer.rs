@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -25,16 +25,22 @@ pub struct H2Integer {
     alignment: Option<Alignment>,
 }
 
+impl From<H2Integer> for H2Type {
+    fn from(t: H2Integer) -> H2Type {
+        H2Type::H2Integer(t)
+    }
+}
+
 impl H2Integer {
-    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> H2Type {
-        H2Type::new(H2Types::H2Integer(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> Self {
+        Self {
             reader: reader.into(),
             renderer: renderer.into(),
             alignment: alignment,
-        }))
+        }
     }
 
-    pub fn new(reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> H2Type {
+    pub fn new(reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> Self {
         Self::new_aligned(None, reader, renderer)
     }
 }
@@ -124,7 +130,7 @@ mod tests {
         // Starting at 0
         let this_context = context.at(0);
         assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(0..2, t.actual_range(this_context)?);
+        assert_eq!(0..2, t.base_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
         assert_eq!(0..8, t.aligned_range(this_context)?);
@@ -132,7 +138,7 @@ mod tests {
         // Starting at 2
         let this_context = context.at(2);
         assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(2..4, t.actual_range(this_context)?);
+        assert_eq!(2..4, t.base_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
         assert_eq!(2..10, t.aligned_range(this_context)?);
@@ -140,7 +146,7 @@ mod tests {
         // Starting at 7
         let this_context = context.at(7);
         assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(7..9, t.actual_range(this_context)?);
+        assert_eq!(7..9, t.base_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
         assert_eq!(7..15, t.aligned_range(this_context)?);

@@ -1,5 +1,6 @@
 * THIS BRANCH XXX
-  * Can we use Integer::TryInto<usize> instead of can_be_blah()?
+  * Can we use Into() instead of field_type() or similar, to go enum->trait?
+
 
 * To-do soon / unsorted
   * Change structs (and other APIey things) to take &str instead of String

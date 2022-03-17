@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer, CharacterFormatter};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -25,23 +25,29 @@ pub struct H2Character {
     alignment: Option<Alignment>,
 }
 
+impl From<H2Character> for H2Type {
+    fn from(t: H2Character) -> H2Type {
+        H2Type::H2Character(t)
+    }
+}
+
 impl H2Character {
-    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
-        H2Type::new(H2Types::H2Character(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
+        Self {
             reader: reader.into(),
             renderer: renderer.into(),
             alignment: alignment,
-        }))
+        }
     }
 
-    pub fn new(reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
+    pub fn new(reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
         Self::new_aligned(None, reader, renderer)
     }
 
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as ASCII, formats the characters in the style of `'a'`.
-    pub fn new_ascii() -> H2Type {
+    pub fn new_ascii() -> Self {
         Self::new(
             CharacterReader::ASCII,
             CharacterFormatter::new_pretty(),
@@ -51,7 +57,7 @@ impl H2Character {
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as ASCII, formats as just a letter, like `a`.
-    pub fn new_ascii_string() -> H2Type {
+    pub fn new_ascii_string() -> Self {
         Self::new(
             CharacterReader::ASCII,
             CharacterFormatter::new_pretty_str(),
@@ -61,7 +67,7 @@ impl H2Character {
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as UTF8, formats the characters in the style of `'a'`.
-    pub fn new_utf8() -> H2Type {
+    pub fn new_utf8() -> Self {
         Self::new(
             CharacterReader::UTF8,
             CharacterFormatter::new_pretty(),
@@ -71,7 +77,7 @@ impl H2Character {
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as UTF8, formats the characters in the style of `a`.
-    pub fn new_utf8_string() -> H2Type {
+    pub fn new_utf8_string() -> Self {
         Self::new(
             CharacterReader::UTF8,
             CharacterFormatter::new_pretty_str(),

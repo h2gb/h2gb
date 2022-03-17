@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2TypeTrait, Alignment, Data};
 
 /// Defines a null-terminated string.
 ///
@@ -17,16 +17,22 @@ pub struct NTString {
     alignment: Option<Alignment>,
 }
 
+impl From<NTString> for H2Type {
+    fn from(t: NTString) -> H2Type {
+        H2Type::NTString(t)
+    }
+}
+
 impl NTString {
-    pub fn new_aligned(alignment: Option<Alignment>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
-        H2Type::new(H2Types::NTString(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
+        Self {
             character: character.into(),
             renderer: renderer.into(),
             alignment: alignment,
-        }))
+        }
     }
 
-    pub fn new(character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> H2Type {
+    pub fn new(character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
         Self::new_aligned(None, character, renderer)
     }
 
@@ -137,7 +143,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7\x00".to_vec();
         let offset = Context::new(&data);
 
-        let a: H2Type = NTString::new(CharacterReader::UTF8, CharacterFormatter::new_pretty_str());
+        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::new_pretty_str());
         let array = a.resolve(offset, None, &Data::default())?;
 
         // Should just have one child - the array

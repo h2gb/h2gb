@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 use uuid::{Uuid, Version};
 
 use generic_number::{Context, Endian};
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a UUID.
 ///
@@ -17,16 +17,22 @@ pub struct H2UUID {
     alignment: Option<Alignment>,
 }
 
+impl From<H2UUID> for H2Type {
+    fn from(t: H2UUID) -> H2Type {
+        H2Type::H2UUID(t)
+    }
+}
+
 impl H2UUID {
-    pub fn new_aligned(alignment: Option<Alignment>, endian: Endian, include_version: bool) -> H2Type {
-        H2Type::new(H2Types::H2UUID(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, endian: Endian, include_version: bool) -> Self {
+        Self {
             endian: endian,
             include_version: include_version,
             alignment: alignment,
-        }))
+        }
     }
 
-    pub fn new(endian: Endian, include_version: bool) -> H2Type {
+    pub fn new(endian: Endian, include_version: bool) -> Self {
         Self::new_aligned(None, endian, include_version)
     }
 }

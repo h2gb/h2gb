@@ -14,7 +14,7 @@ use generic_number::{Integer, Float, Character};
 /// unexpected data).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedType {
-    pub actual_range:  Range<usize>,
+    pub base_range:    Range<usize>,
     pub aligned_range: Range<usize>,
 
     pub field_name:    Option<String>,
@@ -31,7 +31,7 @@ pub struct ResolvedType {
 
 impl ResolvedType {
     pub fn base_size(&self) -> usize {
-        self.actual_range.end - self.actual_range.start
+        self.base_range.end - self.base_range.start
     }
 
     pub fn aligned_size(&self) -> usize {

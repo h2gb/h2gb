@@ -4,7 +4,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, IntegerReader, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2TypeTrait, Alignment, Data};
 
 /// Defines a length-prefixed string.
 ///
@@ -20,23 +20,29 @@ pub struct LPString {
     alignment: Option<Alignment>,
 }
 
+impl From<LPString> for H2Type {
+    fn from(t: LPString) -> H2Type {
+        H2Type::LPString(t)
+    }
+}
+
 impl LPString {
-    pub fn new_aligned(alignment: Option<Alignment>, length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<Self> {
         let length: IntegerReader = length.into();
 
         if !length.can_be_usize() {
             bail!("Length type isn't numeric!");
         }
 
-        Ok(H2Type::new(H2Types::LPString(Self {
+        Ok(Self {
             length: length.into(),
             character: character.into(),
             renderer: renderer.into(),
             alignment: alignment,
-        })))
+        })
     }
 
-    pub fn new(length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<H2Type> {
+    pub fn new(length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<Self> {
         Self::new_aligned(None, length, character, renderer)
     }
 
@@ -152,7 +158,7 @@ mod tests {
         let data = b"\x07\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let context = Context::new(&data);
 
-        let a: H2Type = LPString::new(
+        let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
             CharacterFormatter::new_pretty_str(),
@@ -162,7 +168,7 @@ mod tests {
 
         // The second child should be an array of the characters
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
-        assert_eq!(0..19, resolved.actual_range);
+        assert_eq!(0..19, resolved.base_range);
 
         Ok(())
     }

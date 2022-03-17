@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 use generic_number::{Context, Endian};
 use std::net::Ipv4Addr;
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines an IPv4 address.
 ///
@@ -16,15 +16,21 @@ pub struct IPv4 {
     alignment: Option<Alignment>,
 }
 
+impl From<IPv4> for H2Type {
+    fn from(t: IPv4) -> H2Type {
+        H2Type::IPv4(t)
+    }
+}
+
 impl IPv4 {
-    pub fn new_aligned(alignment: Option<Alignment>, endian: Endian) -> H2Type {
-        H2Type::new(H2Types::IPv4(Self {
+    pub fn new_aligned(alignment: Option<Alignment>, endian: Endian) -> Self {
+        Self {
             endian: endian,
             alignment: alignment,
-        }))
+        }
     }
 
-    pub fn new(endian: Endian) -> H2Type {
+    pub fn new(endian: Endian) -> Self {
         Self::new_aligned(None, endian)
     }
 }

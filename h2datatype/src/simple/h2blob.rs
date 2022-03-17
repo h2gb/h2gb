@@ -3,7 +3,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, IntegerRenderer, Integer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2TypeTrait, Alignment, Data};
 
 /// Defines a string with a configured length.
 ///
@@ -18,20 +18,26 @@ pub struct H2Blob {
     alignment: Option<Alignment>,
 }
 
+impl From<H2Blob> for H2Type {
+    fn from(t: H2Blob) -> H2Type {
+        H2Type::H2Blob(t)
+    }
+}
+
 impl H2Blob {
-    pub fn new_aligned(alignment: Option<Alignment>, length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<Self> {
         if length_in_bytes == 0 {
             bail!("Length must be at least 1 character long");
         }
 
-        Ok(H2Type::new(H2Types::H2Blob(Self {
+        Ok(Self {
             length: length_in_bytes,
             length_display: length_display.into(),
             alignment: alignment,
-        })))
+        })
     }
 
-    pub fn new(length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<H2Type> {
+    pub fn new(length_in_bytes: usize, length_display: impl Into<IntegerRenderer>) -> SimpleResult<Self> {
         Self::new_aligned(None, length_in_bytes, length_display)
     }
 }
