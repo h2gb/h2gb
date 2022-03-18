@@ -16,6 +16,12 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 pub struct BooleanFormatter {
 }
 
+impl Default for BooleanFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<BooleanFormatter> for IntegerRenderer {
     fn from(f: BooleanFormatter) -> IntegerRenderer {
         IntegerRenderer::Boolean(f)

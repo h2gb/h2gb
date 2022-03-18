@@ -89,6 +89,12 @@ pub struct CharacterFormatter {
     unprintable_option: CharacterUnprintableOption,
 }
 
+impl Default for CharacterFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
 impl From<CharacterFormatter> for CharacterRenderer {
     fn from(f: CharacterFormatter) -> CharacterRenderer {
         CharacterRenderer::Character(f)

@@ -17,6 +17,12 @@ pub enum FloatRenderer {
     Scientific(ScientificFormatter),
 }
 
+impl Default for FloatRenderer {
+    fn default() -> Self {
+        Self::Default(Default::default())
+    }
+}
+
 impl FloatRenderer {
     /// Render the given number
     pub fn render_float(&self, number: impl Into<Float>) -> String {

@@ -45,6 +45,15 @@ pub struct Character {
 /// Implement a simple From
 impl From<(char, usize)> for Character { fn from(o: (char, usize)) -> Self { Self { character: o.0, size: o.1 } } }
 
+impl Default for Character {
+    fn default() -> Self {
+        Self {
+            character: '\0',
+            size: 1,
+        }
+    }
+}
+
 impl Character {
     /// The size - in bytes - of the type.
     pub fn size(self) -> usize {
@@ -72,6 +81,8 @@ mod tests {
 
     #[test]
     fn test_character() -> SimpleResult<()> {
+        let c: char = Default::default();
+
         let c = Character::from(('A', 1));
         assert_eq!('A', c.as_char());
         assert_eq!(1, c.size());

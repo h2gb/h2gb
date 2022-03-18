@@ -22,6 +22,12 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait, Float, FloatRenderer
 pub struct DefaultFormatter {
 }
 
+impl Default for DefaultFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<DefaultFormatter> for IntegerRenderer {
     fn from(f: DefaultFormatter) -> IntegerRenderer {
         IntegerRenderer::Default(f)

@@ -32,6 +32,12 @@ pub struct BinaryFormatter {
     pub min_digits: usize,
 }
 
+impl Default for BinaryFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
 impl From<BinaryFormatter> for IntegerRenderer {
     fn from(f: BinaryFormatter) -> IntegerRenderer {
         IntegerRenderer::Binary(f)

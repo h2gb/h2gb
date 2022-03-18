@@ -17,6 +17,12 @@ pub enum CharacterRenderer {
     Character(CharacterFormatter),
 }
 
+impl Default for CharacterRenderer {
+    fn default() -> Self {
+        Self::Default(Default::default())
+    }
+}
+
 impl CharacterRenderer {
     /// Render the given number
     pub fn render_character(&self, number: impl Into<Character>) -> String {

@@ -22,6 +22,12 @@ pub struct OctalFormatter {
     pub padded: bool,
 }
 
+impl Default for OctalFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
 impl From<OctalFormatter> for IntegerRenderer {
     fn from(f: OctalFormatter) -> IntegerRenderer {
         IntegerRenderer::Octal(f)

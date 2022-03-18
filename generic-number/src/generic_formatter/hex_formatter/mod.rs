@@ -30,6 +30,12 @@ pub struct HexFormatter {
     pub padded: bool,
 }
 
+impl Default for HexFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
 impl From<HexFormatter> for IntegerRenderer {
     fn from(f: HexFormatter) -> IntegerRenderer {
         IntegerRenderer::Hex(f)

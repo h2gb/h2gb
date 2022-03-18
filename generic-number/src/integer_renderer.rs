@@ -21,6 +21,12 @@ pub enum IntegerRenderer {
     Scientific(ScientificFormatter),
 }
 
+impl Default for IntegerRenderer {
+    fn default() -> Self {
+        Self::Default(Default::default())
+    }
+}
+
 impl IntegerRenderer {
     pub fn render_integer(self, v: impl Into<Integer>) -> String {
         match self {

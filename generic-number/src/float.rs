@@ -40,6 +40,12 @@ pub enum Float {
 impl From<f32>  for Float { fn from(o: f32) -> Self { Self::F32(o)  } }
 impl From<f64>  for Float { fn from(o: f64) -> Self { Self::F64(o)  } }
 
+impl Default for Float {
+    fn default() -> Self {
+        Self::F32(0f32)
+    }
+}
+
 impl Float {
     /// The size - in bytes - of the type.
     pub fn size(self) -> usize {

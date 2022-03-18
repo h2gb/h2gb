@@ -78,6 +78,12 @@ pub enum Integer {
     ISize(isize),
 }
 
+impl Default for Integer {
+    fn default() -> Self {
+        Self::I32(0)
+    }
+}
+
 // Simplify converting from various basic types - generally, these shouldn't be
 // used directly except for testing!
 impl From<u8>    for Integer { fn from(o: u8)   -> Self { Self::U8(o)   } }

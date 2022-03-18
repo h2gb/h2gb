@@ -22,6 +22,12 @@ pub struct ScientificFormatter {
     pub uppercase: bool,
 }
 
+impl Default for ScientificFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
 impl From<ScientificFormatter> for IntegerRenderer {
     fn from(f: ScientificFormatter) -> IntegerRenderer {
         IntegerRenderer::Scientific(f)
