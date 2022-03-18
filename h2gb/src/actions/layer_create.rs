@@ -26,12 +26,12 @@ enum State {
 pub struct ActionLayerCreate(State);
 
 impl ActionLayerCreate {
-    pub fn new(buffer: &str, name: &str) -> Action {
+    pub fn new(buffer: impl AsRef<str>, name: impl AsRef<str>) -> Action {
         Action::LayerCreate(
             ActionLayerCreate(
                 State::Forward(Forward {
-                    buffer: String::from(buffer),
-                    name: String::from(name),
+                    buffer: buffer.as_ref().to_string(),
+                    name: name.as_ref().to_string(),
                 })
             )
         )

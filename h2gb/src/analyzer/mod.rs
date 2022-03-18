@@ -233,22 +233,22 @@ lazy_static! {
 }
 
 
-fn transform_decrypt(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
+fn transform_decrypt(record: &mut Record<Action>, buffer: impl AsRef<str>) -> SimpleResult<()> {
     record.apply(ActionBufferTransform::new(buffer, *TRANSFORMATION_DECRYPT))
 }
 
 /// Special parser for time_played that calculates the proper duration
-fn parse_time_played(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    let time_played = create_entry_integer( record, buffer, LAYER, H2Integer::new(IntegerReader::U64(Endian::Little), DefaultFormatter::new()), offset, None, &DATA)?;
+fn parse_time_played(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    let time_played = create_entry_integer(record, &buffer, LAYER, H2Integer::new(IntegerReader::U64(Endian::Little), DefaultFormatter::new()), offset, None, &DATA)?;
 
     let time_played: usize = time_played.try_into()?;
     let duration = Duration::from_micros(time_played as u64 / 10); //  TODO: This should not go to usize then u64
-    add_comment(record, buffer, LAYER, offset, &format!("Playtime: {}", duration.hhmmssxxx()))?;
+    add_comment(record, &buffer, LAYER, offset, &format!("Playtime: {}", duration.hhmmssxxx()))?;
 
     Ok(())
 }
 
-fn parse_visibility(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
+fn parse_visibility(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
     create_entry(
         record,
         buffer,
@@ -262,15 +262,15 @@ fn parse_visibility(record: &mut Record<Action>, buffer: &str, offset: usize) ->
     Ok(())
 }
 
-fn parse_equipment(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset,  "Start offset for equipment")?;
-    add_comment(record, buffer, LAYER, offset + (10 * 5),  "Start offset for vanity")?;
-    add_comment(record, buffer, LAYER, offset + (20 * 5),  "Start offset for dyes")?;
+fn parse_equipment(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset,  "Start offset for equipment")?;
+    add_comment(record, &buffer, LAYER, offset + (10 * 5),  "Start offset for vanity")?;
+    add_comment(record, &buffer, LAYER, offset + (20 * 5),  "Start offset for dyes")?;
 
     for i in 0..30 {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             EQUIPPED_ITEM.clone(),
             offset + (i * 5),
@@ -284,13 +284,13 @@ fn parse_equipment(record: &mut Record<Action>, buffer: &str, offset: usize) -> 
     Ok(())
 }
 
-fn parse_inventory(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset,  "Start offset for inventory")?;
+fn parse_inventory(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset,  "Start offset for inventory")?;
     // Technically this is an array, but we don't really handle arrays well enough to use one
     for i in (offset..(offset + 500)).step_by(10) {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             INVENTORY_ITEM.clone(),
             i,
@@ -303,13 +303,13 @@ fn parse_inventory(record: &mut Record<Action>, buffer: &str, offset: usize) -> 
     Ok(())
 }
 
-fn parse_coins_and_ammo(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset, "Start offset for coins_and_ammo")?;
+fn parse_coins_and_ammo(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset, "Start offset for coins_and_ammo")?;
 
     for i in (offset..(offset + 80)).step_by(10) {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             INVENTORY_ITEM.clone(),
             i,
@@ -318,18 +318,18 @@ fn parse_coins_and_ammo(record: &mut Record<Action>, buffer: &str, offset: usize
         )?;
     }
 
-    add_comment(record, buffer, LAYER, offset + 80 - 1, "End offset for coins_and_ammo")?;
+    add_comment(record, &buffer, LAYER, offset + 80 - 1, "End offset for coins_and_ammo")?;
 
     Ok(())
 }
 
-fn parse_other_equipment(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset, "Start offset for other equipment")?;
+fn parse_other_equipment(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset, "Start offset for other equipment")?;
 
     for i in 0..10 {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             EQUIPPED_ITEM.clone(),
             offset + (i * 5),
@@ -338,18 +338,18 @@ fn parse_other_equipment(record: &mut Record<Action>, buffer: &str, offset: usiz
         )?;
     }
 
-    add_comment(record, buffer, LAYER, offset + 50 - 1, "End offset for other equipment")?;
+    add_comment(record, &buffer, LAYER, offset + 50 - 1, "End offset for other equipment")?;
 
     Ok(())
 }
 
-fn parse_piggy_bank(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset,  "Start offset for piggy bank")?;
+fn parse_piggy_bank(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset,  "Start offset for piggy bank")?;
     // Technically this is an array, but we don't really handle arrays well enough to use one
     for i in (offset..(offset + 360)).step_by(9) {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             STORED_ITEM.clone(),
             i,
@@ -357,18 +357,18 @@ fn parse_piggy_bank(record: &mut Record<Action>, buffer: &str, offset: usize) ->
             &DATA,
         )?;
     }
-    add_comment(record, buffer, LAYER, offset + 360 - 1, "End offset for piggy bank")?;
+    add_comment(record, &buffer, LAYER, offset + 360 - 1, "End offset for piggy bank")?;
 
     Ok(())
 }
 
-fn parse_safe(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset,  "Start offset for safe")?;
+fn parse_safe(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset,  "Start offset for safe")?;
     // Technically this is an array, but we don't really handle arrays well enough to use one
     for i in (offset..(offset + 360)).step_by(9) {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             STORED_ITEM.clone(),
             i,
@@ -376,18 +376,18 @@ fn parse_safe(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simpl
             &DATA,
         )?;
     }
-    add_comment(record, buffer, LAYER, offset + 360 - 1, "End offset for safe")?;
+    add_comment(record, &buffer, LAYER, offset + 360 - 1, "End offset for safe")?;
 
     Ok(())
 }
 
-fn parse_defenders_forge(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset,  "Start offset for defender's forge")?;
+fn parse_defenders_forge(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset,  "Start offset for defender's forge")?;
     // Technically this is an array, but we don't really handle arrays well enough to use one
     for i in (offset..(offset + 360)).step_by(9) {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             STORED_ITEM.clone(),
             i,
@@ -395,18 +395,18 @@ fn parse_defenders_forge(record: &mut Record<Action>, buffer: &str, offset: usiz
             &DATA,
         )?;
     }
-    add_comment(record, buffer, LAYER, offset + 360 - 1, "End offset for defender's forge")?;
+    add_comment(record, &buffer, LAYER, offset + 360 - 1, "End offset for defender's forge")?;
 
     Ok(())
 }
 
-fn parse_void_vault(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset,  "Start offset for void vault")?;
+fn parse_void_vault(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset,  "Start offset for void vault")?;
     // Technically this is an array, but we don't really handle arrays well enough to use one
     for i in (offset..(offset + 360)).step_by(9) {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             STORED_ITEM.clone(),
             i,
@@ -414,18 +414,18 @@ fn parse_void_vault(record: &mut Record<Action>, buffer: &str, offset: usize) ->
             &DATA,
         )?;
     }
-    add_comment(record, buffer, LAYER, offset + 360 - 1, "End offset for void vault")?;
+    add_comment(record, &buffer, LAYER, offset + 360 - 1, "End offset for void vault")?;
 
     Ok(())
 }
 
-fn parse_buffs(record: &mut Record<Action>, buffer: &str, offset: usize) -> SimpleResult<()> {
-    add_comment(record, buffer, LAYER, offset,  "Start offset for buffs")?;
+fn parse_buffs(record: &mut Record<Action>, buffer: impl AsRef<str>, offset: usize) -> SimpleResult<()> {
+    add_comment(record, &buffer, LAYER, offset,  "Start offset for buffs")?;
     // Technically this is an array, but we don't really handle arrays well enough to use one
     for i in (offset..(offset + 176)).step_by(8) {
         create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             BUFF.clone(),
             i,
@@ -433,27 +433,27 @@ fn parse_buffs(record: &mut Record<Action>, buffer: &str, offset: usize) -> Simp
             &DATA,
         )?;
     }
-    add_comment(record, buffer, LAYER, offset + 176 - 1, "End offset for buffs")?;
+    add_comment(record, &buffer, LAYER, offset + 176 - 1, "End offset for buffs")?;
 
     Ok(())
 }
 
-fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<usize> {
+fn parse_spawnpoints(record: &mut Record<Action>, buffer: impl AsRef<str>, starting_offset: usize) -> SimpleResult<usize> {
     let mut current_spawn_offset = starting_offset;
     loop {
         // Check for the terminator
         let terminator_type = H2Integer::new(IntegerReader::I32(Endian::Little), DefaultFormatter::new());
-        let possible_terminator = peek_entry(record, buffer, &terminator_type.clone().into(), current_spawn_offset, &DATA)?;
+        let possible_terminator = peek_entry(record, &buffer, &terminator_type.clone().into(), current_spawn_offset, &DATA)?;
         if let Some(n) = possible_terminator.as_integer {
             if n == Integer::from(-1i32) {
-                create_entry(record, buffer, LAYER, terminator_type.clone(), current_spawn_offset, Some("Spawn point sentinel value (terminator)"), &DATA)?;
+                create_entry(record, &buffer, LAYER, terminator_type.clone(), current_spawn_offset, Some("Spawn point sentinel value (terminator)"), &DATA)?;
                 break;
             }
         }
 
         let spawn_point = create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             SPAWNPOINT_ENTRY.clone(),
             current_spawn_offset,
@@ -468,23 +468,23 @@ fn parse_spawnpoints(record: &mut Record<Action>, buffer: &str, starting_offset:
     Ok(current_spawn_offset)
 }
 
-fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset: usize) -> SimpleResult<()> {
+fn parse_journeymode(record: &mut Record<Action>, buffer: impl AsRef<str>, starting_offset: usize) -> SimpleResult<()> {
     let mut current_journey_offset = starting_offset;
 
     loop {
         let terminator_type = H2Integer::new(IntegerReader::U8, DefaultFormatter::new());
-        let possible_terminator = peek_entry(record, buffer, &terminator_type.clone().into(), current_journey_offset, &DATA)?;
+        let possible_terminator = peek_entry(record, &buffer, &terminator_type.clone().into(), current_journey_offset, &DATA)?;
         if let Some(n) = possible_terminator.as_integer {
             let n: usize = n.try_into()?;
             if n == 8 {
-                create_entry(record, buffer, LAYER, terminator_type.clone(), current_journey_offset, Some("Journey mode entry sentinel value (terminator)"), &DATA)?;
+                create_entry(record, &buffer, LAYER, terminator_type.clone(), current_journey_offset, Some("Journey mode entry sentinel value (terminator)"), &DATA)?;
                 break;
             }
         }
 
         let journey_item = create_entry(
             record,
-            buffer,
+            &buffer,
             LAYER,
             JOURNEYMODE_ITEM_ENTRY.clone(),
             current_journey_offset,
@@ -499,15 +499,15 @@ fn parse_journeymode(record: &mut Record<Action>, buffer: &str, starting_offset:
     Ok(())
 }
 
-pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResult<()> {
+pub fn analyze_terraria(record: &mut Record<Action>, buffer: impl AsRef<str>) -> SimpleResult<()> {
     // Decrypt the buffer
-    transform_decrypt(record, buffer)?;
+    transform_decrypt(record, &buffer)?;
 
     // Create a layer
-    record.apply(ActionLayerCreate::new(buffer, LAYER))?;
+    record.apply(ActionLayerCreate::new(&buffer, LAYER))?;
 
     // Create an entry for the version
-    let version_number = create_entry_integer(record, buffer, LAYER, H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new(), "TERRARIA::versions", &DATA)?, 0x00, Some("Version number"), &DATA)?;
+    let version_number = create_entry_integer(record, &buffer, LAYER, H2Enum::new(IntegerReader::U32(Endian::Little), DefaultFormatter::new(), "TERRARIA::versions", &DATA)?, 0x00, Some("Version number"), &DATA)?;
 
     // Get the offsets for later
     let version_number: usize = version_number.try_into()?;
@@ -518,68 +518,68 @@ pub fn analyze_terraria(record: &mut Record<Action>, buffer: &str) -> SimpleResu
     };
 
     // Get the "magic" value
-    create_entry(record, buffer, LAYER, H2String::new(7, CharacterReader::ASCII, CharacterFormatter::new_pretty_str())?, offsets.magic, Some("\"Magic\" value"), &DATA)?;
+    create_entry(record, &buffer, LAYER, H2String::new(7, CharacterReader::ASCII, CharacterFormatter::new_pretty_str())?, offsets.magic, Some("\"Magic\" value"), &DATA)?;
 
     // Create an entry for the name
-    let name = create_entry(record, buffer, LAYER, TERRARIA_LPSTRING.clone(), offsets.name, Some("Character name"), &DATA)?;
+    let name = create_entry(record, &buffer, LAYER, TERRARIA_LPSTRING.clone(), offsets.name, Some("Character name"), &DATA)?;
 
     // The end of the name is the starting offset for the next bunch of fields
     let base = name.base_range.end;
 
     // Time played has a special parser because it's a duration value that we
     // want to display pretty
-    parse_time_played(record, buffer, base + offsets.time_played)?;
+    parse_time_played(record, &buffer, base + offsets.time_played)?;
 
     // Character face is an 8-bit number that we can't erally do much with
-    create_entry(record, buffer, LAYER, H2Integer::new(IntegerReader::U8, DefaultFormatter::new()), base + offsets.face, Some("Character face"), &DATA)?;
+    create_entry(record, &buffer, LAYER, H2Integer::new(IntegerReader::U8, DefaultFormatter::new()), base + offsets.face, Some("Character face"), &DATA)?;
 
     // Equipment visibility is a 10-bit bitmask that we've created a definition for
-    create_entry(record, buffer, LAYER, H2Bitmask::new(IntegerReader::U16(Endian::Little), None, "TERRARIA::visibility", false, &DATA)?, base + offsets.visibility, Some("Equipment visibility"), &DATA)?;
+    create_entry(record, &buffer, LAYER, H2Bitmask::new(IntegerReader::U16(Endian::Little), None, "TERRARIA::visibility", false, &DATA)?, base + offsets.visibility, Some("Equipment visibility"), &DATA)?;
 
     // Clothing is an enumeration (this also includes gender, and oddly enough
     // it's not in the same order as the UI shows)
-    create_entry(record, buffer, LAYER, H2Enum::new(IntegerReader::U8, DefaultFormatter::new(), "TERRARIA::clothing", &DATA)?, base + offsets.clothing, Some("Character clothing"), &DATA)?;
+    create_entry(record, &buffer, LAYER, H2Enum::new(IntegerReader::U8, DefaultFormatter::new(), "TERRARIA::clothing", &DATA)?, base + offsets.clothing, Some("Character clothing"), &DATA)?;
 
     // Health and mana are both a simple struct with current + max
-    create_entry(record, buffer, LAYER, HEALTH_MANA.clone(), base + offsets.health, Some("Health"), &DATA)?;
-    create_entry(record, buffer, LAYER, HEALTH_MANA.clone(), base + offsets.mana, Some("Mana"), &DATA)?;
+    create_entry(record, &buffer, LAYER, HEALTH_MANA.clone(), base + offsets.health, Some("Health"), &DATA)?;
+    create_entry(record, &buffer, LAYER, HEALTH_MANA.clone(), base + offsets.mana, Some("Mana"), &DATA)?;
 
     // Create an entry for the game mode - we'll need this later to determine
     // if we have Journey Mode data
-    let game_mode = create_entry_integer(record, buffer, LAYER, H2Enum::new(IntegerReader::U8, DefaultFormatter::new(), "TERRARIA::game_modes", &DATA)?, base + offsets.game_mode, Some("Game mode"), &DATA)?;
+    let game_mode = create_entry_integer(record, &buffer, LAYER, H2Enum::new(IntegerReader::U8, DefaultFormatter::new(), "TERRARIA::game_modes", &DATA)?, base + offsets.game_mode, Some("Game mode"), &DATA)?;
 
     // Parse character colours
-    create_entry(record, buffer, LAYER, COLOURS.clone(), base + offsets.colours, Some("Colours"), &DATA)?;
+    create_entry(record, &buffer, LAYER, COLOURS.clone(), base + offsets.colours, Some("Colours"), &DATA)?;
 
     // These are all effectively arrays
-    parse_equipment(record, buffer, base + offsets.equipment)?;
-    parse_inventory(record, buffer, base + offsets.inventory)?;
-    parse_coins_and_ammo(record, buffer, base + offsets.coins_and_ammo)?;
-    parse_other_equipment(record, buffer, base + offsets.other_equipment)?;
-    parse_piggy_bank(record, buffer, base + offsets.piggy_bank)?;
-    parse_safe(record, buffer, base + offsets.safe)?;
-    parse_defenders_forge(record, buffer, base + offsets.defenders_forge)?;
+    parse_equipment(record, &buffer, base + offsets.equipment)?;
+    parse_inventory(record, &buffer, base + offsets.inventory)?;
+    parse_coins_and_ammo(record, &buffer, base + offsets.coins_and_ammo)?;
+    parse_other_equipment(record, &buffer, base + offsets.other_equipment)?;
+    parse_piggy_bank(record, &buffer, base + offsets.piggy_bank)?;
+    parse_safe(record, &buffer, base + offsets.safe)?;
+    parse_defenders_forge(record, &buffer, base + offsets.defenders_forge)?;
 
     if let Some(offset_void_vault) = offsets.void_vault {
-        parse_void_vault(record, buffer, base + offset_void_vault)?;
+        parse_void_vault(record, &buffer, base + offset_void_vault)?;
     }
 
     // Buffs are an option field - 1.4+ only
     if let Some(offset_buffs) = offsets.buffs {
-        parse_buffs(record, buffer, base + offset_buffs)?;
+        parse_buffs(record, &buffer, base + offset_buffs)?;
     }
 
     // Spawnpoints consists of zero or more entries, each of which is a fixed
     // length.
     // Everything after spawnpoints (mostly just journeymode data) is relative
     // to the end of spawnpoints
-    let new_base = parse_spawnpoints(record, buffer, base + offsets.spawnpoints)?;
+    let new_base = parse_spawnpoints(record, &buffer, base + offsets.spawnpoints)?;
 
     // game_mode 3 == Journey Mode
     if game_mode == *DATA.enums.get("TERRARIA::game_modes").unwrap().get_by_name("JourneyMode").unwrap() {
         // Only parse this if we have a journey_data offset (1.4+)
         if let Some(offset) = offsets.journey_data {
-            parse_journeymode(record, buffer, new_base + offset)?;
+            parse_journeymode(record, &buffer, new_base + offset)?;
         }
     }
 

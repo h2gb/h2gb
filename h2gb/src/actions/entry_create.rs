@@ -32,12 +32,12 @@ enum State {
 pub struct ActionEntryCreate(State);
 
 impl ActionEntryCreate {
-    pub fn new(buffer: &str, layer: &str, resolved_type: ResolvedType, origin: Option<H2Type>) -> Action {
+    pub fn new(buffer: impl AsRef<str>, layer: impl AsRef<str>, resolved_type: ResolvedType, origin: Option<H2Type>) -> Action {
         Action::EntryCreate(
             ActionEntryCreate(
                 State::Forward(Forward {
-                    buffer: buffer.to_string(),
-                    layer: layer.to_string(),
+                    buffer: buffer.as_ref().to_string(),
+                    layer: layer.as_ref().to_string(),
                     resolved_type: resolved_type,
                     origin: origin,
                 })

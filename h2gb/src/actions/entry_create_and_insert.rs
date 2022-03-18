@@ -31,7 +31,7 @@ enum State {
 pub struct ActionEntryCreateAndInsert(State);
 
 impl ActionEntryCreateAndInsert {
-    pub fn new(buffer: &str, layer: &str, origin: impl Into<H2Type>, offset: usize) -> Action {
+    pub fn new(buffer: impl AsRef<str>, layer: impl AsRef<str>, origin: impl Into<H2Type>, offset: usize) -> Action {
         Action::EntryCreateAndInsert(
             ActionEntryCreateAndInsert(
                 State::Forward(Forward {

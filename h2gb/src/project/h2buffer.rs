@@ -153,13 +153,13 @@ impl H2Buffer {
     /// # Errors
     ///
     /// * Data must be at least
-    pub fn new(name: &str, data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
+    pub fn new(name: impl AsRef<str>, data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
         if data.len() == 0 {
             bail!("Can't create a buffer of zero length");
         }
 
         Ok(H2Buffer {
-            name: name.to_string(),
+            name: name.as_ref().to_string(),
             data: data,
             base_address: base_address,
             layers: HashMap::new(),
@@ -387,56 +387,56 @@ impl H2Buffer {
     //    remove, then a bunch of simple proxies to make it more ergonomic to
     //    deal with layers!
 
-    pub fn layer_add(&mut self, layer: &str) -> SimpleResult<()> {
+    pub fn layer_add(&mut self, layer: impl AsRef<str>) -> SimpleResult<()> {
         // Get this up front, we won't be able to once we borrow self in the match
         let length = self.len();
 
         // Either insert, or error if there's already a layer there
-        match self.layers.entry(layer.to_string()) {
-            std::collections::hash_map::Entry::Occupied(_) => bail!("A layer named {} already exists in the buffer {}", layer, self.name),
+        match self.layers.entry(layer.as_ref().to_string()) {
+            std::collections::hash_map::Entry::Occupied(_) => bail!("A layer named {} already exists in the buffer {}", layer.as_ref(), self.name),
             std::collections::hash_map::Entry::Vacant(v) => v.insert(H2Layer::new(layer, length)),
         };
 
         Ok(())
     }
 
-    pub fn layer_remove(&mut self, layer: &str) -> SimpleResult<()> {
-        let is_populated = match self.layers.get(layer) {
+    pub fn layer_remove(&mut self, layer: impl AsRef<str>) -> SimpleResult<()> {
+        let is_populated = match self.layers.get(layer.as_ref()) {
             Some(layer) => layer.is_populated(),
-            None => bail!("Could not find layer {} in buffer {}", self.name, layer),
+            None => bail!("Could not find layer {} in buffer {}", self.name, layer.as_ref()),
         };
 
         if is_populated {
-            bail!("Cannot remove layer {} from buffer {} because it's not empty", layer, self.name);
+            bail!("Cannot remove layer {} from buffer {} because it's not empty", layer.as_ref(), self.name);
         }
 
-        match self.layers.remove(layer) {
+        match self.layers.remove(layer.as_ref()) {
             Some(_) => Ok(()),
             None => bail!("Failed to remove the layer"),
         }
     }
 
-    pub fn layer_exists(&self, layer: &str) -> bool {
-        self.layers.contains_key(layer)
+    pub fn layer_exists(&self, layer: impl AsRef<str>) -> bool {
+        self.layers.contains_key(layer.as_ref())
     }
 
-    pub fn layer_get(&self, layer: &str) -> Option<&H2Layer> {
-        self.layers.get(layer)
+    pub fn layer_get(&self, layer: impl AsRef<str>) -> Option<&H2Layer> {
+        self.layers.get(layer.as_ref())
     }
 
-    pub fn layer_get_or_err(&self, layer: &str) -> SimpleResult<&H2Layer> {
-        self.layer_get(layer).ok_or(
-            SimpleError::new(format!("Could not find layer {}", layer))
+    pub fn layer_get_or_err(&self, layer: impl AsRef<str>) -> SimpleResult<&H2Layer> {
+        self.layer_get(layer.as_ref()).ok_or(
+            SimpleError::new(format!("Could not find layer {}", layer.as_ref()))
         )
     }
 
-    pub fn layer_get_mut(&mut self, layer: &str) -> Option<&mut H2Layer> {
-        self.layers.get_mut(layer)
+    pub fn layer_get_mut(&mut self, layer: impl AsRef<str>) -> Option<&mut H2Layer> {
+        self.layers.get_mut(layer.as_ref())
     }
 
-    pub fn layer_get_mut_or_err(&mut self, layer: &str) -> SimpleResult<&mut H2Layer> {
-        self.layer_get_mut(layer).ok_or(
-            SimpleError::new(format!("Could not find layer {}", layer))
+    pub fn layer_get_mut_or_err(&mut self, layer: impl AsRef<str>) -> SimpleResult<&mut H2Layer> {
+        self.layer_get_mut(layer.as_ref()).ok_or(
+            SimpleError::new(format!("Could not find layer {}", layer.as_ref()))
         )
     }
 

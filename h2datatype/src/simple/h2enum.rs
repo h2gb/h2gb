@@ -35,22 +35,22 @@ impl From<H2Enum> for H2Type {
 }
 
 impl H2Enum {
-    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<Self> {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: impl AsRef<str>, data: &Data) -> SimpleResult<Self> {
         // Make sure the enum type exists
-        if !data.enums.contains_key(enum_type) {
-            bail!("No such Enum: {}", enum_type);
+        if !data.enums.contains_key(enum_type.as_ref()) {
+            bail!("No such Enum: {}", enum_type.as_ref());
         }
 
         Ok(Self {
             reader: reader.into(),
             fallback_renderer: fallback_renderer.into(),
-            enum_type: enum_type.to_string(),
+            enum_type: enum_type.as_ref().to_string(),
             alignment: alignment,
         })
 
     }
 
-    pub fn new(reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: &str, data: &Data) -> SimpleResult<Self> {
+    pub fn new(reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: impl AsRef<str>, data: &Data) -> SimpleResult<Self> {
         Self::new_aligned(None, reader, fallback_renderer, enum_type, data)
     }
 

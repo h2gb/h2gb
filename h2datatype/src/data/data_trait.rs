@@ -40,9 +40,7 @@ pub trait DataTrait : Sized {
         bail!("Type cannot be loaded from a string");
     }
 
-    fn load_csv<R>(reader: R) -> SimpleResult<Self>
-    where R: io::Read
-    {
+    fn load_csv(reader: impl io::Read) -> SimpleResult<Self> {
         let mut out: Vec<(String, Option<Integer>)> = vec![];
 
         // Get ready to read the CSV
@@ -75,8 +73,8 @@ pub trait DataTrait : Sized {
         Self::load_str(out)
     }
 
-    fn load_from_csv_string(data: &str) -> SimpleResult<Self> {
-        Self::load_csv(data.as_bytes())
+    fn load_from_csv_string(data: impl AsRef<str>) -> SimpleResult<Self> {
+        Self::load_csv(data.as_ref().as_bytes())
     }
 
     fn load_from_csv_file(filename: &Path) -> SimpleResult<Self> {
@@ -104,10 +102,7 @@ pub trait DataTrait : Sized {
         })
     }
 
-    fn load_yaml<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
+    fn load_yaml(reader: impl io::Read) -> SimpleResult<Self> {
         // Initially read as String->String
         let d: Self::SerializedType = serde_yaml::from_reader(reader).map_err(|e| {
             SimpleError::new(format!("Couldn't parse YAML file: {:?}", e))
@@ -116,8 +111,8 @@ pub trait DataTrait : Sized {
         Self::load(&d)
     }
 
-    fn load_from_yaml_string(data: &str) -> SimpleResult<Self> {
-        Self::load_yaml(data.as_bytes())
+    fn load_from_yaml_string(data: impl AsRef<str>) -> SimpleResult<Self> {
+        Self::load_yaml(data.as_ref().as_bytes())
     }
 
     fn load_from_yaml_file(filename: &Path) -> SimpleResult<Self> {
@@ -132,10 +127,7 @@ pub trait DataTrait : Sized {
         })
     }
 
-    fn load_ron<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
+    fn load_ron(reader: impl io::Read) -> SimpleResult<Self> {
         // Initially read as String->String
         let d: Self::SerializedType = ron::de::from_reader(reader).map_err(|e| {
             SimpleError::new(format!("Couldn't parse RON file: {:?}", e))
@@ -144,8 +136,8 @@ pub trait DataTrait : Sized {
         Self::load(&d)
     }
 
-    fn load_from_ron_string(data: &str) -> SimpleResult<Self> {
-        Self::load_ron(data.as_bytes())
+    fn load_from_ron_string(data: impl AsRef<str>) -> SimpleResult<Self> {
+        Self::load_ron(data.as_ref().as_bytes())
     }
 
     fn load_from_ron_file(filename: &Path) -> SimpleResult<Self> {
@@ -160,10 +152,7 @@ pub trait DataTrait : Sized {
         })
     }
 
-    fn load_json<R>(reader: R) -> SimpleResult<Self>
-    where
-        R: io::Read
-    {
+    fn load_json(reader: impl io::Read) -> SimpleResult<Self> {
         // Initially read as String->String
         let d: Self::SerializedType = serde_json::from_reader(reader).map_err(|e| {
             SimpleError::new(format!("Couldn't parse YAML file: {:?}", e))
@@ -172,8 +161,8 @@ pub trait DataTrait : Sized {
         Self::load(&d)
     }
 
-    fn load_from_json_string(data: &str) -> SimpleResult<Self> {
-        Self::load_json(data.as_bytes())
+    fn load_from_json_string(data: impl AsRef<str>) -> SimpleResult<Self> {
+        Self::load_json(data.as_ref().as_bytes())
     }
 
     fn load_from_json_file(filename: &Path) -> SimpleResult<Self> {

@@ -33,12 +33,12 @@ enum State {
 pub struct ActionBufferExtract(State);
 
 impl ActionBufferExtract {
-    pub fn new(name: &str, source_buffer: &str, range: Range<usize>, base_address: usize) -> Action {
+    pub fn new(name: impl AsRef<str>, source_buffer: impl AsRef<str>, range: Range<usize>, base_address: usize) -> Action {
         Action::BufferExtract(
             ActionBufferExtract(
                 State::Forward(Forward {
-                    name: String::from(name),
-                    source_buffer: String::from(source_buffer),
+                    name: name.as_ref().to_string(),
+                    source_buffer: source_buffer.as_ref().to_string(),
                     range: range.clone(),
                     base_address: base_address,
                 })

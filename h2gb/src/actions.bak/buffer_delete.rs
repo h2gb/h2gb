@@ -38,10 +38,10 @@ impl ActionBufferDelete {
 }
 
 impl From<&str> for ActionBufferDelete {
-    fn from(o: &str) -> Self {
+    fn from(o: impl AsRef<str>) -> Self {
         ActionBufferDelete {
             forward: Some(ActionBufferDeleteForward {
-                name: o.to_string()
+                name: o.as_ref().to_string()
             }),
             backward: None,
         }

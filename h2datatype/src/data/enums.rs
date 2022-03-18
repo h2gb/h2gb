@@ -81,8 +81,8 @@ impl Enums {
         }
     }
 
-    pub fn get_by_name(&self, name: &str) -> Option<&Integer> {
-        self.by_name.get(name)
+    pub fn get_by_name(&self, name: impl AsRef<str>) -> Option<&Integer> {
+        self.by_name.get(name.as_ref())
     }
 
     pub fn get_by_value(&self, value: impl Into<Integer>) -> Vec<String> {

@@ -24,8 +24,8 @@ impl Bitmasks {
         }
     }
 
-    pub fn get_by_name(&self, name: &str) -> Option<Integer> {
-        self.by_name.get(name).map(|i| Integer::from(*i))
+    pub fn get_by_name(&self, name: impl AsRef<str>) -> Option<Integer> {
+        self.by_name.get(name.as_ref()).map(|i| Integer::from(*i))
     }
 
     pub fn get_by_value(&self, value: impl Into<Integer>, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> Vec<String> {

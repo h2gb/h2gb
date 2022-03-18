@@ -39,23 +39,23 @@ impl From<H2Bitmask> for H2Type {
 }
 
 impl H2Bitmask {
-    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<Self> {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: impl AsRef<str>, show_negative: bool, data: &Data) -> SimpleResult<Self> {
         // Make sure the bitmask type exists
-        if !data.bitmasks.contains_key(bitmask_type) {
-            bail!("No such Bitmask: {}", bitmask_type);
+        if !data.bitmasks.contains_key(bitmask_type.as_ref()) {
+            bail!("No such Bitmask: {}", bitmask_type.as_ref());
         }
 
         Ok(Self {
             reader: reader.into(),
             unknown_renderer: unknown_renderer,
-            bitmask_type: bitmask_type.to_string(),
+            bitmask_type: bitmask_type.as_ref().to_string(),
             show_negative: show_negative,
             alignment: alignment,
         })
 
     }
 
-    pub fn new(reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<Self> {
+    pub fn new(reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: impl AsRef<str>, show_negative: bool, data: &Data) -> SimpleResult<Self> {
         Self::new_aligned(None, reader, unknown_renderer, bitmask_type, show_negative, data)
     }
 

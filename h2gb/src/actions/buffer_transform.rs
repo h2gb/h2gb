@@ -28,11 +28,11 @@ enum State {
 pub struct ActionBufferTransform(State);
 
 impl ActionBufferTransform {
-    pub fn new(name: &str, transformation: impl Into<Transformation>) -> Action {
+    pub fn new(name: impl AsRef<str>, transformation: impl Into<Transformation>) -> Action {
         Action::BufferTransform(
             ActionBufferTransform(
                 State::Forward(Forward {
-                    name: String::from(name),
+                    name: name.as_ref().to_string(),
                     transformation: transformation.into(),
                 })
             )
