@@ -14,7 +14,11 @@ use crate::{H2Type, H2TypeTrait, Alignment, Data};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Blob {
     length: usize,
+
+    #[serde(default)]
     length_display: IntegerRenderer,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

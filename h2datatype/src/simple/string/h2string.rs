@@ -15,8 +15,13 @@ use crate::{H2Type, H2TypeTrait, Alignment, Data};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2String {
     length: usize,
+
     character: CharacterReader,
+
+    #[serde(default)]
     renderer: CharacterRenderer,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

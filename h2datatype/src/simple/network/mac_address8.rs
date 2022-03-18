@@ -11,6 +11,7 @@ use crate::{Alignment, Data, H2Type, H2TypeTrait};
 /// An EUI-64 MAC address is always 8 bytes long.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MacAddress8 {
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

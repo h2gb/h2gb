@@ -81,8 +81,6 @@ mod tests {
 
     #[test]
     fn test_character() -> SimpleResult<()> {
-        let c: char = Default::default();
-
         let c = Character::from(('A', 1));
         assert_eq!('A', c.as_char());
         assert_eq!(1, c.size());

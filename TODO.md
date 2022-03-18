@@ -1,5 +1,5 @@
 * THIS BRANCH XXX
-  * Can we use Into() instead of field_type() or similar, to go enum->trait?
+  * Add serde tags + defaults to all h2type fields
 
 
 * To-do soon / unsorted

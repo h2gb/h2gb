@@ -18,14 +18,17 @@ pub struct H2Bitmask {
     reader: IntegerReader,
 
     /// The unknown renderer, for when the value isn't found
+    #[serde(default)]
     unknown_renderer: Option<IntegerRenderer>,
 
     /// The bitmask type, as loaded into the [`Data`] structure
     bitmask_type: String,
 
     /// Show negative bitmask elements?
+    #[serde(default)]
     show_negative: bool,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

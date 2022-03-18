@@ -12,6 +12,8 @@ use crate::{Alignment, Data, H2Type, H2TypeTrait};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2Struct {
     fields: Vec<(String, H2Type)>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

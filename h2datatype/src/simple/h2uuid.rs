@@ -13,7 +13,11 @@ use crate::{Alignment, Data, H2Type, H2TypeTrait};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct H2UUID {
     endian: Endian,
+
+    #[serde(default)]
     include_version: bool,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

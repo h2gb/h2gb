@@ -13,6 +13,8 @@ use crate::{Alignment, Data, H2Type, H2TypeTrait};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IPv4 {
     endian: Endian,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

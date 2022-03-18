@@ -10,6 +10,7 @@ use crate::{Alignment, Data, H2Type, H2TypeTrait};
 /// TODO: This is sort of experimental, we need more RGB definitions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rgb {
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

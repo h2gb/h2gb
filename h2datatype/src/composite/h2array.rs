@@ -18,6 +18,8 @@ use crate::{Alignment, Data, H2Type, H2TypeTrait};
 pub struct H2Array {
     field_type: Box<H2Type>,
     length: usize,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 

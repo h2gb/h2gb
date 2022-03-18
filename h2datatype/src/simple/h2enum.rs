@@ -18,11 +18,13 @@ pub struct H2Enum {
     reader: IntegerReader,
 
     /// The fallback renderer, for when the enum_type doesn't work
+    #[serde(default)]
     fallback_renderer: IntegerRenderer,
 
     /// The enum type, as loaded into the [`Data`] structure.
     enum_type: String,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     alignment: Option<Alignment>,
 }
 
