@@ -1,7 +1,3 @@
-* THIS BRANCH XXX
-  * Add serde tags + defaults to all h2type fields
-
-
 * To-do soon / unsorted
   * Change structs (and other APIey things) to take &str instead of String
   * Automatically create a default "Layer"
