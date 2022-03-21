@@ -55,25 +55,36 @@ pub trait H2TypeTrait {
     /// Get the aligned size.
     ///
     /// The default implementation is very likely fine for this.
-    fn aligned_size(&self, context: Context, alignment: Alignment) -> SimpleResult<usize> {
-        let range = self.range(context, alignment)?;
+    fn aligned_size(&self, context: Context) -> SimpleResult<usize> {
+        let range = self.aligned_range(context)?;
 
         Ok(range.end - range.start)
     }
 
-    /// Get the start and ending positions. To get the range without alignment,
-    /// use [`Alignment::None`].
+    /// Get the address range, with no alignment.
     ///
-    /// The default implementation is very likely good. This is only
-    /// implemented as a trait function because other trait functions (such as
-    /// [`#resolve`]) use it.
-    fn range(&self, context: Context, alignment: Alignment) -> SimpleResult<Range<usize>> {
+    /// The default implementation is very likely what you want.
+    fn base_range(&self, context: Context) -> SimpleResult<Range<usize>> {
         // Get the start and end
         let start = context.position();
         let end   = start + self.base_size(context)?;
 
-        // Do the rounding
-        alignment.align(start..end)
+        Ok(start..end)
+    }
+
+    /// Get the address range, aligned based on the field's alignment.
+    ///
+    /// The default implementation is very likely what you want.
+    fn aligned_range(&self, context: Context) -> SimpleResult<Range<usize>> {
+        // Get the start and end
+        let start = context.position();
+        let end   = start + self.base_size(context)?;
+
+        // Align, if needed
+        match self.alignment() {
+            Some(a) => a.align(start..end),
+            None => Ok(start..end),
+        }
     }
 
     /// Convert to a String.
@@ -144,10 +155,10 @@ pub trait H2TypeTrait {
     ///
     /// A resolved type has all the values calculated, and is therefore very
     /// quick to use.
-    fn resolve(&self, context: Context, alignment: Alignment, field_name_override: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
+    fn resolve(&self, context: Context, field_name_override: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
         Ok(ResolvedType {
-            actual_range: self.range(context, Alignment::None)?,
-            aligned_range: self.range(context, alignment)?,
+            base_range: self.base_range(context)?,
+            aligned_range: self.aligned_range(context)?,
 
             field_name: field_name_override,
             display: self.to_display(context, data)?,
@@ -167,6 +178,9 @@ pub trait H2TypeTrait {
             as_character: self.to_character(context).ok(),
         })
     }
+
+    /// How does this type want to be aligned?
+    fn alignment(&self) -> Option<Alignment>;
 
     /// Can this type output a [`String`] (in general)?
     ///

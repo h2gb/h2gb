@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 use generic_number::{Context, Endian};
 use std::net::Ipv6Addr;
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines an IPv6 address.
 ///
@@ -13,17 +13,27 @@ use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IPv6 {
     endian: Endian,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<IPv6> for H2Type {
+    fn from(t: IPv6) -> H2Type {
+        H2Type::IPv6(t)
+    }
 }
 
 impl IPv6 {
-    pub fn new_aligned(alignment: Alignment, endian: Endian) -> H2Type {
-        H2Type::new(alignment, H2Types::IPv6(Self {
-            endian: endian
-        }))
+    pub fn new_aligned(alignment: Option<Alignment>, endian: Endian) -> Self {
+        Self {
+            endian: endian,
+            alignment: alignment,
+        }
     }
 
-    pub fn new(endian: Endian) -> H2Type {
-        Self::new_aligned(Alignment::None, endian)
+    pub fn new(endian: Endian) -> Self {
+        Self::new_aligned(None, endian)
     }
 }
 
@@ -36,6 +46,10 @@ impl H2TypeTrait for IPv6 {
         let number = context.read_u128(self.endian)?;
 
         Ok(Ipv6Addr::from(number).to_string())
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

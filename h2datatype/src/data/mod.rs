@@ -95,7 +95,7 @@ impl FileType {
     fn from_filename(name: &Path) -> Option<Self> {
         let extension = name.extension()?.to_string_lossy().to_string();
 
-        match &extension[..] {
+        match extension.as_ref() {
             "yaml" => Some(Self::YAML),
             "yml"  => Some(Self::YAML),
             "json" => Some(Self::JSON),
@@ -233,23 +233,23 @@ impl Data {
 
     /// Get the names of all available enums
     pub fn list_enums(&self) -> Vec<&str> {
-        self.enums.keys().into_iter().map(|s| &s[..]).collect()
+        self.enums.keys().into_iter().map(|s| s.as_ref()).collect()
     }
 
     /// Find a specific value in an enum based on an [`Integer`].
     ///
     /// Empty list means no value was found, an `Err` is returned if the name does
     /// not exist.
-    pub fn lookup_enum(&self, enum_name: &str, value: &Integer) -> SimpleResult<Vec<String>> {
-        match self.enums.get(enum_name) {
+    pub fn lookup_enum(&self, enum_name: impl AsRef<str>, value: impl Into<Integer>) -> SimpleResult<Vec<String>> {
+        match self.enums.get(enum_name.as_ref()) {
             Some(e) => Ok(e.get_by_value(value)),
-            None => bail!("No such enum: {}", enum_name),
+            None => bail!("No such enum: {}", enum_name.as_ref()),
         }
     }
 
     /// Get the names of all available bitmasks
     pub fn list_bitmasks(&self) -> Vec<&str> {
-        self.bitmasks.keys().into_iter().map(|s| &s[..]).collect()
+        self.bitmasks.keys().into_iter().map(|s| s.as_ref()).collect()
     }
 
     /// Find a specific bitmask matches based on an [`Integer`].
@@ -259,39 +259,39 @@ impl Data {
     ///
     /// Additionally, "negative" matches can be included. That means that the
     /// output will look like `X | Y | ~Z`)
-    pub fn lookup_bitmask(&self, bitmask_name: &str, value: &Integer, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
-        match self.bitmasks.get(bitmask_name) {
+    pub fn lookup_bitmask(&self, bitmask_name: impl AsRef<str>, value: impl Into<Integer>, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
+        match self.bitmasks.get(bitmask_name.as_ref()) {
             Some(e) => Ok(e.get_by_value(value, unknown_renderer, show_negatives)),
-            None => bail!("No such bitmask: {}", bitmask_name),
+            None => bail!("No such bitmask: {}", bitmask_name.as_ref()),
         }
     }
 
     /// Get the names of all available groups of constants
     pub fn list_constant_groups(&self) -> Vec<&str> {
-        self.constants.keys().into_iter().map(|s| &s[..]).collect()
+        self.constants.keys().into_iter().map(|s| s.as_ref()).collect()
     }
 
     /// Find a specific constant or constants based on an [`Integer`].
     ///
     /// Empty list means no value was found, an `Err` is returned if the name does
     /// not exist.
-    pub fn lookup_constant(&self, constant_group: &str, value: &Integer) -> SimpleResult<Vec<String>> {
-        match self.constants.get(constant_group) {
+    pub fn lookup_constant(&self, constant_group: impl AsRef<str>, value: impl Into<Integer>) -> SimpleResult<Vec<String>> {
+        match self.constants.get(constant_group.as_ref()) {
             Some(e) => Ok(e.get_by_value(value)),
-            None => bail!("No such constant: {}", constant_group),
+            None => bail!("No such constant: {}", constant_group.as_ref()),
         }
     }
 
     /// Get the names of all available types.
     pub fn list_types(&self) -> Vec<&str> {
-        self.types.keys().into_iter().map(|s| &s[..]).collect()
+        self.types.keys().into_iter().map(|s| s.as_ref()).collect()
     }
 
     /// Find a specific type by name.
-    pub fn lookup_type(&self, type_name: &str) -> SimpleResult<&H2Type> {
-        match self.types.get(type_name) {
+    pub fn lookup_type(&self, type_name: impl AsRef<str>) -> SimpleResult<&H2Type> {
+        match self.types.get(type_name.as_ref()) {
             Some(t) => Ok(t.get()),
-            None => bail!("No such type: {}", type_name),
+            None => bail!("No such type: {}", type_name.as_ref()),
         }
     }
 }
@@ -369,7 +369,7 @@ mod tests {
         assert_eq!(vec!["test1", "test2", "test3"], e);
 
         // Retrieve a value
-        assert_eq!(vec!["TEST2".to_string()], data.lookup_enum("test1", &Integer::from(100))?);
+        assert_eq!(vec!["TEST2".to_string()], data.lookup_enum("test1", 100)?);
 
         Ok(())
     }

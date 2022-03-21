@@ -2,28 +2,33 @@ use serde::{Serialize, Deserialize};
 
 use simple_error::SimpleResult;
 
-use generic_number::{Context, Endian, IntegerReader, HexFormatter};
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use generic_number::{Context, Endian, IntegerReader, HexFormatter, IntegerRendererTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
-/// Defines a numerical value.
+/// Defines an RGB value.
 ///
-/// This represents any standard numerical value - [`u8`], [`i32`], stuff like
-/// that. The way it's defined, read, and displayed heavily leverages the
-/// [`generic_number`] module.
-///
-/// The size a given numeric type is always known in advance.
+/// TODO: This is sort of experimental, we need more RGB definitions.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rgb {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<Rgb> for H2Type {
+    fn from(t: Rgb) -> H2Type {
+        H2Type::Rgb(t)
+    }
 }
 
 impl Rgb {
-    pub fn new_aligned(alignment: Alignment) -> H2Type {
-        H2Type::new(alignment, H2Types::Rgb(Self {
-        }))
+    pub fn new_aligned(alignment: Option<Alignment>) -> Self {
+        Self {
+            alignment: alignment,
+        }
     }
 
-    pub fn new() -> H2Type {
-        Self::new_aligned(Alignment::None)
+    pub fn new() -> Self {
+        Self::new_aligned(None)
     }
 }
 
@@ -35,9 +40,13 @@ impl H2TypeTrait for Rgb {
     fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
         let reader = IntegerReader::U24(Endian::Big);
         let number = reader.read(context)?;
-        let renderer = HexFormatter::new_integer(false, false, true);
+        let renderer = HexFormatter::new(false, false, true);
 
-        Ok(format!("#{}", renderer.render(number)))
+        Ok(format!("#{}", renderer.render_integer(number)))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

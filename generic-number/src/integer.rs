@@ -15,7 +15,9 @@ use std::hash::{Hash, Hasher};
 /// your needs.
 ///
 /// The simplest way is using the [`From`] trait - `Integer::From(1u8)` for
-/// example.
+/// example. If a function wants an [`Integer`] argument, the best option is to
+/// make the argument [`Into<Integer>`], which will transparently work for
+/// basically any numeric type.
 ///
 /// The most common way in `h2gb` is by using a [`crate::IntegerReader`], which
 /// reads an [`Integer`] from a [`crate::Context`], which represents binary
@@ -76,6 +78,12 @@ pub enum Integer {
     ISize(isize),
 }
 
+impl Default for Integer {
+    fn default() -> Self {
+        Self::I32(0)
+    }
+}
+
 // Simplify converting from various basic types - generally, these shouldn't be
 // used directly except for testing!
 impl From<u8>    for Integer { fn from(o: u8)   -> Self { Self::U8(o)   } }
@@ -91,6 +99,222 @@ impl From<i32>   for Integer { fn from(o: i32)  -> Self { Self::I32(o)  } }
 impl From<i64>   for Integer { fn from(o: i64)  -> Self { Self::I64(o)  } }
 impl From<i128>  for Integer { fn from(o: i128) -> Self { Self::I128(o) } }
 impl From<isize> for Integer { fn from(o: isize) -> Self { Self::ISize(o) } }
+
+impl TryFrom<Integer> for u32 {
+    type Error = SimpleError;
+
+    fn try_from(t: Integer) -> SimpleResult<u32> {
+        // Check the size, so in the match we only have to check sign
+        if t.size() > mem::size_of::<u32>() {
+            bail!("Cannot convert {:?} to a u32", t);
+        }
+
+        match t {
+            Integer::U8(v)        => Ok(v as u32),
+            Integer::U16(v)       => Ok(v as u32),
+            Integer::U24(msb,lsb) => Ok(((msb as u32)) << 16 | (lsb as u32)),
+            Integer::U32(v)       => Ok(v as u32),
+            Integer::U64(v)       => Ok(v as u32),
+            Integer::U128(v)      => Ok(v as u32),
+            Integer::USize(v)     => Ok(v as u32),
+
+            Integer::I8(_)    => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I16(_)   => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I32(_)   => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I64(_)   => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I128(_)  => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::ISize(_) => bail!("Can't convert {:?} into an unsigned value", t),
+        }
+    }
+}
+
+impl TryFrom<Integer> for u64 {
+    type Error = SimpleError;
+
+    fn try_from(t: Integer) -> SimpleResult<u64> {
+        if t.size() > mem::size_of::<u64>() {
+            bail!("Cannot convert {:?} to a u64", t);
+        }
+
+        match t {
+            Integer::U8(v)        => Ok(v as u64),
+            Integer::U16(v)       => Ok(v as u64),
+            Integer::U24(msb,lsb) => Ok(((msb as u64)) << 16 | (lsb as u64)),
+            Integer::U32(v)       => Ok(v as u64),
+            Integer::U64(v)       => Ok(v as u64),
+            Integer::U128(v)      => Ok(v as u64),
+            Integer::USize(v)     => Ok(v as u64),
+
+            Integer::I8(_)    => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I16(_)   => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I32(_)   => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I64(_)   => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::I128(_)  => bail!("Can't convert {:?} into an unsigned value", t),
+            Integer::ISize(_) => bail!("Can't convert {:?} into an unsigned value", t),
+        }
+    }
+}
+
+impl TryFrom<Integer> for i32 {
+    type Error = SimpleError;
+
+    fn try_from(t: Integer) -> SimpleResult<i32> {
+        // Check the size, so in the match we only have to check sign
+        if t.size() > mem::size_of::<i32>() {
+            bail!("Cannot convert {:?} to a i32", t);
+        }
+
+        match t {
+            Integer::I8(v)        => Ok(v as i32),
+            Integer::I16(v)       => Ok(v as i32),
+            Integer::I32(v)       => Ok(v as i32),
+            Integer::I64(v)       => Ok(v as i32),
+            Integer::I128(v)      => Ok(v as i32),
+            Integer::ISize(v)     => Ok(v as i32),
+
+            Integer::U8(_)    => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U16(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U24(_,_) => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U32(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U64(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U128(_)  => bail!("Can't convert {:?} into a signed value", t),
+            Integer::USize(_) => bail!("Can't convert {:?} into a signed value", t),
+        }
+    }
+}
+
+impl TryFrom<Integer> for i64 {
+    type Error = SimpleError;
+
+    fn try_from(t: Integer) -> SimpleResult<i64> {
+        if t.size() > mem::size_of::<i64>() {
+            bail!("Cannot convert {:?} to a i64", t);
+        }
+
+        match t {
+            Integer::I8(v)        => Ok(v as i64),
+            Integer::I16(v)       => Ok(v as i64),
+            Integer::I32(v)       => Ok(v as i64),
+            Integer::I64(v)       => Ok(v as i64),
+            Integer::I128(v)      => Ok(v as i64),
+            Integer::ISize(v)     => Ok(v as i64),
+
+            Integer::U8(_)    => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U16(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U24(_,_) => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U32(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U64(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U128(_)  => bail!("Can't convert {:?} into a signed value", t),
+            Integer::USize(_) => bail!("Can't convert {:?} into a signed value", t),
+        }
+    }
+}
+
+impl TryFrom<Integer> for i128 {
+    type Error = SimpleError;
+
+    fn try_from(t: Integer) -> SimpleResult<i128> {
+        if t.size() > mem::size_of::<i128>() {
+            bail!("Cannot convert {:?} to a i128", t);
+        }
+
+        match t {
+            Integer::I8(v)        => Ok(v as i128),
+            Integer::I16(v)       => Ok(v as i128),
+            Integer::I32(v)       => Ok(v as i128),
+            Integer::I64(v)       => Ok(v as i128),
+            Integer::I128(v)      => Ok(v as i128),
+            Integer::ISize(v)     => Ok(v as i128),
+
+            Integer::U8(_)    => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U16(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U24(_,_) => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U32(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U64(_)   => bail!("Can't convert {:?} into a signed value", t),
+            Integer::U128(_)  => bail!("Can't convert {:?} into a signed value", t),
+            Integer::USize(_) => bail!("Can't convert {:?} into a signed value", t),
+        }
+    }
+}
+
+impl TryFrom<Integer> for usize {
+    type Error = SimpleError;
+
+    fn try_from(t: Integer) -> SimpleResult<usize> {
+        if t.size() > mem::size_of::<usize>() {
+            bail!("Cannot convert {:?} to a usize", t);
+        }
+
+        match t {
+            Integer::U8(v)        => Ok(v as usize),
+            Integer::U16(v)       => Ok(v as usize),
+            Integer::U24(msb,lsb) => Ok(((msb as usize)) << 16 | (lsb as usize)),
+            Integer::U32(v)       => Ok(v as usize),
+            Integer::U64(v)       => Ok(v as usize),
+            Integer::U128(v)      => Ok(v as usize),
+            Integer::USize(v)     => Ok(v as usize),
+
+            Integer::I8(_)    => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::I16(_)   => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::I32(_)   => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::I64(_)   => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::I128(_)  => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::ISize(_) => bail!("Can't convert {:?} into an unsigned size value", t),
+        }
+    }
+}
+
+impl TryFrom<Integer> for isize {
+    type Error = SimpleError;
+
+    fn try_from(t: Integer) -> SimpleResult<isize> {
+        if t.size() > mem::size_of::<isize>() {
+            bail!("Cannot convert {:?} to a isize", t);
+        }
+
+        match t {
+            Integer::I8(v)        => Ok(v as isize),
+            Integer::I16(v)       => Ok(v as isize),
+            Integer::I32(v)       => Ok(v as isize),
+            Integer::I64(v)       => Ok(v as isize),
+            Integer::I128(v)      => Ok(v as isize),
+            Integer::ISize(v)     => Ok(v as isize),
+
+            Integer::U8(_)    => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::U16(_)   => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::U24(_,_) => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::U32(_)   => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::U64(_)   => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::U128(_)  => bail!("Can't convert {:?} into an unsigned size value", t),
+            Integer::USize(_) => bail!("Can't convert {:?} into an unsigned size value", t),
+        }
+    }
+}
+
+/// Convert to a u128 and always succeed.
+///
+/// This is a bit of an "unsafe" conversion, because it changed the signedness,
+/// but it's also the "base" type for everything, and therefore used in
+/// comparisons and such.
+impl From<Integer> for u128 {
+    fn from(o: Integer) -> u128 {
+        match o {
+            Integer::U8(v)        => v as u128,
+            Integer::U16(v)       => v as u128,
+            Integer::U24(msb,lsb) => ((msb as u128)) << 16 | (lsb as u128),
+            Integer::U32(v)       => v as u128,
+            Integer::U64(v)       => v as u128,
+            Integer::U128(v)      => v as u128,
+            Integer::USize(v)     => v as u128,
+            Integer::I8(v)        => v as u128,
+            Integer::I16(v)       => v as u128,
+            Integer::I32(v)       => v as u128,
+            Integer::I64(v)       => v as u128,
+            Integer::I128(v)      => v as u128,
+            Integer::ISize(v)     => v as u128,
+        }
+    }
+}
 
 impl Integer {
     /// The size - in bytes - of the type.
@@ -155,35 +379,6 @@ impl Integer {
         }
     }
 
-    /// Attempt to convert to a [`usize`].
-    pub fn as_usize(self) -> SimpleResult<usize> {
-        if !self.can_be_usize() {
-            bail!("Cannot convert {:?} to a usize ({}-bit) value", self, mem::size_of::<usize>() * 8);
-        }
-
-        match self {
-            Self::U8(v)        => Ok(v as usize),
-            Self::U16(v)       => Ok(v as usize),
-            Self::U24(msb,lsb) => Ok(((msb as usize)) << 16 | (lsb as usize)),
-            Self::U32(v)       => Ok(v as usize),
-
-            // These may be unreachable - it depends if can_be_usize() passes
-            Self::U64(v)       => Ok(v as usize),
-            Self::U128(v)      => Ok(v as usize),
-
-            // Easy!
-            Self::USize(v)     => Ok(v),
-
-            // None of these can become u32
-            Self::I8(_)    => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I16(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I32(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I64(_)   => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::I128(_)  => bail!("Can't convert {:?} into an unsigned size value", self),
-            Self::ISize(_) => bail!("Can't convert {:?} into an unsigned size value", self),
-        }
-    }
-
     /// Is the type compatible with [`isize`]?
     ///
     /// That is, signed and no larger than an `isize` value.
@@ -206,55 +401,6 @@ impl Integer {
         }
     }
 
-    /// Attempt to convert to an [`isize`].
-    pub fn as_isize(self) -> SimpleResult<isize> {
-        if !self.can_be_isize() {
-            bail!("Cannot convert {:?} to an isize ({}-bit) value", self, mem::size_of::<isize>() * 8);
-        }
-
-        match self {
-            Self::U8(_)    => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U16(_)   => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U24(_,_) => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U32(_)   => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U64(_)   => bail!("Can't convert {:?} into a signed size value", self),
-            Self::U128(_)  => bail!("Can't convert {:?} into a signed size value", self),
-            Self::USize(_) => bail!("Can't convert {:?} into a signed size value", self),
-
-            Self::I8(v)        => Ok(v as isize),
-            Self::I16(v)       => Ok(v as isize),
-            Self::I32(v)       => Ok(v as isize),
-
-            // These may be unreachable - it depends if can_be_isize() passes
-            Self::I64(v)       => Ok(v as isize),
-            Self::I128(v)      => Ok(v as isize),
-
-            // Easy!
-            Self::ISize(v)     => Ok(v),
-        }
-    }
-
-    /// Convert to a u128.
-    ///
-    /// Used for comparisons, arithmetic, etc.
-    pub fn as_u128(self) -> u128 {
-        match self {
-            Self::U8(v)        => v as u128,
-            Self::U16(v)       => v as u128,
-            Self::U24(msb,lsb) => ((msb as u128)) << 16 | (lsb as u128),
-            Self::U32(v)       => v as u128,
-            Self::U64(v)       => v as u128,
-            Self::U128(v)      => v as u128,
-            Self::USize(v)     => v as u128,
-            Self::I8(v)        => v as u128,
-            Self::I16(v)       => v as u128,
-            Self::I32(v)       => v as u128,
-            Self::I64(v)       => v as u128,
-            Self::I128(v)      => v as u128,
-            Self::ISize(v)     => v as u128,
-        }
-    }
-
     /// Increment the value
     #[must_use] // So users don't assume this is mutable
     pub fn increment(self) -> Option<Self> {
@@ -263,7 +409,9 @@ impl Integer {
             Self::U16(v)       => Self::from(v.checked_add(1)?),
             Self::U24(_,_) => {
                 // We have to handle U24 specially, unfortunately
-                let i = self.as_u128() + 1;
+                let mut i: u128 = self.into();
+                i += 1;
+
                 if i > 0x00FFFFFF {
                     return None;
                 }
@@ -436,7 +584,10 @@ impl fmt::Binary for Integer {
 
 impl PartialEq for Integer {
     fn eq(&self, other: &Self) -> bool {
-        self.as_u128().eq(&other.as_u128())
+        let a: u128 = (*self).into();
+        let b: u128 = (*other).into();
+
+        a.eq(&b)
     }
 }
 
@@ -446,7 +597,9 @@ impl Eq for Integer {
 
 impl Hash for Integer {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.as_u128().hash(state)
+        let a: u128 = (*self).into();
+
+        a.hash(state)
     }
 }
 
@@ -538,23 +691,23 @@ mod tests {
     use pretty_assertions::{assert_eq, assert_ne};
     use simple_error::SimpleResult;
 
-    use crate::{Context, Integer, IntegerReader, Endian, DefaultFormatter};
+    use crate::{Context, Integer, IntegerReader, IntegerRendererTrait, Endian, DefaultFormatter};
 
     #[test]
     fn test_display() -> SimpleResult<()> {
         let data = b"\x00\x7F\x80\xFF\x00\x01\x02\x03\x80\x00\x00\x00\x00\x00\x00\x00".to_vec();
 
-        let formatter = DefaultFormatter::new_integer();
+        let formatter = DefaultFormatter::new();
 
-        assert_eq!("0",    formatter.render(IntegerReader::U8.read(Context::new_at(&data, 0))?));
-        assert_eq!("127",  formatter.render(IntegerReader::U8.read(Context::new_at(&data, 1))?));
-        assert_eq!("128",  formatter.render(IntegerReader::U8.read(Context::new_at(&data, 2))?));
-        assert_eq!("255",  formatter.render(IntegerReader::U8.read(Context::new_at(&data, 3))?));
+        assert_eq!("0",    formatter.render_integer(IntegerReader::U8.read(Context::new_at(&data, 0))?));
+        assert_eq!("127",  formatter.render_integer(IntegerReader::U8.read(Context::new_at(&data, 1))?));
+        assert_eq!("128",  formatter.render_integer(IntegerReader::U8.read(Context::new_at(&data, 2))?));
+        assert_eq!("255",  formatter.render_integer(IntegerReader::U8.read(Context::new_at(&data, 3))?));
 
-        assert_eq!("0",    formatter.render(IntegerReader::I8.read(Context::new_at(&data, 0))?));
-        assert_eq!("127",  formatter.render(IntegerReader::I8.read(Context::new_at(&data, 1))?));
-        assert_eq!("-128", formatter.render(IntegerReader::I8.read(Context::new_at(&data, 2))?));
-        assert_eq!("-1",   formatter.render(IntegerReader::I8.read(Context::new_at(&data, 3))?));
+        assert_eq!("0",    formatter.render_integer(IntegerReader::I8.read(Context::new_at(&data, 0))?));
+        assert_eq!("127",  formatter.render_integer(IntegerReader::I8.read(Context::new_at(&data, 1))?));
+        assert_eq!("-128", formatter.render_integer(IntegerReader::I8.read(Context::new_at(&data, 2))?));
+        assert_eq!("-1",   formatter.render_integer(IntegerReader::I8.read(Context::new_at(&data, 3))?));
 
 
         Ok(())
@@ -564,20 +717,20 @@ mod tests {
     fn test_to_usize() -> SimpleResult<()> {
         let data = b"\x00\x7F\x80\xFF\x00\x01\x02\x03\x80\x00\x00\x00\x00\x00\x00\x00".to_vec();
 
-        assert_eq!(0usize,   IntegerReader::U8.read(Context::new_at(&data, 0))?.as_usize()?);
-        assert_eq!(127usize, IntegerReader::U8.read(Context::new_at(&data, 1))?.as_usize()?);
-        assert_eq!(128usize, IntegerReader::U8.read(Context::new_at(&data, 2))?.as_usize()?);
-        assert_eq!(255usize, IntegerReader::U8.read(Context::new_at(&data, 3))?.as_usize()?);
+        assert_eq!(0usize,   IntegerReader::U8.read(Context::new_at(&data, 0))?.try_into()?);
+        assert_eq!(127usize, IntegerReader::U8.read(Context::new_at(&data, 1))?.try_into()?);
+        assert_eq!(128usize, IntegerReader::U8.read(Context::new_at(&data, 2))?.try_into()?);
+        assert_eq!(255usize, IntegerReader::U8.read(Context::new_at(&data, 3))?.try_into()?);
 
-        assert_eq!(127usize,               IntegerReader::U16(Endian::Big).read(Context::new_at(&data, 0))?.as_usize()?);
-        assert_eq!(8356095usize,           IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 0))?.as_usize()?);
-        assert_eq!(35889154747335171usize, IntegerReader::U64(Endian::Big).read(Context::new_at(&data, 0))?.as_usize()?);
+        assert_eq!(127usize,               IntegerReader::U16(Endian::Big).read(Context::new_at(&data, 0))?.try_into()?);
+        assert_eq!(8356095usize,           IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 0))?.try_into()?);
+        assert_eq!(35889154747335171usize, IntegerReader::U64(Endian::Big).read(Context::new_at(&data, 0))?.try_into()?);
 
-        assert!(IntegerReader::I8.read(Context::new_at(&data, 0))?.as_usize().is_err());
-        assert!(IntegerReader::I16(Endian::Big ).read(Context::new_at(&data, 0))?.as_usize().is_err());
-        assert!(IntegerReader::I32(Endian::Big ).read(Context::new_at(&data, 0))?.as_usize().is_err());
-        assert!(IntegerReader::I64(Endian::Big ).read(Context::new_at(&data, 0))?.as_usize().is_err());
-        assert!(IntegerReader::U128(Endian::Big).read(Context::new_at(&data, 0))?.as_usize().is_err());
+        assert!(TryInto::<usize>::try_into(IntegerReader::I8.read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<usize>::try_into(IntegerReader::I16(Endian::Big ).read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<usize>::try_into(IntegerReader::I32(Endian::Big ).read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<usize>::try_into(IntegerReader::I64(Endian::Big ).read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<usize>::try_into(IntegerReader::U128(Endian::Big).read(Context::new_at(&data, 0))?).is_err());
 
         Ok(())
     }
@@ -586,25 +739,25 @@ mod tests {
     fn test_to_isize() -> SimpleResult<()> {
         let data = b"\x00\x7F\x80\xFF\x00\x01\x02\x03\x80\x00\x00\x00\x00\x00\x00\x00".to_vec();
 
-        assert_eq!(0isize,                    IntegerReader::I8.read(Context::new_at(&data, 0))?.as_isize()?);
-        assert_eq!(127isize,                  IntegerReader::I8.read(Context::new_at(&data, 1))?.as_isize()?);
-        assert_eq!(-128isize,                 IntegerReader::I8.read(Context::new_at(&data, 2))?.as_isize()?);
-        assert_eq!(-1isize,                   IntegerReader::I8.read(Context::new_at(&data, 3))?.as_isize()?);
+        assert_eq!(0isize,                    IntegerReader::I8.read(Context::new_at(&data, 0))?.try_into()?);
+        assert_eq!(127isize,                  IntegerReader::I8.read(Context::new_at(&data, 1))?.try_into()?);
+        assert_eq!(-128isize,                 IntegerReader::I8.read(Context::new_at(&data, 2))?.try_into()?);
+        assert_eq!(-1isize,                   IntegerReader::I8.read(Context::new_at(&data, 3))?.try_into()?);
 
-        assert_eq!(127isize,                  IntegerReader::I16(Endian::Big).read(Context::new_at(&data, 0))?.as_isize()?);
-        assert_eq!(-32768isize,               IntegerReader::I16(Endian::Big).read(Context::new_at(&data, 8))?.as_isize()?);
+        assert_eq!(127isize,                  IntegerReader::I16(Endian::Big).read(Context::new_at(&data, 0))?.try_into()?);
+        assert_eq!(-32768isize,               IntegerReader::I16(Endian::Big).read(Context::new_at(&data, 8))?.try_into()?);
 
-        assert_eq!(8356095isize,              IntegerReader::I32(Endian::Big).read(Context::new_at(&data, 0))?.as_isize()?);
-        assert_eq!(-2147483648isize,          IntegerReader::I32(Endian::Big).read(Context::new_at(&data, 8))?.as_isize()?);
+        assert_eq!(8356095isize,              IntegerReader::I32(Endian::Big).read(Context::new_at(&data, 0))?.try_into()?);
+        assert_eq!(-2147483648isize,          IntegerReader::I32(Endian::Big).read(Context::new_at(&data, 8))?.try_into()?);
 
-        assert_eq!(35889154747335171isize,    IntegerReader::I64(Endian::Big).read(Context::new_at(&data, 0))?.as_isize()?);
-        assert_eq!(-9223372036854775808isize, IntegerReader::I64(Endian::Big).read(Context::new_at(&data, 8))?.as_isize()?);
+        assert_eq!(35889154747335171isize,    IntegerReader::I64(Endian::Big).read(Context::new_at(&data, 0))?.try_into()?);
+        assert_eq!(-9223372036854775808isize, IntegerReader::I64(Endian::Big).read(Context::new_at(&data, 8))?.try_into()?);
 
-        assert!(IntegerReader::U8.read(Context::new_at(&data, 0))?.as_isize().is_err());
-        assert!(IntegerReader::U16(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
-        assert!(IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
-        assert!(IntegerReader::U64(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
-        assert!(IntegerReader::I128(Endian::Big).read(Context::new_at(&data, 0))?.as_isize().is_err());
+        assert!(TryInto::<isize>::try_into(IntegerReader::U8.read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<isize>::try_into(IntegerReader::U16(Endian::Big).read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<isize>::try_into(IntegerReader::U32(Endian::Big).read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<isize>::try_into(IntegerReader::U64(Endian::Big).read(Context::new_at(&data, 0))?).is_err());
+        assert!(TryInto::<isize>::try_into(IntegerReader::I128(Endian::Big).read(Context::new_at(&data, 0))?).is_err());
 
         Ok(())
     }

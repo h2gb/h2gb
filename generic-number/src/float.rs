@@ -29,7 +29,7 @@ use std::cmp::Ordering;
 ///
 /// // Display it using different formatters (these use the pretty defaults) -
 /// // these formatters can also be serialized!
-/// assert_eq!("3.14e0", ScientificFormatter::pretty_float().render(f));
+/// assert_eq!("3.14e0", ScientificFormatter::new_pretty().render_float(f));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Float {
@@ -39,6 +39,12 @@ pub enum Float {
 
 impl From<f32>  for Float { fn from(o: f32) -> Self { Self::F32(o)  } }
 impl From<f64>  for Float { fn from(o: f64) -> Self { Self::F64(o)  } }
+
+impl Default for Float {
+    fn default() -> Self {
+        Self::F32(0f32)
+    }
+}
 
 impl Float {
     /// The size - in bytes - of the type.

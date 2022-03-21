@@ -9,52 +9,68 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait, Float, FloatRenderer
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a Integer directly - normally you'd use a IntegerReader
-/// let number = Integer::from(1234u32);
-///
 /// // DefaultFormatter has no special options
-/// assert_eq!("1234", DefaultFormatter::new_integer().render(number));
+/// assert_eq!("1234", DefaultFormatter::new().render_integer(1234u32));
 ///
 /// // Also handles signed values correctly, using the Integer's type
-/// let number = Integer::from(-1234i32);
-/// assert_eq!("-1234", DefaultFormatter::new_integer().render(number));
+/// assert_eq!("-1234", DefaultFormatter::new().render_integer(-1234i32));
 ///
 /// // Handles floating point correctly, as well
-/// let number = Float::from(314.159f32);
-/// assert_eq!("314.159", DefaultFormatter::new_float().render(number));
+/// assert_eq!("314.159", DefaultFormatter::new().render_float(314.159f32));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct DefaultFormatter {
 }
 
+impl Default for DefaultFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<DefaultFormatter> for IntegerRenderer {
+    fn from(f: DefaultFormatter) -> IntegerRenderer {
+        IntegerRenderer::Default(f)
+    }
+}
+
+impl From<DefaultFormatter> for FloatRenderer {
+    fn from(f: DefaultFormatter) -> FloatRenderer {
+        FloatRenderer::Default(f)
+    }
+}
+
+impl From<DefaultFormatter> for CharacterRenderer {
+    fn from(f: DefaultFormatter) -> CharacterRenderer {
+        CharacterRenderer::Default(f)
+    }
+}
+
 impl DefaultFormatter {
-    pub fn new_integer() -> IntegerRenderer {
-        IntegerRenderer::Default(Self { })
-    }
-
-    pub fn new_float() -> FloatRenderer {
-        FloatRenderer::Default(Self { })
-    }
-
-    pub fn new_character() -> CharacterRenderer {
-        CharacterRenderer::Default(Self { })
+    pub fn new() -> Self {
+        Self { }
     }
 }
 
 impl IntegerRendererTrait for DefaultFormatter {
-    fn render_integer(&self, number: Integer) -> String {
+    fn render_integer(&self, number: impl Into<Integer>) -> String {
+        let number: Integer = number.into();
+
         format!("{}", number)
     }
 }
 
 impl FloatRendererTrait for DefaultFormatter {
-    fn render_float(&self, number: Float) -> String {
+    fn render_float(&self, number: impl Into<Float>) -> String {
+        let number: Float = number.into();
         format!("{}", number)
     }
 }
 
 impl CharacterRendererTrait for DefaultFormatter {
-    fn render_character(&self, number: Character) -> String {
+    fn render_character(&self, number: impl Into<Character>) -> String {
+        let number: Character = number.into();
+
         format!("{}", number)
     }
 }
@@ -86,7 +102,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -111,7 +127,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -136,7 +152,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -161,7 +177,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -186,7 +202,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -211,7 +227,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -234,7 +250,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -257,7 +273,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_integer().render(number),
+                DefaultFormatter::new().render_integer(number),
             );
         }
 
@@ -282,7 +298,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_float().render(number),
+                DefaultFormatter::new().render_float(number),
             );
         }
 
@@ -306,7 +322,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_float().render(number),
+                DefaultFormatter::new().render_float(number),
             );
         }
 
@@ -330,7 +346,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                DefaultFormatter::new_float().render(number),
+                DefaultFormatter::new().render_float(number),
             );
         }
 

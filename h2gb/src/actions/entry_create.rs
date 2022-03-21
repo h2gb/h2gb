@@ -32,12 +32,12 @@ enum State {
 pub struct ActionEntryCreate(State);
 
 impl ActionEntryCreate {
-    pub fn new(buffer: &str, layer: &str, resolved_type: ResolvedType, origin: Option<H2Type>) -> Action {
+    pub fn new(buffer: impl AsRef<str>, layer: impl AsRef<str>, resolved_type: ResolvedType, origin: Option<H2Type>) -> Action {
         Action::EntryCreate(
             ActionEntryCreate(
                 State::Forward(Forward {
-                    buffer: buffer.to_string(),
-                    layer: layer.to_string(),
+                    buffer: buffer.as_ref().to_string(),
+                    layer: layer.as_ref().to_string(),
                     resolved_type: resolved_type,
                     origin: origin,
                 })
@@ -67,7 +67,7 @@ impl Command for ActionEntryCreate {
         self.0 = State::Backward(Backward {
             buffer: forward.buffer.clone(),
             layer: forward.layer.clone(),
-            offset: forward.resolved_type.actual_range.start,
+            offset: forward.resolved_type.base_range.start,
         });
 
         Ok(())
@@ -129,10 +129,10 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create a numeric type
-        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new());
         let resolved = record.target()
             .buffer_get_or_err("buffer")?
-            .peek(&datatype, 0, &Data::default())?;
+            .peek(&datatype.clone().into(), 0, &Data::default())?;
 
         let action = ActionEntryCreate::new("buffer", "default", resolved, None);
         record.apply(action)?;
@@ -142,7 +142,8 @@ mod tests {
             .buffer_get_or_err("buffer")?
             .layer_get_or_err("default")?
             .entry_get(0)?.unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_integer.unwrap().as_usize().unwrap());
+
+        assert_eq!(0x01020304usize, TryInto::<usize>::try_into(entry.resolved().as_integer.unwrap()).unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Retrieve it from the other side to make sure that works
@@ -150,18 +151,18 @@ mod tests {
             .buffer_get_or_err("buffer")?
             .layer_get_or_err("default")?
             .entry_get(3)?.unwrap();
-        assert_eq!(0x01020304, entry.resolved().as_integer.unwrap().as_usize().unwrap());
+        assert_eq!(0x01020304usize, TryInto::<usize>::try_into(entry.resolved().as_integer.unwrap()).unwrap());
         assert_eq!(0..4, entry.resolved().aligned_range);
 
         // Create a string type
         let datatype = LPString::new(
             IntegerReader::U8,
             CharacterReader::ASCII,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
         let resolved = record.target()
             .buffer_get_or_err("buffer")?
-            .peek(&datatype, 4, &Data::default())?;
+            .peek(&datatype.clone().into(), 4, &Data::default())?;
 
         let action = ActionEntryCreate::new("buffer", "default", resolved, None);
         record.apply(action)?;
@@ -250,27 +251,27 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default"))?;
 
         // Create an entry
-        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new());
 
         // Resolve it
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &Data::default())?;
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 0, &Data::default())?;
 
         // Insert it
-        let action = ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()));
+        let action = ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone().into()));
         record.apply(action)?;
 
         // Make sure we can't overlap it
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &Data::default())?;
-        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 0, &Data::default())?;
+        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone().into()))).is_err());
 
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 1, &Data::default())?;
-        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 1, &Data::default())?;
+        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone().into()))).is_err());
 
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 2, &Data::default())?;
-        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 2, &Data::default())?;
+        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone().into()))).is_err());
 
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 3, &Data::default())?;
-        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_err());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 3, &Data::default())?;
+        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone().into()))).is_err());
 
         // Going off the end should also be an error
         // I need a bigger buffer to test this
@@ -278,12 +279,12 @@ mod tests {
 
         // Create the entry with the new, longer buffer, and insert it into the
         // original buffer
-        let bad_resolved = record.target().buffer_get_or_err("longbuffer")?.peek(&datatype.clone(), 5, &Data::default())?;
-        assert!(record.apply(ActionEntryCreate::new("buffer", "default", bad_resolved, Some(datatype.clone()))).is_err());
+        let bad_resolved = record.target().buffer_get_or_err("longbuffer")?.peek(&datatype.clone().into(), 5, &Data::default())?;
+        assert!(record.apply(ActionEntryCreate::new("buffer", "default", bad_resolved, Some(datatype.clone().into()))).is_err());
 
         // But 4, like the third bed, should be jussst right
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone(), 4, &Data::default())?;
-        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone()))).is_ok());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 4, &Data::default())?;
+        assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, Some(datatype.clone().into()))).is_ok());
 
         Ok(())
     }
@@ -300,19 +301,19 @@ mod tests {
         record.apply(ActionLayerCreate::new("buffer", "default2"))?;
 
         // Create an entry
-        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &Data::default())?;
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 0, &Data::default())?;
         let action = ActionEntryCreate::new("buffer", "default", resolved, None);
         record.apply(action)?;
 
         // Make sure we can't overlap it on the same layer
-        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &Data::default())?;
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 0, &Data::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default", resolved, None)).is_err());
 
         // But we can on the other
-        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new_integer());
-        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype, 0, &Data::default())?;
+        let datatype = H2Integer::new(IntegerReader::U32(Endian::Big), DefaultFormatter::new());
+        let resolved = record.target().buffer_get_or_err("buffer")?.peek(&datatype.clone().into(), 0, &Data::default())?;
         assert!(record.apply(ActionEntryCreate::new("buffer", "default2", resolved, None)).is_ok());
 
         Ok(())

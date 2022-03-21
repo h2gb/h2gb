@@ -1,5 +1,4 @@
 * To-do soon / unsorted
-  * Change structs (and other APIey things) to take &str instead of String
   * Automatically create a default "Layer"
   * Think of some place for "notes" - eg, if a transformation has a comment or warning or something, it should have a place to be seen
   * Look at doing a "nicer" format for types - ie, a C-style struct definition, or something that elides most of the complexity that the current "exported" types have
@@ -28,6 +27,7 @@
 
 * Analyzers
   * Think of some way to "diff" two binary files
+    * https://github.com/8051Enthusiast/biodiff ?
   * Bitmap image
   * .MPQ
   * Look at the formats in https://github.com/wader/fq/

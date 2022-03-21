@@ -32,8 +32,8 @@ impl ActionProjectRename {
     }
 }
 
-impl From<&str> for ActionProjectRename {
-    fn from(o: &str) -> Self {
+impl From<AsRef<str>> for ActionProjectRename {
+    fn from(o: impl AsRef<str>) -> Self {
         ActionProjectRename {
             forward: Some(ActionProjectRenameForward {
                 new_name: o.to_string()

@@ -75,20 +75,20 @@ impl fmt::Display for H2Buffer {
                     Ok(Some(entry)) => {
                         // Deal with the entry
                         let resolved = entry.resolved();
-                        let actual_range = resolved.actual_range.start..resolved.actual_range.end;
+                        let base_range = resolved.base_range.start..resolved.base_range.end;
 
-                        let entry_byte_string: Vec<String> = self.data[actual_range.clone()].iter().take(self.context_bytes).map(|b| format!("{:02x}", b)).collect();
+                        let entry_byte_string: Vec<String> = self.data[base_range.clone()].iter().take(self.context_bytes).map(|b| format!("{:02x}", b)).collect();
                         let entry_byte_string = entry_byte_string.join(" ");
 
                         write!(f, " 0x{:08x} - 0x{:08x}    {}   {}",
-                                 actual_range.start + self.base_address,
-                                 actual_range.end + self.base_address - 1,
+                                 base_range.start + self.base_address,
+                                 base_range.end + self.base_address - 1,
                                  entry_byte_string,
                                  entry,
                         )?;
 
                         // Deal with comments on the entry
-                        let comments = layer.comments_get(actual_range).unwrap();
+                        let comments = layer.comments_get(base_range).unwrap();
                         if comments.len() == 0 {
                             writeln!(f, "")?;
                         } else {
@@ -97,7 +97,7 @@ impl fmt::Display for H2Buffer {
                         }
 
                         // Deal with the padding / alignment
-                        let alignment_range = (resolved.actual_range.end)..(resolved.aligned_range.end);
+                        let alignment_range = (resolved.base_range.end)..(resolved.aligned_range.end);
                         if !alignment_range.is_empty() {
                             let alignment_byte_string: Vec<String> = self.data[alignment_range.clone()].iter().map(|b| format!("{:02x}", b)).collect();
                             let alignment_byte_string = alignment_byte_string.join(" ");
@@ -153,13 +153,13 @@ impl H2Buffer {
     /// # Errors
     ///
     /// * Data must be at least
-    pub fn new(name: &str, data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
+    pub fn new(name: impl AsRef<str>, data: Vec<u8>, base_address: usize) -> SimpleResult<Self> {
         if data.len() == 0 {
             bail!("Can't create a buffer of zero length");
         }
 
         Ok(H2Buffer {
-            name: name.to_string(),
+            name: name.as_ref().to_string(),
             data: data,
             base_address: base_address,
             layers: HashMap::new(),
@@ -264,11 +264,14 @@ impl H2Buffer {
     /// * The buffer may not be populated
     /// * The transformation itself may fail (hex-decoding an odd-length string,
     ///   for eg)
-    pub fn transform(&mut self, transformation: Transformation) -> SimpleResult<Vec<u8>> {
+    pub fn transform(&mut self, transformation: impl Into<Transformation>) -> SimpleResult<Vec<u8>> {
         // Sanity check
         if self.is_populated() {
             bail!("Buffer contains data");
         }
+
+        // Convert into a transformation proper
+        let transformation: Transformation = transformation.into();
 
         // Transform the data - if this fails, nothing is left over
         let new_data = transformation.transform(&self.data)?;
@@ -384,62 +387,61 @@ impl H2Buffer {
     //    remove, then a bunch of simple proxies to make it more ergonomic to
     //    deal with layers!
 
-    pub fn layer_add(&mut self, layer: &str) -> SimpleResult<()> {
+    pub fn layer_add(&mut self, layer: impl AsRef<str>) -> SimpleResult<()> {
         // Get this up front, we won't be able to once we borrow self in the match
         let length = self.len();
 
         // Either insert, or error if there's already a layer there
-        match self.layers.entry(layer.to_string()) {
-            std::collections::hash_map::Entry::Occupied(_) => bail!("A layer named {} already exists in the buffer {}", layer, self.name),
+        match self.layers.entry(layer.as_ref().to_string()) {
+            std::collections::hash_map::Entry::Occupied(_) => bail!("A layer named {} already exists in the buffer {}", layer.as_ref(), self.name),
             std::collections::hash_map::Entry::Vacant(v) => v.insert(H2Layer::new(layer, length)),
         };
 
         Ok(())
     }
 
-    pub fn layer_remove(&mut self, layer: &str) -> SimpleResult<()> {
-        let is_populated = match self.layers.get(layer) {
+    pub fn layer_remove(&mut self, layer: impl AsRef<str>) -> SimpleResult<()> {
+        let is_populated = match self.layers.get(layer.as_ref()) {
             Some(layer) => layer.is_populated(),
-            None => bail!("Could not find layer {} in buffer {}", self.name, layer),
+            None => bail!("Could not find layer {} in buffer {}", self.name, layer.as_ref()),
         };
 
         if is_populated {
-            bail!("Cannot remove layer {} from buffer {} because it's not empty", layer, self.name);
+            bail!("Cannot remove layer {} from buffer {} because it's not empty", layer.as_ref(), self.name);
         }
 
-        match self.layers.remove(layer) {
+        match self.layers.remove(layer.as_ref()) {
             Some(_) => Ok(()),
             None => bail!("Failed to remove the layer"),
         }
     }
 
-    pub fn layer_exists(&self, layer: &str) -> bool {
-        self.layers.contains_key(layer)
+    pub fn layer_exists(&self, layer: impl AsRef<str>) -> bool {
+        self.layers.contains_key(layer.as_ref())
     }
 
-    pub fn layer_get(&self, layer: &str) -> Option<&H2Layer> {
-        self.layers.get(layer)
+    pub fn layer_get(&self, layer: impl AsRef<str>) -> Option<&H2Layer> {
+        self.layers.get(layer.as_ref())
     }
 
-    pub fn layer_get_or_err(&self, layer: &str) -> SimpleResult<&H2Layer> {
-        self.layer_get(layer).ok_or(
-            SimpleError::new(format!("Could not find layer {}", layer))
+    pub fn layer_get_or_err(&self, layer: impl AsRef<str>) -> SimpleResult<&H2Layer> {
+        self.layer_get(layer.as_ref()).ok_or(
+            SimpleError::new(format!("Could not find layer {}", layer.as_ref()))
         )
     }
 
-    pub fn layer_get_mut(&mut self, layer: &str) -> Option<&mut H2Layer> {
-        self.layers.get_mut(layer)
+    pub fn layer_get_mut(&mut self, layer: impl AsRef<str>) -> Option<&mut H2Layer> {
+        self.layers.get_mut(layer.as_ref())
     }
 
-    pub fn layer_get_mut_or_err(&mut self, layer: &str) -> SimpleResult<&mut H2Layer> {
-        self.layer_get_mut(layer).ok_or(
-            SimpleError::new(format!("Could not find layer {}", layer))
+    pub fn layer_get_mut_or_err(&mut self, layer: impl AsRef<str>) -> SimpleResult<&mut H2Layer> {
+        self.layer_get_mut(layer.as_ref()).ok_or(
+            SimpleError::new(format!("Could not find layer {}", layer.as_ref()))
         )
     }
 
     pub fn peek(&self, abstract_type: &H2Type, offset: usize, data: &Data) -> SimpleResult<ResolvedType> {
         let offset = Context::new_at(&self.data, offset);
-
         abstract_type.resolve(offset, None, data)
     }
 }
@@ -592,7 +594,7 @@ mod tests {
         let (data, transformation) = buffer.untransform()?;
         assert_eq!(b"4a4b4c4d".to_vec(), buffer.data);
         assert_eq!(b"JKLM".to_vec(), data);
-        assert_eq!(transformation, TransformHex::new());
+        assert_eq!(transformation, TransformHex::new().into());
 
         Ok(())
     }
@@ -609,7 +611,7 @@ mod tests {
         let (data, transformation) = buffer.untransform()?;
         assert_eq!(b"4a4b4c4d".to_vec(), buffer.data);
         assert_eq!(b"JKLM".to_vec(), data);
-        assert_eq!(transformation, TransformHex::new());
+        assert_eq!(transformation, TransformHex::new().into());
 
         buffer.untransform_undo(data, transformation)?;
         assert_eq!(b"JKLM".to_vec(), buffer.data);

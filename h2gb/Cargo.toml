@@ -2,7 +2,7 @@
 name = "libh2gb"
 version = "0.1.0"
 authors = ["Ron Bowes <ron@skullsecurity.net>"]
-edition = "2018"
+edition = "2021"
 description = "A library for reverse engineering binary formats"
 license = "MIT"
 documentation = "https://github.com/h2gb/libh2gb"

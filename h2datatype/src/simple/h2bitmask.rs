@@ -3,7 +3,7 @@ use simple_error::{SimpleResult, bail};
 
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -18,39 +18,51 @@ pub struct H2Bitmask {
     reader: IntegerReader,
 
     /// The unknown renderer, for when the value isn't found
+    #[serde(default)]
     unknown_renderer: Option<IntegerRenderer>,
 
     /// The bitmask type, as loaded into the [`Data`] structure
     bitmask_type: String,
 
     /// Show negative bitmask elements?
+    #[serde(default)]
     show_negative: bool,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<H2Bitmask> for H2Type {
+    fn from(t: H2Bitmask) -> H2Type {
+        H2Type::H2Bitmask(t)
+    }
 }
 
 impl H2Bitmask {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: impl AsRef<str>, show_negative: bool, data: &Data) -> SimpleResult<Self> {
         // Make sure the bitmask type exists
-        if !data.bitmasks.contains_key(bitmask_type) {
-            bail!("No such Bitmask: {}", bitmask_type);
+        if !data.bitmasks.contains_key(bitmask_type.as_ref()) {
+            bail!("No such Bitmask: {}", bitmask_type.as_ref());
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Bitmask(Self {
-            reader: reader,
+        Ok(Self {
+            reader: reader.into(),
             unknown_renderer: unknown_renderer,
-            bitmask_type: bitmask_type.to_string(),
+            bitmask_type: bitmask_type.as_ref().to_string(),
             show_negative: show_negative,
-        })))
+            alignment: alignment,
+        })
 
     }
 
-    pub fn new(reader: IntegerReader, unknown_renderer: Option<IntegerRenderer>, bitmask_type: &str, show_negative: bool, data: &Data) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, reader, unknown_renderer, bitmask_type, show_negative, data)
+    pub fn new(reader: impl Into<IntegerReader>, unknown_renderer: Option<IntegerRenderer>, bitmask_type: impl AsRef<str>, show_negative: bool, data: &Data) -> SimpleResult<Self> {
+        Self::new_aligned(None, reader, unknown_renderer, bitmask_type, show_negative, data)
     }
 
-    fn render(&self, value: Integer, data: &Data) -> SimpleResult<String> {
+    fn render(&self, value: impl Into<Integer>, data: &Data) -> SimpleResult<String> {
         let unknown_renderer = self.unknown_renderer.map(|r| ("Unknown_", r));
 
-        match data.lookup_bitmask(&self.bitmask_type, &value, unknown_renderer, self.show_negative) {
+        match data.lookup_bitmask(&self.bitmask_type, value, unknown_renderer, self.show_negative) {
             Ok(v) => {
                 if v.len() == 0 {
                     Ok("(n/a)".to_string())
@@ -78,6 +90,10 @@ impl H2TypeTrait for H2Bitmask {
 
     fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
         self.reader.read(context)
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
@@ -116,7 +132,7 @@ mod tests {
         for (o, show_negative, expected) in tests {
             let t = H2Bitmask::new(
                 IntegerReader::U16(Endian::Big),
-                Some(HexFormatter::pretty_integer()),
+                Some(HexFormatter::new_pretty().into()),
                 "Terraria::visibility",
                 show_negative,
                 &data

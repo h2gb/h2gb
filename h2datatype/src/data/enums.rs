@@ -81,12 +81,12 @@ impl Enums {
         }
     }
 
-    pub fn get_by_name(&self, name: &str) -> Option<&Integer> {
-        self.by_name.get(name)
+    pub fn get_by_name(&self, name: impl AsRef<str>) -> Option<&Integer> {
+        self.by_name.get(name.as_ref())
     }
 
-    pub fn get_by_value(&self, value: &Integer) -> Vec<String> {
-        match self.by_value.get(value) {
+    pub fn get_by_value(&self, value: impl Into<Integer>) -> Vec<String> {
+        match self.by_value.get(&value.into()) {
             Some(v) => v.to_owned(),
             None => Vec::new(),
         }
@@ -237,7 +237,7 @@ mod tests {
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(1i32)), enums.get_by_name("TEST3"));
 
-        let mut names = enums.get_by_value(&Integer::from(1u32));
+        let mut names = enums.get_by_value(1u32);
         names.sort();
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string(), "TEST3".to_string()], names);
 

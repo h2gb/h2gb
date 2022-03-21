@@ -31,7 +31,7 @@ use serde::{Serialize, Deserialize};
 ///
 /// // Display it using different formatters (these use the pretty defaults) -
 /// // these formatters can also be serialized!
-/// assert_eq!("'❄'", CharacterFormatter::pretty_character().render(c));
+/// assert_eq!("'❄'", CharacterFormatter::new_pretty().render_character(c));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct Character {
@@ -44,6 +44,15 @@ pub struct Character {
 
 /// Implement a simple From
 impl From<(char, usize)> for Character { fn from(o: (char, usize)) -> Self { Self { character: o.0, size: o.1 } } }
+
+impl Default for Character {
+    fn default() -> Self {
+        Self {
+            character: '\0',
+            size: 1,
+        }
+    }
+}
 
 impl Character {
     /// The size - in bytes - of the type.

@@ -9,25 +9,35 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 /// ```
 /// use generic_number::*;
 ///
-/// // Create an Integer directly - normally you'd use a IntegerReader
-/// let number = Integer::from(1);
-/// assert_eq!("true", BooleanFormatter::new_integer().render(number));
-///
-/// let number = Integer::from(0);
-/// assert_eq!("false", BooleanFormatter::new_integer().render(number));
+/// assert_eq!("true", BooleanFormatter::new().render_integer(1));
+/// assert_eq!("false", BooleanFormatter::new().render_integer(0));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct BooleanFormatter {
 }
 
+impl Default for BooleanFormatter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<BooleanFormatter> for IntegerRenderer {
+    fn from(f: BooleanFormatter) -> IntegerRenderer {
+        IntegerRenderer::Boolean(f)
+    }
+}
+
 impl BooleanFormatter {
-    pub fn new_integer() -> IntegerRenderer {
-        IntegerRenderer::Boolean(Self { })
+    pub fn new() -> Self {
+        Self { }
     }
 }
 
 impl IntegerRendererTrait for BooleanFormatter {
-    fn render_integer(&self, number: Integer) -> String {
+    fn render_integer(&self, number: impl Into<Integer>) -> String {
+        let number: Integer = number.into();
+
         // Ironically, boolean is both the simplest (conceptually), and the
         // hardest to program since we can't really compare integers of a
         // different size to 0
@@ -77,7 +87,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                BooleanFormatter::new_integer().render(number),
+                BooleanFormatter::new().render_integer(number),
             );
         }
 
@@ -102,7 +112,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                BooleanFormatter::new_integer().render(number),
+                BooleanFormatter::new().render_integer(number),
             );
         }
 

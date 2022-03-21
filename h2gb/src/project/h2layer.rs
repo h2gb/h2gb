@@ -51,9 +51,9 @@ pub struct H2Layer {
 // }
 
 impl H2Layer {
-    pub fn new(name: &str, size: usize) -> Self {
+    pub fn new(name: impl AsRef<str>, size: usize) -> Self {
         H2Layer {
-            name: name.to_string(),
+            name: name.as_ref().to_string(),
             entries: BumpyVector::new(size),
             comments: HashMap::new(),
         }

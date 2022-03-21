@@ -59,20 +59,20 @@ pub enum CharacterReplacementPolicy {
 /// let othernumber = Character::from(('☃', 1));
 ///
 /// // Default 'pretty' formatter
-/// assert_eq!("'a'", CharacterFormatter::pretty_character().render(number));
-/// assert_eq!("'☃'", CharacterFormatter::pretty_character().render(othernumber));
+/// assert_eq!("'a'", CharacterFormatter::new_pretty().render_character(number));
+/// assert_eq!("'☃'", CharacterFormatter::new_pretty().render_character(othernumber));
 ///
 /// // Default 'pretty string' formatter
-/// assert_eq!("a", CharacterFormatter::pretty_str_character().render(number));
-/// assert_eq!("☃", CharacterFormatter::pretty_str_character().render(othernumber));
+/// assert_eq!("a", CharacterFormatter::new_pretty_str().render_character(number));
+/// assert_eq!("☃", CharacterFormatter::new_pretty_str().render_character(othernumber));
 ///
 /// // Specify options: replace everything with hex encoding
-/// assert_eq!("\\x61", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(number));
-/// assert_eq!("\\xe2\\x98\\x83", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render(othernumber));
+/// assert_eq!("\\x61", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render_character(number));
+/// assert_eq!("\\xe2\\x98\\x83", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceEverything, CharacterUnprintableOption::HexEncode).render_character(othernumber));
 ///
 /// // Specify different options: replace non-ascii characters with URL encoding
-/// assert_eq!("a", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render(number));
-/// assert_eq!("%e2%98%83", CharacterFormatter::new_character(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render(othernumber));
+/// assert_eq!("a", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render_character(number));
+/// assert_eq!("%e2%98%83", CharacterFormatter::new(false, CharacterReplacementPolicy::ReplaceNonAscii, CharacterUnprintableOption::URLEncode).render_character(othernumber));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CharacterFormatter {
@@ -89,23 +89,35 @@ pub struct CharacterFormatter {
     unprintable_option: CharacterUnprintableOption,
 }
 
+impl Default for CharacterFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
+impl From<CharacterFormatter> for CharacterRenderer {
+    fn from(f: CharacterFormatter) -> CharacterRenderer {
+        CharacterRenderer::Character(f)
+    }
+}
+
 impl CharacterFormatter {
-    pub fn new_character(show_single_quotes: bool, character_replacement_policy: CharacterReplacementPolicy, unprintable_option: CharacterUnprintableOption) -> CharacterRenderer {
-        CharacterRenderer::Character(Self {
+    pub fn new(show_single_quotes: bool, character_replacement_policy: CharacterReplacementPolicy, unprintable_option: CharacterUnprintableOption) -> Self {
+        Self {
             show_single_quotes:           show_single_quotes,
             character_replacement_policy: character_replacement_policy,
             unprintable_option:           unprintable_option,
-        })
+        }
     }
 
     /// Choose decent options to look nice
-    pub fn pretty_character() -> CharacterRenderer {
-        Self::new_character(true, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
+    pub fn new_pretty() -> Self {
+        Self::new(true, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
     }
 
     /// Choose decent options to look nice (as part of a string)
-    pub fn pretty_str_character() -> CharacterRenderer {
-        Self::new_character(false, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
+    pub fn new_pretty_str() -> Self {
+        Self::new(false, CharacterReplacementPolicy::ReplaceControl, CharacterUnprintableOption::CString)
     }
 
     fn handle_unprintable(self, c: char) -> String {
@@ -192,7 +204,8 @@ impl CharacterFormatter {
 }
 
 impl CharacterRendererTrait for CharacterFormatter {
-    fn render_character(&self, number: Character) -> String {
+    fn render_character(&self, number: impl Into<Character>) -> String {
+        let number: Character = number.into();
         self.do_render(number.as_char())
     }
 }
@@ -256,7 +269,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                CharacterFormatter::new_character(show_quotes, replacement_policy, unprintable).render(number),
+                CharacterFormatter::new(show_quotes, replacement_policy, unprintable).render_character(number),
             );
         }
 

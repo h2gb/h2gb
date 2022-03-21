@@ -44,11 +44,11 @@ let number = reader.read(context).unwrap();
 
 // Display it using different formatters (these use the pretty defaults) -
 // these formatters can also be serialized!
-assert_eq!("0x01234567",                         HexFormatter::pretty_integer().render(number));
-assert_eq!("19088743",                           DefaultFormatter::new_integer().render(number));
-assert_eq!("0o110642547",                        OctalFormatter::pretty_integer().render(number));
-assert_eq!("0b00000001001000110100010101100111", BinaryFormatter::pretty_integer().render(number));
-assert_eq!("1.9088743e7",                        ScientificFormatter::pretty_integer().render(number));
+assert_eq!("0x01234567",                         HexFormatter::new_pretty().render_integer(number));
+assert_eq!("19088743",                           DefaultFormatter::new().render_integer(number));
+assert_eq!("0o110642547",                        OctalFormatter::new_pretty().render_integer(number));
+assert_eq!("0b00000001001000110100010101100111", BinaryFormatter::new_pretty().render_integer(number));
+assert_eq!("1.9088743e7",                        ScientificFormatter::new_pretty().render_integer(number));
 ```
 
 License: MIT

@@ -9,15 +9,11 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait, Float, FloatRenderer
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a Integer directly - normally you'd use a IntegerReader
-/// let number = Integer::from(100u64);
-///
 /// // Default 'pretty' formatter
-/// assert_eq!("1e2", ScientificFormatter::pretty_integer().render(number));
+/// assert_eq!("1e2", ScientificFormatter::new_pretty().render_integer(100u64));
 ///
 /// // Also works on floating point
-/// let number = Float::from(314.159f32);
-/// assert_eq!("3.14159e2", ScientificFormatter::pretty_float().render(number));
+/// assert_eq!("3.14159e2", ScientificFormatter::new_pretty().render_float(314.159f32));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ScientificFormatter {
@@ -26,30 +22,40 @@ pub struct ScientificFormatter {
     pub uppercase: bool,
 }
 
+impl Default for ScientificFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
+impl From<ScientificFormatter> for IntegerRenderer {
+    fn from(f: ScientificFormatter) -> IntegerRenderer {
+        IntegerRenderer::Scientific(f)
+    }
+}
+
+impl From<ScientificFormatter> for FloatRenderer {
+    fn from(f: ScientificFormatter) -> FloatRenderer {
+        FloatRenderer::Scientific(f)
+    }
+}
+
 impl ScientificFormatter {
-    pub fn new_integer(uppercase: bool) -> IntegerRenderer {
-        IntegerRenderer::Scientific(Self {
+    pub fn new(uppercase: bool) -> Self {
+        Self {
             uppercase: uppercase
-        })
+        }
     }
 
-    pub fn pretty_integer() -> IntegerRenderer {
-        Self::new_integer(false)
-    }
-
-    pub fn new_float(uppercase: bool) -> FloatRenderer {
-        FloatRenderer::Scientific(Self {
-            uppercase: uppercase
-        })
-    }
-
-    pub fn pretty_float() -> FloatRenderer {
-        Self::new_float(false)
+    pub fn new_pretty() -> Self {
+        Self::new(false)
     }
 }
 
 impl IntegerRendererTrait for ScientificFormatter {
-    fn render_integer(&self, number: Integer) -> String {
+    fn render_integer(&self, number: impl Into<Integer>) -> String {
+        let number: Integer = number.into();
+
         let rendered = match self.uppercase {
             false => format!("{:e}", number),
             true  => format!("{:E}", number),
@@ -60,7 +66,9 @@ impl IntegerRendererTrait for ScientificFormatter {
 }
 
 impl FloatRendererTrait for ScientificFormatter {
-    fn render_float(&self, number: Float) -> String {
+    fn render_float(&self, number: impl Into<Float>) -> String {
+        let number: Float = number.into();
+
         let rendered = match self.uppercase {
             false => format!("{:e}", number),
             true  => format!("{:E}", number),
@@ -101,7 +109,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificFormatter::new_integer(uppercase).render(number),
+                ScientificFormatter::new(uppercase).render_integer(number),
             );
         }
 
@@ -130,7 +138,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificFormatter::new_integer(uppercase).render(number),
+                ScientificFormatter::new(uppercase).render_integer(number),
             );
         }
 
@@ -156,7 +164,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                ScientificFormatter::new_float(uppercase).render(number),
+                ScientificFormatter::new(uppercase).render_float(number),
             );
         }
 

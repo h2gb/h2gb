@@ -9,8 +9,9 @@ pub struct TransformHex {
 }
 
 impl TransformHex {
-    pub fn new() -> Transformation {
-        Transformation::FromHex(TransformHex {})
+    pub fn new() -> Self {
+        TransformHex {
+        }
     }
 }
 
@@ -19,6 +20,13 @@ impl fmt::Display for TransformHex {
         write!(f, "{:?}", self)
     }
 }
+
+impl From<TransformHex> for Transformation {
+    fn from(t: TransformHex) -> Transformation {
+        Transformation::FromHex(t)
+    }
+}
+
 
 impl TransformerTrait for TransformHex {
     fn transform(&self, buffer: &Vec<u8>) -> SimpleResult<Vec<u8>> {
@@ -44,7 +52,7 @@ impl TransformerTrait for TransformHex {
     fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
         let s = Self::new();
         match s.can_transform(buffer) {
-            true => vec![s],
+            true => vec![Transformation::from(s)],
             false => vec![],
         }
     }

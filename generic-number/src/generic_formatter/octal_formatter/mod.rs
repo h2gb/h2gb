@@ -10,11 +10,8 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 /// ```
 /// use generic_number::*;
 ///
-/// // Create an Integer directly - normally you'd use a [`IntegerReader`]
-/// let number = Integer::from(32u8);
-///
 /// // Default 'pretty' formatter
-/// assert_eq!("0o40", OctalFormatter::pretty_integer().render(number));
+/// assert_eq!("0o40", OctalFormatter::new_pretty().render_integer(32u8));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct OctalFormatter {
@@ -25,21 +22,35 @@ pub struct OctalFormatter {
     pub padded: bool,
 }
 
+impl Default for OctalFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
+impl From<OctalFormatter> for IntegerRenderer {
+    fn from(f: OctalFormatter) -> IntegerRenderer {
+        IntegerRenderer::Octal(f)
+    }
+}
+
 impl OctalFormatter {
-    pub fn new_integer(prefix: bool, padded: bool) -> IntegerRenderer {
-        IntegerRenderer::Octal(Self {
+    pub fn new(prefix: bool, padded: bool) -> Self {
+        Self {
             prefix: prefix,
             padded: padded,
-        })
+        }
     }
 
-    pub fn pretty_integer() -> IntegerRenderer {
-        Self::new_integer(true, false)
+    pub fn new_pretty() -> Self {
+        Self::new(true, false)
     }
 }
 
 impl IntegerRendererTrait for OctalFormatter {
-    fn render_integer(&self, number: Integer) -> String {
+    fn render_integer(&self, number: impl Into<Integer>) -> String {
+        let number: Integer = number.into();
+
         if self.padded {
             // There might be a mathy way to get this, but /shrug
             let width = match number {
@@ -135,7 +146,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new_integer(prefix, padded).render(number),
+                OctalFormatter::new(prefix, padded).render_integer(number),
             );
         }
 
@@ -174,7 +185,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new_integer(prefix, padded).render(number),
+                OctalFormatter::new(prefix, padded).render_integer(number),
             );
         }
 
@@ -213,7 +224,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new_integer(prefix, padded).render(number),
+                OctalFormatter::new(prefix, padded).render_integer(number),
             );
         }
 
@@ -249,7 +260,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                OctalFormatter::new_integer(prefix, padded).render(number),
+                OctalFormatter::new(prefix, padded).render_integer(number),
             );
         }
 

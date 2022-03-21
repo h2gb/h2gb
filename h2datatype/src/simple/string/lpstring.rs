@@ -4,7 +4,7 @@ use simple_error::{bail, SimpleResult};
 
 use generic_number::{Context, IntegerReader, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2TypeTrait, Alignment, Data};
 
 /// Defines a length-prefixed string.
 ///
@@ -15,29 +15,44 @@ use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LPString {
     length: IntegerReader,
+
     character: CharacterReader,
+
+    #[serde(default)]
     renderer: CharacterRenderer,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<LPString> for H2Type {
+    fn from(t: LPString) -> H2Type {
+        H2Type::LPString(t)
+    }
 }
 
 impl LPString {
-    pub fn new_aligned(alignment: Alignment, length: IntegerReader, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<Self> {
+        let length: IntegerReader = length.into();
+
         if !length.can_be_usize() {
             bail!("Length type isn't numeric!");
         }
 
-        Ok(H2Type::new(alignment, H2Types::LPString(Self {
-            length: length,
-            character: character,
-            renderer: renderer,
-        })))
+        Ok(Self {
+            length: length.into(),
+            character: character.into(),
+            renderer: renderer.into(),
+            alignment: alignment,
+        })
     }
 
-    pub fn new(length: IntegerReader, character: CharacterReader, renderer: CharacterRenderer) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, length, character, renderer)
+    pub fn new(length: impl Into<IntegerReader>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> SimpleResult<Self> {
+        Self::new_aligned(None, length, character, renderer)
     }
 
     fn analyze(&self, context: Context) -> SimpleResult<(usize, Vec<Character>)> {
-        let length = self.length.read(context)?.as_usize()?;
+        let length: usize = self.length.read(context)?.try_into()?;
         let mut position = context.position() + self.length.size();
 
         let mut result = Vec::new();
@@ -66,11 +81,15 @@ impl H2TypeTrait for LPString {
         let (_, chars) = self.analyze(context)?;
 
         // Convert into a string
-        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
+        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render_character(c))))
     }
 
     fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(context, data)?))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
@@ -95,7 +114,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U16(Endian::Big),
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(context, &Data::default())?);
 
@@ -110,7 +129,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
 
         // Ensure it can display
@@ -131,7 +150,7 @@ mod tests {
         let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
         assert!(a.to_display(context, &Data::default()).is_err());
 
@@ -144,17 +163,17 @@ mod tests {
         let data = b"\x07\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let context = Context::new(&data);
 
-        let a: H2Type = LPString::new(
+        let a = LPString::new(
             IntegerReader::U8,
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )?;
 
         let resolved = a.resolve(context, None, &Data::default())?;
 
         // The second child should be an array of the characters
         assert_eq!("\"AB❄☢𝄞😈÷\"", resolved.display);
-        assert_eq!(0..19, resolved.actual_range);
+        assert_eq!(0..19, resolved.base_range);
 
         Ok(())
     }
@@ -167,7 +186,7 @@ mod tests {
         let t = H2Array::new(3, LPString::new(
           IntegerReader::U8,
           CharacterReader::ASCII,
-          CharacterFormatter::pretty_str_character(),
+          CharacterFormatter::new_pretty_str(),
         )?)?;
 
         assert_eq!(12, t.base_size(context)?);
@@ -181,10 +200,10 @@ mod tests {
         let data = b"\x03\x41\x10\x09".to_vec();
         let context = Context::new(&data);
 
-        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::pretty_str_character())?;
+        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new_pretty_str())?;
         assert_eq!("\"A\\x10\\t\"", a.to_display(context, &Data::default())?);
 
-        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new_character(
+        let a = LPString::new(IntegerReader::U8, CharacterReader::ASCII, CharacterFormatter::new(
                 false, // show_single_quotes
                 CharacterReplacementPolicy::ReplaceEverything,
                 CharacterUnprintableOption::URLEncode,

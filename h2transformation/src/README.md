@@ -21,7 +21,7 @@ then untransforms some hex data:
 
 
 ```rust
-use h2transformation::TransformHex;
+use h2transformation::*;
 
 // Input (note that some are uppercase and some are lower - that's allowed)
 let i: Vec<u8> = b"48656c6C6F2c20776f726c64".to_vec();

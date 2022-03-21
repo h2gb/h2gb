@@ -31,11 +31,18 @@ impl fmt::Display for TransformXorByConstant {
     }
 }
 
+impl From<TransformXorByConstant> for Transformation {
+    fn from(t: TransformXorByConstant) -> Transformation {
+        Transformation::XorByConstant(t)
+    }
+}
+
+
 impl TransformXorByConstant {
-    pub fn new(settings: XorSettings) -> Transformation {
-        Transformation::XorByConstant(Self {
+    pub fn new(settings: XorSettings) -> Self {
+        Self {
             settings: settings,
-        })
+        }
     }
 }
 

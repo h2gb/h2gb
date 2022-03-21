@@ -127,13 +127,20 @@ impl fmt::Display for TransformBlockCipher {
     }
 }
 
+impl From<TransformBlockCipher> for Transformation {
+    fn from(t: TransformBlockCipher) -> Transformation {
+        Transformation::FromBlockCipher(t)
+    }
+}
+
+
 impl TransformBlockCipher {
     /// Create a new instance of [`TransformBlockCipher`].
     ///
     /// The settings are validated as much as possible (key lengths and such),
     /// then they are "written in stone", so to speak - you can't change them
     /// without creating a new instance.
-    pub fn new(cipher: BlockCipherType, mode: BlockCipherMode, padding: BlockCipherPadding, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Transformation> {
+    pub fn new(cipher: BlockCipherType, mode: BlockCipherMode, padding: BlockCipherPadding, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
         // Validate and store the key
         let key = KeyOrIV::new(key)?;
 
@@ -155,7 +162,7 @@ impl TransformBlockCipher {
         // This validates the key length and iv and other characteristics
         result.validate_settings()?;
 
-        Ok(Transformation::FromBlockCipher(result))
+        Ok(result)
     }
 
     /// A helper function - ensure that the DES ciphertext length is sane.
@@ -395,7 +402,7 @@ impl TransformerTrait for TransformBlockCipher {
 
     // We can try a couple ciphers with common keys
     fn detect(buffer: &Vec<u8>) -> Vec<Transformation> where Self: Sized {
-        let mut transformations: Vec<Transformation> = vec![];
+        let mut transformations = vec![];
 
         // If the buffer is consistent with AES, add AES keys
         if (buffer.len() % 16) == 0 {
@@ -430,7 +437,7 @@ impl TransformerTrait for TransformBlockCipher {
         }
 
         // Filter down to the ones that work
-        transformations.into_iter().filter(|t| t.can_transform(buffer)).collect()
+        transformations.into_iter().filter(|t| t.can_transform(buffer)).map(|t| Transformation::from(t)).collect()
     }
 
     fn can_transform(&self, buffer: &Vec<u8>) -> bool {

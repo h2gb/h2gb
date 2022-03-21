@@ -4,7 +4,7 @@ use crate::{Integer, BinaryFormatter, BooleanFormatter, DefaultFormatter, HexFor
 
 /// Define the interface for rendering an integer
 pub trait IntegerRendererTrait {
-    fn render_integer(&self, number: Integer) -> String;
+    fn render_integer(&self, number: impl Into<Integer>) -> String;
 }
 
 /// Configure how an [`Integer`] is rendered.
@@ -21,8 +21,14 @@ pub enum IntegerRenderer {
     Scientific(ScientificFormatter),
 }
 
+impl Default for IntegerRenderer {
+    fn default() -> Self {
+        Self::Default(Default::default())
+    }
+}
+
 impl IntegerRenderer {
-    pub fn render(self, v: Integer) -> String {
+    pub fn render_integer(self, v: impl Into<Integer>) -> String {
         match self {
             Self::Binary(f)     => f.render_integer(v),
             Self::Boolean(f)    => f.render_integer(v),
@@ -36,6 +42,8 @@ impl IntegerRenderer {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use pretty_assertions::assert_eq;
     use simple_error::SimpleResult;
 
@@ -45,10 +53,10 @@ mod tests {
     fn test_render() -> SimpleResult<()> {
         let data = b"\x00\x01\x02\x03".to_vec();
 
-        let formatter = DefaultFormatter::new_integer();
+        let formatter = DefaultFormatter::new();
         let integer = IntegerReader::U8.read(Context::new_at(&data, 0))?;
 
-        assert_eq!("0".to_string(), formatter.render(integer));
+        assert_eq!("0".to_string(), formatter.render_integer(integer));
 
         Ok(())
     }

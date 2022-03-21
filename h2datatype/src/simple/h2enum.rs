@@ -3,7 +3,7 @@ use simple_error::{SimpleResult, bail};
 
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -18,37 +18,48 @@ pub struct H2Enum {
     reader: IntegerReader,
 
     /// The fallback renderer, for when the enum_type doesn't work
+    #[serde(default)]
     fallback_renderer: IntegerRenderer,
 
     /// The enum type, as loaded into the [`Data`] structure.
     enum_type: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<H2Enum> for H2Type {
+    fn from(t: H2Enum) -> H2Type {
+        H2Type::H2Enum(t)
+    }
 }
 
 impl H2Enum {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: impl AsRef<str>, data: &Data) -> SimpleResult<Self> {
         // Make sure the enum type exists
-        if !data.enums.contains_key(enum_type) {
-            bail!("No such Enum: {}", enum_type);
+        if !data.enums.contains_key(enum_type.as_ref()) {
+            bail!("No such Enum: {}", enum_type.as_ref());
         }
 
-        Ok(H2Type::new(alignment, H2Types::H2Enum(Self {
-            reader: reader,
-            fallback_renderer: fallback_renderer,
-            enum_type: enum_type.to_string(),
-        })))
+        Ok(Self {
+            reader: reader.into(),
+            fallback_renderer: fallback_renderer.into(),
+            enum_type: enum_type.as_ref().to_string(),
+            alignment: alignment,
+        })
 
     }
 
-    pub fn new(reader: IntegerReader, fallback_renderer: IntegerRenderer, enum_type: &str, data: &Data) -> SimpleResult<H2Type> {
-        Self::new_aligned(Alignment::None, reader, fallback_renderer, enum_type, data)
+    pub fn new(reader: impl Into<IntegerReader>, fallback_renderer: impl Into<IntegerRenderer>, enum_type: impl AsRef<str>, data: &Data) -> SimpleResult<Self> {
+        Self::new_aligned(None, reader, fallback_renderer, enum_type, data)
     }
 
-    fn render(&self, value: Integer, data: &Data) -> SimpleResult<String> {
-        match data.lookup_enum(&self.enum_type, &value) {
+    fn render(&self, value: impl Into<Integer> + Copy, data: &Data) -> SimpleResult<String> {
+        match data.lookup_enum(&self.enum_type, value) {
             Ok(v) => {
                 match v.len() {
                     0 => {
-                        Ok(format!("{}::Unknown_{}", self.enum_type, self.fallback_renderer.render(value)))
+                        Ok(format!("{}::Unknown_{}", self.enum_type, self.fallback_renderer.render_integer(value)))
                     },
                     1 => {
                         Ok(format!("{}::{}", self.enum_type, v[0]))
@@ -79,6 +90,10 @@ impl H2TypeTrait for H2Enum {
     fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
         self.reader.read(context)
     }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
+    }
 }
 
 #[cfg(test)]
@@ -98,12 +113,12 @@ mod tests {
 
         let test_buffer = b"\x01\x64\xff\xff\x01\x00\x00\x00".to_vec();
 
-        let t = H2Enum::new(IntegerReader::U8, HexFormatter::pretty_integer(), "test1", &data)?;
+        let t = H2Enum::new(IntegerReader::U8, HexFormatter::new_pretty(), "test1", &data)?;
         assert_eq!("test1::TEST1",        t.resolve(Context::new_at(&test_buffer, 0), None, &data)?.display);
         assert_eq!("test1::TEST2",        t.resolve(Context::new_at(&test_buffer, 1), None, &data)?.display);
         assert_eq!("test1::Unknown_0xff", t.resolve(Context::new_at(&test_buffer, 2), None, &data)?.display);
 
-        let t = H2Enum::new(IntegerReader::U32(Endian::Little), HexFormatter::pretty_integer(), "test1", &data)?;
+        let t = H2Enum::new(IntegerReader::U32(Endian::Little), HexFormatter::new_pretty(), "test1", &data)?;
         assert_eq!("test1::TEST1",        t.resolve(Context::new_at(&test_buffer, 4), None, &data)?.display);
 
         Ok(())

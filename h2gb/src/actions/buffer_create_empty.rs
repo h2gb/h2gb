@@ -30,11 +30,11 @@ enum State {
 pub struct ActionBufferCreateEmpty(State);
 
 impl ActionBufferCreateEmpty {
-    pub fn new(name: &str, size: usize, base_address: usize) -> Action {
+    pub fn new(name: impl AsRef<str>, size: usize, base_address: usize) -> Action {
         Action::BufferCreateEmpty(
             ActionBufferCreateEmpty(
                 State::Forward(Forward {
-                    name: String::from(name),
+                    name: name.as_ref().to_string(),
                     size: size,
                     base_address: base_address,
                 })

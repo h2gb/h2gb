@@ -34,19 +34,38 @@ impl DataTrait for Types {
 mod tests {
     use super::*;
 
-    use std::path::PathBuf;
-
     use simple_error::SimpleResult;
     use pretty_assertions::assert_eq;
 
     use crate::Data;
 
     use generic_number::*;
+    use crate::composite::*;
+    use crate::simple::numeric::*;
 
+    // Note: We're only testing strings, not files, since as of the time of
+    // writing, the Type format isn't 100% stable.
     #[test]
-    fn test_json_file() -> SimpleResult<()> {
-        // Load the data
-        let constants = Types::load_from_json_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/types/struct.json"].iter().collect::<PathBuf>())?;
+    fn test_json_type() -> SimpleResult<()> {
+        let t = H2Struct::new(vec![
+            (
+                "field1".to_string(),
+                H2Integer::new(
+                    IntegerReader::U32(Endian::Little),
+                    DefaultFormatter::new(),
+                ).into()
+            ),
+            (
+                "field2".to_string(),
+                H2Integer::new(
+                    IntegerReader::U32(Endian::Little),
+                    DefaultFormatter::new(),
+                ).into()
+            ),
+        ])?;
+
+        let as_string = serde_json::to_string_pretty(&Into::<H2Type>::into(t)).unwrap();
+        let constants = Types::load_from_json_string(&as_string).unwrap();
 
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields
@@ -61,8 +80,25 @@ mod tests {
 
     #[test]
     fn test_yaml_file() -> SimpleResult<()> {
-        // Load the data
-        let constants = Types::load_from_yaml_file(&[env!("CARGO_MANIFEST_DIR"), "testdata/types/struct.yaml"].iter().collect::<PathBuf>())?;
+        let t = H2Struct::new(vec![
+            (
+                "field1".to_string(),
+                H2Integer::new(
+                    IntegerReader::U32(Endian::Little),
+                    DefaultFormatter::new(),
+                ).into()
+            ),
+            (
+                "field2".to_string(),
+                H2Integer::new(
+                    IntegerReader::U32(Endian::Little),
+                    DefaultFormatter::new(),
+                ).into()
+            ),
+        ])?;
+
+        let as_string = serde_yaml::to_string(&Into::<H2Type>::into(t)).unwrap();
+        let constants = Types::load_from_yaml_string(&as_string).unwrap();
 
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields

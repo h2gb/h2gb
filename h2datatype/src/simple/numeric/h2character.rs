@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer, CharacterFormatter};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -21,58 +21,69 @@ pub struct H2Character {
     ///
     /// This is created by the various --Formatter modules in GenericNumber.
     /// For example, [`DefaultFormatter::new()`] or [`HexFormatter::pretty()`].
+    #[serde(default)]
     renderer: CharacterRenderer,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<H2Character> for H2Type {
+    fn from(t: H2Character) -> H2Type {
+        H2Type::H2Character(t)
+    }
 }
 
 impl H2Character {
-    pub fn new_aligned(alignment: Alignment, reader: CharacterReader, renderer: CharacterRenderer) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Character(Self {
-            reader: reader,
-            renderer: renderer,
-        }))
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
+        Self {
+            reader: reader.into(),
+            renderer: renderer.into(),
+            alignment: alignment,
+        }
     }
 
-    pub fn new(reader: CharacterReader, renderer: CharacterRenderer) -> H2Type {
-        Self::new_aligned(Alignment::None, reader, renderer)
+    pub fn new(reader: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
+        Self::new_aligned(None, reader, renderer)
     }
 
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as ASCII, formats the characters in the style of `'a'`.
-    pub fn new_ascii() -> H2Type {
+    pub fn new_ascii() -> Self {
         Self::new(
             CharacterReader::ASCII,
-            CharacterFormatter::pretty_character(),
+            CharacterFormatter::new_pretty(),
         )
     }
 
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as ASCII, formats as just a letter, like `a`.
-    pub fn new_ascii_string() -> H2Type {
+    pub fn new_ascii_string() -> Self {
         Self::new(
             CharacterReader::ASCII,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )
     }
 
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as UTF8, formats the characters in the style of `'a'`.
-    pub fn new_utf8() -> H2Type {
+    pub fn new_utf8() -> Self {
         Self::new(
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_character(),
+            CharacterFormatter::new_pretty(),
         )
     }
 
     /// Convenience function to pre-set a definition.
     ///
     /// Reads a character as UTF8, formats the characters in the style of `a`.
-    pub fn new_utf8_string() -> H2Type {
+    pub fn new_utf8_string() -> Self {
         Self::new(
             CharacterReader::UTF8,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         )
     }
 }
@@ -86,7 +97,7 @@ impl H2TypeTrait for H2Character {
     }
 
     fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
-        Ok(self.renderer.render(self.to_character(context)?))
+        Ok(self.renderer.render_character(self.to_character(context)?))
     }
 
     fn can_be_character(&self) -> bool {
@@ -95,6 +106,10 @@ impl H2TypeTrait for H2Character {
 
     fn to_character(&self, context: Context) -> SimpleResult<Character> {
         self.reader.read(context)
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 

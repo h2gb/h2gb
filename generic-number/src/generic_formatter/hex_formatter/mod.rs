@@ -9,17 +9,14 @@ use crate::{Integer, IntegerRenderer, IntegerRendererTrait};
 /// ```
 /// use generic_number::*;
 ///
-/// // Create a Integer directly - normally you'd use a IntegerReader
-/// let number = Integer::from(0xaa2233u32);
-///
 /// // Default 'pretty' formatter
-/// assert_eq!("0x00aa2233", HexFormatter::pretty_integer().render(number));
+/// assert_eq!("0x00aa2233", HexFormatter::new_pretty().render_integer(0xaa2233u32));
 ///
 /// // Specify options: uppercase, no prefix, zero-padded
-/// assert_eq!("00AA2233", HexFormatter::new_integer(true,  false, true ).render(number));
+/// assert_eq!("00AA2233", HexFormatter::new(true,  false, true ).render_integer(0xaa2233u32));
 ///
 /// // Specify different options: lowercase, '0x' prefix, not padded
-/// assert_eq!("0xaa2233", HexFormatter::new_integer(false, true,  false).render(number));
+/// assert_eq!("0xaa2233", HexFormatter::new(false, true,  false).render_integer(0xaa2233u32));
 /// ```
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct HexFormatter {
@@ -33,23 +30,37 @@ pub struct HexFormatter {
     pub padded: bool,
 }
 
+impl Default for HexFormatter {
+    fn default() -> Self {
+        Self::new_pretty()
+    }
+}
+
+impl From<HexFormatter> for IntegerRenderer {
+    fn from(f: HexFormatter) -> IntegerRenderer {
+        IntegerRenderer::Hex(f)
+    }
+}
+
 impl HexFormatter {
-    pub fn new_integer(uppercase: bool, prefix: bool, padded: bool) -> IntegerRenderer {
-        IntegerRenderer::Hex(Self {
+    pub fn new(uppercase: bool, prefix: bool, padded: bool) -> Self {
+        Self {
             uppercase: uppercase,
             prefix: prefix,
             padded: padded,
-        })
+        }
     }
 
-    pub fn pretty_integer() -> IntegerRenderer {
-        Self::new_integer(false, true, true)
+    pub fn new_pretty() -> Self {
+        Self::new(false, true, true)
     }
 
 }
 
 impl IntegerRendererTrait for HexFormatter {
-    fn render_integer(&self, number: Integer) -> String {
+    fn render_integer(&self, number: impl Into<Integer>) -> String {
+        let number: Integer = number.into();
+
         let rendered = match (self.padded, self.uppercase, self.prefix) {
             (true,  false, false) => format!("{:0width$x}", number, width=(number.size() * 2)), // *2 because it's bytes, not characters
             (false, false, false) => format!("{:x}", number),
@@ -115,7 +126,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
+                HexFormatter::new(uppercase, prefix, padded).render_integer(number),
             );
         }
 
@@ -155,7 +166,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
+                HexFormatter::new(uppercase, prefix, padded).render_integer(number),
             );
         }
 
@@ -188,7 +199,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
+                HexFormatter::new(uppercase, prefix, padded).render_integer(number),
             );
         }
 
@@ -214,7 +225,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
+                HexFormatter::new(uppercase, prefix, padded).render_integer(number),
             );
         }
 
@@ -240,7 +251,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
+                HexFormatter::new(uppercase, prefix, padded).render_integer(number),
             );
         }
 
@@ -273,7 +284,7 @@ mod tests {
 
             assert_eq!(
                 expected,
-                HexFormatter::new_integer(uppercase, prefix, padded).render(number),
+                HexFormatter::new(uppercase, prefix, padded).render_integer(number),
             );
         }
 

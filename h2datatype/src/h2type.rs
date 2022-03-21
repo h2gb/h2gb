@@ -5,18 +5,25 @@ use std::ops::Range;
 
 use generic_number::{Context, Integer, Float, Character};
 
-use crate::{H2TypeTrait, Alignment, Data, ResolvedType};
+use crate::{H2TypeTrait, Data, ResolvedType};
 use crate::simple::*;
 use crate::simple::network::*;
 use crate::simple::numeric::*;
 use crate::simple::string::*;
 use crate::composite::*;
 
-/// An enum used to multiplex between the various types.
+/// The core of this crate - defines any type of value abstractly.
 ///
-/// Consumers of this library probably won't have to use this directly.
+/// In general, when consuming this crate, you probably won't be creating an
+/// `H2Type` directly; rather, create one of the [`crate::simple`] or
+/// [`crate::composite`] types, then use `.into()` to get H2Type.
+///
+/// Please note that many of the functions here are very expensive, because
+/// they have to read the object and iterate every time they're called. If you
+/// call `resolve()`, a static version will be created with the fields pre-
+/// calculated.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum H2Types {
+pub enum H2Type {
     // Simple
     //H2Pointer(H2Pointer),
     Rgb(Rgb),
@@ -47,65 +54,35 @@ pub enum H2Types {
 
 }
 
-/// The core of this crate - defines any type of value abstractly.
-///
-/// In general, when consuming this crate, you probably won't be creating an
-/// `H2Type` directly; rather, use the `new()` or `new_aligned()` function of
-/// any of the various types defined in [`crate::simple`],
-/// [`crate::composite`], or [`crate::composite::string`].
-/// Those `new()` functions return an `H2Type`.
-///
-/// Please note that many of the functions here are very expensive, because
-/// they have to read the object and iterate every time they're called. If you
-/// call `resolve()`, a static version will be created with the fields pre-
-/// calculated.
-///
-/// In terms of implementation, this basically passes everything through to
-/// [`H2TypeTrait`]. The biggest reason for having this layer above the trait
-/// is to store an alignment value.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct H2Type {
-    pub field: H2Types,
-    pub alignment: Alignment,
-}
-
 impl H2Type {
-    pub fn new(alignment: Alignment, field: H2Types) -> Self {
-        Self {
-            field: field,
-            alignment: alignment,
-        }
-    }
-
     fn field_type(&self) -> &dyn H2TypeTrait {
-        match &self.field {
+        match self {
             // Simple
-            //H2Types::H2Pointer(t) => t,
-            H2Types::Rgb(t)       => t,
-            H2Types::H2Bitmask(t) => t,
-            H2Types::H2Enum(t)    => t,
-            H2Types::H2UUID(t)    => t,
-            H2Types::H2Blob(t)    => t,
+            H2Type::Rgb(t)       => t,
+            H2Type::H2Bitmask(t) => t,
+            H2Type::H2Enum(t)    => t,
+            H2Type::H2UUID(t)    => t,
+            H2Type::H2Blob(t)    => t,
 
             // Numeric
-            H2Types::H2Float(t)     => t,
-            H2Types::H2Character(t) => t,
-            H2Types::H2Integer(t)   => t,
+            H2Type::H2Float(t)     => t,
+            H2Type::H2Character(t) => t,
+            H2Type::H2Integer(t)   => t,
 
             // Network
-            H2Types::IPv4(t)        => t,
-            H2Types::IPv6(t)        => t,
-            H2Types::MacAddress(t)  => t,
-            H2Types::MacAddress8(t) => t,
+            H2Type::IPv4(t)        => t,
+            H2Type::IPv6(t)        => t,
+            H2Type::MacAddress(t)  => t,
+            H2Type::MacAddress8(t) => t,
 
             // Complex
-            H2Types::H2Array(t)   => t,
-            H2Types::H2Struct(t)  => t,
+            H2Type::H2Array(t)   => t,
+            H2Type::H2Struct(t)  => t,
 
             // Strings
-            H2Types::H2String(t)  => t,
-            H2Types::NTString(t)  => t,
-            H2Types::LPString(t)  => t,
+            H2Type::H2String(t)  => t,
+            H2Type::NTString(t)  => t,
+            H2Type::LPString(t)  => t,
         }
     }
 
@@ -120,18 +97,18 @@ impl H2Type {
 
     /// Get the size of the field, including the alignment.
     pub fn aligned_size(&self, context: Context) -> SimpleResult<usize> {
-        self.field_type().aligned_size(context, self.alignment)
+        self.field_type().aligned_size(context)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, starting at the
     /// given [`Context`], if it can be known, without adding padding.
-    pub fn actual_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().range(context, Alignment::None)
+    pub fn base_range(&self, context: Context) -> SimpleResult<Range<usize>> {
+        self.field_type().base_range(context)
     }
 
     /// Get the [`Range<usize>`] that the type will cover, with padding.
     pub fn aligned_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().range(context, self.alignment)
+        self.field_type().aligned_range(context)
     }
 
     /// Get *related* nodes - ie, other fields that a pointer points to
@@ -154,7 +131,7 @@ impl H2Type {
     /// are "written in stone", so to speak, which means they no longer need to
     /// be calculated.
     pub fn resolve(&self, context: Context, name: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
-        self.field_type().resolve(context, self.alignment, name, data)
+        self.field_type().resolve(context, name, data)
     }
 
     /// Get a user-consumeable string

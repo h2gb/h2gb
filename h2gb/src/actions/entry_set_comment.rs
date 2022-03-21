@@ -26,12 +26,12 @@ enum State {
 pub struct ActionEntrySetComment(State);
 
 impl ActionEntrySetComment {
-    pub fn new(buffer: &str, layer: &str, offset: usize, comment: Option<String>) -> Action {
+    pub fn new(buffer: impl AsRef<str>, layer: impl AsRef<str>, offset: usize, comment: Option<String>) -> Action {
         Action::EntrySetComment(
             ActionEntrySetComment(
                 State::Forward(Forward {
-                    buffer: buffer.to_string(),
-                    layer: layer.to_string(),
+                    buffer: buffer.as_ref().to_string(),
+                    layer: layer.as_ref().to_string(),
                     offset: offset,
                     comment: comment,
                 })

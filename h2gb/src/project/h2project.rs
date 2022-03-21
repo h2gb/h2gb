@@ -23,10 +23,10 @@ pub struct H2Project {
 }
 
 impl H2Project {
-    pub fn new(name: &str, version: &str) -> Self {
+    pub fn new(name: impl AsRef<str>, version: impl AsRef<str>) -> Self {
         H2Project {
-            name: String::from(name),
-            version: String::from(version),
+            name: name.as_ref().to_string(),
+            version: version.as_ref().to_string(),
 
             buffers: HashMap::new(),
         }
@@ -40,66 +40,66 @@ impl H2Project {
         return &self.buffers;
     }
 
-    pub fn buffer_exists(&self, buffer: &str) -> bool {
-        self.buffers.contains_key(buffer)
+    pub fn buffer_exists(&self, buffer: impl AsRef<str>) -> bool {
+        self.buffers.contains_key(buffer.as_ref())
     }
 
-    pub fn buffer_insert(&mut self, name: &str, buffer: H2Buffer) -> SimpleResult<()> {
+    pub fn buffer_insert(&mut self, name: impl AsRef<str>, buffer: H2Buffer) -> SimpleResult<()> {
         // Sanity check
-        if name == "" {
+        if name.as_ref() == "" {
             bail!("Buffer must have a name");
         }
 
-        if self.buffer_exists(name) {
-            bail!("Buffer already exists: {}", name);
+        if self.buffer_exists(name.as_ref()) {
+            bail!("Buffer already exists: {}", name.as_ref());
         }
 
         // Go
         // TODO: Check and insert at the same time
-        self.buffers.insert(name.to_string(), buffer);
+        self.buffers.insert(name.as_ref().to_string(), buffer);
 
         Ok(())
     }
 
     // Note: In the future, we should check for references to this buffer to
     // ensure we aren't breaking anything else
-    pub fn buffer_can_be_removed(&self, buffer: &str) -> SimpleResult<bool> {
-        match self.buffer_get(buffer) {
+    pub fn buffer_can_be_removed(&self, buffer: impl AsRef<str>) -> SimpleResult<bool> {
+        match self.buffer_get(buffer.as_ref()) {
             Some(buffer) => Ok(!buffer.is_populated()),
-            None => bail!("No such buffer: {}", buffer),
+            None => bail!("No such buffer: {}", buffer.as_ref()),
         }
     }
 
-    pub fn buffer_remove(&mut self, buffer: &str) -> SimpleResult<H2Buffer> {
+    pub fn buffer_remove(&mut self, buffer: impl AsRef<str>) -> SimpleResult<H2Buffer> {
         // Sanity check
-        if !self.buffer_can_be_removed(buffer)? {
-            bail!("Cannot remove buffer: {}", buffer);
+        if !self.buffer_can_be_removed(&buffer)? {
+            bail!("Cannot remove buffer: {}", buffer.as_ref());
         }
 
         // Go
-        match self.buffers.remove(buffer) {
+        match self.buffers.remove(buffer.as_ref()) {
             Some(b) => Ok(b),
             None => bail!("Buffer not found"),
         }
     }
 
-    pub fn buffer_get(&self, buffer: &str) -> Option<&H2Buffer> {
-        self.buffers.get(buffer)
+    pub fn buffer_get(&self, buffer: impl AsRef<str>) -> Option<&H2Buffer> {
+        self.buffers.get(buffer.as_ref())
     }
 
-    pub fn buffer_get_or_err(&self, buffer: &str) -> SimpleResult<&H2Buffer> {
-        self.buffer_get(buffer).ok_or(
-            SimpleError::new(format!("Could not find buffer {}", buffer))
+    pub fn buffer_get_or_err(&self, buffer: impl AsRef<str>) -> SimpleResult<&H2Buffer> {
+        self.buffer_get(&buffer).ok_or(
+            SimpleError::new(format!("Could not find buffer {}", buffer.as_ref()))
         )
     }
 
-    pub fn buffer_get_mut(&mut self, buffer: &str) -> Option<&mut H2Buffer> {
-        self.buffers.get_mut(buffer)
+    pub fn buffer_get_mut(&mut self, buffer: impl AsRef<str>) -> Option<&mut H2Buffer> {
+        self.buffers.get_mut(buffer.as_ref())
     }
 
-    pub fn buffer_get_mut_or_err(&mut self, buffer: &str) -> SimpleResult<&mut H2Buffer> {
-        self.buffer_get_mut(buffer).ok_or(
-            SimpleError::new(format!("Could not find buffer {}", buffer))
+    pub fn buffer_get_mut_or_err(&mut self, buffer: impl AsRef<str>) -> SimpleResult<&mut H2Buffer> {
+        self.buffer_get_mut(&buffer).ok_or(
+            SimpleError::new(format!("Could not find buffer {}", buffer.as_ref()))
         )
     }
 
@@ -120,7 +120,7 @@ impl H2Project {
     //     Ok(())
     // }
 
-    // pub fn buffer_rename(&mut self, from: &str, to: &str) -> SimpleResult<()> {
+    // pub fn buffer_rename(&mut self, from: impl AsRef<str>, to: impl AsRef<str>) -> SimpleResult<()> {
     //     let buffer = self.buffer_get(from)?;
 
     //     // Sanity check
@@ -152,7 +152,7 @@ impl H2Project {
     // }
 
     // Remove an entry, and any others that were inserted along with it
-    // pub fn entry_remove(&mut self, buffer: &str, layer: &str, offset: usize) -> SimpleResult<Vec<(String, String, Option<H2Type>, usize)>> {
+    // pub fn entry_remove(&mut self, buffer: impl AsRef<str>, layer: impl AsRef<str>, offset: usize) -> SimpleResult<Vec<(String, String, Option<H2Type>, usize)>> {
     //     let multi_key = Self::multi_key(buffer, layer);
     //     let entries = self.entries.remove_entries(&multi_key, offset)?;
 
@@ -232,9 +232,9 @@ mod tests {
     //     let mut project = H2Project::new("name", "1.0");
 
     //     let mut buffers: HashMap<String, H2Buffer> = HashMap::new();
-    //     buffers.insert("buffer1".to_string(), H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?);
-    //     buffers.insert("buffer2".to_string(), H2Buffer::new("name", b"EFGH".to_vec(), 0x100)?);
-    //     buffers.insert("buffer3".to_string(), H2Buffer::new("name", b"IJKL".to_vec(), 0x100)?);
+    //     buffers.insert("buffer1", H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?);
+    //     buffers.insert("buffer2", H2Buffer::new("name", b"EFGH".to_vec(), 0x100)?);
+    //     buffers.insert("buffer3", H2Buffer::new("name", b"IJKL".to_vec(), 0x100)?);
 
     //     assert_eq!(false, project.buffer_exists("buffer1"));
     //     assert_eq!(false, project.buffer_exists("buffer2"));
@@ -255,10 +255,10 @@ mod tests {
     //     project.buffer_insert("duplicate", H2Buffer::new("name", b"ZZZZ".to_vec(), 0x200)?)?;
 
     //     let mut buffers: HashMap<String, H2Buffer> = HashMap::new();
-    //     buffers.insert("buffer1".to_string(), H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?);
-    //     buffers.insert("buffer2".to_string(), H2Buffer::new("name", b"EFGH".to_vec(), 0x100)?);
-    //     buffers.insert("buffer3".to_string(), H2Buffer::new("name", b"IJKL".to_vec(), 0x100)?);
-    //     buffers.insert("duplicate".to_string(), H2Buffer::new("name", b"YYYY".to_vec(), 0x100)?);
+    //     buffers.insert("buffer1", H2Buffer::new("name", b"ABCD".to_vec(), 0x100)?);
+    //     buffers.insert("buffer2", H2Buffer::new("name", b"EFGH".to_vec(), 0x100)?);
+    //     buffers.insert("buffer3", H2Buffer::new("name", b"IJKL".to_vec(), 0x100)?);
+    //     buffers.insert("duplicate", H2Buffer::new("name", b"YYYY".to_vec(), 0x100)?);
 
     //     assert_eq!(false, project.buffer_exists("buffer1"));
     //     assert_eq!(false, project.buffer_exists("buffer2"));

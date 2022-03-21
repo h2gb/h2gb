@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use simple_error::SimpleResult;
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
-use crate::{Alignment, Data, H2Type, H2Types, H2TypeTrait};
+use crate::{Alignment, Data, H2Type, H2TypeTrait};
 
 /// Defines a numerical value.
 ///
@@ -21,19 +21,30 @@ pub struct H2Integer {
     ///
     /// This is created by the various --Formatter modules in GenericNumber.
     /// For example, [`DefaultFormatter::new()`] or [`HexFormatter::pretty()`].
+    #[serde(default)]
     renderer: IntegerRenderer,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<H2Integer> for H2Type {
+    fn from(t: H2Integer) -> H2Type {
+        H2Type::H2Integer(t)
+    }
 }
 
 impl H2Integer {
-    pub fn new_aligned(alignment: Alignment, reader: IntegerReader, renderer: IntegerRenderer) -> H2Type {
-        H2Type::new(alignment, H2Types::H2Integer(Self {
-            reader: reader,
-            renderer: renderer,
-        }))
+    pub fn new_aligned(alignment: Option<Alignment>, reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> Self {
+        Self {
+            reader: reader.into(),
+            renderer: renderer.into(),
+            alignment: alignment,
+        }
     }
 
-    pub fn new(reader: IntegerReader, renderer: IntegerRenderer) -> H2Type {
-        Self::new_aligned(Alignment::None, reader, renderer)
+    pub fn new(reader: impl Into<IntegerReader>, renderer: impl Into<IntegerRenderer>) -> Self {
+        Self::new_aligned(None, reader, renderer)
     }
 }
 
@@ -43,7 +54,7 @@ impl H2TypeTrait for H2Integer {
     }
 
     fn to_display(&self, context: Context, _data: &Data) -> SimpleResult<String> {
-        Ok(self.renderer.render(self.to_integer(context)?))
+        Ok(self.renderer.render_integer(self.to_integer(context)?))
     }
 
     fn can_be_integer(&self) -> bool {
@@ -52,6 +63,10 @@ impl H2TypeTrait for H2Integer {
 
     fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
         self.reader.read(context)
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
@@ -69,7 +84,7 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::U8,
-            HexFormatter::pretty_integer(),
+            HexFormatter::new_pretty(),
         );
 
         assert_eq!(1, t.base_size(context).unwrap());
@@ -90,7 +105,7 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::I16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
         assert_eq!(2, t.base_size(context).unwrap());
@@ -110,15 +125,15 @@ mod tests {
         let context = Context::new(&data);
 
         let t = H2Integer::new_aligned(
-            Alignment::Loose(8),
+            Some(Alignment::Loose(8)),
             IntegerReader::I16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
         // Starting at 0
         let this_context = context.at(0);
         assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(0..2, t.actual_range(this_context)?);
+        assert_eq!(0..2, t.base_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
         assert_eq!(0..8, t.aligned_range(this_context)?);
@@ -126,7 +141,7 @@ mod tests {
         // Starting at 2
         let this_context = context.at(2);
         assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(2..4, t.actual_range(this_context)?);
+        assert_eq!(2..4, t.base_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
         assert_eq!(2..10, t.aligned_range(this_context)?);
@@ -134,7 +149,7 @@ mod tests {
         // Starting at 7
         let this_context = context.at(7);
         assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(7..9, t.actual_range(this_context)?);
+        assert_eq!(7..9, t.base_range(this_context)?);
 
         assert_eq!(8, t.aligned_size(this_context)?);
         assert_eq!(7..15, t.aligned_range(this_context)?);
@@ -155,13 +170,13 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::I16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
-        assert_eq!(0,      t.to_integer(context.at(0))?.as_isize()?);
-        assert_eq!(32767,  t.to_integer(context.at(2))?.as_isize()?);
-        assert_eq!(-32768, t.to_integer(context.at(4))?.as_isize()?);
-        assert_eq!(-1,     t.to_integer(context.at(6))?.as_isize()?);
+        assert_eq!(0isize,      TryInto::<isize>::try_into(t.to_integer(context.at(0))?)?);
+        assert_eq!(32767isize,  TryInto::<isize>::try_into(t.to_integer(context.at(2))?)?);
+        assert_eq!(-32768isize, TryInto::<isize>::try_into(t.to_integer(context.at(4))?)?);
+        assert_eq!(-1isize,     TryInto::<isize>::try_into(t.to_integer(context.at(6))?)?);
 
         Ok(())
     }
@@ -173,13 +188,13 @@ mod tests {
 
         let t = H2Integer::new(
             IntegerReader::U16(Endian::Big),
-            DefaultFormatter::new_integer(),
+            DefaultFormatter::new(),
         );
 
-        assert_eq!(0,      t.to_integer(context.at(0))?.as_usize()?);
-        assert_eq!(32767,  t.to_integer(context.at(2))?.as_usize()?);
-        assert_eq!(32768,  t.to_integer(context.at(4))?.as_usize()?);
-        assert_eq!(65535,  t.to_integer(context.at(6))?.as_usize()?);
+        assert_eq!(0usize,     TryInto::<usize>::try_into(t.to_integer(context.at(0))?)?);
+        assert_eq!(32767usize, TryInto::<usize>::try_into(t.to_integer(context.at(2))?)?);
+        assert_eq!(32768usize, TryInto::<usize>::try_into(t.to_integer(context.at(4))?)?);
+        assert_eq!(65535usize, TryInto::<usize>::try_into(t.to_integer(context.at(6))?)?);
 
         Ok(())
     }

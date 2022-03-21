@@ -45,9 +45,15 @@ impl fmt::Display for TransformStreamCipher {
     }
 }
 
+impl From<TransformStreamCipher> for Transformation {
+    fn from(t: TransformStreamCipher) -> Transformation {
+        Transformation::FromStreamCipher(t)
+    }
+}
+
 impl TransformStreamCipher {
     /// Create a new instance of [`TransformStreamCipher`].
-    pub fn new(cipher: StreamCipherType, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Transformation> {
+    pub fn new(cipher: StreamCipherType, key: Vec<u8>, iv: Option<Vec<u8>>) -> SimpleResult<Self> {
         // Validate and store the key / iv
         let key = KeyOrIV::new(key)?;
         let iv = match iv {
@@ -66,7 +72,7 @@ impl TransformStreamCipher {
         // This validates the key length and iv and other characteristics
         result.validate_settings()?;
 
-        Ok(Transformation::FromStreamCipher(result))
+        Ok(result)
     }
 
     /// Internal function to decrypt

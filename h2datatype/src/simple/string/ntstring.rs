@@ -4,7 +4,7 @@ use simple_error::SimpleResult;
 
 use generic_number::{Context, Character, CharacterReader, CharacterRenderer};
 
-use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
+use crate::{H2Type, H2TypeTrait, Alignment, Data};
 
 /// Defines a null-terminated string.
 ///
@@ -13,19 +13,31 @@ use crate::{H2Type, H2Types, H2TypeTrait, Alignment, Data};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NTString {
     character: CharacterReader,
+
+    #[serde(default)]
     renderer: CharacterRenderer,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alignment: Option<Alignment>,
+}
+
+impl From<NTString> for H2Type {
+    fn from(t: NTString) -> H2Type {
+        H2Type::NTString(t)
+    }
 }
 
 impl NTString {
-    pub fn new_aligned(alignment: Alignment, character: CharacterReader, renderer: CharacterRenderer) -> H2Type {
-        H2Type::new(alignment, H2Types::NTString(Self {
-            character: character,
-            renderer: renderer,
-        }))
+    pub fn new_aligned(alignment: Option<Alignment>, character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
+        Self {
+            character: character.into(),
+            renderer: renderer.into(),
+            alignment: alignment,
+        }
     }
 
-    pub fn new(character: CharacterReader, renderer: CharacterRenderer) -> H2Type {
-        Self::new_aligned(Alignment::None, character, renderer)
+    pub fn new(character: impl Into<CharacterReader>, renderer: impl Into<CharacterRenderer>) -> Self {
+        Self::new_aligned(None, character, renderer)
     }
 
     fn analyze(&self, offset: Context) -> SimpleResult<(usize, Vec<Character>)> {
@@ -62,11 +74,15 @@ impl H2TypeTrait for NTString {
         let (_, chars) = self.analyze(offset)?;
 
         // Convert into a string
-        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render(c))))
+        Ok(String::from_iter(chars.into_iter().map(|c| self.renderer.render_character(c))))
     }
 
     fn to_display(&self, offset: Context, data: &Data) -> SimpleResult<String> {
         Ok(format!("\"{}\"", self.to_string(offset, data)?))
+    }
+
+    fn alignment(&self) -> Option<Alignment> {
+        self.alignment
     }
 }
 
@@ -85,7 +101,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7\x00".to_vec();
         let offset = Context::new(&data);
 
-        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
+        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::new_pretty_str());
         assert_eq!("\"AB❄☢𝄞😈÷\"", a.to_display(offset, &Data::default())?);
 
         Ok(())
@@ -96,7 +112,7 @@ mod tests {
         let data = b"\x00".to_vec();
         let offset = Context::new(&data);
 
-        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
+        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::new_pretty_str());
         assert_eq!("\"\"", a.to_display(offset, &Data::default())?);
 
         Ok(())
@@ -107,7 +123,7 @@ mod tests {
         let data = b"".to_vec();
         let offset = Context::new(&data);
 
-        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
+        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::new_pretty_str());
         assert!(a.to_display(offset, &Data::default()).is_err());
 
         Ok(())
@@ -119,7 +135,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7".to_vec();
         let offset = Context::new(&data);
 
-        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
+        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::new_pretty_str());
         assert!(a.to_display(offset, &Data::default()).is_err());
 
         Ok(())
@@ -131,7 +147,7 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84\xE2\x98\xA2\xF0\x9D\x84\x9E\xF0\x9F\x98\x88\xc3\xb7\x00".to_vec();
         let offset = Context::new(&data);
 
-        let a: H2Type = NTString::new(CharacterReader::UTF8, CharacterFormatter::pretty_str_character());
+        let a = NTString::new(CharacterReader::UTF8, CharacterFormatter::new_pretty_str());
         let array = a.resolve(offset, None, &Data::default())?;
 
         // Should just have one child - the array
@@ -148,7 +164,7 @@ mod tests {
 
         let t = H2Array::new(3, NTString::new(
             CharacterReader::ASCII,
-            CharacterFormatter::pretty_str_character(),
+            CharacterFormatter::new_pretty_str(),
         ))?;
 
         assert_eq!(12, t.base_size(offset).unwrap());

@@ -30,11 +30,11 @@ enum State {
 pub struct ActionBufferCreateFromBytes(State);
 
 impl ActionBufferCreateFromBytes {
-    pub fn new(name: &str, data: &[u8], base_address: usize) -> Action {
+    pub fn new(name: impl AsRef<str>, data: &[u8], base_address: usize) -> Action {
         Action::BufferCreateFromBytes(
             ActionBufferCreateFromBytes(
                 State::Forward(Forward {
-                    name: String::from(name),
+                    name: name.as_ref().to_string(),
                     data: Vec::from(data),
                     base_address: base_address,
                 })
