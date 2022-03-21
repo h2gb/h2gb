@@ -359,21 +359,21 @@ pub enum Transformation {
 
 impl fmt::Display for Transformation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.get_transformer())
+        write!(f, "{}", self.as_trait())
     }
 }
 
 impl Transformation {
-    fn get_transformer(&self) -> Box<dyn TransformerTrait> {
-        match *self {
-            Self::Null(s)             => Box::new(s),
-            Self::XorByConstant(s)    => Box::new(s),
-            Self::FromBase64(s)       => Box::new(s),
-            Self::FromBase32(s)       => Box::new(s),
-            Self::FromDeflated(s)     => Box::new(s),
-            Self::FromHex(s)          => Box::new(s),
-            Self::FromBlockCipher(s)  => Box::new(s),
-            Self::FromStreamCipher(s) => Box::new(s),
+    fn as_trait(&self) -> &dyn TransformerTrait {
+        match self {
+            Self::Null(s)             => s,
+            Self::XorByConstant(s)    => s,
+            Self::FromBase64(s)       => s,
+            Self::FromBase32(s)       => s,
+            Self::FromDeflated(s)     => s,
+            Self::FromHex(s)          => s,
+            Self::FromBlockCipher(s)  => s,
+            Self::FromStreamCipher(s) => s,
         }
     }
 
@@ -384,7 +384,7 @@ impl Transformation {
             bail!("Cannot transform 0-length buffer");
         }
 
-        self.get_transformer().transform(buffer)
+        self.as_trait().transform(buffer)
     }
 
     /// Transform a buffer backwards, if possible. The length of the result will
@@ -396,7 +396,7 @@ impl Transformation {
             bail!("Cannot untransform 0-length buffer");
         }
 
-        self.get_transformer().untransform(buffer)
+        self.as_trait().untransform(buffer)
     }
 
     /// Check whether a buffer can be transformed by this variant.
@@ -410,7 +410,7 @@ impl Transformation {
             return false;
         }
 
-        self.get_transformer().can_transform(buffer)
+        self.as_trait().can_transform(buffer)
     }
 
     /// Determines if the transformation can be undone.
@@ -418,7 +418,7 @@ impl Transformation {
     /// Does not require a buffer, because the variant itself is enough to
     /// make this determination.
     pub fn is_two_way(&self) -> bool {
-        self.get_transformer().is_two_way()
+        self.as_trait().is_two_way()
     }
 
     /// Returns a list of possible transformations that will work on this
