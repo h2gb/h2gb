@@ -48,7 +48,7 @@ impl H2Float {
 }
 
 impl H2TypeTrait for H2Float {
-    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
+    fn base_size(&self, _context: Context, _data: &Data) -> SimpleResult<usize> {
         Ok(self.reader.size())
     }
 
@@ -86,7 +86,7 @@ mod tests {
         let t = H2Float::new(FloatReader::F32(Endian::Big), DefaultFormatter::new());
 
         assert_eq!("3.14", t.to_display(Context::new_at(&data, 0), &Data::default())?);
-        assert_eq!(4,      t.base_size(Context::new_at(&data, 0))?);
+        assert_eq!(4,      t.base_size(Context::new_at(&data, 0), &Data::default())?);
 
         Ok(())
     }
@@ -97,7 +97,7 @@ mod tests {
         let data = b"\x40\x09\x1e\xb8\x51\xeb\x85\x1f".to_vec();
 
         assert_eq!("3.14", H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new()).to_display(Context::new_at(&data, 0), &Data::default())?);
-        assert_eq!(8,      H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new()).base_size(Context::new_at(&data, 0))?);
+        assert_eq!(8,      H2Float::new(FloatReader::F64(Endian::Big), DefaultFormatter::new()).base_size(Context::new_at(&data, 0), &Data::default())?);
 
         Ok(())
     }

@@ -49,7 +49,7 @@ impl H2Integer {
 }
 
 impl H2TypeTrait for H2Integer {
-    fn base_size(&self, _context: Context) -> SimpleResult<usize> {
+    fn base_size(&self, _context: Context, _data: &Data) -> SimpleResult<usize> {
         Ok(self.reader.size())
     }
 
@@ -87,7 +87,7 @@ mod tests {
             HexFormatter::new_pretty(),
         );
 
-        assert_eq!(1, t.base_size(context).unwrap());
+        assert_eq!(1, t.base_size(context, &Data::default()).unwrap());
         assert_eq!(0, t.related(context)?.len());
 
         assert_eq!("0x00", t.to_display(context.at(0), &Data::default())?);
@@ -108,7 +108,7 @@ mod tests {
             DefaultFormatter::new(),
         );
 
-        assert_eq!(2, t.base_size(context).unwrap());
+        assert_eq!(2, t.base_size(context, &Data::default()).unwrap());
         assert_eq!(0, t.related(context)?.len());
 
         assert_eq!("0",      t.to_display(context.at(0), &Data::default())?);
@@ -132,27 +132,27 @@ mod tests {
 
         // Starting at 0
         let this_context = context.at(0);
-        assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(0..2, t.base_range(this_context)?);
+        assert_eq!(2, t.base_size(this_context, &Data::default())?);
+        assert_eq!(0..2, t.base_range(this_context, &Data::default())?);
 
-        assert_eq!(8, t.aligned_size(this_context)?);
-        assert_eq!(0..8, t.aligned_range(this_context)?);
+        assert_eq!(8, t.aligned_size(this_context, &Data::default())?);
+        assert_eq!(0..8, t.aligned_range(this_context, &Data::default())?);
 
         // Starting at 2
         let this_context = context.at(2);
-        assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(2..4, t.base_range(this_context)?);
+        assert_eq!(2, t.base_size(this_context, &Data::default())?);
+        assert_eq!(2..4, t.base_range(this_context, &Data::default())?);
 
-        assert_eq!(8, t.aligned_size(this_context)?);
-        assert_eq!(2..10, t.aligned_range(this_context)?);
+        assert_eq!(8, t.aligned_size(this_context, &Data::default())?);
+        assert_eq!(2..10, t.aligned_range(this_context, &Data::default())?);
 
         // Starting at 7
         let this_context = context.at(7);
-        assert_eq!(2, t.base_size(this_context)?);
-        assert_eq!(7..9, t.base_range(this_context)?);
+        assert_eq!(2, t.base_size(this_context, &Data::default())?);
+        assert_eq!(7..9, t.base_range(this_context, &Data::default())?);
 
-        assert_eq!(8, t.aligned_size(this_context)?);
-        assert_eq!(7..15, t.aligned_range(this_context)?);
+        assert_eq!(8, t.aligned_size(this_context, &Data::default())?);
+        assert_eq!(7..15, t.aligned_range(this_context, &Data::default())?);
 
         // Make sure the strings are correct
         assert_eq!("0",      t.to_display(context.at(0), &Data::default())?);

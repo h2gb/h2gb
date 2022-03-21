@@ -70,7 +70,7 @@ mod tests {
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields
         let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-        let resolved = constants.get().resolve(Context::new(&data), None, &Data::default())?;
+        let resolved = constants.get().as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default())?;
         assert_eq!(2, resolved.children.len());
         assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
         assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
@@ -103,7 +103,7 @@ mod tests {
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields
         let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-        let resolved = constants.get().resolve(Context::new(&data), None, &Data::default())?;
+        let resolved = constants.get().as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default())?;
         assert_eq!(2, resolved.children.len());
         assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
         assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());

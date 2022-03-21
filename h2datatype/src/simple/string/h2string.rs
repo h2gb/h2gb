@@ -68,7 +68,7 @@ impl H2String {
 }
 
 impl H2TypeTrait for H2String {
-    fn base_size(&self, context: Context) -> SimpleResult<usize> {
+    fn base_size(&self, context: Context, _data: &Data) -> SimpleResult<usize> {
         match self.character.size() {
             Some(s) => Ok(s * self.length),
             None => Ok(self.analyze(context)?.0),
@@ -156,7 +156,7 @@ mod tests {
 
         let t = H2Array::new(4, H2String::new(4, CharacterReader::ASCII, CharacterFormatter::new_pretty_str())?)?;
 
-        assert_eq!(16, t.base_size(context).unwrap());
+        assert_eq!(16, t.base_size(context, &Data::default()).unwrap());
         assert_eq!("[ \"AAAA\", \"BBBB\", \"CCCC\", \"DDDD\" ]", t.to_display(context, &Data::default()).unwrap());
 
         Ok(())

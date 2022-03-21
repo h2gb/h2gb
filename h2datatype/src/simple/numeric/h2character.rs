@@ -89,7 +89,7 @@ impl H2Character {
 }
 
 impl H2TypeTrait for H2Character {
-    fn base_size(&self, context: Context) -> SimpleResult<usize> {
+    fn base_size(&self, context: Context, _data: &Data) -> SimpleResult<usize> {
         match self.reader.size() {
             Some(v) => Ok(v),
             None    => Ok(self.reader.read(context)?.size()),
@@ -138,13 +138,13 @@ mod tests {
         let data = b"\x41\x42\xE2\x9D\x84".to_vec();
 
         assert_eq!("'A'", H2Character::new_utf8().to_display(Context::new_at(&data, 0), &Data::default())?);
-        assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 0))?);
+        assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 0), &Data::default())?);
 
         assert_eq!("'B'", H2Character::new_utf8().to_display(Context::new_at(&data, 1), &Data::default())?);
-        assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 1))?);
+        assert_eq!(1,     H2Character::new_utf8().base_size(Context::new_at(&data, 1), &Data::default())?);
 
         assert_eq!("'❄'", H2Character::new_utf8().to_display(Context::new_at(&data, 2), &Data::default())?);
-        assert_eq!(3,     H2Character::new_utf8().base_size(Context::new_at(&data, 2))?);
+        assert_eq!(3,     H2Character::new_utf8().base_size(Context::new_at(&data, 2), &Data::default())?);
 
         Ok(())
     }
