@@ -9,6 +9,12 @@ pub struct Types {
 }
 
 impl Types {
+    pub fn new(t: impl Into<H2Type>) -> Self {
+        Self {
+            h2type: t.into(),
+        }
+    }
+
     pub fn get(&self) -> &H2Type {
         &self.h2type
     }

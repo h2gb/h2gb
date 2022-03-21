@@ -45,6 +45,7 @@
 //! The various `list_*` and `lookup_*` functions can be used to retrieve data.
 
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
 use std::path::Path;
 
 use simple_error::{SimpleResult, bail};
@@ -285,6 +286,16 @@ impl Data {
     /// Get the names of all available types.
     pub fn list_types(&self) -> Vec<&str> {
         self.types.keys().into_iter().map(|s| s.as_ref()).collect()
+    }
+
+    /// Insert a type
+    pub fn insert_type(&mut self, type_name: impl AsRef<str>, type_definition: impl Into<H2Type>) -> SimpleResult<()> {
+        match self.types.entry(type_name.as_ref().to_string()) {
+            Entry::Occupied(_) => bail!("Type already exists: {}", type_name.as_ref()),
+            Entry::Vacant(v) => v.insert(Types::new(type_definition)),
+        };
+
+        Ok(())
     }
 
     /// Find a specific type by name.
