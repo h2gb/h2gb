@@ -48,9 +48,6 @@ pub enum H2Type {
     // Composite
     H2Array(H2Array),
     H2Struct(H2Struct),
-
-    // "NamedType" - a thin reference to a type defined in &Data
-    NamedReference(String),
 }
 
 impl H2Type {
@@ -82,88 +79,78 @@ impl H2Type {
             H2Type::H2String(t)  => t,
             H2Type::NTString(t)  => t,
             H2Type::LPString(t)  => t,
-
-            // External reference
-            // TODO: How do we prevent infinite loops?
-            H2Type::NamedReference(s) => {
-                data.lookup_type(s)?.as_trait(data)?
-            },
         })
-    }
-
-    pub fn new_named(name: impl AsRef<str>) -> Self {
-        Self::NamedReference(name.as_ref().to_string())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 
-    use simple_error::SimpleResult;
-    use pretty_assertions::assert_eq;
+    // use simple_error::SimpleResult;
+    // use pretty_assertions::assert_eq;
 
-    use crate::Data;
+    // use crate::Data;
 
-    use generic_number::*;
+    // use generic_number::*;
 
-    #[test]
-    fn test_as_trait_named_reference() -> SimpleResult<()> {
-        let mut d = Data::new();
+    // #[test]
+    // fn test_as_trait_named_reference() -> SimpleResult<()> {
+    //     let mut d = Data::new();
 
-        d.insert_type("test_integer", H2Integer::new(
-            IntegerReader::U32(Endian::Little),
-            DefaultFormatter::new(),
-        ))?;
+    //     d.insert_type("test_integer", H2Integer::new(
+    //         IntegerReader::U32(Endian::Little),
+    //         DefaultFormatter::new(),
+    //     ))?;
 
-        let t: H2Type = H2Struct::new(vec![
-            (
-                "field1".to_string(),
-                H2Type::new_named("test_integer"),
-            ),
-            (
-                "field2".to_string(),
-                H2Type::new_named("test_integer"),
-            ),
-        ])?.into();
+    //     let t: H2Type = H2Struct::new(vec![
+    //         (
+    //             "field1".to_string(),
+    //             H2Type::new_named("test_integer"),
+    //         ),
+    //         (
+    //             "field2".to_string(),
+    //             H2Type::new_named("test_integer"),
+    //         ),
+    //     ])?.into();
 
-        // We can't equate types, but we know it it's a struct with two U32 LE
-        // fields
-        let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-        let resolved = t.as_trait(&d)?.resolve(Context::new(&data), None, &d)?;
+    //     // We can't equate types, but we know it it's a struct with two U32 LE
+    //     // fields
+    //     let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
+    //     let resolved = t.as_trait(&d)?.resolve(Context::new(&data), None, &d)?;
 
-        assert_eq!(2, resolved.children.len());
-        assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
-        assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
+    //     assert_eq!(2, resolved.children.len());
+    //     assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
+    //     assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    #[test]
-    fn test_as_trait_failed_reference() -> SimpleResult<()> {
-        let mut d = Data::new();
+    // #[test]
+    // fn test_as_trait_failed_reference() -> SimpleResult<()> {
+    //     let mut d = Data::new();
 
-        d.insert_type("test_integer", H2Integer::new(
-            IntegerReader::U32(Endian::Little),
-            DefaultFormatter::new(),
-        ))?;
+    //     d.insert_type("test_integer", H2Integer::new(
+    //         IntegerReader::U32(Endian::Little),
+    //         DefaultFormatter::new(),
+    //     ))?;
 
-        let t: H2Type = H2Struct::new(vec![
-            (
-                "field1".to_string(),
-                H2Type::new_named("test_integer"),
-            ),
-            (
-                "field2".to_string(),
-                H2Type::new_named("not_test_integer"),
-            ),
-        ])?.into();
+    //     let t: H2Type = H2Struct::new(vec![
+    //         (
+    //             "field1".to_string(),
+    //             H2Type::new_named("test_integer"),
+    //         ),
+    //         (
+    //             "field2".to_string(),
+    //             H2Type::new_named("not_test_integer"),
+    //         ),
+    //     ])?.into();
 
-        // We can't equate types, but we know it it's a struct with two U32 LE
-        // fields
-        let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-        assert!(t.as_trait(&d)?.resolve(Context::new(&data), None, &d).is_err());
+    //     // We can't equate types, but we know it it's a struct with two U32 LE
+    //     // fields
+    //     let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
+    //     assert!(t.as_trait(&d)?.resolve(Context::new(&data), None, &d).is_err());
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }

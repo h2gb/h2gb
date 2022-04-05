@@ -1,4 +1,4 @@
-***Note: This file was automatically generated from [h2datatype/src/data/mod.rs](/h2datatype/src/data/mod.rs)***
+***Note: This file was automatically generated from [h2datatype/src/data.old/mod.rs](/h2datatype/src/data.old/mod.rs)***
 
 Pre-canned datatypes for easier analysis.
 
@@ -41,7 +41,8 @@ recurse to find files. The extensions of the files determine how the file is
 parsed.
 
 The loaded data will be named based on the filename is it loaded from, which
-must be unique.
+must be unique. The optional `prefix` string can be used to ensure
+uniqueness, since it renames it to `<prefix>::<filename>`.
 
 The various `list_*` and `lookup_*` functions can be used to retrieve data.
 

@@ -39,270 +39,68 @@
 //! parsed.
 //!
 //! The loaded data will be named based on the filename is it loaded from, which
-//! must be unique. The optional `prefix` string can be used to ensure
-//! uniqueness, since it renames it to `<prefix>::<filename>`.
+//! must be unique.
 //!
 //! The various `list_*` and `lookup_*` functions can be used to retrieve data.
 
-use std::collections::{HashMap, HashSet};
-use std::collections::hash_map::Entry;
-use std::path::Path;
+use std::collections::HashMap;
+use std::fmt::Debug;
+use std::hash::Hash;
 
 use simple_error::{SimpleResult, bail};
-use walkdir::WalkDir;
 
-use generic_number::{Integer, IntegerRenderer};
+mod classes;
+pub use classes::*;
 
-use crate::H2Type;
+mod traits;
+pub use traits::*;
 
-mod constants;
-use constants::*;
+mod data_entry;
+pub use data_entry::*;
 
-mod enums;
-use enums::*;
+mod file_type;
+use file_type::*;
 
-mod bitmasks;
-use bitmasks::*;
-
-mod types;
-use types::*;
-
-mod data_trait;
-use data_trait::*;
+mod load_options;
+pub use load_options::*;
 
 /// Extend a [`HashMap`] without allowing duplicates.
-fn extend_no_duplicates<T>(orig: &mut HashMap<String, T>, new: Vec<(String, T)>) -> SimpleResult<()> {
+fn extend_no_duplicates<K, T>(orig: &mut HashMap<K, T>, new: Vec<(K, T)>) -> SimpleResult<()>
+where K: Eq + Hash + Debug
+{
     // Loop through to ensure no duplicates
     let new = new.into_iter().map(|(key, value)| {
         match orig.contains_key(&key) {
-            true => bail!("Duplicate key: {}", key),
+            true => bail!("Duplicate key: {:?}", key),
             false => Ok((key, value))
         }
-    }).collect::<SimpleResult<HashMap<String, T>>>()?;
+    }).collect::<SimpleResult<HashMap<K, T>>>()?;
 
     orig.extend(new);
 
     Ok(())
 }
 
-enum FileType {
-    YAML,
-    JSON,
-    CSV,
-    RON,
-}
-
-impl FileType {
-    fn from_filename(name: &Path) -> Option<Self> {
-        let extension = name.extension()?.to_string_lossy().to_string();
-
-        match extension.as_ref() {
-            "yaml" => Some(Self::YAML),
-            "yml"  => Some(Self::YAML),
-            "json" => Some(Self::JSON),
-            "csv"  => Some(Self::CSV),
-            "ron"  => Some(Self::RON),
-            _ => None,
-        }
-    }
-}
-
-/// The core [`Data`] struct, which holds all data data that has been loaded.
-#[derive(Debug, Default)]
+/// The struct that holds data. Not designed to be serialized or stored.
+///
+/// TODO: write more about Data
+/// This structure is recursive - data can be nested to any level, or none.
+#[derive(Default, Debug)]
 pub struct Data {
-    pub constants: HashMap<String, Constants>,
-    pub enums:     HashMap<String, Enums>,
-    pub bitmasks:  HashMap<String, Bitmasks>,
-    pub types:     HashMap<String, Types>,
+    pub constants: DataEntry<Constants>,
+    pub enums:     DataEntry<Enums>,
+    pub bitmasks:  DataEntry<Bitmasks>,
+    pub types:     DataEntry<Types>,
 }
 
 impl Data {
     /// Create a new, empty instance.
     pub fn new() -> Self {
         Self {
-            constants: HashMap::new(),
-            enums:     HashMap::new(),
-            bitmasks:  HashMap::new(),
-            types:     HashMap::new(),
-        }
-    }
-
-    /// Get the name from the path.
-    ///
-    /// Returns the filename with no path and no extension.
-    fn get_name(path: &Path, prefix: Option<&str>) -> SimpleResult<String> {
-        let file = match path.file_stem() {
-            Some(file) => {
-                file.to_string_lossy().to_string()
-            }
-            None => bail!("Could not read file name on path {:?}", path),
-        };
-
-        match prefix {
-            Some(p) => Ok(format!("{}::{}", p, file)),
-            None => Ok(file),
-        }
-    }
-
-    /// Internal function to load any [`DataTrait`] type form a file or folder.
-    fn load<T: DataTrait>(path: &Path, prefix: Option<&str>) -> SimpleResult<Vec<(String, T)>> {
-        // This is kinda clunky, but it ensures that we don't have duplicates
-        // within a set
-        let mut duplicates: HashSet<String> = HashSet::new();
-
-        // Catch invalid paths
-        if !path.exists() {
-            bail!("No such path: {:?}", path);
-        }
-
-        WalkDir::new(path)
-            .into_iter()
-            .filter_map(Result::ok)
-            .filter(|e| !e.file_type().is_dir())
-            .map(|e| {
-                // I kept accidentally using the `path` argument
-                let path = e.path();
-
-                // Get the name with prefix
-                let name = Self::get_name(path, prefix)?;
-
-                // Check for duplicates within this group
-                if duplicates.contains(&name) {
-                    bail!("Duplicate name: {} (from path {:?})", name, path);
-                }
-                duplicates.insert(name.clone());
-
-                // Load based on the extension
-                let data = match FileType::from_filename(path) {
-                    Some(FileType::YAML) => T::load_from_yaml_file(path)?,
-                    Some(FileType::JSON) => T::load_from_json_file(path)?,
-                    Some(FileType::RON)  => T::load_from_ron_file(path)?,
-                    Some(FileType::CSV)  => T::load_from_csv_file(path)?,
-                    None => bail!("Unrecognized file type: {:?}", path),
-                };
-
-                Ok((name, data))
-            })
-            .collect()
-    }
-
-    /// Load constants from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load_constants(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        // TODO: We should bubble up better error messages
-        if let Err(e) = extend_no_duplicates(&mut self.constants, Self::load(path, prefix)?) {
-            bail!("Could not load constants from {:?}: {}", path, e);
-        }
-
-        Ok(self)
-    }
-
-    /// Load enums from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load_enums(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        if let Err(e) = extend_no_duplicates(&mut self.enums, Self::load(path, prefix)?) {
-            bail!("Could not load enums from {:?}: {}", path, e);
-        }
-
-        Ok(self)
-    }
-
-    /// Load bitmasks from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load_bitmasks(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        if let Err(e) = extend_no_duplicates(&mut self.bitmasks, Self::load(path, prefix)?) {
-            bail!("Could not load enums from {:?}: {}", path, e);
-        }
-
-        Ok(self)
-    }
-
-    /// Load types from a [`Path`] (either a file or directory)
-    ///
-    /// Supports: YAML, JSON, and RON (based on extension) - does not support
-    /// CSV
-    pub fn load_types(&mut self, path: &Path, prefix: Option<&str>) -> SimpleResult<&Self> {
-        if let Err(e) = extend_no_duplicates(&mut self.types, Self::load(path, prefix)?) {
-            bail!("Could not load types from {:?}: {}", path, e);
-        }
-
-        Ok(self)
-    }
-
-    /// Get the names of all available enums
-    pub fn list_enums(&self) -> Vec<&str> {
-        self.enums.keys().into_iter().map(|s| s.as_ref()).collect()
-    }
-
-    /// Find a specific value in an enum based on an [`Integer`].
-    ///
-    /// Empty list means no value was found, an `Err` is returned if the name does
-    /// not exist.
-    pub fn lookup_enum(&self, enum_name: impl AsRef<str>, value: impl Into<Integer>) -> SimpleResult<Vec<String>> {
-        match self.enums.get(enum_name.as_ref()) {
-            Some(e) => Ok(e.get_by_value(value)),
-            None => bail!("No such enum: {}", enum_name.as_ref()),
-        }
-    }
-
-    /// Get the names of all available bitmasks
-    pub fn list_bitmasks(&self) -> Vec<&str> {
-        self.bitmasks.keys().into_iter().map(|s| s.as_ref()).collect()
-    }
-
-    /// Find a specific bitmask matches based on an [`Integer`].
-    ///
-    /// An optional `unknown_renderer` can be supplied, which will be used to
-    /// render unknown values using the (prefix, renderer) tuple.
-    ///
-    /// Additionally, "negative" matches can be included. That means that the
-    /// output will look like `X | Y | ~Z`)
-    pub fn lookup_bitmask(&self, bitmask_name: impl AsRef<str>, value: impl Into<Integer>, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> SimpleResult<Vec<String>> {
-        match self.bitmasks.get(bitmask_name.as_ref()) {
-            Some(e) => Ok(e.get_by_value(value, unknown_renderer, show_negatives)),
-            None => bail!("No such bitmask: {}", bitmask_name.as_ref()),
-        }
-    }
-
-    /// Get the names of all available groups of constants
-    pub fn list_constant_groups(&self) -> Vec<&str> {
-        self.constants.keys().into_iter().map(|s| s.as_ref()).collect()
-    }
-
-    /// Find a specific constant or constants based on an [`Integer`].
-    ///
-    /// Empty list means no value was found, an `Err` is returned if the name does
-    /// not exist.
-    pub fn lookup_constant(&self, constant_group: impl AsRef<str>, value: impl Into<Integer>) -> SimpleResult<Vec<String>> {
-        match self.constants.get(constant_group.as_ref()) {
-            Some(e) => Ok(e.get_by_value(value)),
-            None => bail!("No such constant: {}", constant_group.as_ref()),
-        }
-    }
-
-    /// Get the names of all available types.
-    pub fn list_types(&self) -> Vec<&str> {
-        self.types.keys().into_iter().map(|s| s.as_ref()).collect()
-    }
-
-    /// Insert a type
-    pub fn insert_type(&mut self, type_name: impl AsRef<str>, type_definition: impl Into<H2Type>) -> SimpleResult<()> {
-        match self.types.entry(type_name.as_ref().to_string()) {
-            Entry::Occupied(_) => bail!("Type already exists: {}", type_name.as_ref()),
-            Entry::Vacant(v) => v.insert(Types::new(type_definition)),
-        };
-
-        Ok(())
-    }
-
-    /// Find a specific type by name.
-    pub fn lookup_type(&self, type_name: impl AsRef<str>) -> SimpleResult<&H2Type> {
-        match self.types.get(type_name.as_ref()) {
-            Some(t) => Ok(t.get()),
-            None => bail!("No such type: {}", type_name.as_ref()),
+            constants: DataEntry::default(),
+            enums:     DataEntry::default(),
+            bitmasks:  DataEntry::default(),
+            types:     DataEntry::default(),
         }
     }
 }
@@ -321,44 +119,44 @@ mod tests {
     #[test]
     fn test_load_file() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), None)?;
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
-        assert_eq!(1, data.constants.len());
-        assert_eq!(0, data.enums.len());
-        assert_eq!(0, data.bitmasks.len());
-        assert_eq!(0, data.types.len());
+        assert_eq!(1, data.constants.len(None));
+        assert_eq!(0, data.enums.len(None));
+        assert_eq!(0, data.bitmasks.len(None));
+        assert_eq!(0, data.types.len(None));
 
         // Load a second file
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>(), None)?;
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
-        assert_eq!(2, data.constants.len());
-        assert_eq!(0, data.enums.len());
-        assert_eq!(0, data.bitmasks.len());
-        assert_eq!(0, data.types.len());
+        assert_eq!(2, data.constants.len(None));
+        assert_eq!(0, data.enums.len(None));
+        assert_eq!(0, data.bitmasks.len(None));
+        assert_eq!(0, data.types.len(None));
 
         // Load an enum
-        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/test1.csv"].iter().collect::<PathBuf>(), None)?;
+        data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/test1.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
-        assert_eq!(2, data.constants.len());
-        assert_eq!(1, data.enums.len());
-        assert_eq!(0, data.bitmasks.len());
-        assert_eq!(0, data.types.len());
+        assert_eq!(2, data.constants.len(None));
+        assert_eq!(1, data.enums.len(None));
+        assert_eq!(0, data.bitmasks.len(None));
+        assert_eq!(0, data.types.len(None));
 
         // Load a .ron file
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test4.ron"].iter().collect::<PathBuf>(), None)?;
-        assert_eq!(3, data.constants.len());
-        assert_eq!(1, data.enums.len());
-        assert_eq!(0, data.bitmasks.len());
-        assert_eq!(0, data.types.len());
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test4.ron"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        assert_eq!(3, data.constants.len(None));
+        assert_eq!(1, data.enums.len(None));
+        assert_eq!(0, data.bitmasks.len(None));
+        assert_eq!(0, data.types.len(None));
 
         // Correctly error on bad filename
-        assert!(data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/NOSUCHFILE"].iter().collect::<PathBuf>(), None).is_err());
+        assert!(data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/NOSUCHFILE"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
 
         // Check a value
-        assert_eq!(&Integer::from(100), data.constants.get("test1").unwrap().get_by_name("TEST2").unwrap());
+        assert_eq!(&Integer::from(100u32), data.constants.get(None, "test1").unwrap().get_by_name("TEST2").unwrap());
 
         Ok(())
     }
@@ -366,21 +164,21 @@ mod tests {
     #[test]
     fn test_load_directory() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_enums(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), None)?;
+        data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
-        assert_eq!(0, data.constants.len());
-        assert_eq!(3, data.enums.len());
-        assert_eq!(0, data.bitmasks.len());
-        assert_eq!(0, data.types.len());
+        assert_eq!(0, data.constants.len(None));
+        assert_eq!(3, data.enums.len(None));
+        assert_eq!(0, data.bitmasks.len(None));
+        assert_eq!(0, data.types.len(None));
 
         // Check the names
-        let mut e = data.list_enums();
+        let mut e = data.enums.list(None)?;
         e.sort();
         assert_eq!(vec!["test1", "test2", "test3"], e);
 
         // Retrieve a value
-        assert_eq!(vec!["TEST2".to_string()], data.lookup_enum("test1", 100)?);
+        assert_eq!(vec!["TEST2".to_string()], data.enums.lookup(None, "test1", &Integer::from(100u32))?);
 
         Ok(())
     }
@@ -388,36 +186,36 @@ mod tests {
     #[test]
     fn test_deeply_nested() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>(), None)?;
+        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
-        assert_eq!(1, data.constants.len());
-        assert_eq!(0, data.enums.len());
-        assert_eq!(0, data.bitmasks.len());
-        assert_eq!(0, data.types.len());
+        assert_eq!(1, data.constants.len(None));
+        assert_eq!(0, data.enums.len(None));
+        assert_eq!(0, data.bitmasks.len(None));
+        assert_eq!(0, data.types.len(None));
 
         // Check a value
-        assert_eq!(&Integer::from(100), data.constants.get("constants").unwrap().get_by_name("TEST2").unwrap());
+        assert_eq!(&Integer::from(100u32), data.constants.get(None, "constants").unwrap().get_by_name("TEST2").unwrap());
 
         Ok(())
     }
 
-    #[test]
-    fn test_prefix() -> SimpleResult<()> {
-        let mut data = Data::new();
-        data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), Some("MY_PREFIX"))?;
+    // #[test]
+    // fn test_namespace() -> SimpleResult<()> { XXX TEST THIS
+    //     let mut data = Data::new();
+    //     data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), Some("MY_PREFIX"))?;
 
-        // Make sure the output is sensible
-        assert_eq!(1, data.constants.len());
-        assert_eq!(0, data.enums.len());
-        assert_eq!(0, data.bitmasks.len());
-        assert_eq!(0, data.types.len());
+    //     // Make sure the output is sensible
+    //     assert_eq!(1, data.constants.len(None)?);
+    //     assert_eq!(0, data.enums.len(None)?);
+    //     assert_eq!(0, data.bitmasks.len(None)?);
+    //     assert_eq!(0, data.types.len(None)?);
 
-        // Check a value
-        assert_eq!(&Integer::from(100), data.constants.get("MY_PREFIX::test1").unwrap().get_by_name("TEST2").unwrap());
+    //     // Check a value
+    //     assert_eq!(&Integer::from(100), data.constants.get("MY_PREFIX::test1").unwrap().get_by_name("TEST2").unwrap());
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     #[test]
     fn test_ambiguous_two_steps() -> SimpleResult<()> {
@@ -427,8 +225,8 @@ mod tests {
         let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
         // Works the first time, not the second
-        data.load_constants(&path, None)?;
-        assert!(data.load_constants(&path, None).is_err());
+        data.constants.load(&path, &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        assert!(data.constants.load(&path, &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
 
         Ok(())
     }
@@ -436,48 +234,48 @@ mod tests {
     #[test]
     fn test_ambiguous_one_step() -> SimpleResult<()> {
         // Immediately fails
-        assert!(Data::new().load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>(), None).is_err());
+        assert!(Data::new().constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
 
         Ok(())
     }
 
-    #[test]
-    fn test_prefix_resolves_ambiguity() -> SimpleResult<()> {
-        // Tests ambiguity from loading one, then loading a duplicate
-        let mut data = Data::new();
-        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
+    // #[test]
+    // fn test_prefix_resolves_ambiguity() -> SimpleResult<()> {
+    //     // Tests ambiguity from loading one, then loading a duplicate
+    //     let mut data = Data::new();
+    //     let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
-        // First time works
-        data.load_constants(&path, None)?;
-        assert_eq!(1, data.constants.len());
+    //     // First time works
+    //     data.load_constants(&path, None)?;
+    //     assert_eq!(1, data.constants.len(None)?);
 
-        // Second time fails, when bare
-        assert!(data.load_constants(&path, None).is_err());
+    //     // Second time fails, when bare
+    //     assert!(data.load_constants(&path, None).is_err());
 
-        // Second time works, when we give it a name
-        data.load_constants(&path, Some("MY_PREFIX"))?;
-        assert_eq!(2, data.constants.len());
+    //     // Second time works, when we give it a name
+    //     data.load_constants(&path, Some("MY_PREFIX"))?;
+    //     assert_eq!(2, data.constants.len(None)?);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    #[test]
-    fn test_prefix_resolves_ambiguity_directory() -> SimpleResult<()> {
-        // Tests ambiguity from loading one, then loading a duplciate
-        let mut data = Data::new();
-        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants"].iter().collect::<PathBuf>();
+    // #[test]
+    // fn test_prefix_resolves_ambiguity_directory() -> SimpleResult<()> {
+    //     // Tests ambiguity from loading one, then loading a duplciate
+    //     let mut data = Data::new();
+    //     let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants"].iter().collect::<PathBuf>();
 
-        // First time works
-        data.load_constants(&path, None)?;
-        assert_eq!(4, data.constants.len());
+    //     // First time works
+    //     data.load_constants(&path, None)?;
+    //     assert_eq!(4, data.constants.len(None)?);
 
-        // Second time fails, when bare
-        assert!(data.load_constants(&path, None).is_err());
+    //     // Second time fails, when bare
+    //     assert!(data.load_constants(&path, None).is_err());
 
-        // Second time works, when we give it a name
-        data.load_constants(&path, Some("MY_PREFIX"))?;
-        assert_eq!(8, data.constants.len());
+    //     // Second time works, when we give it a name
+    //     data.load_constants(&path, Some("MY_PREFIX"))?;
+    //     assert_eq!(8, data.constants.len(None)?);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }

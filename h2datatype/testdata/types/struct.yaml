@@ -1,20 +1,15 @@
-field:
-  H2Struct:
-    fields:
-      - - field1
-        - field:
-            H2Integer:
-              reader:
-                U32: Little
-              renderer:
-                Default: {}
-          alignment: None
-      - - field2
-        - field:
-            H2Integer:
-              reader:
-                U32: Little
-              renderer:
-                Default: {}
-          alignment: None
-alignment: None
+---
+H2Struct:
+  fields:
+    - - a
+      - H2Integer:
+          reader:
+            U32: Little
+          renderer:
+            Default: {}
+    - - b
+      - H2Integer:
+          reader:
+            U32: Little
+          renderer:
+            Default: {}
