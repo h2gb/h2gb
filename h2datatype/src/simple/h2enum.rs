@@ -110,12 +110,12 @@ mod tests {
     use simple_error::SimpleResult;
     use generic_number::{Context, Endian, IntegerReader, HexFormatter};
 
-    use crate::data::{DataTrait, LoadOptions, LoadNamespace, LoadName};
+    use crate::data::{LoadOptions, LoadNamespace, LoadName};
 
     #[test]
     fn test_enum_reader() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        data.enums.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         let test_buffer = b"\x01\x64\xff\xff\x01\x00\x00\x00".to_vec();
 

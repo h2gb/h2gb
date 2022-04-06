@@ -25,6 +25,8 @@ License: MIT
 
 * [h2datatype/src/data](/h2datatype/src/data/README.md) - Pre-canned datatypes for easier analysis.
 
+* [h2datatype/src/data.old](/h2datatype/src/data.old/README.md) - Pre-canned datatypes for easier analysis.
+
 * [h2gb/src/analyzer](/h2gb/src/analyzer/README.md) - So far, this is a simple demonstration of what we can do
 
 * [h2transformation/src](/h2transformation/src/README.md) - A library for transforming raw data between encodings.

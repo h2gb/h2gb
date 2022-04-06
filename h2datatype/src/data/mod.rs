@@ -1,5 +1,7 @@
 //! Pre-canned datatypes for easier analysis.
 //!
+//! XXX: This has gone way outta date
+//!
 //! This module is a layer designed for accessing information that is stored on-
 //! disk. Definitions of constants, lists of enums, stuff like that.
 //!
@@ -81,10 +83,15 @@ where K: Eq + Hash + Debug
     Ok(())
 }
 
-/// The struct that holds data. Not designed to be serialized or stored.
+/// Holds a variety of different datatypes during program execution.
 ///
-/// TODO: write more about Data
-/// This structure is recursive - data can be nested to any level, or none.
+/// This is designed to be initialized when the program executes, stored exactly
+/// once in memory (due to size), and passed around as an immutable reference.
+///
+/// I can conceive of a future where this loads data opportunistically, but
+/// that's an optimization I don't plan to do unless we need it.
+///
+/// To use any of the fields, access the internal [`DataEntry`] fields directly.
 #[derive(Default, Debug)]
 pub struct Data {
     pub constants: DataEntry<Constants>,
@@ -119,7 +126,7 @@ mod tests {
     #[test]
     fn test_load_file() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        data.constants.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
         assert_eq!(1, data.constants.len(None));
@@ -128,7 +135,7 @@ mod tests {
         assert_eq!(0, data.types.len(None));
 
         // Load a second file
-        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        data.constants.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test2.json"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
         assert_eq!(2, data.constants.len(None));
@@ -137,7 +144,7 @@ mod tests {
         assert_eq!(0, data.types.len(None));
 
         // Load an enum
-        data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/test1.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        data.enums.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/test1.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
         assert_eq!(2, data.constants.len(None));
@@ -146,14 +153,14 @@ mod tests {
         assert_eq!(0, data.types.len(None));
 
         // Load a .ron file
-        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test4.ron"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        data.constants.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test4.ron"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
         assert_eq!(3, data.constants.len(None));
         assert_eq!(1, data.enums.len(None));
         assert_eq!(0, data.bitmasks.len(None));
         assert_eq!(0, data.types.len(None));
 
         // Correctly error on bad filename
-        assert!(data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/NOSUCHFILE"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
+        assert!(data.enums.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/NOSUCHFILE"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
 
         // Check a value
         assert_eq!(&Integer::from(100u32), data.constants.get(None, "test1").unwrap().get_by_name("TEST2").unwrap());
@@ -164,7 +171,7 @@ mod tests {
     #[test]
     fn test_load_directory() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.enums.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        data.enums.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/enums/"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
         assert_eq!(0, data.constants.len(None));
@@ -186,7 +193,7 @@ mod tests {
     #[test]
     fn test_deeply_nested() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        data.constants.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/nested"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
 
         // Make sure the output is sensible
         assert_eq!(1, data.constants.len(None));
@@ -225,8 +232,8 @@ mod tests {
         let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
         // Works the first time, not the second
-        data.constants.load(&path, &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
-        assert!(data.constants.load(&path, &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
+        data.constants.load_path(&path, &LoadOptions::new(LoadNamespace::None, LoadName::Auto))?;
+        assert!(data.constants.load_path(&path, &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
 
         Ok(())
     }
@@ -234,7 +241,7 @@ mod tests {
     #[test]
     fn test_ambiguous_one_step() -> SimpleResult<()> {
         // Immediately fails
-        assert!(Data::new().constants.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
+        assert!(Data::new().constants.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/ambiguous"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::None, LoadName::Auto)).is_err());
 
         Ok(())
     }

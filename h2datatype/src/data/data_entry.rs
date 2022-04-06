@@ -26,7 +26,17 @@ where K: Eq + Hash + Debug
     Ok(())
 }
 
-/// The core [`Data`] struct, which holds all data data that has been loaded.
+/// [`DataEntry`] is the core struct that holds a single type of data.
+///
+/// A single type of data can be any class that implements [`DataTrait`]. In
+/// practice, at the time of this writing, there are four kinds: Enums,
+/// Bitmasks, Constants, and Types. Since many of the datatypes (all but Types)
+/// are basically key-value pairs, we have extra support for types that
+/// implement [`Lookupable`], to skip a step and perform a lookup.
+///
+/// All data is optionally namespaced. That is, the data is organized by
+/// a "namespace", which helps group things and prevent conflicts. Mostly
+/// these functions raise an error if trying to access a non-existent namespace.
 #[derive(Debug)]
 pub struct DataEntry<T: DataTrait> {
     namespaces: HashMap<Option<String>, HashMap<String, T>>,
@@ -46,10 +56,19 @@ impl<T: DataTrait> DataEntry<T> {
         Self::default()
     }
 
-    /// Load data from a [`Path`] (either a file or directory)
+    /// Load data from a [`Path`] (either a file or directory).
+    ///
+    /// Special options (such as which namespace and how to name the values)
+    /// are stored in the `options` argument. See the [`LoadOptions`] definition
+    /// for all that.
+    ///
+    /// This will return an error if the path doesn't exist, if any of the files
+    /// can't be parsed, or if any duplicate names end up existing. We try to
+    /// raise errors before actually making changes - the data *should* be
+    /// consistent (ie, nothing loaded) if an error is raised.
     ///
     /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load(&mut self, path: &Path, options: &LoadOptions) -> SimpleResult<&Self> {
+    pub fn load_path(&mut self, path: &Path, options: &LoadOptions) -> SimpleResult<&Self> {
         // This is kinda clunky, but it ensures that we don't have duplicates
         // within a set
         let mut duplicates: HashSet<String> = HashSet::new();
@@ -100,6 +119,7 @@ impl<T: DataTrait> DataEntry<T> {
         let namespace = match &options.namespace {
             LoadNamespace::None => None,
             LoadNamespace::Auto => {
+                // XXX: This needs an implementation
                 todo!();
             },
             LoadNamespace::Specific(s) => Some(s.to_owned()),
@@ -135,7 +155,9 @@ impl<T: DataTrait> DataEntry<T> {
         }
     }
 
-    /// Get the names of all available enums
+    /// Get the names of all available names in the namespace.
+    ///
+    /// Returns an `Err` if the namespace does not exist.
     pub fn list(&self, namespace: Option<&str>) -> SimpleResult<Vec<&str>>
     {
         Ok(self.namespace(namespace)?
@@ -157,10 +179,16 @@ impl<T: DataTrait> DataEntry<T> {
         }
     }
 
+    /// Does the namespace contain the given name?
+    ///
+    /// Returns an `Err` if the namespace does not exist.
     pub fn contains(&self, namespace: Option<&str>, name: impl AsRef<str>) -> SimpleResult<bool> {
         Ok(self.namespace(namespace)?.contains_key(name.as_ref()))
     }
 
+    /// How many entries exist in this namespace?
+    ///
+    /// Returns `0` if the namespace does not exist.
     pub fn len(&self, namespace: Option<&str>) -> usize {
         match self.namespace(namespace) {
             Ok(n) => n.len(),

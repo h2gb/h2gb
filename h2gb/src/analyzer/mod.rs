@@ -67,8 +67,8 @@ lazy_static! {
     static ref DATA: Data = {
         let mut data: Data = Data::new();
 
-        data.enums.load(   &[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/enums"   ].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::Specific("terraria".to_string()), LoadName::Auto)).unwrap();
-        data.bitmasks.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/bitmasks"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::Specific("terraria".to_string()), LoadName::Auto)).unwrap();
+        data.enums.load_path(   &[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/enums"   ].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::Specific("terraria".to_string()), LoadName::Auto)).unwrap();
+        data.bitmasks.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/bitmasks"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::Specific("terraria".to_string()), LoadName::Auto)).unwrap();
 
         data
     };

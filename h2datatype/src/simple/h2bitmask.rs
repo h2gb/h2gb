@@ -114,12 +114,12 @@ mod tests {
     use generic_number::{Context, IntegerReader, Endian, HexFormatter};
     use pretty_assertions::assert_eq;
 
-    use crate::data::{DataTrait, LoadOptions, LoadNamespace, LoadName};
+    use crate::data::{LoadOptions, LoadNamespace, LoadName};
 
     #[test]
     fn test_bitmask_reader() -> SimpleResult<()> {
         let mut data = Data::new();
-        data.bitmasks.load(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/visibility.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::Specific("terraria".to_string()), LoadName::Auto))?;
+        data.bitmasks.load_path(&[env!("CARGO_MANIFEST_DIR"), "testdata/terraria/visibility.csv"].iter().collect::<PathBuf>(), &LoadOptions::new(LoadNamespace::Specific("terraria".to_string()), LoadName::Auto))?;
 
         let test_buffer = b"\x00\x00\x00\x01\x00\x02\x00\x03\x80\x01".to_vec();
         let context = Context::new(&test_buffer);

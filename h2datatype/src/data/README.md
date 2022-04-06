@@ -2,6 +2,8 @@
 
 Pre-canned datatypes for easier analysis.
 
+XXX: This has gone way outta date
+
 This module is a layer designed for accessing information that is stored on-
 disk. Definitions of constants, lists of enums, stuff like that.
 
