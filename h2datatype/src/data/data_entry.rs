@@ -56,6 +56,34 @@ impl<T: DataTrait> DataEntry<T> {
         Self::default()
     }
 
+    /// Load a set of data into a namespace.
+    ///
+    /// The namespace will automatically be created if it does not already
+    /// exist. Any duplicate names within the namespace will return an error
+    /// and nothing will be inserted (the insert is atomic).
+    pub fn load_data(&mut self, namespace: Option<String>, data: impl Into<Vec<(String, T)>>) -> SimpleResult<()> {
+        // Get or insert the namespace
+        let mut n = self.namespaces.entry(namespace).or_insert(HashMap::new());
+
+        // Extend the list, but raise an error if there are duplicates
+        // (This extend is atomic, in that it won't insert anything if one entry
+        // is bad)
+        if let Err(e) = extend_no_duplicates(&mut n, data.into()) {
+            bail!("Could not load data: {}", e);
+        }
+
+        Ok(())
+    }
+
+    /// Load a single instance of data into a namespace.
+    ///
+    /// The namespace with automatically be created if it does not already
+    /// exist. If the name already exists, an error is returned.
+    pub fn load_datum(&mut self, namespace: Option<String>, name: impl Into<String>, data: impl Into<T>) -> SimpleResult<()> {
+        // Just off-load to the load_data function
+        self.load_data(namespace, vec![(name.into(), data.into())])
+    }
+
     /// Load data from a [`Path`] (either a file or directory).
     ///
     /// Special options (such as which namespace and how to name the values)
@@ -68,7 +96,7 @@ impl<T: DataTrait> DataEntry<T> {
     /// consistent (ie, nothing loaded) if an error is raised.
     ///
     /// Supports: YAML, CSV, JSON, and RON (based on extension)
-    pub fn load_path(&mut self, path: &Path, options: &LoadOptions) -> SimpleResult<&Self> {
+    pub fn load_path(&mut self, path: &Path, options: &LoadOptions) -> SimpleResult<()> {
         // This is kinda clunky, but it ensures that we don't have duplicates
         // within a set
         let mut duplicates: HashSet<String> = HashSet::new();
@@ -125,17 +153,7 @@ impl<T: DataTrait> DataEntry<T> {
             LoadNamespace::Specific(s) => Some(s.to_owned()),
         };
 
-        // Get or insert the namespace
-        let mut n = self.namespaces.entry(namespace).or_insert(HashMap::new());
-
-        // Extend the list, but raise an error if there are duplicates
-        // (This extend is atomic, in that it won't insert anything if one entry
-        // is bad)
-        if let Err(e) = extend_no_duplicates(&mut n, thing) {
-            bail!("Could not load data from {:?}: {}", path, e);
-        }
-
-        Ok(self)
+        self.load_data(namespace, thing)
     }
 
     /// Get a list of all namespaces
