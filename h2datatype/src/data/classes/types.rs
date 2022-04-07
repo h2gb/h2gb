@@ -3,38 +3,20 @@ use simple_error::SimpleResult;
 use crate::H2Type;
 use crate::data::traits::DataTrait;
 
-#[derive(Debug)]
-pub struct Types {
-    h2type: H2Type,
-}
+/// A Types entry is literally just an alias of [`H2Type`].
+pub type Types = H2Type;
 
-impl Types {
-    pub fn get(&self) -> &H2Type {
-        &self.h2type
-    }
-}
-
-impl From<&H2Type> for Types {
-    fn from(o: &H2Type) -> Self {
-        Self {
-            h2type: o.clone()
-        }
-    }
-}
-
-impl DataTrait for Types {
-    type SerializedType = H2Type;
+impl DataTrait for H2Type {
+    type SerializedType = Self;
 
     /// Load the data from the type that was serialized.
     fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
-        Ok(Self {
-            h2type: data.to_owned(),
-        })
+        Ok(data.to_owned())
     }
 
     /// Get the data in a format that can be serialized
     fn save(&self) -> SimpleResult<Self::SerializedType> {
-        Ok(self.h2type.clone())
+        Ok(self.clone())
     }
 }
 
@@ -48,6 +30,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::Data;
+    use crate::data::DataTrait;
     // use crate::composite::*;
     // use crate::simple::numeric::*;
 
@@ -67,7 +50,7 @@ mod tests {
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields
         let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-        let resolved = constants.get().as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default())?;
+        let resolved = constants.as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default())?;
         assert_eq!(2, resolved.children.len());
         assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
         assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
@@ -90,7 +73,7 @@ mod tests {
         // We can't equate types, but we know it it's a struct with two U32 LE
         // fields
         let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-        let resolved = constants.get().as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default())?;
+        let resolved = constants.as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default())?;
         assert_eq!(2, resolved.children.len());
         assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
         assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
