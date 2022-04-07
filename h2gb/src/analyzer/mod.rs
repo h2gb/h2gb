@@ -10,7 +10,7 @@ use hhmmss::Hhmmss;
 
 use h2transformation::{TransformBlockCipher, BlockCipherType, BlockCipherMode, BlockCipherPadding};
 
-use h2datatype::data::{Data, DataTrait, LoadOptions, LoadNamespace, LoadName};
+use h2datatype::data::{Data, LoadOptions, LoadNamespace, LoadName};
 use h2datatype::simple::{H2Bitmask, H2Enum, Rgb};
 use h2datatype::simple::numeric::H2Integer;
 use h2datatype::simple::string::{H2String, LPString};

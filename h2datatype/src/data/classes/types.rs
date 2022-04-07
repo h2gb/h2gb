@@ -1,6 +1,6 @@
 use simple_error::SimpleResult;
 
-use crate::{H2Type, H2TypeTrait};
+use crate::H2Type;
 use crate::data::traits::DataTrait;
 
 #[derive(Debug)]

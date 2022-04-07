@@ -4,7 +4,7 @@ use simple_error::{SimpleResult, bail};
 use generic_number::{Context, Integer, IntegerReader, IntegerRenderer};
 
 use crate::{Alignment, Data, H2Type, H2TypeTrait};
-use crate::data::{BitmaskOptions, Lookupable};
+use crate::data::BitmaskOptions;
 
 /// Defines a numerical value.
 ///

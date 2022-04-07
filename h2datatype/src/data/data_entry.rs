@@ -28,15 +28,10 @@ where K: Eq + Hash + Debug
 
 /// [`DataEntry`] is the core struct that holds a single type of data.
 ///
-/// A single type of data can be any class that implements [`DataTrait`]. In
-/// practice, at the time of this writing, there are four kinds: Enums,
-/// Bitmasks, Constants, and Types. Since many of the datatypes (all but Types)
-/// are basically key-value pairs, we have extra support for types that
-/// implement [`Lookupable`], to skip a step and perform a lookup.
-///
-/// All data is optionally namespaced. That is, the data is organized by
-/// a "namespace", which helps group things and prevent conflicts. Mostly
-/// these functions raise an error if trying to access a non-existent namespace.
+/// Mostly, this is a pretty thin wrapper that adds namespaces, and passes most
+/// requests through to the internal trait functions - [`DataTrait`] and
+/// [`Lookupable`] (and the modules that implement them) do most of the actual
+/// effort.
 #[derive(Debug)]
 pub struct DataEntry<T: DataTrait> {
     namespaces: HashMap<Option<String>, HashMap<String, T>>,

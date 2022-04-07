@@ -52,7 +52,7 @@ impl Bitmasks {
     }
 
     pub fn get_by_value(&self, value: impl Into<Integer>, options: &BitmaskOptions) -> Vec<String> {
-        let mut value: Integer = value.into();
+        let value: Integer = value.into();
         let mut value: u128 = value.into();
         let mut out = vec![];
 

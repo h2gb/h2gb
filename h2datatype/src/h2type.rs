@@ -51,7 +51,8 @@ pub enum H2Type {
 }
 
 impl H2Type {
-    pub fn as_trait<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
+    /// XXX: This needs a named-reference option
+    pub fn as_trait<'a>(&'a self, _data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
         Ok(match self {
             // Simple
             H2Type::Rgb(t)       => t,

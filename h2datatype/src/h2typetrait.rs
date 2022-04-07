@@ -25,21 +25,6 @@ use crate::{Alignment, Data, ResolvedType, H2Type};
 /// address of the last child from the first address of the first, but
 /// simple types have no children.
 pub trait H2TypeTrait {
-    /// Update the [`Data`] namespace that this type is a part of.
-    ///
-    /// This is usually used internally for types that are serialized or
-    /// deserialized, and types that themselves use [`Data`] - for example,
-    /// [`H2Enum`] and [`H2Bitmask`]. If they need to reference a "local"
-    /// namespace - that is, the wrong that they are part of - this is how they
-    /// find out about that, without namespaces being passed into every
-    /// function call ever.
-    ///
-    /// Types that don't care what namespace they are in can just ignore this.
-    /// And probably this should only be called by the deserializer.
-    fn update_namespace(&mut self, namespace: String) {
-        // Just ignore by default
-    }
-
     /// The actual size, in bytes, of a type. This does not include alignment
     /// or padding.
     ///
