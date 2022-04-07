@@ -268,23 +268,6 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_namespace() -> SimpleResult<()> { XXX TEST THIS
-    //     let mut data = Data::new();
-    //     data.load_constants(&[env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>(), Some("MY_PREFIX"))?;
-
-    //     // Make sure the output is sensible
-    //     assert_eq!(1, data.constants.len(None)?);
-    //     assert_eq!(0, data.enums.len(None)?);
-    //     assert_eq!(0, data.bitmasks.len(None)?);
-    //     assert_eq!(0, data.types.len(None)?);
-
-    //     // Check a value
-    //     assert_eq!(&Integer::from(100), data.constants.get("MY_PREFIX::test1").unwrap().get_by_name("TEST2").unwrap());
-
-    //     Ok(())
-    // }
-
     #[test]
     fn test_ambiguous_two_steps() -> SimpleResult<()> {
         // Tests ambiguity from loading one, then loading a duplciate
@@ -307,26 +290,21 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_prefix_resolves_ambiguity() -> SimpleResult<()> {
-    //     // Tests ambiguity from loading one, then loading a duplicate
-    //     let mut data = Data::new();
-    //     let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
+    #[test]
+    fn test_auto_namespace() -> SimpleResult<()> {
+        let mut data = Data::new();
+        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants/test1.csv"].iter().collect::<PathBuf>();
 
-    //     // First time works
-    //     data.load_constants(&path, None)?;
-    //     assert_eq!(1, data.constants.len(None)?);
+        // Loading with an automatic namespace should create a namespace named after the folder, and a set of constants names after the file
+        data.constants.load_path(&path, &LoadOptions::new(LoadNamespace::Auto, LoadName::Auto))?;
+        assert_eq!(1, data.constants.list_namespaces().len());
+        assert_eq!(vec!["constants".to_string()], data.constants.list_namespaces());
+        assert_eq!(vec!["TEST1".to_string()], data.constants.lookup(Some("constants"), "test1", 1)?);
 
-    //     // Second time fails, when bare
-    //     assert!(data.load_constants(&path, None).is_err());
+        Ok(())
+    }
 
-    //     // Second time works, when we give it a name
-    //     data.load_constants(&path, Some("MY_PREFIX"))?;
-    //     assert_eq!(2, data.constants.len(None)?);
-
-    //     Ok(())
-    // }
-
+    // XXX: Can we find a way to test the sorta-complex duplicates rule
     // #[test]
     // fn test_prefix_resolves_ambiguity_directory() -> SimpleResult<()> {
     //     // Tests ambiguity from loading one, then loading a duplciate

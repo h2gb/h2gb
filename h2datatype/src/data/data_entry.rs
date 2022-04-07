@@ -103,14 +103,14 @@ impl<T: DataTrait> DataEntry<T> {
     pub fn load_path(&mut self, path: &Path, options: &LoadOptions) -> SimpleResult<()> {
         // This is kinda clunky, but it ensures that we don't have duplicates
         // within a set
-        let mut duplicates: HashSet<String> = HashSet::new();
+        let mut duplicates: HashSet<(Option<String>, String)> = HashSet::new();
 
         // Catch invalid paths
         if !path.exists() {
             bail!("No such path: {:?}", path);
         }
 
-        let thing: Vec<(String, T)> = WalkDir::new(path)
+        let thing: Vec<(Option<String>, (String, T))> = WalkDir::new(path)
             .into_iter()
             .filter_map(Result::ok)
             .filter(|e| !e.file_type().is_dir())
@@ -128,11 +128,34 @@ impl<T: DataTrait> DataEntry<T> {
                     LoadName::Specific(s) => s.to_owned(),
                 };
 
+                // Get the namespace, also based on settings
+                let namespace = match &options.namespace {
+                    LoadNamespace::None => None,
+                    LoadNamespace::Auto => {
+                        match path.parent() {
+                            Some(p) => match p.file_stem() {
+                                Some(p) => Some(p.to_string_lossy().to_string()),
+                                None => bail!("Could not read parent name on path {:?}", path),
+                            },
+                            None => bail!("Could not read parent name on path {:?}", path),
+                        }
+                    },
+                    LoadNamespace::Specific(s) => Some(s.to_owned()),
+                };
+
                 // Check for duplicates within this group
-                if duplicates.contains(&name) {
-                    bail!("Duplicate name: {} (from path {:?})", name, path);
+                if duplicates.contains(&(namespace.clone(), name.clone())) {
+                    bail!("Duplicate name within set: {:?}::{} (from path {:?})", namespace, name, path);
                 }
-                duplicates.insert(name.clone());
+                duplicates.insert((namespace.clone(), name.clone()));
+
+                // Check if the namespace already exists
+                if let Ok(n) = self.namespace(namespace.as_deref()) {
+                    // If the namespace exists, check if it already contains the key - that's bad!
+                    if n.contains_key(&name) {
+                        bail!("Duplicate name from previous data: {:?}::{} (from path {:?})", namespace, name, path);
+                    }
+                }
 
                 // Load based on the extension
                 let data = match FileType::from_filename(path) {
@@ -143,21 +166,16 @@ impl<T: DataTrait> DataEntry<T> {
                     None => bail!("Unrecognized file type: {:?}", path),
                 };
 
-                Ok((name, data))
+                Ok((namespace, (name, data)))
             })
-            .collect::<SimpleResult<Vec<(String, T)>>>()?;
+            .collect::<SimpleResult<Vec<(Option<String>, (String, T))>>>()?;
 
-        // Figure out the namespace, based on the options
-        let namespace = match &options.namespace {
-            LoadNamespace::None => None,
-            LoadNamespace::Auto => {
-                // XXX: This needs an implementation
-                todo!();
-            },
-            LoadNamespace::Specific(s) => Some(s.to_owned()),
-        };
+        // If we've gotten here, we know we're free of duplicates and can load the data
+        for (namespace, data) in thing.into_iter() {
+            self.load_data(namespace, vec![data])?;
+        }
 
-        self.load_data(namespace, thing)
+        Ok(())
     }
 
     /// Get a list of all namespaces.
