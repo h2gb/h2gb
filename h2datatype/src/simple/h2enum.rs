@@ -59,7 +59,7 @@ impl H2Enum {
     }
 
     fn render(&self, value: impl Into<Integer> + Copy, data: &Data) -> SimpleResult<String> {
-        match data.enums.lookup(self.namespace.as_ref().map(|n| n.as_ref()), &self.enum_type, &value.into()) {
+        match data.enums.lookup(self.namespace.as_ref().map(|n| n.as_ref()), &self.enum_type, value) {
             Ok(v) => {
                 match v.len() {
                     0 => {

@@ -6,9 +6,9 @@ pub trait Lookupable : Sized {
     type LookupResult : DeserializeOwned + Serialize;
     type LookupOptions : Default;
 
-    fn lookup_options(&self, value: &Self::LookupBy, options: Self::LookupOptions) -> Self::LookupResult;
+    fn lookup_options(&self, value: impl Into<Self::LookupBy>, options: Self::LookupOptions) -> Self::LookupResult;
 
-    fn lookup(&self, value: &Self::LookupBy) -> Self::LookupResult {
+    fn lookup(&self, value: impl Into<Self::LookupBy>) -> Self::LookupResult {
         self.lookup_options(value, Default::default())
     }
 }

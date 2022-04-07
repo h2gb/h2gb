@@ -229,14 +229,14 @@ impl<T: DataTrait> DataEntry<T> {
 }
 
 impl<T: DataTrait + Lookupable> DataEntry<T> {
-    pub fn lookup(&self, namespace: Option<&str>, name: impl AsRef<str>, value: &T::LookupBy) -> SimpleResult<T::LookupResult> {
+    pub fn lookup(&self, namespace: Option<&str>, name: impl AsRef<str>, value: impl Into<T::LookupBy>) -> SimpleResult<T::LookupResult> {
         match self.namespace(namespace)?.get(name.as_ref()) {
             Some(e) => Ok(e.lookup(value)),
             None => bail!("Could not find {}", name.as_ref()),
         }
     }
 
-    pub fn lookup_options(&self, namespace: Option<&str>, name: impl AsRef<str>, value: &T::LookupBy, options: T::LookupOptions) -> SimpleResult<T::LookupResult> {
+    pub fn lookup_options(&self, namespace: Option<&str>, name: impl AsRef<str>, value: impl Into<T::LookupBy>, options: T::LookupOptions) -> SimpleResult<T::LookupResult> {
         match self.namespace(namespace)?.get(name.as_ref()) {
             Some(e) => Ok(e.lookup_options(value, options)),
             None => bail!("Could not find {}", name.as_ref()),
@@ -330,16 +330,16 @@ mod tests {
         assert_eq!(1, d.len(None));
 
         // Test a normal value
-        assert_eq!(vec!["field1"], d.lookup(Some("MyNamespace"), "name1", &1.into())?);
+        assert_eq!(vec!["field1"], d.lookup(Some("MyNamespace"), "name1", 1u32)?);
 
         // Test a bad value
-        assert_eq!(Vec::<&str>::new(), d.lookup(Some("MyNamespace"), "name1", &10000.into())?);
+        assert_eq!(Vec::<&str>::new(), d.lookup(Some("MyNamespace"), "name1", 10000u32)?);
 
         // Ensure empty namespace = no value
-        assert_eq!(Vec::<&str>::new(), d.lookup(None, "name1", &1.into())?);
+        assert_eq!(Vec::<&str>::new(), d.lookup(None, "name1", 1u32)?);
 
         // Ensure non-existent namespace = error
-        assert!(d.lookup(Some("NoSuchNamespace"), "name1", &1.into()).is_err());
+        assert!(d.lookup(Some("NoSuchNamespace"), "name1", 1u32).is_err());
 
         // Test lengths
         assert_eq!(1, d.list_namespaces().len());

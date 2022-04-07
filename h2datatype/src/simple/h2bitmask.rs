@@ -72,7 +72,7 @@ impl H2Bitmask {
             None    => BitmaskOptions::new(None, self.show_negative),
         };
 
-        let result = data.bitmasks.lookup_options(self.namespace.as_deref(), &self.bitmask_type, &value.into(), Some(options))?;
+        let result = data.bitmasks.lookup_options(self.namespace.as_deref(), &self.bitmask_type, value, Some(options))?;
 
         if result.len() == 0 {
             Ok("(n/a)".to_string())
