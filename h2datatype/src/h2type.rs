@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-use simple_error::SimpleResult;
+use simple_error::{SimpleResult, bail};
 
 use crate::{H2TypeTrait, Data};
 use crate::simple::*;
@@ -57,7 +57,6 @@ pub enum H2Type {
 }
 
 impl H2Type {
-    /// XXX: This needs a named-reference option
     pub fn as_trait<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
         Ok(match self {
             // Simple
@@ -94,76 +93,92 @@ impl H2Type {
             },
         })
     }
+
+    pub fn new_ref_unchecked(namespace: Option<String>, name: impl Into<String>) -> Self {
+        Self::Ref((namespace, name.into()))
+    }
+
+    pub fn new_ref(namespace: Option<String>, name: impl Into<String>, data: &Data) -> SimpleResult<Self> {
+        // Sanity check
+        let name: String = name.into();
+        if !data.types.contains(namespace.as_deref(), &name)? {
+            bail!("No such type when creating a reference: {:?}::{}", &namespace, &name);
+        }
+
+        Ok(Self::new_ref_unchecked(namespace, name))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
 
-    // use simple_error::SimpleResult;
-    // use pretty_assertions::assert_eq;
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
 
-    // use crate::Data;
+    use crate::Data;
 
-    // use generic_number::*;
+    use generic_number::*;
 
-    // #[test]
-    // fn test_as_trait_named_reference() -> SimpleResult<()> {
-    //     let mut d = Data::new();
+    #[test]
+    fn test_named_type_reference() -> SimpleResult<()> {
+        let mut d = Data::new();
 
-    //     d.insert_type("test_integer", H2Integer::new(
-    //         IntegerReader::U32(Endian::Little),
-    //         DefaultFormatter::new(),
-    //     ))?;
+        // Load a test type
+        d.types.load_datum(
+            Some("Namespace".to_string()),
+            "TestType",
+            H2Integer::new(
+                IntegerReader::U32(Endian::Little),
+                DefaultFormatter::new(),
+            )
+        )?;
 
-    //     let t: H2Type = H2Struct::new(vec![
-    //         (
-    //             "field1".to_string(),
-    //             H2Type::new_named("test_integer"),
-    //         ),
-    //         (
-    //             "field2".to_string(),
-    //             H2Type::new_named("test_integer"),
-    //         ),
-    //     ])?.into();
+        // Check the sanity checks
+        assert!(H2Type::new_ref(Some("NoSuchNamespace".to_string()), "TestType", &d).is_err());
+        assert!(H2Type::new_ref(Some("Namespace".to_string()), "NoSuchType", &d).is_err());
 
-    //     // We can't equate types, but we know it it's a struct with two U32 LE
-    //     // fields
-    //     let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-    //     let resolved = t.as_trait(&d)?.resolve(Context::new(&data), None, &d)?;
+        // Create a struct using reference fields
+        let t: H2Type = H2Struct::new(vec![
+            (
+                "field1".to_string(),
+                H2Type::new_ref(Some("Namespace".to_string()), "TestType", &d)?.into(),
+            ),
+            (
+                "field2".to_string(),
+                H2Type::new_ref(Some("Namespace".to_string()), "TestType", &d)?.into(),
+            ),
+        ])?.into();
 
-    //     assert_eq!(2, resolved.children.len());
-    //     assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
-    //     assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
+        // We can't equate types, but we know it it's a struct with two U32 LE
+        // fields
+        let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
+        let resolved = t.as_trait(&d)?.resolve(Context::new(&data), None, &d)?;
 
-    //     Ok(())
-    // }
+        assert_eq!(2, resolved.children.len());
+        assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
+        assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
 
-    // #[test]
-    // fn test_as_trait_failed_reference() -> SimpleResult<()> {
-    //     let mut d = Data::new();
+        Ok(())
+    }
 
-    //     d.insert_type("test_integer", H2Integer::new(
-    //         IntegerReader::U32(Endian::Little),
-    //         DefaultFormatter::new(),
-    //     ))?;
+    #[test]
+    fn test_as_trait_failed_reference() -> SimpleResult<()> {
+        // Create a struct with a bad reference
+        let t: H2Type = H2Struct::new(vec![
+            (
+                "field1".to_string(),
+                H2Type::new_ref_unchecked(Some("Namespace".to_string()), "TestType").into(),
+            ),
+        ])?.into();
 
-    //     let t: H2Type = H2Struct::new(vec![
-    //         (
-    //             "field1".to_string(),
-    //             H2Type::new_named("test_integer"),
-    //         ),
-    //         (
-    //             "field2".to_string(),
-    //             H2Type::new_named("not_test_integer"),
-    //         ),
-    //     ])?.into();
+        // Create some meaningless data
+        let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
 
-    //     // We can't equate types, but we know it it's a struct with two U32 LE
-    //     // fields
-    //     let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
-    //     assert!(t.as_trait(&d)?.resolve(Context::new(&data), None, &d).is_err());
+        // We can resolve the type to a trait, since nothing is wrong with the
+        // struct
+        assert!(t.as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default()).is_err());
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 }

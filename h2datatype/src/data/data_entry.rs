@@ -244,6 +244,20 @@ impl<T: DataTrait> DataEntry<T> {
             Err(_) => 0,
         }
     }
+
+    pub fn export_single_entry(&self, namespace: Option<&str>, name: impl AsRef<str>, file_type: FileType) -> SimpleResult<String> {
+        let out = match self.namespace(namespace)?.get(name.as_ref()) {
+            Some(t) => t,
+            None => bail!("Could not find type {:?} in namespace {:?}"),
+        };
+
+        match file_type {
+            FileType::CSV  => out.to_csv(),
+            FileType::RON  => out.to_ron(),
+            FileType::JSON => out.to_json(),
+            FileType::YAML => out.to_yaml(),
+        }
+    }
 }
 
 impl<T: DataTrait + Lookupable> DataEntry<T> {
@@ -363,6 +377,8 @@ mod tests {
         assert_eq!(1, d.list_namespaces().len());
         assert_eq!(2, d.list(Some("MyNamespace"))?.len());
         assert_eq!(1, d.list(None)?.len());
+
+        //println!("\n\n{}\n\n", d.export_single_entry(Some("MyNamespace"), "name1", FileType::CSV).unwrap());
 
         Ok(())
     }

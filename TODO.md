@@ -42,9 +42,5 @@
 * Things I forget why they're here
   * Move around modules in transformation/ so the transforms are in transform/
 
-
-
 XXX: Quick TODOs
-* Figure out how to run update_namespace at load time
-* Figure out how to handle local-vs-foreign data for h2enum/h2bitmask/etc.
-* Re-do NamedReference as a proper type
+* Figure out a way to write types (or structured data) to a file
