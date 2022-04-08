@@ -153,6 +153,8 @@ where K: Eq + Hash + Debug
 /// that's an optimization I don't plan to do unless we need it.
 ///
 /// To use any of the fields, access the internal [`DataEntry`] fields directly.
+///
+/// Lots of info on what's going on is available in the module documentation.
 #[derive(Default, Debug)]
 pub struct Data {
     pub constants: DataEntry<Constants>,

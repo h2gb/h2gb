@@ -7,14 +7,15 @@ use generic_number::{Integer, IntegerRenderer};
 
 use crate::data::traits::{DataTrait, Lookupable};
 
-/// A bitmask - ie, a list of binary flags (0/1).
-///
-/// XXX: Description
+/// Configures how a bitmask is displayed.
 pub struct BitmaskOptions {
     /// A prefix, followed by a renderer
     unknown_renderer: Option<(String, IntegerRenderer)>,
 
     /// Show bits that are turned off (ie, 0 bits)?
+    ///
+    /// This typically creates much longer output, because more values are
+    /// displayed - instead of just `A` you get `A | ~B | ~C | ~D | ...`.
     show_negatives: bool,
 }
 
@@ -36,6 +37,16 @@ impl Default for BitmaskOptions {
     }
 }
 
+/// A bitmask - ie, a list of binary flags.
+///
+/// A bitmask is effectively a list of name->value pairs, much like constants
+/// and enums, but in practice it has some differences.
+///
+/// A bitmask has, at most, 128 entries. Each entry is a number, which
+/// corresponds to a bit. So you might have `A => 0`, `B => 1`, `C => 2`, etc.
+/// When a value is fetched, it's matched against each bit and every "on" bit's
+/// label is returned (unless `BitmaskOptions::show_negatives` is set, then
+/// everything is returned).
 #[derive(Debug, Default)]
 pub struct Bitmasks {
     by_name: HashMap<String, u8>,
