@@ -19,6 +19,9 @@ use crate::composite::*;
 /// they have to read the object and iterate every time they're called. If you
 /// call `resolve()`, a static version will be created with the fields pre-
 /// calculated.
+///
+/// A special `H2Type` variant - [`H2Type::Ref`] - references the [`Data`]
+/// repository and points to a different named type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum H2Type {
     // Simple
@@ -48,11 +51,14 @@ pub enum H2Type {
     // Composite
     H2Array(H2Array),
     H2Struct(H2Struct),
+
+    // Reference to a type in [`Data`] - (namespace, name)
+    Ref((Option<String>, String)),
 }
 
 impl H2Type {
     /// XXX: This needs a named-reference option
-    pub fn as_trait<'a>(&'a self, _data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
+    pub fn as_trait<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
         Ok(match self {
             // Simple
             H2Type::Rgb(t)       => t,
@@ -80,6 +86,12 @@ impl H2Type {
             H2Type::H2String(t)  => t,
             H2Type::NTString(t)  => t,
             H2Type::LPString(t)  => t,
+
+            // Reference
+            H2Type::Ref((namespace, name)) => {
+                // TODO: How do I prevent infinite recursion here?
+                data.types.get(namespace.as_deref(), name)?.as_trait(data)?
+            },
         })
     }
 }
