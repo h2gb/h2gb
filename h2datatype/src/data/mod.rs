@@ -304,24 +304,34 @@ mod tests {
         Ok(())
     }
 
-    // XXX: Can we find a way to test the sorta-complex duplicates rule
-    // #[test]
-    // fn test_prefix_resolves_ambiguity_directory() -> SimpleResult<()> {
-    //     // Tests ambiguity from loading one, then loading a duplciate
-    //     let mut data = Data::new();
-    //     let path = [env!("CARGO_MANIFEST_DIR"), "testdata/constants"].iter().collect::<PathBuf>();
+    #[test]
+    fn test_load_ambiguity() -> SimpleResult<()> {
+        // Tests ambiguity from loading one, then loading a duplciate
+        let mut data = Data::new();
+        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/otherambiguous"].iter().collect::<PathBuf>();
 
-    //     // First time works
-    //     data.load_constants(&path, None)?;
-    //     assert_eq!(4, data.constants.len(None)?);
+        // If we load the /otherambiguous/ folder into a set namespace, it will
+        // fail because the two files have the same name
+        assert!(data.constants.load_path(&path, &LoadOptions::new(LoadNamespace::Specific("namespace".to_string()), LoadName::Auto)).is_err());
 
-    //     // Second time fails, when bare
-    //     assert!(data.load_constants(&path, None).is_err());
+        // Make sure nothing loaded
+        assert_eq!(0, data.constants.list_namespaces().len());
 
-    //     // Second time works, when we give it a name
-    //     data.load_constants(&path, Some("MY_PREFIX"))?;
-    //     assert_eq!(8, data.constants.len(None)?);
+        // Now automatically generate namespaces
+        assert!(data.constants.load_path(&path, &LoadOptions::new(LoadNamespace::Auto, LoadName::Auto)).is_ok());
 
-    //     Ok(())
-    // }
+        // Now there should be two namespaces
+        assert_eq!(2, data.constants.list_namespaces().len());
+
+        // Here, we have "namespace1" and "namespace2". Load another set of
+        // files that contains "namespace0" and "namespace1" - neither should
+        // load
+        let path = [env!("CARGO_MANIFEST_DIR"), "testdata/otherotherambiguous"].iter().collect::<PathBuf>();
+        assert!(data.constants.load_path(&path, &LoadOptions::new(LoadNamespace::Specific("namespace".to_string()), LoadName::Auto)).is_err());
+
+        // Nothing should have changed
+        assert_eq!(2, data.constants.list_namespaces().len());
+
+        Ok(())
+    }
 }
