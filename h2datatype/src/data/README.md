@@ -108,4 +108,19 @@ data.constants.load_datum(Some("MyNamespace".to_string()), "ConstantsName", cons
 assert_eq!(vec!["name1".to_string()], data.constants.lookup(Some("MyNamespace"), "ConstantsName", 1).unwrap());
 ```
 
+## File formats
+
+Generally, data is stored on the filesystem and loaded from files. For
+everything, we support JSON, YAML, and RON. Usually the parser is selected
+by the file's extension, though the code loading it can specify.
+
+We also support CSV for the simpler types - Constants, Enums, and Bitmaps.
+But more complex types, such as Types, don't work.
+
+TOML has similar problems to CSV, so I just opted to not support it at all.
+
+Usually, when data is loaded, the filename (without extension) is the
+_name_ of the type, and the parent folder name is the _namespace_. All
+that can be configured by the loader as well, though.
+
 License: MIT
