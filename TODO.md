@@ -41,6 +41,3 @@
 
 * Things I forget why they're here
   * Move around modules in transformation/ so the transforms are in transform/
-
-XXX: Quick TODOs
-* Figure out a way to write types (or structured data) to a file
