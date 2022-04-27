@@ -5,32 +5,65 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::{Integer, IntegerRenderer};
 
-use crate::data::DataTrait;
+use crate::data::traits::{DataTrait, Lookupable};
 
-/// A bitmask - ie, a list of binary flags (0/1).
+/// Configures how a bitmask is displayed.
+pub struct BitmaskOptions {
+    /// A prefix, followed by a renderer
+    unknown_renderer: Option<(String, IntegerRenderer)>,
+
+    /// Show bits that are turned off (ie, 0 bits)?
+    ///
+    /// This typically creates much longer output, because more values are
+    /// displayed - instead of just `A` you get `A | ~B | ~C | ~D | ...`.
+    show_negatives: bool,
+}
+
+impl BitmaskOptions {
+    pub fn new(unknown_renderer: Option<(String, IntegerRenderer)>, show_negatives: bool) -> Self {
+        Self {
+            unknown_renderer: unknown_renderer,
+            show_negatives: show_negatives,
+        }
+    }
+}
+
+impl Default for BitmaskOptions {
+    fn default() -> Self {
+        Self {
+            unknown_renderer: None,
+            show_negatives: false,
+        }
+    }
+}
+
+/// A bitmask - ie, a list of binary flags.
 ///
-
-#[derive(Debug)]
+/// A bitmask is effectively a list of name->value pairs, much like constants
+/// and enums, but in practice it has some differences.
+///
+/// A bitmask has, at most, 128 entries. Each entry is a number, which
+/// corresponds to a bit. So you might have `A => 0`, `B => 1`, `C => 2`, etc.
+/// When a value is fetched, it's matched against each bit and every "on" bit's
+/// label is returned (unless `BitmaskOptions::show_negatives` is set, then
+/// everything is returned).
+#[derive(Debug, Default)]
 pub struct Bitmasks {
     by_name: HashMap<String, u8>,
     by_position: HashMap<u8, String>,
 }
 
 impl Bitmasks {
-    fn new_empty() -> Self {
-        Self {
-            by_name: HashMap::new(),
-            by_position: HashMap::new(),
-        }
+    fn new() -> Self {
+        Self::default()
     }
 
     pub fn get_by_name(&self, name: impl AsRef<str>) -> Option<Integer> {
         self.by_name.get(name.as_ref()).map(|i| Integer::from(*i))
     }
 
-    pub fn get_by_value(&self, value: impl Into<Integer>, unknown_renderer: Option<(&str, IntegerRenderer)>, show_negatives: bool) -> Vec<String> {
+    pub fn get_by_value(&self, value: impl Into<Integer>, options: &BitmaskOptions) -> Vec<String> {
         let value: Integer = value.into();
-
         let mut value: u128 = value.into();
         let mut out = vec![];
 
@@ -38,20 +71,17 @@ impl Bitmasks {
             // Mask out the bit
             if value & (1 << bit) != 0 {
                 // Check if we have a definition for it
-                match (self.by_position.get(&bit), unknown_renderer) {
+                match (self.by_position.get(&bit), &options.unknown_renderer) {
                     // If the bitmask exists, use it
                     (Some(s), _) => out.push(s.to_string()),
 
                     // If it doesn't exist, check if we have a renderer
-                    (None, Some((s,r))) => {
-                        let r: IntegerRenderer = r.into();
-                        out.push(format!("{}{}", s, r.render_integer(1 << bit)))
-                    },
+                    (None, Some((s,r))) => out.push(format!("{}{}", s, r.render_integer(Integer::from(1u32 << bit)))),
 
                     // If we have no unknown renderer, skip
                     (None, None) => (),
                 };
-            } else if show_negatives {
+            } else if options.show_negatives {
                 match self.by_position.get(&bit) {
                     Some(s) => {
                         out.push(format!("~{}", s.to_string()));
@@ -60,7 +90,7 @@ impl Bitmasks {
                 }
             }
 
-            if !show_negatives {
+            if !options.show_negatives {
                 // Turn off the bit and check if we're done
                 // (this is just for a bit of efficiency if we aren't displaying negatives)
                 value = value & !(1 << bit);
@@ -88,7 +118,7 @@ impl DataTrait for Bitmasks {
     /// Load the data from the type that was serialized.
     fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
         // Convert to String->Integer
-        let mut out = Self::new_empty();
+        let mut out = Self::new();
         for (name, value) in data {
             // Get the integer
             let position = Integer::from_str(&value).map_err(|e| {
@@ -165,6 +195,23 @@ impl DataTrait for Bitmasks {
     }
 }
 
+impl Lookupable for Bitmasks {
+    type LookupBy = Integer;
+    type LookupResult = Vec<String>;
+    type LookupOptions = Option<BitmaskOptions>;
+
+    /// Find a specific value in an enum based on an [`Integer`].
+    ///
+    /// Empty list means no value was found, an `Err` is returned if the name does
+    /// not exist.
+    fn lookup_options(&self, value: impl Into<Integer>, options: Option<BitmaskOptions>) -> Vec<String> {
+        match options {
+            Some(o) => self.get_by_value(value, &o),
+            None => self.get_by_value(value, &BitmaskOptions::default()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,20 +235,20 @@ mod tests {
         assert_eq!(None, bitmasks.get_by_name("TEST5"));
 
         // Test the more complicated way
-        let flags = bitmasks.get_by_value(1u32, None, false);
+        let flags = bitmasks.get_by_value(1, &BitmaskOptions::new(None, false));
         assert_eq!(vec!["TEST1".to_string()], flags);
 
         // Test 0101 => 5
-        let flags = bitmasks.get_by_value(5u32, None, false);
+        let flags = bitmasks.get_by_value(5, &BitmaskOptions::new(None, false));
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string()], flags);
 
         // Test 0111 => 7 - no unknown_renderer set
-        let flags = bitmasks.get_by_value(7u32, None, false);
+        let flags = bitmasks.get_by_value(7, &BitmaskOptions::new(None, false));
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string()], flags);
 
         // Test 0111 => 7 - unknown_renderer set
-        let renderer = ("Unknown_", HexFormatter::new(false, true, false).into());
-        let flags = bitmasks.get_by_value(7u32, Some(renderer), false);
+        let renderer: (String, IntegerRenderer) = ("Unknown_".to_string(), HexFormatter::new(false, true, false).into());
+        let flags = bitmasks.get_by_value(7, &BitmaskOptions::new(Some(renderer), false));
         assert_eq!(vec!["TEST1".to_string(), "Unknown_0x2".to_string(), "TEST2".to_string()], flags);
 
         // Missing entries fail
@@ -345,11 +392,11 @@ TEST3: 5";
         let bitmasks: Bitmasks = Bitmasks::load_from_csv_string("TEST0,0\nTEST1,1\nTEST2,2\nTEST3,3\n")?;
 
         // Test the simple way
-        let mut out = bitmasks.get_by_value(7, None, false);
+        let mut out = bitmasks.get_by_value(7, &BitmaskOptions::new(None, false));
         out.sort();
         assert_eq!(vec!["TEST0", "TEST1", "TEST2"], out);
 
-        let mut out = bitmasks.get_by_value(7, None, true);
+        let mut out = bitmasks.get_by_value(7, &BitmaskOptions::new(None, true));
         out.sort();
         assert_eq!(vec!["TEST0", "TEST1", "TEST2", "~TEST3"], out);
 

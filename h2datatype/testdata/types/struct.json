@@ -1,41 +1,32 @@
 {
-  "field": {
-    "H2Struct": {
-      "fields": [
-        [
-          "field1",
-          {
-            "field": {
-              "H2Integer": {
-                "reader": {
-                  "U32": "Little"
-                },
-                "renderer": {
-                  "Default": {}
-                }
-              }
+  "H2Struct": {
+    "fields": [
+      [
+        "a",
+        {
+          "H2Integer": {
+            "reader": {
+              "U32": "Little"
             },
-            "alignment": "None"
+            "renderer": {
+              "Default": {}
+            }
           }
-        ],
-        [
-          "field2",
-          {
-            "field": {
-              "H2Integer": {
-                "reader": {
-                  "U32": "Little"
-                },
-                "renderer": {
-                  "Default": {}
-                }
-              }
+        }
+      ],
+      [
+        "b",
+        {
+          "H2Integer": {
+            "reader": {
+              "U32": "Little"
             },
-            "alignment": "None"
+            "renderer": {
+              "Default": {}
+            }
           }
-        ]
+        }
       ]
-    }
-  },
-  "alignment": "None"
+    ]
+  }
 }

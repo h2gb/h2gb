@@ -4,7 +4,7 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
 
-use crate::data::DataTrait;
+use crate::data::traits::{DataTrait, Lookupable};
 
 /// An enumeration - ie, a list of numbered values / options.
 ///
@@ -48,7 +48,7 @@ use crate::data::DataTrait;
 /// of the constant) are strings, which are parsed into the best fitting
 /// `Integer`. We also support prefixes (like `0x` for hex, `0o` for octal,
 /// etc).
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Enums {
     by_name: HashMap<String, Integer>,
     by_value: HashMap<Integer, Vec<String>>,
@@ -58,12 +58,8 @@ pub struct Enums {
 }
 
 impl Enums {
-    fn new_empty() -> Self {
-        Self {
-            by_name: HashMap::new(),
-            by_value: HashMap::new(),
-            last_value_added: None,
-        }
+    fn new() -> Self {
+        Self::default()
     }
 
     /// Retrieve the next automatic value, but does NOT update it
@@ -77,7 +73,7 @@ impl Enums {
                 None => bail!("Overflow"),
             },
             // If there's no previous value, start at 0
-            None  => Ok(Integer::from(0u32)),
+            None  => Ok(0.into()),
         }
     }
 
@@ -107,7 +103,7 @@ impl DataTrait for Enums {
     /// Load the data from the type that was serialized.
     fn load(data: &Self::SerializedType) -> SimpleResult<Self> {
         // Convert to String->Integer
-        let mut out = Self::new_empty();
+        let mut out = Self::new();
         for (name, value) in data {
             // Get the integer
             let value: Integer = value.parse().map_err(|e| SimpleError::new(format!("Couldn't parse integer: {:?}", e)))?;
@@ -151,7 +147,7 @@ impl DataTrait for Enums {
                         },
 
                         // If we did not, use 0
-                        None => Integer::from(0u32),
+                        None => 0.into(),
                     }
                 }
             };
@@ -191,6 +187,21 @@ impl DataTrait for Enums {
         Ok(out)
     }
 }
+
+impl Lookupable for Enums {
+    type LookupBy = Integer;
+    type LookupResult = Vec<String>;
+    type LookupOptions = ();
+
+    /// Find a specific value in an enum based on an [`Integer`].
+    ///
+    /// Empty list means no value was found, an `Err` is returned if the name does
+    /// not exist.
+    fn lookup_options(&self, value: impl Into<Integer>, _options: ()) -> Vec<String> {
+        self.get_by_value(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,7 +248,7 @@ mod tests {
         assert_eq!(Some(&Integer::from(1u32)), enums.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(1i32)), enums.get_by_name("TEST3"));
 
-        let mut names = enums.get_by_value(1u32);
+        let mut names = enums.get_by_value(1);
         names.sort();
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string(), "TEST3".to_string()], names);
 

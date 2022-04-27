@@ -442,7 +442,7 @@ impl H2Buffer {
 
     pub fn peek(&self, abstract_type: &H2Type, offset: usize, data: &Data) -> SimpleResult<ResolvedType> {
         let offset = Context::new_at(&self.data, offset);
-        abstract_type.resolve(offset, None, data)
+        abstract_type.as_trait(data)?.resolve(offset, None, data)
     }
 }
 

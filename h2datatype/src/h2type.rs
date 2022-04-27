@@ -1,11 +1,8 @@
 use serde::{Serialize, Deserialize};
 
-use simple_error::SimpleResult;
-use std::ops::Range;
+use simple_error::{SimpleResult, bail};
 
-use generic_number::{Context, Integer, Float, Character};
-
-use crate::{H2TypeTrait, Data, ResolvedType};
+use crate::{H2TypeTrait, Data};
 use crate::simple::*;
 use crate::simple::network::*;
 use crate::simple::numeric::*;
@@ -22,6 +19,9 @@ use crate::composite::*;
 /// they have to read the object and iterate every time they're called. If you
 /// call `resolve()`, a static version will be created with the fields pre-
 /// calculated.
+///
+/// A special `H2Type` variant - [`H2Type::Ref`] - references the [`Data`]
+/// repository and points to a different named type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum H2Type {
     // Simple
@@ -52,11 +52,13 @@ pub enum H2Type {
     H2Array(H2Array),
     H2Struct(H2Struct),
 
+    // Reference to a type in [`Data`] - (namespace, name)
+    Ref((Option<String>, String)),
 }
 
 impl H2Type {
-    fn field_type(&self) -> &dyn H2TypeTrait {
-        match self {
+    pub fn as_trait<'a>(&'a self, data: &'a Data) -> SimpleResult<&'a dyn H2TypeTrait> {
+        Ok(match self {
             // Simple
             H2Type::Rgb(t)       => t,
             H2Type::H2Bitmask(t) => t,
@@ -83,93 +85,100 @@ impl H2Type {
             H2Type::H2String(t)  => t,
             H2Type::NTString(t)  => t,
             H2Type::LPString(t)  => t,
+
+            // Reference
+            H2Type::Ref((namespace, name)) => {
+                // TODO: How do I prevent infinite recursion here?
+                data.types.get(namespace.as_deref(), name)?.as_trait(data)?
+            },
+        })
+    }
+
+    pub fn new_ref_unchecked(namespace: Option<String>, name: impl Into<String>) -> Self {
+        Self::Ref((namespace, name.into()))
+    }
+
+    pub fn new_ref(namespace: Option<String>, name: impl Into<String>, data: &Data) -> SimpleResult<Self> {
+        // Sanity check
+        let name: String = name.into();
+        if !data.types.contains(namespace.as_deref(), &name)? {
+            bail!("No such type when creating a reference: {:?}::{}", &namespace, &name);
         }
+
+        Ok(Self::new_ref_unchecked(namespace, name))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use simple_error::SimpleResult;
+    use pretty_assertions::assert_eq;
+
+    use crate::Data;
+
+    use generic_number::*;
+
+    #[test]
+    fn test_named_type_reference() -> SimpleResult<()> {
+        let mut d = Data::new();
+
+        // Load a test type
+        d.types.load_datum(
+            Some("Namespace".to_string()),
+            "TestType",
+            H2Integer::new(
+                IntegerReader::U32(Endian::Little),
+                DefaultFormatter::new(),
+            )
+        )?;
+
+        // Check the sanity checks
+        assert!(H2Type::new_ref(Some("NoSuchNamespace".to_string()), "TestType", &d).is_err());
+        assert!(H2Type::new_ref(Some("Namespace".to_string()), "NoSuchType", &d).is_err());
+
+        // Create a struct using reference fields
+        let t: H2Type = H2Struct::new(vec![
+            (
+                "field1".to_string(),
+                H2Type::new_ref(Some("Namespace".to_string()), "TestType", &d)?.into(),
+            ),
+            (
+                "field2".to_string(),
+                H2Type::new_ref(Some("Namespace".to_string()), "TestType", &d)?.into(),
+            ),
+        ])?.into();
+
+        // We can't equate types, but we know it it's a struct with two U32 LE
+        // fields
+        let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
+        let resolved = t.as_trait(&d)?.resolve(Context::new(&data), None, &d)?;
+
+        assert_eq!(2, resolved.children.len());
+        assert_eq!(Integer::from(0x04030201u32), resolved.children.get(0).unwrap().as_integer.unwrap());
+        assert_eq!(Integer::from(0xddccbbaau32), resolved.children.get(1).unwrap().as_integer.unwrap());
+
+        Ok(())
     }
 
-    /// Get the size of just the field - no alignment included.
-    ///
-    /// Note that if the type has children (such as a
-    /// [`crate::composite::H2Array`], the alignment on THAT is
-    /// included since that's part of the actual object.
-    pub fn base_size(&self, context: Context) -> SimpleResult<usize> {
-        self.field_type().base_size(context)
-    }
+    #[test]
+    fn test_as_trait_failed_reference() -> SimpleResult<()> {
+        // Create a struct with a bad reference
+        let t: H2Type = H2Struct::new(vec![
+            (
+                "field1".to_string(),
+                H2Type::new_ref_unchecked(Some("Namespace".to_string()), "TestType").into(),
+            ),
+        ])?.into();
 
-    /// Get the size of the field, including the alignment.
-    pub fn aligned_size(&self, context: Context) -> SimpleResult<usize> {
-        self.field_type().aligned_size(context)
-    }
+        // Create some meaningless data
+        let data = b"\x01\x02\x03\x04\xaa\xbb\xcc\xdd".to_vec();
 
-    /// Get the [`Range<usize>`] that the type will cover, starting at the
-    /// given [`Context`], if it can be known, without adding padding.
-    pub fn base_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().base_range(context)
-    }
+        // We can resolve the type to a trait, since nothing is wrong with the
+        // struct
+        assert!(t.as_trait(&Data::default())?.resolve(Context::new(&data), None, &Data::default()).is_err());
 
-    /// Get the [`Range<usize>`] that the type will cover, with padding.
-    pub fn aligned_range(&self, context: Context) -> SimpleResult<Range<usize>> {
-        self.field_type().aligned_range(context)
-    }
-
-    /// Get *related* nodes - ie, other fields that a pointer points to
-    pub fn related(&self, context: Context) -> SimpleResult<Vec<(usize, H2Type)>> {
-        self.field_type().related(context)
-    }
-
-    /// Get the types that make up the given type.
-    ///
-    /// Some types don't have children, they are essentially leaf notes. Others
-    /// (such as [`H2Array`] and
-    /// [`NTString`]) do.
-    pub fn children(&self, context: Context) -> SimpleResult<Vec<(Option<String>, H2Type)>> {
-        self.field_type().children(context)
-    }
-
-    /// Resolve this type into a concrete type.
-    ///
-    /// Once a type is resolved, the size, range, data, string value, and so on
-    /// are "written in stone", so to speak, which means they no longer need to
-    /// be calculated.
-    pub fn resolve(&self, context: Context, name: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
-        self.field_type().resolve(context, name, data)
-    }
-
-    /// Get a user-consumeable string
-    pub fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
-        self.field_type().to_display(context, data)
-    }
-
-    /// Can this value represent a [`String`]?
-    pub fn can_be_string(&self) -> bool {
-        self.field_type().can_be_string()
-    }
-
-    /// Try to convert to a [`String`].
-    pub fn to_string(&self, context: Context, data: &Data) -> SimpleResult<String> {
-        self.field_type().to_string(context, data)
-    }
-
-    pub fn can_be_integer(&self) -> bool {
-        self.field_type().can_be_integer()
-    }
-
-    pub fn to_integer(&self, context: Context) -> SimpleResult<Integer> {
-        self.field_type().to_integer(context)
-    }
-
-    pub fn can_be_float(&self) -> bool {
-        self.field_type().can_be_float()
-    }
-
-    pub fn to_float(&self, context: Context) -> SimpleResult<Float> {
-        self.field_type().to_float(context)
-    }
-
-    pub fn can_be_character(&self) -> bool {
-        self.field_type().can_be_character()
-    }
-
-    pub fn to_character(&self, context: Context) -> SimpleResult<Character> {
-        self.field_type().to_character(context)
+        Ok(())
     }
 }

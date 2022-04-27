@@ -50,8 +50,8 @@ impl H2TypeTrait for H2Struct {
     fn to_display(&self, context: Context, data: &Data) -> SimpleResult<String> {
         // Because the collect() expects a result, this will end and bubble
         // up errors automatically!
-        let strings: Vec<String> = self.children_with_range(context)?.iter().map(|(range, name, child)| {
-            Ok(format!("{}: {}", name.clone().unwrap_or("<name unknown>".to_string()), child.to_display(context.at(range.start), data)?))
+        let strings: Vec<String> = self.children_with_range(context, data)?.iter().map(|(range, name, child)| {
+            Ok(format!("{}: {}", name.clone().unwrap_or("<name unknown>".to_string()), child.as_trait(data)?.to_display(context.at(range.start), data)?))
         }).collect::<SimpleResult<Vec<String>>>()?;
 
         Ok(format!("{{ {} }}", strings.join(", ")))
@@ -113,10 +113,10 @@ mod tests {
 
         // Use real data
         let context = Context::new(&data);
-        assert_eq!(15, t.base_size(context)?);
-        assert_eq!(15, t.aligned_size(context)?);
-        assert_eq!(0..15, t.base_range(context)?);
-        assert_eq!(0..15, t.aligned_range(context)?);
+        assert_eq!(15, t.base_size(context, &Data::default())?);
+        assert_eq!(15, t.aligned_size(context, &Data::default())?);
+        assert_eq!(0..15, t.base_range(context, &Data::default())?);
+        assert_eq!(0..15, t.aligned_range(context, &Data::default())?);
         assert_eq!("{ field_u32: 0x00010203, field_u16: 0x0001, field_u8: 0o17, field_u32_little: 202182159 }", t.to_display(context, &Data::default())?);
         assert_eq!(0, t.related(context)?.len());
         assert_eq!(4, t.children(context)?.len());
@@ -191,10 +191,10 @@ mod tests {
 
         // Start at 3 to test offsets and alignment
         let context = Context::new_at(&data, 3);
-        assert_eq!(20, t.base_size(context)?);
-        assert_eq!(20, t.aligned_size(context)?);
-        assert_eq!(3..23, t.base_range(context)?);
-        assert_eq!(3..23, t.aligned_range(context)?);
+        assert_eq!(20, t.base_size(context, &Data::default())?);
+        assert_eq!(20, t.aligned_size(context, &Data::default())?);
+        assert_eq!(3..23, t.base_range(context, &Data::default())?);
+        assert_eq!(3..23, t.aligned_range(context, &Data::default())?);
         assert_eq!("{ hex: 0x0001, struct: { A: 0x41, B: 0x42, C: 0x4343, char_array: [ 'a', 'b', 'c', 'd', 'e' ] }, ipv4: 127.0.0.1 }", t.to_display(context, &Data::default())?);
         assert_eq!(0, t.related(context)?.len());
         assert_eq!(3, t.children(context)?.len());

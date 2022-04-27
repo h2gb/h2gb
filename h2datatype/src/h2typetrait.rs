@@ -35,8 +35,8 @@ pub trait H2TypeTrait {
     ///
     /// Types without children - in general, [`crate::simple`]s - must also
     /// implement this. Without children, we can't tell.
-    fn base_size(&self, context: Context) -> SimpleResult<usize> {
-        let children = self.children_with_range(context)?;
+    fn base_size(&self, context: Context, data: &Data) -> SimpleResult<usize> {
+        let children = self.children_with_range(context, data)?;
 
         let first_range = match children.first() {
             Some((r, _, _)) => r,
@@ -55,8 +55,8 @@ pub trait H2TypeTrait {
     /// Get the aligned size.
     ///
     /// The default implementation is very likely fine for this.
-    fn aligned_size(&self, context: Context) -> SimpleResult<usize> {
-        let range = self.aligned_range(context)?;
+    fn aligned_size(&self, context: Context, data: &Data) -> SimpleResult<usize> {
+        let range = self.aligned_range(context, data)?;
 
         Ok(range.end - range.start)
     }
@@ -64,10 +64,10 @@ pub trait H2TypeTrait {
     /// Get the address range, with no alignment.
     ///
     /// The default implementation is very likely what you want.
-    fn base_range(&self, context: Context) -> SimpleResult<Range<usize>> {
+    fn base_range(&self, context: Context, data: &Data) -> SimpleResult<Range<usize>> {
         // Get the start and end
         let start = context.position();
-        let end   = start + self.base_size(context)?;
+        let end   = start + self.base_size(context, data)?;
 
         Ok(start..end)
     }
@@ -75,10 +75,10 @@ pub trait H2TypeTrait {
     /// Get the address range, aligned based on the field's alignment.
     ///
     /// The default implementation is very likely what you want.
-    fn aligned_range(&self, context: Context) -> SimpleResult<Range<usize>> {
+    fn aligned_range(&self, context: Context, data: &Data) -> SimpleResult<Range<usize>> {
         // Get the start and end
         let start = context.position();
-        let end   = start + self.base_size(context)?;
+        let end   = start + self.base_size(context, data)?;
 
         // Align, if needed
         match self.alignment() {
@@ -125,11 +125,11 @@ pub trait H2TypeTrait {
     /// children are consecutive, adjacent, and make up the full parent type.
     /// As long as that's the case, the default implementation will work just
     /// fine.
-    fn children_with_range(&self, context: Context) -> SimpleResult<Vec<(Range<usize>, Option<String>, H2Type)>> {
+    fn children_with_range(&self, context: Context, data: &Data) -> SimpleResult<Vec<(Range<usize>, Option<String>, H2Type)>> {
         let mut child_context = context;
 
         self.children(context)?.into_iter().map(|(name, child)| {
-            let range = child.aligned_range(child_context)?;
+            let range = child.as_trait(data)?.aligned_range(child_context, data)?;
 
             child_context = context.at(range.end);
 
@@ -157,16 +157,16 @@ pub trait H2TypeTrait {
     /// quick to use.
     fn resolve(&self, context: Context, field_name_override: Option<String>, data: &Data) -> SimpleResult<ResolvedType> {
         Ok(ResolvedType {
-            base_range: self.base_range(context)?,
-            aligned_range: self.aligned_range(context)?,
+            base_range: self.base_range(context, data)?,
+            aligned_range: self.aligned_range(context, data)?,
 
             field_name: field_name_override,
             display: self.to_display(context, data)?,
 
             // Resolve the children here and now
-            children: self.children_with_range(context)?.into_iter().map(|(range, name, child)| {
+            children: self.children_with_range(context, data)?.into_iter().map(|(range, name, child)| {
                 // Errors here will be handled by the collect
-                child.resolve(context.at(range.start), name, data)
+                child.as_trait(data)?.resolve(context.at(range.start), name, data)
             }).collect::<SimpleResult<Vec<ResolvedType>>>()?,
 
             related: self.related(context)?,

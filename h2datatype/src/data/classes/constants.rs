@@ -5,7 +5,7 @@ use simple_error::{SimpleResult, SimpleError, bail};
 
 use generic_number::Integer;
 
-use crate::data::DataTrait;
+use crate::data::traits::{DataTrait, Lookupable};
 
 /// A named collection of constants, fetched by name or value.
 ///
@@ -22,18 +22,15 @@ use crate::data::DataTrait;
 /// of the constant) are strings, which are parsed into the best fitting
 /// `Integer`. We also support prefixes (like `0x` for hex, `0o` for octal,
 /// etc).
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Constants {
     by_name: HashMap<String, Integer>,
     by_value: HashMap<Integer, Vec<String>>,
 }
 
 impl Constants {
-    fn new_empty() -> Self {
-        Self {
-            by_name: HashMap::new(),
-            by_value: HashMap::new(),
-        }
+    fn new() -> Self {
+        Self::default()
     }
 
     pub fn get_by_name(&self, name: impl AsRef<str>) -> Option<&Integer> {
@@ -62,7 +59,7 @@ impl DataTrait for Constants {
     /// Load the data from the type that was serialized.
     fn load(data: &HashMap<String, String>) -> SimpleResult<Self> {
         // Convert the data to String->Integer
-        let mut out = Self::new_empty();
+        let mut out = Self::new();
         for (name, value) in data {
             // Get the integer
             let value = Integer::from_str(&value).map_err(|e| {
@@ -127,6 +124,20 @@ impl DataTrait for Constants {
     }
 }
 
+impl Lookupable for Constants {
+    type LookupBy = Integer;
+    type LookupResult = Vec<String>;
+    type LookupOptions = ();
+
+    /// Find a specific value in an enum based on an [`Integer`].
+    ///
+    /// Empty list means no value was found, an `Err` is returned if the name does
+    /// not exist.
+    fn lookup_options(&self, value: impl Into<Integer>, _options: ()) -> Vec<String> {
+        self.get_by_value(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -174,7 +185,7 @@ mod tests {
         assert_eq!(Some(&Integer::from(1u32)), constants.get_by_name("TEST2"));
         assert_eq!(Some(&Integer::from(1i32)), constants.get_by_name("TEST3"));
 
-        let mut names = constants.get_by_value(1u32);
+        let mut names = constants.get_by_value(1);
         names.sort();
         assert_eq!(vec!["TEST1".to_string(), "TEST2".to_string(), "TEST3".to_string()], names);
 
@@ -309,4 +320,5 @@ TEST5: 256";
 
         Ok(())
     }
+
 }
