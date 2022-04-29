@@ -133,7 +133,7 @@ impl DataTrait for Bitmasks {
             // Convert it to a u8 since we don't need the full Integer
             let position: u128 = position.into();
             if position > 127 {
-                bail!("Value {} out of bitmask range");
+                bail!("Value {} out of bitmask range", position);
             }
 
             // Convert down to a u8 now that we know it's possible

@@ -41,3 +41,7 @@
 
 * Things I forget why they're here
   * Move around modules in transformation/ so the transforms are in transform/
+
+* Change bitmasks to allow or require the AND values, not numbered values
+  * I found it confusing to add a new bitmask entry
+  * Also, some stuff isn't so simple - https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#section-flags
